@@ -44,6 +44,11 @@ const EventDetail: React.FC = () => {
   const [eventDivisions, setEventDivisions] = useState<Division[]>([]);
   const [loadingEventData, setLoadingEventData] = useState(true);
 
+  // State variables for the event settings form
+  const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>(undefined);
+  const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>(undefined);
+  const [numFightAreas, setNumFightAreas] = useState<number>(1);
+
   // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
@@ -71,6 +76,10 @@ const EventDetail: React.FC = () => {
         setEvent(null);
       } else {
         setEvent(eventData);
+        // Initialize state variables from fetched event data
+        setCheckInStartTime(eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined);
+        setCheckInEndTime(eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined);
+        setNumFightAreas(eventData.num_fight_areas || 1);
       }
 
       // Fetch Athletes
@@ -124,6 +133,7 @@ const EventDetail: React.FC = () => {
           // Insert into Supabase
           supabase.from('athletes').insert(initialImportedAthletes.map(a => ({
             ...a,
+            event_id: a.eventId,
             date_of_birth: format(a.dateOfBirth, 'yyyy-MM-dd'),
             consent_date: a.consentDate.toISOString(),
             weight_attempts: JSON.stringify(a.weightAttempts),
