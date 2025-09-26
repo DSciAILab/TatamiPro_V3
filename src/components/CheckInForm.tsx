@@ -16,13 +16,14 @@ interface CheckInFormProps {
   athlete: Athlete;
   onCheckIn: (athleteId: string, registeredWeight: number, checkInStatus: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => void; // Atualizado
   isCheckInAllowed: boolean;
+  divisionMaxWeight?: number; // Novo: limite máximo de peso da divisão
 }
 
 const formSchema = z.object({
   weight: z.coerce.number().min(1, { message: 'Peso deve ser um número positivo.' }),
 });
 
-const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckInAllowed }) => {
+const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckInAllowed, divisionMaxWeight }) => {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -37,19 +38,20 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
     }
 
     const newRegisteredWeight = values.weight;
-    const athleteWeightDivision = getWeightDivision(athlete.weight); // Divisão baseada no peso de inscrição
-    const registeredWeightDivision = getWeightDivision(newRegisteredWeight); // Divisão baseada no peso atual
-
+    // A validação agora usa o divisionMaxWeight fornecido
     let newCheckInStatus: 'checked_in' | 'overweight';
 
-    // Simplificação: verifica se o peso registrado está dentro da mesma divisão de peso de inscrição
-    // Em um cenário real, as regras de peso podem ser mais complexas (ex: tolerância, etc.)
-    if (athleteWeightDivision === registeredWeightDivision) {
+    if (divisionMaxWeight !== undefined && newRegisteredWeight <= divisionMaxWeight) {
       newCheckInStatus = 'checked_in';
       showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} fez check-in com sucesso!`);
-    } else {
+    } else if (divisionMaxWeight === undefined) {
+      // Fallback se o limite de peso da divisão não for encontrado
+      showError('Não foi possível determinar o limite de peso da divisão. Check-in manual necessário.');
+      return;
+    }
+    else {
       newCheckInStatus = 'overweight';
-      showError(`Atleta ${athlete.firstName} ${athlete.lastName} está acima do peso (${newRegisteredWeight}kg) para sua divisão (${athlete.weightDivision}).`);
+      showError(`Atleta ${athlete.firstName} ${athlete.lastName} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg).`);
     }
 
     const newAttempt: WeightAttempt = {
@@ -69,14 +71,22 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
       <div className="flex items-end space-x-2">
         <div className="flex-grow">
           <Label htmlFor={`registeredWeight-${athlete.id}`} className="sr-only">Peso Registrado (kg)</Label>
-          <Input
-            id={`registeredWeight-${athlete.id}`}
-            type="number"
-            step="0.1"
-            placeholder="Peso (kg)"
-            {...register('weight')}
-            disabled={!isCheckInAllowed}
-          />
+          <div className="relative">
+            <Input
+              id={`registeredWeight-${athlete.id}`}
+              type="number"
+              step="0.1"
+              placeholder="Peso (kg)"
+              {...register('weight')}
+              disabled={!isCheckInAllowed}
+              className="pr-20" // Adiciona padding para o texto do limite
+            />
+            {divisionMaxWeight !== undefined && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                Max: {divisionMaxWeight}kg
+              </span>
+            )}
+          </div>
           {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
         </div>
         <Button type="submit" disabled={!isCheckInAllowed}>Registrar Peso</Button>
