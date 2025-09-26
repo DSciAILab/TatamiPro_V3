@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Event, Bracket, Match, Athlete, FightResultType } from '@/types/index';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserRound, CheckCircle, XCircle, Trophy } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
+import FightDetailModal from './FightDetailModal'; // Importar o novo modal
 
 interface FightListProps {
   event: Event;
@@ -17,11 +18,12 @@ interface FightListProps {
 const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
   const { divisions, athletes, brackets, isBeltGroupingEnabled } = event;
 
-  // O bracket agora é buscado diretamente pelo selectedDivisionId
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+
   const currentBracket = useMemo(() => {
     if (!brackets || !selectedDivisionId) return null;
     const bracket = brackets[selectedDivisionId];
-    // console.log('FightList: currentBracket found', bracket); // Debug log
     return bracket;
   }, [brackets, selectedDivisionId]);
 
@@ -54,104 +56,38 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
     );
   };
 
-  const handleRecordResult = (match: Match, winnerId: string, resultType: FightResultType, details?: string) => {
-    if (!currentBracket) return;
+  const handleOpenFightModal = (match: Match) => {
+    setSelectedMatch(match);
+    setIsModalOpen(true);
+  };
 
-    const loserId = (match.fighter1Id === winnerId) ? match.fighter2Id : match.fighter1Id;
+  const handleCloseFightModal = () => {
+    setSelectedMatch(null);
+    setIsModalOpen(false);
+  };
 
-    if (winnerId === 'BYE' || loserId === 'BYE') {
-      showError("Não é possível registrar resultado para lutas com BYE.");
-      return;
-    }
-    if (!winnerId || !loserId) {
-      showError("Ambos os lutadores devem estar definidos para registrar um resultado.");
-      return;
-    }
-
-    const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket)); // Deep copy
-    let matchFound = false;
-
-    // Update the current match
-    for (const round of updatedBracket.rounds) {
-      const targetMatch = round.find(m => m.id === match.id);
-      if (targetMatch) {
-        targetMatch.winnerId = winnerId;
-        targetMatch.loserId = loserId;
-        targetMatch.result = { type: resultType, winnerId, loserId, details };
-        matchFound = true;
-
-        // Advance winner to next match
-        if (targetMatch.nextMatchId) {
-          for (const nextRound of updatedBracket.rounds) {
-            const nextMatch = nextRound.find(m => m.id === targetMatch.nextMatchId);
-            if (nextMatch) {
-              if (nextMatch.prevMatchIds?.[0] === targetMatch.id) {
-                nextMatch.fighter1Id = winnerId;
-              } else if (nextMatch.prevMatchIds?.[1] === targetMatch.id) {
-                nextMatch.fighter2Id = winnerId;
-              }
-              // If both prev matches are done, and nextMatch has both fighters,
-              // its winnerId might be set if one of them was a BYE.
-              // Otherwise, it remains undefined until that match is played.
-              if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id && nextMatch.fighter2Id !== 'BYE') {
-                nextMatch.winnerId = nextMatch.fighter2Id;
-              } else if (nextMatch.fighter2Id === 'BYE' && nextMatch.fighter1Id && nextMatch.fighter1Id !== 'BYE') {
-                nextMatch.winnerId = nextMatch.fighter1Id;
-              } else if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id === 'BYE') {
-                nextMatch.winnerId = 'BYE';
-              }
-            }
-          }
-        }
-        break;
+  const handleNavigateToNextFight = (nextMatchId: string) => {
+    if (currentBracket) {
+      const nextMatch = currentBracket.rounds.flat().find(m => m.id === nextMatchId) || currentBracket.thirdPlaceMatch;
+      if (nextMatch) {
+        setSelectedMatch(nextMatch);
+      } else {
+        showError("Próxima luta não encontrada.");
+        handleCloseFightModal();
+        // Optionally navigate back to bracket view if no next fight
+        // onBackToBracket();
       }
     }
+  };
 
-    // Handle third place match losers
-    if (updatedBracket.thirdPlaceMatch && match.round === updatedBracket.rounds.length - 1) { // If it's a semi-final
-      if (match.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[0]) {
-        updatedBracket.thirdPlaceMatch.fighter1Id = loserId;
-      } else if (match.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[1]) {
-        updatedBracket.thirdPlaceMatch.fighter2Id = loserId;
-      }
-    }
-
-    if (matchFound) {
-      // Check for bracket completion and update finalists/winner
-      const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
-      if (finalRound && finalRound.length === 1 && finalRound[0].winnerId) {
-        updatedBracket.winnerId = finalRound[0].winnerId;
-        const finalMatch = finalRound[0];
-        updatedBracket.finalists = [finalMatch.fighter1Id as string, finalMatch.fighter2Id as string];
-        updatedBracket.runnerUpId = (finalMatch.fighter1Id === updatedBracket.winnerId) ? finalMatch.fighter2Id as string : finalMatch.fighter1Id as string;
-      }
-
-      if (updatedBracket.thirdPlaceMatch?.winnerId) {
-        updatedBracket.thirdPlaceWinnerId = updatedBracket.thirdPlaceMatch.winnerId;
-      }
-
-      onUpdateBracket(currentBracket.divisionId, updatedBracket);
-      showSuccess(`Resultado da luta ${match.matchNumber} registrado!`);
-    } else {
-      showError("Luta não encontrada no bracket.");
-    }
+  const handleBackToBracket = () => {
+    handleCloseFightModal();
   };
 
   if (!currentBracket || !currentBracket.rounds || currentBracket.rounds.length === 0) {
     return <p className="text-muted-foreground">Nenhum bracket gerado para esta categoria.</p>;
   }
 
-  // Flatten all matches into a single list for display and reordering
-  const allMatches = useMemo(() => {
-    const matches: Match[] = [];
-    currentBracket.rounds.forEach(round => matches.push(...round));
-    if (currentBracket.thirdPlaceMatch) {
-      matches.push(currentBracket.thirdPlaceMatch);
-    }
-    return matches;
-  }, [currentBracket]);
-
-  // For now, display matches grouped by round
   return (
     <div className="space-y-6">
       {currentBracket.rounds.map((round, roundIndex) => (
@@ -159,7 +95,11 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
           <h4 className="text-lg font-semibold">Rodada {roundIndex + 1}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {round.map(match => (
-              <Card key={match.id} className={`border-2 ${match.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}>
+              <Card
+                key={match.id}
+                className={`border-2 cursor-pointer ${match.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
+                onClick={() => handleOpenFightModal(match)}
+              >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-md">Luta {match.matchNumber} (Rodada {match.round})</CardTitle>
                 </CardHeader>
@@ -172,59 +112,20 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
                     {getFighterPhoto(match.fighter2Id)}
                     <span className="flex-1 truncate">{getFighterDisplay(match.fighter2Id)}</span>
                   </div>
-
-                  {match.winnerId && match.winnerId !== 'BYE' ? (
+                  {match.winnerId && match.winnerId !== 'BYE' && (
                     <p className="text-sm font-semibold text-green-600 mt-2">
                       Vencedor: {getFighterDisplay(match.winnerId)} ({match.result?.type})
                     </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {match.fighter1Id && match.fighter1Id !== 'BYE' && match.fighter2Id && match.fighter2Id !== 'BYE' && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter1Id as string, 'submission')}>
-                            {getFighterDisplay(match.fighter1Id).split(' ')[0]} (Finalização)
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter1Id as string, 'points')}>
-                            {getFighterDisplay(match.fighter1Id).split(' ')[0]} (Pontos)
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter1Id as string, 'decision')}>
-                            {getFighterDisplay(match.fighter1Id).split(' ')[0]} (Decisão)
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleRecordResult(match, match.fighter2Id as string, 'disqualification')}>
-                            {getFighterDisplay(match.fighter1Id).split(' ')[0]} (Desclassificação)
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleRecordResult(match, match.fighter2Id as string, 'walkover')}>
-                            {getFighterDisplay(match.fighter1Id).split(' ')[0]} (W.O.)
-                          </Button>
-
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter2Id as string, 'submission')}>
-                            {getFighterDisplay(match.fighter2Id).split(' ')[0]} (Finalização)
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter2Id as string, 'points')}>
-                            {getFighterDisplay(match.fighter2Id).split(' ')[0]} (Pontos)
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRecordResult(match, match.fighter2Id as string, 'decision')}>
-                            {getFighterDisplay(match.fighter2Id).split(' ')[0]} (Decisão)
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleRecordResult(match, match.fighter1Id as string, 'disqualification')}>
-                            {getFighterDisplay(match.fighter2Id).split(' ')[0]} (Desclassificação)
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleRecordResult(match, match.fighter1Id as string, 'walkover')}>
-                            {getFighterDisplay(match.fighter2Id).split(' ')[0]} (W.O.)
-                          </Button>
-                        </>
-                      )}
-                      {(match.fighter1Id === 'BYE' && match.fighter2Id && match.fighter2Id !== 'BYE') && (
-                        <p className="text-sm text-blue-600">
-                          {getFighterDisplay(match.fighter2Id)} avança por BYE
-                        </p>
-                      )}
-                      {(match.fighter2Id === 'BYE' && match.fighter1Id && match.fighter1Id !== 'BYE') && (
-                        <p className="text-sm text-blue-600">
-                          {getFighterDisplay(match.fighter1Id)} avança por BYE
-                        </p>
-                      )}
-                    </div>
+                  )}
+                  {(match.fighter1Id === 'BYE' && match.fighter2Id && match.fighter2Id !== 'BYE') && (
+                    <p className="text-sm text-blue-600">
+                      {getFighterDisplay(match.fighter2Id)} avança por BYE
+                    </p>
+                  )}
+                  {(match.fighter2Id === 'BYE' && match.fighter1Id && match.fighter1Id !== 'BYE') && (
+                    <p className="text-sm text-blue-600">
+                      {getFighterDisplay(match.fighter1Id)} avança por BYE
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -236,7 +137,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
       {currentBracket.thirdPlaceMatch && (
         <div className="space-y-4 mt-6">
           <h4 className="text-lg font-semibold">Luta pelo 3º Lugar</h4>
-          <Card className={`border-2 ${currentBracket.thirdPlaceMatch.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}>
+          <Card
+            className={`border-2 cursor-pointer ${currentBracket.thirdPlaceMatch.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
+            onClick={() => handleOpenFightModal(currentBracket.thirdPlaceMatch!)}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-md">Luta pelo 3º Lugar</CardTitle>
             </CardHeader>
@@ -249,49 +153,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
                 {getFighterPhoto(currentBracket.thirdPlaceMatch.fighter2Id)}
                 <span className="flex-1 truncate">{getFighterDisplay(currentBracket.thirdPlaceMatch.fighter2Id)}</span>
               </div>
-
-              {currentBracket.thirdPlaceMatch.winnerId && currentBracket.thirdPlaceMatch.winnerId !== 'BYE' ? (
+              {currentBracket.thirdPlaceMatch.winnerId && currentBracket.thirdPlaceMatch.winnerId !== 'BYE' && (
                 <p className="text-sm font-semibold text-green-600 mt-2">
                   Vencedor: {getFighterDisplay(currentBracket.thirdPlaceMatch.winnerId)} ({currentBracket.thirdPlaceMatch.result?.type})
                 </p>
-              ) : (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {currentBracket.thirdPlaceMatch.fighter1Id && currentBracket.thirdPlaceMatch.fighter1Id !== 'BYE' && currentBracket.thirdPlaceMatch.fighter2Id && currentBracket.thirdPlaceMatch.fighter2Id !== 'BYE' && (
-                    <>
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter1Id as string, 'submission')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter1Id).split(' ')[0]} (Finalização)
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter1Id as string, 'points')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter1Id).split(' ')[0]} (Pontos)
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter1Id as string, 'decision')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter1Id).split(' ')[0]} (Decisão)
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter2Id as string, 'disqualification')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter1Id).split(' ')[0]} (Desclassificação)
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter2Id as string, 'walkover')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter1Id).split(' ')[0]} (W.O.)
-                      </Button>
-
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter2Id as string, 'submission')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter2Id).split(' ')[0]} (Finalização)
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter2Id as string, 'points')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter2Id).split(' ')[0]} (Pontos)
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter2Id as string, 'decision')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter2Id).split(' ')[0]} (Decisão)
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter1Id as string, 'disqualification')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter2Id).split(' ')[0]} (Desclassificação)
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleRecordResult(currentBracket.thirdPlaceMatch!, currentBracket.thirdPlaceMatch!.fighter1Id as string, 'walkover')}>
-                        {getFighterDisplay(currentBracket.thirdPlaceMatch!.fighter2Id).split(' ')[0]} (W.O.)
-                      </Button>
-                    </>
-                  )}
-                </div>
               )}
             </CardContent>
           </Card>
@@ -316,6 +181,19 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
             )}
           </CardContent>
         </Card>
+      )}
+
+      {selectedMatch && (
+        <FightDetailModal
+          isOpen={isModalOpen}
+          onClose={handleCloseFightModal}
+          match={selectedMatch}
+          currentBracket={currentBracket}
+          allAthletes={athletes}
+          onUpdateBracket={onUpdateBracket}
+          onNavigateToNextFight={handleNavigateToNextFight}
+          onBackToBracket={handleBackToBracket}
+        />
       )}
     </div>
   );
