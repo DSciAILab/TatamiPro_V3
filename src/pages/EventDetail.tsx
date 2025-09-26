@@ -627,7 +627,7 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         <TabsContent key="admin" value="admin" className="mt-6">
-          <div className={userRole !== 'admin' ? 'hidden' : ''}>
+          <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
                 <CardTitle>Administração do Evento</CardTitle>
@@ -744,11 +744,13 @@ const EventDetail: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          {userRole !== 'admin' && <AccessDenied />}
+          <div style={{ display: userRole !== 'admin' ? 'block' : 'none' }}>
+            <AccessDenied />
+          </div>
         </TabsContent>
 
         <TabsContent key="approvals" value="approvals" className="mt-6">
-          <div className={userRole !== 'admin' ? 'hidden' : ''}>
+          <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
                 <CardTitle>Aprovações de Inscrição</CardTitle>
@@ -835,11 +837,13 @@ const EventDetail: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          {userRole !== 'admin' && <AccessDenied />}
+          <div style={{ display: userRole !== 'admin' ? 'block' : 'none' }}>
+            <AccessDenied />
+          </div>
         </TabsContent>
 
         <TabsContent key="divisions" value="divisions" className="mt-6">
-          <div className={userRole !== 'admin' ? 'hidden' : ''}>
+          <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
                 <CardTitle>Gerenciar Divisões do Evento</CardTitle>
@@ -853,7 +857,9 @@ const EventDetail: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          {userRole !== 'admin' && <AccessDenied />}
+          <div style={{ display: userRole !== 'admin' ? 'block' : 'none' }}>
+            <AccessDenied />
+          </div>
         </TabsContent>
 
         <TabsContent key="resultados" value="resultados" className="mt-6">
