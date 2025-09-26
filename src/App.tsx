@@ -11,7 +11,7 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
-import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
+import AthleteRegistrationPage from "./pages/AthleteRegistrationPage"; // Importa a nova página
 import DivisionImport from "./pages/DivisionImport";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -32,8 +32,7 @@ const App = () => (
               <Route path="/events" element={<Events />} />
               <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-              {/* Pass eventId to AthleteRegistrationForm */}
-              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm eventId={""} onRegister={() => {}} />} />
+              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationPage />} /> {/* Usa a nova página */}
               <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
               <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

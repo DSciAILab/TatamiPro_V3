@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,12 +18,11 @@ import { cn } from '@/lib/utils';
 import { Athlete, Belt, Gender } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
-import { useParams } from 'react-router-dom'; // Import useParams
 
 interface AthleteRegistrationFormProps {
   eventId: string;
   onRegister: (athlete: Athlete) => void;
-  mandatoryFieldsConfig?: Record<string, boolean>; // Nova prop para configuração de campos obrigatórios
+  mandatoryFieldsConfig?: Record<string, boolean>;
 }
 
 // Define os esquemas base para campos comuns
@@ -44,10 +43,7 @@ const schoolIdOptionalSchema = z.string().optional();
 
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
-const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ onRegister, mandatoryFieldsConfig }) => {
-  const { id: eventIdFromParams } = useParams<{ id: string }>();
-  const currentEventId = eventIdFromParams || ''; // Use eventId from params
-
+const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ eventId, onRegister, mandatoryFieldsConfig }) => {
   // Função para criar o esquema dinamicamente
   const createDynamicSchema = (config?: Record<string, boolean>) => {
     const schemaDefinition = {
@@ -103,16 +99,12 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ onReg
   });
 
   const dateOfBirth = watch('dateOfBirth');
-  const paymentProof = watch('paymentProof');
-  const photo = watch('photo');
-  const emiratesIdFront = watch('emiratesIdFront');
-  const emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     try {
-      const age = new Date().getFullYear() - values.dateOfBirth!.getFullYear(); // dateOfBirth é obrigatório
+      const age = new Date().getFullYear() - values.dateOfBirth!.getFullYear();
       const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(values.weight!); // weight é obrigatório
+      const weightDivision = getWeightDivision(values.weight!);
 
       let paymentProofUrl: string | undefined;
       if (values.paymentProof && values.paymentProof.length > 0) {
@@ -140,7 +132,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ onReg
 
       const newAthlete: Athlete = {
         id: `athlete-${Date.now()}`,
-        eventId: currentEventId, // Usar o eventId obtido dos parâmetros da URL
+        eventId: eventId,
         firstName: values.firstName!,
         lastName: values.lastName!,
         dateOfBirth: values.dateOfBirth!,
@@ -167,21 +159,18 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ onReg
         checkInStatus: 'pending',
         registeredWeight: undefined,
         weightAttempts: [],
-        attendanceStatus: 'pending', // Default attendance status
+        attendanceStatus: 'pending',
       };
 
       onRegister(newAthlete);
-      showSuccess('Inscrição enviada para aprovação!');
     } catch (error: any) {
       showError('Erro ao registrar atleta: ' + error.message);
     }
   };
 
   const isFieldMandatory = (fieldName: string) => {
-    // Campos sempre obrigatórios
     const alwaysMandatory = ['firstName', 'lastName', 'dateOfBirth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone', 'consentAccepted'];
     if (alwaysMandatory.includes(fieldName)) return true;
-    // Campos configuráveis
     return mandatoryFieldsConfig?.[fieldName] === true;
   };
 
