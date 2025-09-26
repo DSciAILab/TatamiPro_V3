@@ -10,11 +10,23 @@ export type DivisionGender = 'Masculino' | 'Feminino' | 'Ambos';
 export type DivisionBelt = Belt | 'Todas';
 export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master' | 'Indefinido';
 
+// NOVO: Interface para Divisão
+export interface Division {
+  id: string;
+  name: string;
+  minAge: number;
+  maxAge: number;
+  maxWeight: number;
+  gender: DivisionGender;
+  belt: DivisionBelt;
+  ageCategoryName: AgeCategory;
+  isEnabled: boolean;
+}
 
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
-  registrationQrCodeId?: string; // Adicionado: ID único para o QR Code de inscrição
+  registrationQrCodeId?: string; // NOVO: ID único para o QR Code da inscrição
   photoUrl?: string; // Novo: URL da foto de perfil do atleta
   firstName: string;
   lastName: string;
@@ -43,20 +55,47 @@ export interface Athlete {
   registeredWeight?: number; // Novo: Último peso registrado no check-in
   weightAttempts: WeightAttempt[]; // Novo: Log de tentativas de pesagem
   attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo: Status de presença
-  userId?: string; // Adicionado: ID do usuário Supabase, se o atleta for um usuário logado
+  // NOVO: Propriedades para registrar movimentação por excesso de peso
+  movedToDivisionId?: string;
+  moveReason?: string;
+  _division?: Division; // Adicionado para facilitar o acesso à divisão no frontend
+  seed?: number; // NOVO: Propriedade para o seed do atleta
 }
 
-export interface Division {
+export type FightResultType = 'submission' | 'points' | 'decision' | 'disqualification' | 'walkover';
+
+export interface Match {
   id: string;
-  eventId: string; // Adicionado: ID do evento ao qual a divisão pertence
-  name: string; // Nome completo da divisão, ex: "Adulto Masculino Faixa Azul Peso Pena"
-  minAge: number;
-  maxAge: number;
-  maxWeight: number;
-  gender: DivisionGender;
-  belt: DivisionBelt;
-  ageCategoryName: AgeCategory; // Nome público da categoria de idade, ex: "Adulto", "Juvenil"
-  isEnabled: boolean; // Para habilitar/desabilitar no evento
+  round: number; // 1 para a primeira rodada, 2 para a segunda, etc.
+  matchNumber: number; // Número da luta dentro da rodada (por rodada)
+  matFightNumber?: number; // NOVO: Número sequencial da luta dentro de um mat específico
+  fighter1Id: string | 'BYE' | undefined; // ID do atleta 1 ou 'BYE'
+  fighter2Id: string | 'BYE' | undefined; // ID do atleta 2 ou 'BYE'
+  winnerId?: string; // ID do vencedor
+  loserId?: string; // ID do perdedor
+  nextMatchId?: string; // ID da próxima luta para onde o vencedor avança
+  prevMatchIds?: [string | undefined, string | undefined]; // IDs das lutas anteriores que alimentam esta luta
+  result?: { // NOVO: Detalhes do resultado da luta
+    type: FightResultType;
+    winnerId: string;
+    loserId: string;
+    details?: string; // Ex: "Pontos: 6-2", "Finalização: Armlock"
+  };
+  _divisionId?: string; // NOVO: Para facilitar o acesso à divisão da luta
+  _matName?: string; // NOVO: Para facilitar o acesso ao mat da luta
+}
+
+export interface Bracket {
+  id: string; // ID único do bracket (geralmente divisionId)
+  divisionId: string;
+  rounds: Match[][]; // Array de rodadas, onde cada rodada é um array de lutas
+  thirdPlaceMatch?: Match; // Luta pelo terceiro lugar, se houver
+  bracketSize: number; // Tamanho total do bracket (próxima potência de 2)
+  participants: (Athlete | 'BYE')[]; // Lista final de participantes (incluindo BYEs) na ordem do bracket
+  finalists?: [string, string]; // IDs dos finalistas
+  winnerId?: string; // ID do campeão
+  runnerUpId?: string; // ID do vice-campeão
+  thirdPlaceWinnerId?: string; // ID do 3º lugar
 }
 
 export interface Event {
@@ -64,8 +103,24 @@ export interface Event {
   name: string;
   description: string;
   status: 'Aberto' | 'Fechado';
-  date: string; // Usar string para datas do Supabase (ISO format)
+  date: string;
+  athletes: Athlete[];
   checkInStartTime?: string; // Novo: Horário de início do check-in (ISO string)
   checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
   numFightAreas?: number; // Novo: Número de áreas de luta
+  divisions: Division[]; // Novo: Divisões configuradas para o evento
+  isAttendanceMandatoryBeforeCheckIn?: boolean; // NOVO: Se a presença é obrigatória antes do check-in
+  isWeightCheckEnabled?: boolean; // NOVO: Se a verificação de peso está habilitada no check-in
+  matAssignments?: Record<string, string[]>; // NOVO: Atribuições de categorias aos mats
+  isBeltGroupingEnabled?: boolean; // NOVO: Se o agrupamento de categorias considera a faixa
+  isOverweightAutoMoveEnabled?: boolean; // NOVO: Se a movimentação automática por excesso de peso está habilitada
+  brackets?: Record<string, Bracket>; // NOVO: Brackets gerados para cada divisão
+  matFightOrder?: Record<string, string[]>; // NOVO: Ordem sequencial das lutas por mat
+  includeThirdPlace?: boolean; // NOVO: Se a luta pelo 3º lugar está habilitada
+  isActive: boolean; // NOVO: Se o evento está ativo ou inativo
+  championPoints: number; // NOVO: Pontos para o campeão
+  runnerUpPoints: number; // NOVO: Pontos para o vice-campeão
+  thirdPlacePoints: number; // NOVO: Pontos para o terceiro lugar
+  countSingleClubCategories: boolean; // NOVO: Se categorias com apenas uma escola contam pontos
+  countWalkoverSingleFightCategories: boolean; // NOVO: Se W.O. em lutas únicas entre escolas diferentes contam pontos
 }

@@ -12,8 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index';
-import { supabase } from '@/integrations/supabase/client';
+import { Division, AgeCategory, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
 
 // Mapeamento de categoria de idade para minAge/maxAge
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
@@ -31,9 +30,9 @@ const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
 
 // Define os campos mínimos esperados no arquivo de importação para divisões
 const requiredDivisionFields = {
-  name: 'Nome da Divisão',
-  ageCategory: 'Categoria de Idade',
-  maxWeight: 'Peso Máximo',
+  name: 'Nome da Divisão', // Corresponde a Division.name
+  ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
+  maxWeight: 'Peso Máximo', // minWeight removido
   gender: 'Gênero',
   belt: 'Faixa',
 };
@@ -46,7 +45,7 @@ const importSchema = z.object({
   ageCategory: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (ageCategoryMap[lowerStr]) {
-      return str as AgeCategory;
+      return str as AgeCategory; // Retorna a string original se for uma categoria válida
     }
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -54,7 +53,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }),
-  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }),
+  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // minWeight removido
   gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
@@ -84,7 +83,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<DivisionBelt>,
-}).refine(data => true, {
+}).refine(() => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
   message: 'A validação de peso será feita na lógica de encaixe.',
   path: ['maxWeight'],
 });
@@ -98,7 +97,6 @@ interface ImportResult {
 const DivisionImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredDivisionField, string | undefined>>(() => {
@@ -114,16 +112,14 @@ const DivisionImport: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);
       setImportResults(null);
 
       Papa.parse(uploadedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
+        complete: (results: Papa.ParseResult<any>) => {
           if (results.errors.length) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
-            setFile(null);
             setCsvHeaders([]);
             setCsvData([]);
             setStep('upload');
@@ -145,7 +141,6 @@ const DivisionImport: React.FC = () => {
         },
         error: (err: any) => {
           showError('Erro ao ler o arquivo: ' + err.message);
-          setFile(null);
           setCsvHeaders([]);
           setCsvData([]);
           setStep('upload');
@@ -168,7 +163,7 @@ const DivisionImport: React.FC = () => {
     return true;
   };
 
-  const handleProcessImport = async () => {
+  const handleProcessImport = () => {
     if (!validateMapping()) {
       return;
     }
@@ -176,7 +171,7 @@ const DivisionImport: React.FC = () => {
     const successfulDivisions: Division[] = [];
     const failedImports: ImportResult[] = [];
 
-    for (const [index, row] of csvData.entries()) {
+    csvData.forEach((row, index) => {
       const rowNumber = index + 2;
       try {
         const mappedData: Record<string, any> = {};
@@ -191,24 +186,23 @@ const DivisionImport: React.FC = () => {
         if (!parsed.success) {
           const errors = parsed.error.errors.map(err => err.message).join('; ');
           failedImports.push({ row: rowNumber, data: row, reason: errors });
-          continue;
+          return;
         }
 
-        const { name, ageCategory, maxWeight, gender, belt } = parsed.data;
+        const { name, ageCategory, maxWeight, gender, belt } = parsed.data; // minWeight removido
 
         const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
         if (!ageBounds) {
           failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${ageCategory}" não reconhecida.` });
-          continue;
+          return;
         }
 
         const newDivision: Division = {
-          id: `division-${Date.now()}-${index}`, // Temporary ID, will be replaced by Supabase UUID
-          eventId: eventId!, // eventId é agora obrigatório
+          id: `division-${Date.now()}-${index}`,
           name,
           minAge: ageBounds.min,
           maxAge: ageBounds.max,
-          maxWeight,
+          maxWeight, // minWeight removido
           gender,
           belt,
           ageCategoryName: ageCategory,
@@ -218,26 +212,21 @@ const DivisionImport: React.FC = () => {
       } catch (error: any) {
         failedImports.push({ row: rowNumber, data: row, reason: error.message || 'Erro desconhecido' });
       }
-    }
+    });
 
-    // Insert successful divisions into Supabase
-    if (successfulDivisions.length > 0) {
-      const { error } = await supabase.from('divisions').insert(successfulDivisions.map(d => ({
-        ...d,
-        event_id: d.eventId,
-      })));
-
-      if (error) {
-        showError('Erro ao salvar divisões no banco de dados: ' + error.message);
-        setImportResults({
-          success: 0,
-          failed: csvData.length,
-          errors: failedImports.concat(csvData.map((row, idx) => ({ row: idx + 2, data: row, reason: 'Erro ao salvar no banco de dados.' }))),
-        });
-        setStep('results');
-        return;
+    // Load existing event data to merge divisions
+    const existingEventData = localStorage.getItem(`event_${eventId}`);
+    let currentEvent = { divisions: [] };
+    if (existingEventData) {
+      try {
+        currentEvent = JSON.parse(existingEventData);
+      } catch (e) {
+        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
     }
+
+    const updatedDivisions = [...(currentEvent.divisions || []), ...successfulDivisions];
+    localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, divisions: updatedDivisions }));
 
     setImportResults({
       success: successfulDivisions.length,

@@ -1,4 +1,6 @@
-import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
+"use client";
+
+import { Athlete, Division, AgeCategory, Belt } from '@/types/index';
 
 export const getAgeDivision = (age: number): AgeCategory => {
   if (age >= 4 && age <= 6) return "Kids 1";
@@ -91,6 +93,43 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
   return undefined;
 };
 
+// Função para encontrar a próxima divisão de peso superior para um atleta
+export const findNextHigherWeightDivision = (
+  athlete: Athlete,
+  currentDivision: Division,
+  allDivisions: Division[],
+  weighedWeight: number,
+  isBeltGroupingEnabled: boolean
+): Division | undefined => {
+  // Filtrar divisões que correspondem ao gênero e idade do atleta
+  const relevantDivisions = allDivisions.filter(div =>
+    div.isEnabled &&
+    (div.gender === 'Ambos' || div.gender === athlete.gender) &&
+    div.ageCategoryName === athlete.ageDivision &&
+    div.maxWeight > currentDivision.maxWeight // Deve ser uma categoria de peso superior
+  );
+
+  // Se o agrupamento por faixa estiver habilitado, filtrar também pela faixa
+  if (isBeltGroupingEnabled) {
+    relevantDivisions.filter(div =>
+      div.belt === 'Todas' || div.belt === athlete.belt
+    );
+  }
+
+  // Ordenar por peso máximo para encontrar a "próxima" categoria
+  relevantDivisions.sort((a, b) => a.maxWeight - b.maxWeight);
+
+  // Encontrar a menor categoria de peso superior que o atleta se encaixa com o peso atual
+  for (const div of relevantDivisions) {
+    if (weighedWeight <= div.maxWeight) {
+      return div;
+    }
+  }
+
+  return undefined;
+};
+
+
 // Função para gerar a string de ordenação/exibição
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
   if (division) {
@@ -98,4 +137,34 @@ export const getAthleteDisplayString = (athlete: Athlete, division?: Division): 
   }
   // Fallback se a divisão não for encontrada ou passada
   return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / Divisão não encontrada`;
+};
+
+// NOVO: Função para processar dados do atleta
+export const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
+  const dateOfBirth = new Date(athleteData.dateOfBirth);
+  const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+  const ageDivision = getAgeDivision(age);
+  const weightDivision = getWeightDivision(athleteData.weight);
+
+  const athleteWithCalculatedProps: Athlete = {
+    ...athleteData,
+    dateOfBirth,
+    consentDate: new Date(athleteData.consentDate),
+    age,
+    ageDivision,
+    weightDivision,
+    registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
+    checkInStatus: athleteData.checkInStatus || 'pending',
+    registeredWeight: athleteData.registeredWeight || undefined,
+    weightAttempts: athleteData.weightAttempts || [],
+    attendanceStatus: athleteData.attendanceStatus || 'pending',
+    movedToDivisionId: athleteData.movedToDivisionId || undefined,
+    moveReason: athleteData.moveReason || undefined,
+    seed: athleteData.seed || undefined,
+  };
+  
+  // Atribuir a propriedade _division
+  athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
+
+  return athleteWithCalculatedProps;
 };

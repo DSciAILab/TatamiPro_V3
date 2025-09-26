@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,174 +9,164 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Layout from '@/components/Layout';
 import { showSuccess, showError } from '@/utils/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { useSession } from '@/components/SessionContextProvider';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-
-// Esquemas de validação
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Email inválido.' }),
-  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-});
-
-const signupSchema = z.object({
-  firstName: z.string().min(2, { message: 'Nome é obrigatório.' }),
-  lastName: z.string().min(2, { message: 'Sobrenome é obrigatório.' }),
-  email: z.string().email({ message: 'Email inválido.' }),
-  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['athlete', 'coach', 'staff', 'admin'], { required_error: 'Papel é obrigatório.' }),
-});
 
 const Auth: React.FC = () => {
-  const { session, isLoading } = useSession();
-  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
-  const [loadingAuth, setLoadingAuth] = useState(false);
-
-  const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors } } = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const { register: registerSignup, handleSubmit: handleSignupSubmit, setValue: setSignupValue, watch: watchSignup, formState: { errors: signupErrors } } = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      role: 'athlete', // Default role
-    },
-  });
-
-  const selectedRole = watchSignup('role');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
+  // 'club' and 'setClub' are not directly used in MVP login logic, so they are removed.
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && session) {
-      navigate('/events'); // Redirect if already logged in
+    const userRole = localStorage.getItem('userRole');
+    if (userRole) {
+      // If already logged in, redirect to events page
+      navigate('/events');
     }
-  }, [session, isLoading, navigate]);
+  }, [navigate]);
 
-  const handleLogin = async (values: z.infer<typeof loginSchema>) => {
-    setLoadingAuth(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let loggedInUserRole: 'admin' | 'coach' | 'staff' | 'athlete' | null = null;
+    let loggedInUserName: string | null = null;
+    let loggedInUserClub: string | null = null;
 
-    if (error) {
-      showError(error.message);
+    if (isLogin) {
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        loggedInUserRole = 'admin';
+        loggedInUserName = 'Administrador';
+        loggedInUserClub = null;
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        loggedInUserRole = 'coach';
+        loggedInUserName = 'Coach';
+        loggedInUserClub = 'Gracie Barra';
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        loggedInUserRole = 'staff';
+        loggedInUserName = 'Staff';
+        loggedInUserClub = 'Alliance';
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        loggedInUserRole = 'athlete';
+        loggedInUserName = 'Atleta';
+        loggedInUserClub = 'Checkmat';
+      }
+
+      if (loggedInUserRole) {
+        showSuccess(`Login de ${loggedInUserName} realizado com sucesso!`);
+        localStorage.setItem('userRole', loggedInUserRole);
+        if (loggedInUserName) { // Ensure loggedInUserName is not null
+          localStorage.setItem('userName', loggedInUserName);
+        } else {
+          localStorage.removeItem('userName');
+        }
+        if (loggedInUserClub) {
+          localStorage.setItem('userClub', loggedInUserClub);
+        } else {
+          localStorage.removeItem('userClub');
+        }
+        navigate('/events');
+      } else {
+        showError('Credenciais ou papel inválidos. Tente as credenciais de demonstração.');
+      }
     } else {
-      showSuccess('Login realizado com sucesso!');
+      // Registro simplificado: apenas "cria" o usuário admin/coach/staff/athlete se não existir
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        showSuccess('Registro de Admin realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        showSuccess('Registro de Coach realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        showSuccess('Registro de Staff realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        showSuccess('Registro de Atleta realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      }
+      else {
+        showError('Para o MVP, apenas o registro de usuários de demonstração é suportado.');
+      }
     }
-    setLoadingAuth(false);
   };
-
-  const handleSignup = async (values: z.infer<typeof signupSchema>) => {
-    setLoadingAuth(true);
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: {
-          first_name: values.firstName,
-          last_name: values.lastName,
-          role: values.role,
-        },
-      },
-    });
-
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess('Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.');
-      setIsLogin(true); // Switch to login after successful signup
-    }
-    setLoadingAuth(false);
-  };
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
-          <p>Carregando...</p>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
       <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
-        <Card className="w-[400px] p-4">
+        <Card className="w-[350px]">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">{isLogin ? 'Entrar' : 'Registrar'}</CardTitle>
             <CardDescription>
-              {isLogin ? 'Entre na sua conta TatamiPro' : 'Crie sua conta TatamiPro'}
+              {isLogin ? 'Acesse sua conta TatamiPro' : 'Crie sua conta TatamiPro'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLogin ? (
-              <form onSubmit={handleLoginSubmit(handleLogin)} className="space-y-4">
-                <div>
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input id="login-email" type="email" {...registerLogin('email')} />
-                  {loginErrors.email && <p className="text-red-500 text-sm mt-1">{loginErrors.email.message}</p>}
+            <form onSubmit={handleAuth}>
+              <div className="grid w-full items-center gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="login-password">Senha</Label>
-                  <Input id="login-password" type="password" {...registerLogin('password')} />
-                  {loginErrors.password && <p className="text-red-500 text-sm mt-1">{loginErrors.password.message}</p>}
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Sua senha"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
-                <Button type="submit" className="w-full" disabled={loadingAuth}>
-                  {loadingAuth ? 'Entrando...' : 'Entrar'}
-                </Button>
-                <Button variant="link" className="w-full" onClick={() => setIsLogin(false)} disabled={loadingAuth}>
-                  Não tem uma conta? Registre-se
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleSignupSubmit(handleSignup)} className="space-y-4">
-                <div>
-                  <Label htmlFor="signup-firstName">Nome</Label>
-                  <Input id="signup-firstName" {...registerSignup('firstName')} />
-                  {signupErrors.firstName && <p className="text-red-500 text-sm mt-1">{signupErrors.firstName.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="signup-lastName">Sobrenome</Label>
-                  <Input id="signup-lastName" {...registerSignup('lastName')} />
-                  {signupErrors.lastName && <p className="text-red-500 text-sm mt-1">{signupErrors.lastName.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input id="signup-email" type="email" {...registerSignup('email')} />
-                  {signupErrors.email && <p className="text-red-500 text-sm mt-1">{signupErrors.email.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="signup-password">Criar Senha</Label>
-                  <Input id="signup-password" type="password" {...registerSignup('password')} />
-                  {signupErrors.password && <p className="text-red-500 text-sm mt-1">{signupErrors.password.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="signup-role">Papel</Label>
-                  <Select onValueChange={(value) => setSignupValue('role', value as 'athlete' | 'coach' | 'staff' | 'admin')} value={selectedRole}>
-                    <SelectTrigger id="signup-role">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="role">Papel</Label>
+                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                    <SelectTrigger id="role">
                       <SelectValue placeholder="Selecione seu papel" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="athlete">Atleta</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="coach">Coach</SelectItem>
                       <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="athlete">Atleta</SelectItem>
                     </SelectContent>
                   </Select>
-                  {signupErrors.role && <p className="text-red-500 text-sm mt-1">{signupErrors.role.message}</p>}
                 </div>
-                <Button type="submit" className="w-full" disabled={loadingAuth}>
-                  {loadingAuth ? 'Registrando...' : 'Registrar'}
+                <Button type="submit" className="w-full mt-4">
+                  {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
-                <Button variant="link" className="w-full" onClick={() => setIsLogin(true)} disabled={loadingAuth}>
-                  Já tem uma conta? Entrar
-                </Button>
-              </form>
-            )}
+              </div>
+            </form>
+            <div className="mt-4 text-center text-sm">
+              {isLogin ? (
+                <>
+                  Não tem uma conta?{' '}
+                  <Button variant="link" onClick={() => setIsLogin(false)} className="p-0 h-auto">
+                    Registre-se
+                  </Button>
+                </>
+              ) : (
+                <>
+                  Já tem uma conta?{' '}
+                  <Button variant="link" onClick={() => setIsLogin(true)} className="p-0 h-auto">
+                    Entrar
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="mt-6 text-center text-xs text-muted-foreground">
+              <p className="font-semibold mb-2">Credenciais de Demonstração:</p>
+              <p>Admin: admin@tatamipro.com / admin123</p>
+              <p>Coach: coach@tatamipro.com / coach123</p>
+              <p>Staff: staff@tatamipro.com / staff123</p>
+              <p>Atleta: athlete@tatamipro.com / athlete123</p>
+            </div>
           </CardContent>
         </Card>
       </div>

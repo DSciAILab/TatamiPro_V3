@@ -3,8 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { parseISO } from 'date-fns';
 import { z } from 'zod';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -115,7 +114,6 @@ interface ImportResult {
 const BatchAthleteImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => {
@@ -191,16 +189,14 @@ const BatchAthleteImport: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);
       setImportResults(null); // Reset results on new file upload
 
       Papa.parse(uploadedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
+        complete: (results: Papa.ParseResult<any>) => { // Added type annotation
           if (results.errors.length) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
-            setFile(null);
             setCsvHeaders([]);
             setCsvData([]);
             setStep('upload');
@@ -223,7 +219,6 @@ const BatchAthleteImport: React.FC = () => {
         },
         error: (err: any) => {
           showError('Erro ao ler o arquivo: ' + err.message);
-          setFile(null);
           setCsvHeaders([]);
           setCsvData([]);
           setStep('upload');

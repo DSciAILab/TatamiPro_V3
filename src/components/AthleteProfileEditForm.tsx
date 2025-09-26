@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,7 +22,7 @@ interface AthleteProfileEditFormProps {
   athlete: Athlete;
   onSave: (updatedAthlete: Athlete) => void;
   onCancel: () => void;
-  mandatoryFieldsConfig?: Record<string, boolean>;
+  mandatoryFieldsConfig?: Record<string, boolean>; // Nova prop para configuração de campos obrigatórios
 }
 
 // Define os esquemas base para campos comuns
@@ -67,6 +67,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       emiratesIdBack: config?.emiratesIdBack
         ? fileListSchema.refine(file => file.length > 0, { message: 'Foto do verso do Emirates ID é obrigatória.' })
         : fileListSchema.optional(),
+      // paymentProof is not editable via this form, so it's not included in dynamic schema for edit.
     };
 
     return z.object(schemaDefinition).refine(data => data.emiratesId || data.schoolId, {
@@ -77,29 +78,23 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
   const currentSchema = useMemo(() => createDynamicSchema(mandatoryFieldsConfig), [mandatoryFieldsConfig]);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors }, reset } = useForm<z.infer<typeof currentSchema>>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
+    defaultValues: {
+      firstName: athlete.firstName,
+      lastName: athlete.lastName,
+      dateOfBirth: athlete.dateOfBirth,
+      club: athlete.club,
+      gender: athlete.gender,
+      belt: athlete.belt,
+      weight: athlete.weight,
+      nationality: athlete.nationality,
+      email: athlete.email,
+      phone: athlete.phone,
+      emiratesId: athlete.emiratesId,
+      schoolId: athlete.schoolId,
+    },
   });
-
-  // Este efeito preenche o formulário quando um atleta é selecionado para edição.
-  useEffect(() => {
-    if (athlete) {
-      reset({
-        firstName: athlete.firstName,
-        lastName: athlete.lastName,
-        dateOfBirth: athlete.dateOfBirth,
-        club: athlete.club,
-        gender: athlete.gender,
-        belt: athlete.belt,
-        weight: athlete.weight,
-        nationality: athlete.nationality,
-        email: athlete.email,
-        phone: athlete.phone,
-        emiratesId: athlete.emiratesId,
-        schoolId: athlete.schoolId,
-      });
-    }
-  }, [athlete, reset]);
 
   const dateOfBirth = watch('dateOfBirth');
   const currentGender = watch('gender');
@@ -116,6 +111,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       let newRegistrationStatus = athlete.registrationStatus;
 
+      // Check if any significant field has changed that would require re-approval
       const hasChangesRequiringReapproval =
         values.firstName !== athlete.firstName ||
         values.lastName !== athlete.lastName ||
@@ -174,13 +170,15 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   };
 
   const isFieldMandatory = (fieldName: string) => {
+    // Campos sempre obrigatórios
     const alwaysMandatory = ['firstName', 'lastName', 'dateOfBirth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone'];
     if (alwaysMandatory.includes(fieldName)) return true;
+    // Campos configuráveis
     return mandatoryFieldsConfig?.[fieldName] === true;
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md mb-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md">
       <h3 className="text-xl font-semibold mb-4">Editar Perfil do Atleta</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
