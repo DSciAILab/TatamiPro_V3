@@ -17,7 +17,6 @@ import GenerateBrackets from "./pages/GenerateBrackets";
 import ManageFights from "./pages/ManageFights";
 import FightDetail from "./pages/FightDetail"; // Importar a nova página FightDetail
 import PrintBrackets from "./pages/PrintBrackets"; // NOVO: Importar a página de impressão
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

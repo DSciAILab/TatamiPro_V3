@@ -74,7 +74,7 @@ export interface Match {
   winnerId?: string; // ID do vencedor
   loserId?: string; // ID do perdedor
   nextMatchId?: string; // ID da próxima luta para onde o vencedor avança
-  prevMatchIds?: [string, string]; // IDs das lutas anteriores que alimentam esta luta
+  prevMatchIds?: [string | undefined, string | undefined]; // IDs das lutas anteriores que alimentam esta luta
   result?: { // NOVO: Detalhes do resultado da luta
     type: FightResultType;
     winnerId: string;

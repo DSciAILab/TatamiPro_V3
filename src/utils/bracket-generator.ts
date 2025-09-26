@@ -1,6 +1,6 @@
 "use client";
 
-import { Athlete, Division, Match, Bracket, DivisionGender, DivisionBelt, AgeCategory } from '@/types/index';
+import { Athlete, Division, Match, Bracket } from '@/types/index';
 
 // Helper para obter a próxima potência de 2
 const getNextPowerOf2 = (n: number): number => {

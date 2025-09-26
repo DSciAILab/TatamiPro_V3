@@ -12,7 +12,7 @@ import {
 import { useLanguage } from "@/context/language-context"; // Importar o hook de idioma
 
 export function LanguageToggle() {
-  const { language, setLanguage } = useLanguage(); // 'language' is used in the onClick handlers
+  const { setLanguage } = useLanguage();
 
   return (
     <DropdownMenu>

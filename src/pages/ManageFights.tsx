@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Swords } from 'lucide-react';
-import { Event, Division, Bracket, Match } from '@/types/index';
+import { Event, Bracket } from '@/types/index';
 import { showError } from '@/utils/toast';
 import MatCategoryList from '@/components/MatCategoryList'; // Novo componente
 import FightList from '@/components/FightList'; // Novo componente

@@ -2,7 +2,6 @@
 
 import React, { useMemo } from 'react';
 import { Event, DivisionGender, AgeCategory, DivisionBelt } from '@/types/index';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

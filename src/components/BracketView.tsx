@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { Bracket, Athlete, Division } from '@/types/index';
 import BracketMatchCard from './BracketMatchCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// import { cn } from '@/lib/utils'; // Removed
 
 interface BracketViewProps {
   bracket: Bracket;
@@ -49,7 +48,6 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   const baseVerticalGap = 40; // Espaçamento vertical entre as lutas na primeira rodada (AUMENTADO)
   const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
   const cardWidth = 375; // Largura máxima de um BracketMatchCard (250 * 1.5 = 375)
-  // const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8') - REMOVIDO
 
   // Calcula as posições Y (top) e os margin-tops para cada luta
   const matchMarginTops = useMemo(() => {
@@ -82,7 +80,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     });
 
     // 2. Calcular o margin-top para cada luta com base nas posições Y absolutas
-    bracket.rounds.forEach((round, roundIndex) => {
+    bracket.rounds.forEach((round) => {
       round.forEach((match, matchIndex) => {
         const currentYTop = yTops.get(match.id)!;
         let calculatedMarginTop = 0;
@@ -101,7 +99,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     });
 
     return marginTops;
-  }, [bracket]); // Recalcular se o bracket mudar
+  }, [bracket, cardHeight, matchFullHeight]);
 
   return (
     <Card className="p-4">
@@ -120,7 +118,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                 >
                   <h3 className="text-lg font-semibold mb-4">{getRoundName(roundIndex, totalRounds)}</h3>
                   <div className="flex flex-col">
-                    {round.map((match, matchIndex) => (
+                    {round.map((match) => (
                       <div
                         key={match.id}
                         style={{
@@ -153,7 +151,6 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             <BracketMatchCard
               match={bracket.thirdPlaceMatch}
               athletesMap={athletesMap}
-              // isThirdPlace // Removed
               bracketWinnerId={bracket.winnerId}
               bracketRunnerUpId={bracket.runnerUpId}
               bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}

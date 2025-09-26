@@ -6,10 +6,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
-import { Athlete, Division, Event, Bracket } from '@/types/index';
+import { Division, Event, Bracket } from '@/types/index';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
 import BracketView from '@/components/BracketView';
 import { ArrowLeft, PlayCircle, Printer } from 'lucide-react'; // Adicionar Printer
@@ -20,7 +19,6 @@ const GenerateBrackets: React.FC = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | 'all'>('all');
-  // const [includeThirdPlace, setIncludeThirdPlace] = useState(false); // REMOVIDO
   const [generatedBrackets, setGeneratedBrackets] = useState<Record<string, Bracket>>({});
 
   useEffect(() => {
@@ -119,7 +117,7 @@ const GenerateBrackets: React.FC = () => {
     }
   };
 
-  if (!event) {
+  if (!event || !eventId) {
     return (
       <Layout>
         <div className="text-center text-xl mt-8">Carregando evento...</div>
@@ -184,7 +182,7 @@ const GenerateBrackets: React.FC = () => {
                 bracket={bracket}
                 allAthletes={event.athletes}
                 division={division}
-                eventId={eventId} // Passar eventId
+                eventId={eventId}
               />
             );
           })}

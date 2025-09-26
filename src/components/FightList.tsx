@@ -1,11 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { Event, Bracket, Match, Athlete, FightResultType } from '@/types/index';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { UserRound, CheckCircle, XCircle, Trophy } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
+import React, { useMemo } from 'react';
+import { Event, Bracket, Match } from '@/types/index';
+import { UserRound } from 'lucide-react';
 import { Link } from 'react-router-dom'; // Importar Link
 import { cn } from '@/lib/utils'; // Importar cn
 
@@ -29,7 +26,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId }) => {
   const { athletes, brackets, matFightOrder } = event;
 
   const allMatchesMap = useMemo(() => {
@@ -48,13 +45,6 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
   const athletesMap = useMemo(() => {
     return new Map(athletes.map(athlete => [athlete.id, athlete]));
   }, [athletes]);
-
-  const getFighterDisplay = (fighterId: string | 'BYE' | undefined) => {
-    if (fighterId === 'BYE') return 'BYE';
-    if (!fighterId) return 'Aguardando';
-    const fighter = athletesMap.get(fighterId);
-    return fighter ? `${fighter.firstName} ${fighter.lastName}` : 'Atleta Desconhecido';
-  };
 
   const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
     if (fighterId === 'BYE' || !fighterId) {

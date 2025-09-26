@@ -150,8 +150,8 @@ const FightDetail: React.FC = () => {
 
     const loserId = (currentMatch.fighter1Id === selectedWinnerId) ? currentMatch.fighter2Id : currentMatch.fighter1Id;
 
-    if (selectedWinnerId === 'BYE' || loserId === 'BYE') {
-      showError("Não é possível registrar resultado para lutas com BYE.");
+    if (selectedWinnerId === 'BYE' || loserId === 'BYE' || !loserId) {
+      showError("Não é possível registrar resultado para lutas com BYE ou sem perdedor definido.");
       return;
     }
     if (!currentMatch.fighter1Id || !currentMatch.fighter2Id) {

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
+import { Division, AgeCategory, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
 
 // Mapeamento de categoria de idade para minAge/maxAge
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
@@ -83,7 +83,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<DivisionBelt>,
-}).refine(data => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
+}).refine(() => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
   message: 'A validação de peso será feita na lógica de encaixe.',
   path: ['maxWeight'],
 });
@@ -97,7 +97,6 @@ interface ImportResult {
 const DivisionImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredDivisionField, string | undefined>>(() => {
@@ -113,16 +112,14 @@ const DivisionImport: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);
       setImportResults(null);
 
       Papa.parse(uploadedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
+        complete: (results: Papa.ParseResult<any>) => {
           if (results.errors.length) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
-            setFile(null);
             setCsvHeaders([]);
             setCsvData([]);
             setStep('upload');
@@ -144,7 +141,6 @@ const DivisionImport: React.FC = () => {
         },
         error: (err: any) => {
           showError('Erro ao ler o arquivo: ' + err.message);
-          setFile(null);
           setCsvHeaders([]);
           setCsvData([]);
           setStep('upload');

@@ -119,11 +119,6 @@ const AthleteRegistrationForm: React.FC = () => {
   });
 
   const dateOfBirth = watch('dateOfBirth');
-  // These are used in onSubmit, so keeping them as watch variables is appropriate.
-  const _paymentProof = watch('paymentProof');
-  const _photo = watch('photo');
-  const _emiratesIdFront = watch('emiratesIdFront');
-  const _emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     if (!eventId) {

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Athlete, Event } from '@/types/index';
 import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { findAthleteDivision } from '@/utils/athlete-utils';
+import { findAthleteDivision, getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 
 interface AttendanceManagementProps {
@@ -75,7 +75,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   const totalAbsent = athletes.filter(a => a.attendanceStatus === 'absent').length;
   const totalPrivateTransportation = athletes.filter(a => a.attendanceStatus === 'private_transportation').length;
   const totalMissing = athletes.filter(a => a.attendanceStatus === 'pending').length;
-  const totalApprovedAthletesCount = athletes.length; // Renamed to avoid TS6133
 
   if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
     return (

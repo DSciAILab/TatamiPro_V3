@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { Event, Division, Athlete, Bracket } from '@/types/index';
+import { Event } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';

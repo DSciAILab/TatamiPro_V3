@@ -2,9 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { Bracket, Athlete, Division, Match } from '@/types/index'; // Adicionado Match
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { UserRound, CheckCircle, Trophy } from 'lucide-react';
+import { UserRound, Trophy } from 'lucide-react';
 
 interface PrintableBracketProps {
   bracket: Bracket;
@@ -68,7 +67,7 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
     );
   };
 
-  const renderMatch = (match: Match, isFinal: boolean = false, isThirdPlace: boolean = false) => {
+  const renderMatch = (match: Match, isFinal: boolean = false) => {
     const fighter1IsWinner = match.winnerId === match.fighter1Id;
     const fighter2IsWinner = match.winnerId === match.fighter2Id;
 
@@ -110,7 +109,7 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
       {bracket.thirdPlaceMatch && (
         <div className="mt-8 text-center">
           <h2 className="text-sm font-semibold mb-2">Luta pelo 3º Lugar</h2>
-          {renderMatch(bracket.thirdPlaceMatch, false, true)}
+          {renderMatch(bracket.thirdPlaceMatch, false)}
         </div>
       )}
     </div>
