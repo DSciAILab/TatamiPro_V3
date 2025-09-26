@@ -28,17 +28,19 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     if (existingEventData) {
       try {
         const parsedEvent: Event = JSON.parse(existingEventData);
-        // Filtrar atletas para mostrar apenas os do clube do usuário e aprovados
-        const clubAthletes = parsedEvent.athletes.filter(
-          a => a.club === userClub && a.registrationStatus === 'approved'
-        );
-        setAthletes(clubAthletes);
+        // Filtrar atletas para mostrar apenas os do clube do usuário e aprovados, ou todos se for admin
+        const filteredAthletes = userRole === 'admin'
+          ? parsedEvent.athletes.filter(a => a.registrationStatus === 'approved')
+          : parsedEvent.athletes.filter(
+              a => a.club === userClub && a.registrationStatus === 'approved'
+            );
+        setAthletes(filteredAthletes);
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
         showError("Erro ao carregar atletas para gerenciamento de presença.");
       }
     }
-  }, [eventId, userClub, onUpdateAthleteAttendance]);
+  }, [eventId, userClub, userRole, onUpdateAthleteAttendance]); // Adicionado userRole às dependências
 
   const handleAttendanceChange = (athleteId: string, status: Athlete['attendanceStatus']) => {
     onUpdateAthleteAttendance(athleteId, status);
@@ -61,7 +63,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     );
   }, [athletes, searchTerm]);
 
-  if (userRole !== 'coach' && userRole !== 'staff') {
+  // Permite acesso a admins, coaches e staff
+  if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
     return (
       <Card className="mt-6">
         <CardHeader>
@@ -69,13 +72,14 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
           <CardDescription>Você não tem permissão para acessar esta seção.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Apenas coaches e staff podem gerenciar a presença dos atletas.</p>
+          <p className="text-muted-foreground">Apenas administradores, coaches e staff podem gerenciar a presença dos atletas.</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (!userClub) {
+  // Se não for admin e não tiver clube associado
+  if (!userClub && userRole !== 'admin') {
     return (
       <Card className="mt-6">
         <CardHeader>
@@ -92,8 +96,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle>Gerenciamento de Presença (Clube: {userClub})</CardTitle>
-        <CardDescription>Marque a presença dos atletas do seu clube para o evento.</CardDescription>
+        <CardTitle>Gerenciamento de Presença {userRole !== 'admin' && userClub ? `(Clube: ${userClub})` : '(Todos os Clubes)'}</CardTitle>
+        <CardDescription>Marque a presença dos atletas {userRole !== 'admin' && userClub ? 'do seu clube' : ''} para o evento.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="relative mb-6">
@@ -108,7 +112,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
         </div>
 
         {filteredAthletes.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum atleta aprovado do seu clube encontrado.</p>
+          <p className="text-muted-foreground">Nenhum atleta aprovado {userRole !== 'admin' && userClub ? 'do seu clube' : ''} encontrado.</p>
         ) : (
           <ul className="space-y-4">
             {filteredAthletes.map((athlete) => {
