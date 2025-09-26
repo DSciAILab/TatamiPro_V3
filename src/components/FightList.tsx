@@ -62,15 +62,6 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
     );
   };
 
-  const getFighterStatusIndicator = (fighterId: string | 'BYE' | undefined) => {
-    if (fighterId === 'BYE' || !fighterId) return null;
-    const fighter = athletesMap.get(fighterId);
-    if (fighter && fighter.attendanceStatus === 'present') {
-      return <span className="h-2 w-2 rounded-full bg-green-500 ml-1 inline-block" title="Presente"></span>;
-    }
-    return null;
-  };
-
   const fightsForSelectedMatAndCategory = useMemo(() => {
     if (!matFightOrder || !selectedMat || !brackets) return [];
 
@@ -106,54 +97,54 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
     const fighter1Club = fighter1 !== 'BYE' && fighter1 ? fighter1.club : '';
     const fighter2Club = fighter2 !== 'BYE' && fighter2 ? fighter2.club : '';
 
-    const resultText = match.result?.details || (match.winnerId && match.result?.type ? match.result.type : '');
+    const resultTypeDisplay = match.result?.type ? match.result.type : '';
     const resultTime = "XX:XX"; // Placeholder for now, as no match start/end time is stored.
 
     const matNumber = selectedMat.replace('Mat ', '');
+    const fightNumberDisplay = `${matNumber}-${match.matFightNumber}`;
 
     const cardContent = (
-      <div className="flex items-center p-4">
-        {/* Left: Fight Number */}
-        <div className="flex-shrink-0 w-16 text-center">
-          <span className="text-4xl font-extrabold text-primary">{matNumber}-{match.matFightNumber}</span> {/* NOVO: Número sequencial */}
+      <div className="relative flex p-4">
+        {/* Left: Fight Number and Time */}
+        <div className="flex-shrink-0 w-16 text-center absolute top-4 left-4">
+          <span className="text-2xl font-extrabold text-primary">{fightNumberDisplay}</span>
+          <p className="text-xs text-muted-foreground mt-1">{resultTime}</p>
         </div>
 
         {/* Middle: Fighter Details */}
-        <div className="flex-grow ml-4 space-y-2">
-          <div className={`flex items-center ${match.winnerId === match.fighter1Id ? 'font-semibold' : ''}`}>
+        <div className="flex-grow ml-24 space-y-2"> {/* Adjusted ml to make space for fight number */}
+          <div className={cn(
+            "flex items-center p-1 rounded-md",
+            match.winnerId === match.fighter1Id ? 'bg-green-100 dark:bg-green-900' :
+            (match.winnerId && match.winnerId !== match.fighter1Id) ? 'bg-red-100 dark:bg-red-950' : ''
+          )}>
             {getFighterPhoto(match.fighter1Id)}
             <div className="ml-2">
               <p className="text-base flex items-center">
                 {fighter1Display}
-                {getFighterStatusIndicator(match.fighter1Id)}
+                {match.winnerId === match.fighter1Id && resultTypeDisplay && (
+                  <span className="ml-2 text-green-600 font-semibold text-sm">{resultTypeDisplay}</span>
+                )}
               </p>
               {fighter1Club && <p className="text-xs text-muted-foreground">{fighter1Club}</p>}
             </div>
           </div>
-          <div className={`flex items-center ${match.winnerId === match.fighter2Id ? 'font-semibold' : ''}`}>
+          <div className={cn(
+            "flex items-center p-1 rounded-md",
+            match.winnerId === match.fighter2Id ? 'bg-green-100 dark:bg-green-900' :
+            (match.winnerId && match.winnerId !== match.fighter2Id) ? 'bg-red-100 dark:bg-red-950' : ''
+          )}>
             {getFighterPhoto(match.fighter2Id)}
             <div className="ml-2">
               <p className="text-base flex items-center">
                 {fighter2Display}
-                {getFighterStatusIndicator(match.fighter2Id)}
+                {match.winnerId === match.fighter2Id && resultTypeDisplay && (
+                  <span className="ml-2 text-green-600 font-semibold text-sm">{resultTypeDisplay}</span>
+                )}
               </p>
               {fighter2Club && <p className="text-xs text-muted-foreground">{fighter2Club}</p>}
             </div>
           </div>
-        </div>
-
-        {/* Right: Result/Time */}
-        <div className="flex-shrink-0 ml-4 text-right">
-          {match.winnerId && match.winnerId !== 'BYE' ? (
-            <>
-              <p className="text-lg font-bold text-green-600">{resultText}</p>
-              <p className="text-sm text-muted-foreground">{resultTime}</p>
-            </>
-          ) : isByeFight ? (
-            <p className="text-sm text-blue-500">BYE</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">{resultTime}</p>
-          )}
         </div>
       </div>
     );
