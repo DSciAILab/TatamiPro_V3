@@ -403,7 +403,7 @@ const EventDetail: React.FC = () => {
           <TabsTrigger key="llm" value="llm">LLM (Q&A)</TabsTrigger>
         </TabsList>
 
-        <TabsContent key="inscricoes" value="inscricoes" className="mt-6">
+        <TabsContent forceMount key="inscricoes" value="inscricoes" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Gerenciar Inscrições</CardTitle>
@@ -482,7 +482,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent key="checkin" value="checkin" className="mt-6">
+        <TabsContent forceMount key="checkin" value="checkin" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -606,7 +606,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent key="attendance" value="attendance" className="mt-6">
+        <TabsContent forceMount key="attendance" value="attendance" className="mt-6">
           <AttendanceManagement
             eventId={eventId}
             eventDivisions={eventDivisions}
@@ -614,7 +614,7 @@ const EventDetail: React.FC = () => {
           />
         </TabsContent>
 
-        <TabsContent key="brackets" value="brackets" className="mt-6">
+        <TabsContent forceMount key="brackets" value="brackets" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Brackets</CardTitle>
@@ -626,7 +626,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent key="admin" value="admin" className="mt-6">
+        <TabsContent forceMount key="admin" value="admin" className="mt-6">
           <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
@@ -749,7 +749,7 @@ const EventDetail: React.FC = () => {
           </div>
         </TabsContent>
 
-        <TabsContent key="approvals" value="approvals" className="mt-6">
+        <TabsContent forceMount key="approvals" value="approvals" className="mt-6">
           <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
@@ -842,7 +842,7 @@ const EventDetail: React.FC = () => {
           </div>
         </TabsContent>
 
-        <TabsContent key="divisions" value="divisions" className="mt-6">
+        <TabsContent forceMount key="divisions" value="divisions" className="mt-6">
           <div style={{ display: userRole === 'admin' ? 'block' : 'none' }}>
             <Card>
               <CardHeader>
@@ -862,7 +862,7 @@ const EventDetail: React.FC = () => {
           </div>
         </TabsContent>
 
-        <TabsContent key="resultados" value="resultados" className="mt-6">
+        <TabsContent forceMount key="resultados" value="resultados" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Resultados</CardTitle>
@@ -874,7 +874,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent key="llm" value="llm" className="mt-6">
+        <TabsContent forceMount key="llm" value="llm" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Perguntas & Respostas (LLM)</CardTitle>
