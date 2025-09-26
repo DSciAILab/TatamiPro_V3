@@ -21,9 +21,9 @@ interface BracketMatchCardProps {
 const getShortMatchIdentifier = (fullMatchId: string): string => {
   const parts = fullMatchId.split('-'); // Ex: divisionId-R1-M1
   if (parts.length >= 3) {
-    const roundPart = parts[1]; // R1
-    const matchNumPart = parts[2]; // M1
-    return `${roundPart}-${matchNumPart}`; // R1-M1
+    const roundNum = parts[1].replace('R', ''); // Extract '1' from 'R1'
+    const matchNum = parts[2].replace('M', ''); // Extract '1' from 'M1'
+    return `${roundNum}-${matchNum}`; // e.g., "1-1"
   }
   return fullMatchId; // Fallback
 };
