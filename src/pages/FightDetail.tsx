@@ -4,10 +4,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Keep Select for now, but not used for winner/result type
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // NEW: Import ToggleGroup
 import { Match, Athlete, Bracket, FightResultType, Event } from '@/types/index';
 import { UserRound, Trophy, ArrowLeft, ArrowRight, List } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -245,6 +246,21 @@ const FightDetail: React.FC = () => {
   const isFightCompleted = !!currentMatch.winnerId;
   const isByeFight = (currentMatch.fighter1Id === 'BYE' || currentMatch.fighter2Id === 'BYE');
 
+  // Determine main card border class
+  const mainCardBorderClass = isFightCompleted
+    ? 'border-green-500'
+    : isByeFight
+      ? 'border-blue-500'
+      : 'border-gray-300 dark:border-gray-700';
+
+  const fightResultTypes: { value: FightResultType; label: string }[] = [
+    { value: 'submission', label: 'Finalização' },
+    { value: 'points', label: 'Pontos' },
+    { value: 'decision', label: 'Decisão' },
+    { value: 'disqualification', label: 'Desclassificação' },
+    { value: 'walkover', label: 'W.O.' },
+  ];
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
@@ -256,7 +272,7 @@ const FightDetail: React.FC = () => {
         </Button>
       </div>
 
-      <Card className="mb-6">
+      <Card className={`mb-6 border-2 ${mainCardBorderClass}`}> {/* Added dynamic border */}
         <CardHeader>
           <CardTitle className="text-2xl">Detalhes da Luta</CardTitle>
           <CardDescription>Registre o resultado desta luta.</CardDescription>
@@ -288,36 +304,43 @@ const FightDetail: React.FC = () => {
           ) : (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="winner">Vencedor</Label>
-                <Select value={selectedWinnerId} onValueChange={setSelectedWinnerId}>
-                  <SelectTrigger id="winner">
-                    <SelectValue placeholder="Selecione o vencedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentMatch.fighter1Id && currentMatch.fighter1Id !== 'BYE' && (
-                      <SelectItem value={currentMatch.fighter1Id}>{getFighterDisplay(fighter1Athlete)}</SelectItem>
-                    )}
-                    {currentMatch.fighter2Id && currentMatch.fighter2Id !== 'BYE' && (
-                      <SelectItem value={currentMatch.fighter2Id}>{getFighterDisplay(fighter2Athlete)}</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Label>Vencedor</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {currentMatch.fighter1Id && currentMatch.fighter1Id !== 'BYE' && (
+                    <Button
+                      variant={selectedWinnerId === currentMatch.fighter1Id ? 'default' : 'outline'}
+                      onClick={() => setSelectedWinnerId(currentMatch.fighter1Id)}
+                      disabled={!currentMatch.fighter1Id || currentMatch.fighter1Id === 'BYE'}
+                    >
+                      {getFighterDisplay(fighter1Athlete)}
+                    </Button>
+                  )}
+                  {currentMatch.fighter2Id && currentMatch.fighter2Id !== 'BYE' && (
+                    <Button
+                      variant={selectedWinnerId === currentMatch.fighter2Id ? 'default' : 'outline'}
+                      onClick={() => setSelectedWinnerId(currentMatch.fighter2Id)}
+                      disabled={!currentMatch.fighter2Id || currentMatch.fighter2Id === 'BYE'}
+                    >
+                      {getFighterDisplay(fighter2Athlete)}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="resultType">Tipo de Resultado</Label>
-                <Select value={selectedResultType} onValueChange={(value: FightResultType) => setSelectedResultType(value)}>
-                  <SelectTrigger id="resultType">
-                    <SelectValue placeholder="Selecione o tipo de resultado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="submission">Finalização</SelectItem>
-                    <SelectItem value="points">Pontos</SelectItem>
-                    <SelectItem value="decision">Decisão</SelectItem>
-                    <SelectItem value="disqualification">Desclassificação</SelectItem>
-                    <SelectItem value="walkover">W.O. (Walkover)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Tipo de Resultado</Label>
+                <ToggleGroup
+                  type="single"
+                  value={selectedResultType}
+                  onValueChange={(value: FightResultType) => setSelectedResultType(value)}
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"
+                >
+                  {fightResultTypes.map(type => (
+                    <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label}>
+                      {type.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
               </div>
 
               <div className="grid gap-2">
