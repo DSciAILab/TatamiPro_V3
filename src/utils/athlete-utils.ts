@@ -1,101 +1,96 @@
-import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
+import { Athlete, Division, AgeCategory, AthleteBelt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
+import { format } from 'date-fns';
 
+// Ordem das categorias de idade para ordenação
+const ageCategoryOrder: AgeCategory[] = [
+  'Kids', 'Juvenile', 'Adult', 'Master 1', 'Master 2', 'Master 3', 'Master 4', 'Master 5', 'Master 6', 'Master 7'
+];
+
+// Mapeamento de idade para categoria de idade
 export const getAgeDivision = (age: number): AgeCategory => {
-  if (age >= 4 && age <= 6) return "Kids 1";
-  if (age >= 7 && age <= 8) return "Kids 2";
-  if (age >= 9 && age <= 10) return "Kids 3";
-  if (age >= 11 && age <= 12) return "Infant";
-  if (age >= 13 && age <= 14) return "Junior";
-  if (age >= 15 && age <= 15) return "Teen";
-  if (age >= 16 && age <= 17) return "Juvenile";
-  if (age >= 18 && age <= 29) return "Adult";
-  if (age >= 30) return "Master";
-  return "Indefinido";
+  if (age >= 4 && age <= 6) return 'Kids';
+  if (age >= 7 && age <= 9) return 'Juvenile';
+  if (age >= 10 && age <= 12) return 'Adult'; // Exemplo, ajuste conforme as regras reais
+  if (age >= 13 && age <= 15) return 'Master 1'; // Exemplo
+  if (age >= 16 && age <= 17) return 'Master 2'; // Exemplo
+  if (age >= 18 && age <= 29) return 'Adult';
+  if (age >= 30 && age <= 35) return 'Master 1';
+  if (age >= 36 && age <= 40) return 'Master 2';
+  if (age >= 41 && age <= 45) return 'Master 3';
+  if (age >= 46 && age <= 50) return 'Master 4';
+  if (age >= 51 && age <= 55) return 'Master 5';
+  if (age >= 56 && age <= 60) return 'Master 6';
+  if (age >= 61) return 'Master 7';
+  return 'Adult'; // Default
 };
 
+// Mapeamento de peso para categoria de peso (exemplo simplificado)
 export const getWeightDivision = (weight: number): string => {
-  // Esta função é um fallback e não será usada para o encaixe principal de divisões
-  // mas pode ser útil para exibição genérica.
-  if (weight <= 57.5) return "Galo";
-  if (weight <= 64) return "Pluma";
-  if (weight <= 70) return "Pena";
-  if (weight <= 76) return "Leve";
-  if (weight <= 82.3) return "Médio";
-  if (weight <= 88.3) return "Meio-Pesado";
-  if (weight <= 94.3) return "Pesado";
-  if (weight <= 100.5) return "Super Pesado";
-  if (weight > 100.5) return "Pesadíssimo";
-  return "Indefinido";
+  if (weight <= 50) return 'Galo';
+  if (weight <= 60) return 'Pluma';
+  if (weight <= 70) return 'Pena';
+  if (weight <= 80) return 'Leve';
+  if (weight <= 90) return 'Médio';
+  if (weight <= 100) return 'Meio Pesado';
+  return 'Pesadíssimo';
 };
 
-// Ordem das faixas para comparação
-const beltOrder: Belt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
-
-// Ordem das categorias de idade para comparação
-const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
-
-// Nova função para encontrar a divisão de um atleta
 export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Division | undefined => {
-  // Filtrar divisões habilitadas e que correspondem ao gênero e faixa
   const possibleDivisions = divisions.filter(div =>
-    div.isEnabled &&
+    div.isEnabled && // Acessando a propriedade isEnabled
     (div.gender === 'Ambos' || div.gender === athlete.gender) &&
-    (div.belt === 'Todas' || div.belt === athlete.belt)
-  );
-
-  // Ordenar as divisões para aplicar a lógica de "peso mínimo é o limite superior da anterior"
-  // A ordenação é crucial: Gênero, Categoria de Idade, Faixa, Peso Máximo
-  possibleDivisions.sort((a, b) => {
-    // 1. Gênero
-    if (a.gender !== b.gender) {
-      if (a.gender === 'Masculino') return -1;
-      if (b.gender === 'Masculino') return 1;
-      if (a.gender === 'Feminino') return -1;
-      if (b.gender === 'Feminino') return 1;
-    }
+    (div.belt === 'Todas' || div.belt === athlete.belt) &&
+    athlete.age >= div.minAge && athlete.age <= div.maxAge
+  ).sort((a, b) => {
+    // 1. Gênero (Ambos primeiro, depois Masculino, Feminino)
+    if (a.gender === 'Ambos' && b.gender !== 'Ambos') return -1;
+    if (b.gender === 'Ambos' && a.gender !== 'Ambos') return 1;
 
     // 2. Categoria de Idade
-    const ageAIndex = ageCategoryOrder.indexOf(a.ageCategoryName);
-    const ageBIndex = ageCategoryOrder.indexOf(b.ageCategoryName);
+    const ageAIndex = ageCategoryOrder.indexOf(a.ageCategoryName); // Acessando ageCategoryName
+    const ageBIndex = ageCategoryOrder.indexOf(b.ageCategoryName); // Acessando ageCategoryName
     if (ageAIndex !== ageBIndex) return ageAIndex - ageBIndex;
 
-    // 3. Faixa
-    const beltAIndex = beltOrder.indexOf(a.belt as Belt);
-    const beltBIndex = beltOrder.indexOf(b.belt as Belt);
+    // 3. Faixa (ordem específica)
+    const beltOrder: DivisionBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Todas'];
+    const beltAIndex = beltOrder.indexOf(a.belt);
+    const beltBIndex = beltOrder.indexOf(b.belt);
     if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
 
-    // 4. Peso Máximo
+    // 4. Peso (menor maxWeight primeiro)
     return a.maxWeight - b.maxWeight;
   });
 
-  // Encontrar a divisão que o atleta se encaixa
+  // Lógica para encontrar a divisão de peso mais adequada
+  let bestMatch: Division | undefined = undefined;
+  let effectiveMinWeight = 0;
+
   for (let i = 0; i < possibleDivisions.length; i++) {
     const div = possibleDivisions[i];
-
-    // O peso mínimo efetivo é o maxWeight da divisão anterior no mesmo grupo (gênero, idade, faixa)
-    // ou 0 se for a primeira divisão do grupo.
-    let effectiveMinWeight = 0;
+    // Se a divisão atual é a mesma categoria de idade, gênero e faixa que a anterior,
+    // o minWeight efetivo é o maxWeight da divisão anterior.
     if (i > 0) {
       const prevDiv = possibleDivisions[i - 1];
-      if (prevDiv.gender === div.gender && prevDiv.ageCategoryName === div.ageCategoryName && prevDiv.belt === div.belt) {
+      if (prevDiv.gender === div.gender && prevDiv.ageCategoryName === div.ageCategoryName && prevDiv.belt === div.belt) { // Acessando ageCategoryName
         effectiveMinWeight = prevDiv.maxWeight;
+      } else {
+        effectiveMinWeight = 0; // Reset para nova categoria
       }
     }
 
-    if (athlete.age >= div.minAge && athlete.age <= div.maxAge &&
-        athlete.weight > effectiveMinWeight && athlete.weight <= div.maxWeight) {
-      return div;
+    if (athlete.weight > effectiveMinWeight && athlete.weight <= div.maxWeight) {
+      bestMatch = div;
+      break;
     }
   }
 
-  return undefined;
+  return bestMatch;
 };
 
-// Função para gerar a string de ordenação/exibição
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
+  const dob = format(athlete.dateOfBirth, 'dd/MM/yyyy');
   if (division) {
-    return `${division.gender} / ${division.ageCategoryName} / ${division.belt} / ${division.maxWeight}kg`;
+    return `${division.gender} / ${division.ageCategoryName} / ${division.belt} / ${division.maxWeight}kg - ${athlete.club}`; // Acessando ageCategoryName
   }
-  // Fallback se a divisão não for encontrada ou passada
-  return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / Divisão não encontrada`;
+  return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / ${athlete.weight}kg - ${athlete.club}`;
 };

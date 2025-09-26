@@ -2,362 +2,234 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Papa from 'papaparse';
-import { z } from 'zod';
 import Layout from '@/components/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { UploadCloud, CheckCircle, XCircle } from 'lucide-react';
+import Papa from 'papaparse';
+import { v4 as uuidv4 } from 'uuid';
 import { showSuccess, showError } from '@/utils/toast';
-import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
-
-// Mapeamento de categoria de idade para minAge/maxAge
-const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
-  'kids 1': { min: 4, max: 6 },
-  'kids 2': { min: 7, max: 8 },
-  'kids 3': { min: 9, max: 10 },
-  'infant': { min: 11, max: 12 },
-  'junior': { min: 13, max: 14 },
-  'teen': { min: 15, max: 15 },
-  'juvenile': { min: 16, max: 17 },
-  'adulto': { min: 18, max: 29 },
-  'adult': { min: 18, max: 29 },
-  'master': { min: 30, max: 99 },
-};
-
-// Define os campos mínimos esperados no arquivo de importação para divisões
-const requiredDivisionFields = {
-  name: 'Nome da Divisão', // Corresponde a Division.name
-  ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
-  maxWeight: 'Peso Máximo', // minWeight removido
-  gender: 'Gênero',
-  belt: 'Faixa',
-};
-
-type RequiredDivisionField = keyof typeof requiredDivisionFields;
-
-// Esquema de validação para os dados de entrada do CSV
-const importSchema = z.object({
-  name: z.string().min(1, { message: 'Nome da divisão é obrigatório.' }),
-  ageCategory: z.string().transform((str, ctx) => {
-    const lowerStr = str.toLowerCase();
-    if (ageCategoryMap[lowerStr]) {
-      return str as AgeCategory; // Retorna a string original se for uma categoria válida
-    }
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `Categoria de idade inválida. Use: ${Object.keys(ageCategoryMap).join(', ')}.`,
-    });
-    return z.NEVER;
-  }),
-  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // minWeight removido
-  gender: z.string().transform((str, ctx) => {
-    const lowerStr = str.toLowerCase();
-    if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
-    if (lowerStr === 'feminino' || lowerStr === 'female') return 'Feminino';
-    if (lowerStr === 'ambos' || lowerStr === 'both') return 'Ambos';
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Gênero inválido. Use "Masculino", "Feminino" ou "Ambos" (ou seus equivalentes em inglês).',
-    });
-    return z.NEVER;
-  }) as z.ZodType<DivisionGender>,
-  belt: z.string().transform((str, ctx) => {
-    const lowerStr = str.toLowerCase();
-    if (lowerStr === 'branca' || lowerStr === 'white') return 'Branca';
-    if (lowerStr === 'cinza' || lowerStr === 'grey' || lowerStr === 'gray') return 'Cinza';
-    if (lowerStr === 'amarela' || lowerStr === 'yellow') return 'Amarela';
-    if (lowerStr === 'laranja' || lowerStr === 'orange') return 'Laranja';
-    if (lowerStr === 'verde' || lowerStr === 'green') return 'Verde';
-    if (lowerStr === 'azul' || lowerStr === 'blue') return 'Azul';
-    if (lowerStr === 'roxa' || lowerStr === 'purple') return 'Roxa';
-    if (lowerStr === 'marrom' || lowerStr === 'brown') return 'Marrom';
-    if (lowerStr === 'preta' || lowerStr === 'black') return 'Preta';
-    if (lowerStr === 'todas' || lowerStr === 'all') return 'Todas';
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Faixa inválida. Use "Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul", "Roxa", "Marrom", "Preta" ou "Todas" (ou seus equivalentes em inglês).',
-    });
-    return z.NEVER;
-  }) as z.ZodType<DivisionBelt>,
-}).refine(data => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
-  message: 'A validação de peso será feita na lógica de encaixe.',
-  path: ['maxWeight'],
-});
-
-interface ImportResult {
-  row: number;
-  data: any;
-  reason: string;
-}
+import { Division, AgeCategory, AthleteBelt, DivisionBelt, DivisionGender, Event } from '@/types/index'; // Importar tipos
 
 const DivisionImport: React.FC = () => {
-  const { id: eventId } = useParams<{ id: string }>();
+  const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [columnMapping, setColumnMapping] = useState<Record<RequiredDivisionField, string | undefined>>(() => {
-    const initialMapping: Partial<Record<RequiredDivisionField, string | undefined>> = {};
-    Object.keys(requiredDivisionFields).forEach(key => {
-      initialMapping[key as RequiredDivisionField] = undefined;
-    });
-    return initialMapping as Record<RequiredDivisionField, string | undefined>;
-  });
-  const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: ImportResult[] } | null>(null);
-  const [step, setStep] = useState<'upload' | 'map' | 'review' | 'results'>('upload');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [parsedData, setParsedData] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);
-      setImportResults(null);
-
-      Papa.parse(uploadedFile, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (results.errors.length) {
-            showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
-            setFile(null);
-            setCsvHeaders([]);
-            setCsvData([]);
-            setStep('upload');
-            return;
-          }
-          const headers = Object.keys(results.data[0] || {});
-          setCsvHeaders(headers);
-          setCsvData(results.data);
-          setStep('map');
-
-          const autoMapping: Partial<Record<RequiredDivisionField, string | undefined>> = {};
-          Object.entries(requiredDivisionFields).forEach(([fieldKey, fieldLabel]) => {
-            const foundHeader = headers.find(header => header.toLowerCase().includes(fieldLabel.toLowerCase().replace(/ /g, '')));
-            if (foundHeader) {
-              autoMapping[fieldKey as RequiredDivisionField] = foundHeader;
-            }
-          });
-          setColumnMapping(prev => ({ ...prev, ...autoMapping }));
-        },
-        error: (err: any) => {
-          showError('Erro ao ler o arquivo: ' + err.message);
-          setFile(null);
-          setCsvHeaders([]);
-          setCsvData([]);
-          setStep('upload');
-        }
-      });
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setCsvFile(event.target.files[0]);
+      setParsedData([]);
+      setValidationErrors([]);
     }
   };
 
-  const handleMappingChange = (field: RequiredDivisionField, csvColumn: string) => {
-    setColumnMapping(prev => ({ ...prev, [field]: csvColumn }));
+  const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
+    'kids': { min: 4, max: 6 },
+    'juvenile': { min: 7, max: 9 },
+    'adult': { min: 18, max: 29 },
+    'master 1': { min: 30, max: 35 },
+    'master 2': { min: 36, max: 40 },
+    'master 3': { min: 41, max: 45 },
+    'master 4': { min: 46, max: 50 },
+    'master 5': { min: 51, max: 55 },
+    'master 6': { min: 56, max: 60 },
+    'master 7': { min: 61, max: 99 },
   };
 
-  const validateMapping = () => {
-    for (const field of Object.keys(requiredDivisionFields) as RequiredDivisionField[]) {
-      if (!columnMapping[field]) {
-        showError(`O campo "${requiredDivisionFields[field]}" não foi mapeado.`);
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleProcessImport = () => {
-    if (!validateMapping()) {
+  const handleParseCsv = () => {
+    if (!csvFile) {
+      showError('Por favor, selecione um arquivo CSV.');
       return;
     }
 
-    const successfulDivisions: Division[] = [];
-    const failedImports: ImportResult[] = [];
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const errors: string[] = [];
+        const processedData = results.data.map((row: any, index) => {
+          const rowNum = index + 2; // +1 for header, +1 for 0-indexed array
+          const division: Partial<Division> = {};
 
-    csvData.forEach((row, index) => {
-      const rowNumber = index + 2;
-      try {
-        const mappedData: Record<string, any> = {};
-        for (const [fieldKey, csvColumn] of Object.entries(columnMapping)) {
-          if (csvColumn) {
-            mappedData[fieldKey] = row[csvColumn];
+          // Validate name
+          if (!row.name || typeof row.name !== 'string') {
+            errors.push(`Linha ${rowNum}: Nome (name) é obrigatório e deve ser uma string.`);
           }
+          division.name = row.name as string;
+
+          // Validate ageCategoryName and get age bounds
+          const ageCategory = (row.ageCategoryName as string)?.toLowerCase();
+          const ageBounds = ageCategoryMap[ageCategory];
+          if (!ageCategory || !ageBounds) {
+            errors.push(`Linha ${rowNum}: Categoria de Idade (ageCategoryName) inválida ou não reconhecida.`);
+          } else {
+            division.ageCategoryName = row.ageCategoryName as AgeCategory;
+            division.minAge = ageBounds.min;
+            division.maxAge = ageBounds.max;
+          }
+
+          // Validate maxWeight
+          const maxWeight = parseFloat(row.maxWeight);
+          if (isNaN(maxWeight) || maxWeight <= 0) {
+            errors.push(`Linha ${rowNum}: Peso Máximo (maxWeight) inválido. Deve ser um número maior que 0.`);
+          }
+          division.maxWeight = maxWeight;
+          division.minWeight = 0; // Default minWeight to 0 for simplicity in import
+
+          // Validate gender
+          const validGenders: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
+          if (!row.gender || !validGenders.includes(row.gender as DivisionGender)) {
+            errors.push(`Linha ${rowNum}: Gênero (gender) inválido. Deve ser 'Masculino', 'Feminino' ou 'Ambos'.`);
+          }
+          division.gender = row.gender as DivisionGender;
+
+          // Validate belt
+          const validBelts: DivisionBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Todas'];
+          if (!row.belt || !validBelts.includes(row.belt as DivisionBelt)) {
+            errors.push(`Linha ${rowNum}: Faixa (belt) inválida.`);
+          }
+          division.belt = row.belt as DivisionBelt;
+
+          // Validate isEnabled
+          const isEnabled = row.isEnabled === 'true' || row.isEnabled === true; // Allow 'true' string or boolean true
+          division.isEnabled = isEnabled;
+
+          division.id = uuidv4();
+
+          return division;
+        });
+
+        setValidationErrors(errors);
+        if (errors.length === 0) {
+          setParsedData(processedData);
+          showSuccess('CSV de divisões processado com sucesso! Revise antes de importar.');
+        } else {
+          showError('Erros encontrados no CSV de divisões. Por favor, corrija e tente novamente.');
         }
-
-        const parsed = importSchema.safeParse(mappedData);
-
-        if (!parsed.success) {
-          const errors = parsed.error.errors.map(err => err.message).join('; ');
-          failedImports.push({ row: rowNumber, data: row, reason: errors });
-          return;
-        }
-
-        const { name, ageCategory, maxWeight, gender, belt } = parsed.data; // minWeight removido
-
-        const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
-        if (!ageBounds) {
-          failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${ageCategory}" não reconhecida.` });
-          return;
-        }
-
-        const newDivision: Division = {
-          id: `division-${Date.now()}-${index}`,
-          name,
-          minAge: ageBounds.min,
-          maxAge: ageBounds.max,
-          maxWeight, // minWeight removido
-          gender,
-          belt,
-          ageCategoryName: ageCategory,
-          isEnabled: true, // Default to enabled
-        };
-        successfulDivisions.push(newDivision);
-      } catch (error: any) {
-        failedImports.push({ row: rowNumber, data: row, reason: error.message || 'Erro desconhecido' });
+      },
+      error: (error) => {
+        showError(`Erro ao analisar o CSV: ${error.message}`);
+        console.error('CSV parsing error:', error);
       }
     });
+  };
 
-    // Load existing event data to merge divisions
+  const handleImportDivisions = () => {
+    if (validationErrors.length > 0) {
+      showError('Não é possível importar divisões com erros de validação.');
+      return;
+    }
+    if (parsedData.length === 0) {
+      showError('Nenhuma divisão válida para importar.');
+      return;
+    }
+
     const existingEventData = localStorage.getItem(`event_${eventId}`);
-    let currentEvent = { divisions: [] };
+    let currentEvent: Event | null = null;
     if (existingEventData) {
       try {
-        currentEvent = JSON.parse(existingEventData);
+        currentEvent = JSON.parse(existingEventData) as Event; // Asserção de tipo aqui
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
     }
 
-    const updatedDivisions = [...(currentEvent.divisions || []), ...successfulDivisions];
-    localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, divisions: updatedDivisions }));
-
-    setImportResults({
-      success: successfulDivisions.length,
-      failed: failedImports.length,
-      errors: failedImports,
-    });
-    setStep('results');
-  };
-
-  const handleExportErrors = () => {
-    if (!importResults || importResults.errors.length === 0) {
-      showError('Não há erros para exportar.');
-      return;
+    if (currentEvent) {
+      const updatedDivisions = [...currentEvent.divisions, ...(parsedData as Division[])];
+      localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, divisions: updatedDivisions }));
+      showSuccess(`${parsedData.length} divisões importadas com sucesso!`);
+      navigate(`/events/${eventId}`); // Redireciona de volta para a página de detalhes do evento
+    } else {
+      showError('Evento não encontrado para importar divisões.');
     }
-
-    const errorCsvData = importResults.errors.map(error => ({
-      'Linha do Arquivo': error.row,
-      'Dados Originais': JSON.stringify(error.data),
-      'Motivo do Erro': error.reason,
-    }));
-
-    const csv = Papa.unparse(errorCsvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `erros_importacao_divisoes_evento_${eventId}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showSuccess('Erros exportados com sucesso!');
   };
 
   return (
     <Layout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Importar Divisões em Lote para Evento #{eventId}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
-      </div>
-
-      <Card>
+      <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Importação de Divisões</CardTitle>
+          <CardTitle>Importar Divisões em Lote para {eventId}</CardTitle>
           <CardDescription>
-            {step === 'upload' && 'Faça upload de um arquivo CSV para iniciar a importação de divisões.'}
-            {step === 'map' && 'Mapeie as colunas do seu arquivo CSV para os campos de divisão.'}
-            {step === 'review' && 'Revise os dados antes de finalizar a importação.'}
-            {step === 'results' && 'Resultados da importação.'}
+            Faça o upload de um arquivo CSV para importar múltiplas divisões de uma vez.
+            <p className="mt-2">O arquivo CSV deve conter as seguintes colunas (case-sensitive):</p>
+            <p className="font-mono text-sm bg-gray-100 p-2 rounded-md mt-1">
+              name,ageCategoryName (Kids/Adult/Master 1/etc.),maxWeight (kg),gender (Masculino/Feminino/Ambos),belt (Branca/Todas/etc.),isEnabled (true/false)
+            </p>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'upload' && (
-            <div className="space-y-4">
-              <Label htmlFor="division-file">Arquivo CSV</Label>
-              <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
-              <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids 1, Kids 2, Kids 3, Infant, Junior, Teen, Juvenile, Adulto, Master), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos/Male/Female/Both), Faixa (Branca/Cinza/Amarela/Laranja/Verde/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
-              </p>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Label htmlFor="csvFile" className="flex items-center gap-2">
+                <UploadCloud className="h-4 w-4" /> Selecionar Arquivo CSV
+              </Label>
+              <Input id="csvFile" type="file" accept=".csv" onChange={handleFileChange} />
+              {csvFile && <p className="text-sm text-muted-foreground mt-1">Arquivo selecionado: {csvFile.name}</p>}
             </div>
-          )}
+            <Button onClick={handleParseCsv} disabled={!csvFile} className="md:self-end">
+              Processar CSV
+            </Button>
+          </div>
 
-          {step === 'map' && csvHeaders.length > 0 && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold">Mapeamento de Colunas</h3>
-              <p className="text-muted-foreground">
-                Selecione a coluna do seu arquivo CSV que corresponde a cada campo de divisão.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(requiredDivisionFields).map(([fieldKey, fieldLabel]) => (
-                  <div key={fieldKey} className="flex flex-col space-y-1.5">
-                    <Label htmlFor={`map-${fieldKey}`}>{fieldLabel}</Label>
-                    <Select
-                      onValueChange={(value) => handleMappingChange(fieldKey as RequiredDivisionField, value)}
-                      value={columnMapping[fieldKey as RequiredDivisionField] || ''}
-                    >
-                      <SelectTrigger id={`map-${fieldKey}`}>
-                        <SelectValue placeholder={`Selecione a coluna para ${fieldLabel}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {csvHeaders.map(header => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          {validationErrors.length > 0 && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+              <strong className="font-bold">Erros de Validação:</strong>
+              <ul className="mt-2 list-disc list-inside">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
                 ))}
-              </div>
-              <Button onClick={handleProcessImport} className="w-full">Processar Importação</Button>
+              </ul>
             </div>
           )}
 
-          {step === 'results' && importResults && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold">Resultados da Importação</h3>
-              <p className="text-lg">
-                Divisões importadas com sucesso: <span className="font-bold text-green-600">{importResults.success}</span>
-              </p>
-              <p className="text-lg">
-                Divisões descartadas: <span className="font-bold text-red-600">{importResults.failed}</span>
-              </p>
-
-              {importResults.errors.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold">Problemas Encontrados:</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Linha</TableHead>
-                        <TableHead>Dados Originais</TableHead>
-                        <TableHead>Problema</TableHead>
+          {parsedData.length > 0 && validationErrors.length === 0 && (
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold mb-4">Divisões a serem importadas ({parsedData.length})</h3>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Categoria de Idade</TableHead>
+                      <TableHead>Idade Mínima</TableHead>
+                      <TableHead>Idade Máxima</TableHead>
+                      <TableHead>Peso Máximo</TableHead>
+                      <TableHead>Gênero</TableHead>
+                      <TableHead>Faixa</TableHead>
+                      <TableHead>Ativa</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {parsedData.map((division: Division) => (
+                      <TableRow key={division.id}>
+                        <TableCell className="font-medium">{division.name}</TableCell>
+                        <TableCell>{division.ageCategoryName}</TableCell>
+                        <TableCell>{division.minAge}</TableCell>
+                        <TableCell>{division.maxAge}</TableCell>
+                        <TableCell>{division.maxWeight}kg</TableCell>
+                        <TableCell>{division.gender}</TableCell>
+                        <TableCell>{division.belt}</TableCell>
+                        <TableCell>{division.isEnabled ? 'Sim' : 'Não'}</TableCell>
+                        <TableCell>
+                          <span className="flex items-center text-green-600">
+                            <CheckCircle className="h-4 w-4 mr-1" /> Válido
+                          </span>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importResults.errors.map((error, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell>{error.row}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                            {JSON.stringify(error.data)}
-                          </TableCell>
-                          <TableCell className="text-red-500">{error.reason}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <Button onClick={handleExportErrors} variant="outline">Exportar Lista de Problemas (CSV)</Button>
-                </div>
-              )}
-              <Button onClick={() => navigate(`/events/${eventId}`)} className="w-full">Voltar para o Evento</Button>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <Button onClick={handleImportDivisions} className="mt-4 w-full">
+                Importar Divisões
+              </Button>
             </div>
           )}
         </CardContent>

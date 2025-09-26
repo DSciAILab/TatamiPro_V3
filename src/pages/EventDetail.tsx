@@ -14,8 +14,8 @@ import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // Novo import
-import AttendanceManagement from '@/components/AttendanceManagement'; // Novo import
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import AttendanceManagement from '@/components/AttendanceManagement';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -25,7 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-
+import { Switch } from '@/components/ui/switch'; // Importar Switch
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,7 +55,7 @@ const EventDetail: React.FC = () => {
         checkInStatus: athleteData.checkInStatus || 'pending',
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
-        attendanceStatus: athleteData.attendanceStatus || 'pending', // Default attendance status
+        attendanceStatus: athleteData.attendanceStatus || 'pending',
       };
     };
 
@@ -76,6 +76,7 @@ const EventDetail: React.FC = () => {
     let existingAthletes: Athlete[] = [];
     let eventSettings = {};
     let existingDivisions: Division[] = [];
+    let isAttendanceMandatoryBeforeCheckIn = false; // Default value
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -86,6 +87,7 @@ const EventDetail: React.FC = () => {
           numFightAreas: parsedEvent.numFightAreas,
         };
         existingDivisions = parsedEvent.divisions || [];
+        isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -99,6 +101,7 @@ const EventDetail: React.FC = () => {
       date: '2024-12-01',
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
+      isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatoryBeforeCheckIn, // Set initial value
       ...eventSettings,
     };
   });
@@ -110,6 +113,8 @@ const EventDetail: React.FC = () => {
     event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
+  const [isAttendanceMandatoryBeforeCheckIn, setIsAttendanceMandatoryBeforeCheckIn] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
+
 
   // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
@@ -121,7 +126,7 @@ const EventDetail: React.FC = () => {
       dateOfBirth: true,
       belt: true,
       weight: true,
-      idNumber: true, // Representa Emirates ID ou School ID
+      idNumber: true,
       gender: true,
       nationality: true,
       email: true,
@@ -135,21 +140,15 @@ const EventDetail: React.FC = () => {
 
   useEffect(() => {
     if (event) {
-      localStorage.setItem(`event_${id}`, JSON.stringify(event));
-    }
-  }, [event, id]);
-
-  useEffect(() => {
-    setEvent(prevEvent => {
-      if (!prevEvent) return null;
-      return {
-        ...prevEvent,
+      localStorage.setItem(`event_${id}`, JSON.stringify({
+        ...event,
         checkInStartTime: checkInStartTime?.toISOString(),
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas: numFightAreas,
-      };
-    });
-  }, [checkInStartTime, checkInEndTime, numFightAreas]);
+        isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatoryBeforeCheckIn, // Save the new setting
+      }));
+    }
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatoryBeforeCheckIn]); // Add new setting to dependencies
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -333,8 +332,10 @@ const EventDetail: React.FC = () => {
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletesToFilter = processedApprovedAthletes;
 
-    // Filtra por attendanceStatus: apenas 'present'
-    athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+    // Filtra por attendanceStatus: apenas 'present' SE a attendance for obrigatória
+    if (isAttendanceMandatoryBeforeCheckIn) {
+      athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+    }
 
     if (scannedAthleteId) {
       athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
@@ -356,7 +357,7 @@ const EventDetail: React.FC = () => {
       return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
     }
     return athletesToFilter; // 'all' filter
-  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter]);
+  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter, isAttendanceMandatoryBeforeCheckIn]);
 
   // Check-in Summary Calculations
   const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
@@ -379,8 +380,7 @@ const EventDetail: React.FC = () => {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          {/* Aba Pesagem removida */}
-          <TabsTrigger value="attendance">Attendance</TabsTrigger> {/* Nova aba */}
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
@@ -496,6 +496,9 @@ const EventDetail: React.FC = () => {
                   <span className="text-orange-500 block mt-2">Horário de check-in não configurado.</span>
                 ) : (
                   <span className="text-muted-foreground block mt-2">Horário: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
+                )}
+                {isAttendanceMandatoryBeforeCheckIn && (
+                  <span className="text-blue-500 block mt-2">Atenção: A presença é obrigatória antes do check-in.</span>
                 )}
                 <div className="mt-4 text-sm">
                   <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
@@ -743,8 +746,16 @@ const EventDetail: React.FC = () => {
                         onChange={(e) => setNumFightAreas(Number(e.target.value))}
                       />
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="attendance-mandatory"
+                        checked={isAttendanceMandatoryBeforeCheckIn}
+                        onCheckedChange={setIsAttendanceMandatoryBeforeCheckIn}
+                      />
+                      <Label htmlFor="attendance-mandatory">Exigir presença antes do Check-in</Label>
+                    </div>
                   </div>
-                  <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}
+                  <CheckInMandatoryFieldsConfig eventId={event.id} />
                 </CardContent>
               </Card>
             </TabsContent>
