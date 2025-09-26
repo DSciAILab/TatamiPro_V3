@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Importar Dialog
 import BracketView from '@/components/BracketView'; // Importar BracketView
 import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -564,6 +565,9 @@ const EventDetail: React.FC = () => {
     ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
     : 'Encerrado';
 
+  const handleCheckInBoxClick = (filterType: 'pending' | 'checked_in' | 'overweight') => {
+    setCheckInFilter(prevFilter => (prevFilter === filterType ? 'all' : filterType));
+  };
 
   return (
     <Layout>
@@ -776,19 +780,47 @@ const EventDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                <div
+                  className={cn(
+                    "p-3 border rounded-md cursor-pointer transition-colors",
+                    checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+                    checkInFilter === 'checked_in' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
+                  )}
+                  onClick={() => handleCheckInBoxClick('checked_in')}
+                >
                   <p className="text-2xl font-bold text-green-600">{totalCheckedInOk}</p>
                   <p className="text-sm text-muted-foreground">Check-in OK</p>
                 </div>
-                <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+                <div
+                  className={cn(
+                    "p-3 border rounded-md cursor-pointer transition-colors",
+                    checkInFilter === 'overweight' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
+                    checkInFilter === 'overweight' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
+                  )}
+                  onClick={() => handleCheckInBoxClick('overweight')}
+                >
                   <p className="text-2xl font-bold text-red-600">{totalOverweights}</p>
                   <p className="text-sm text-muted-foreground">Acima do Peso</p>
                 </div>
-                <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+                <div
+                  className={cn(
+                    "p-3 border rounded-md cursor-pointer transition-colors",
+                    checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
+                    checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
+                  )}
+                  onClick={() => handleCheckInBoxClick('pending')}
+                >
                   <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
                   <p className="text-sm text-muted-foreground">Faltam</p>
                 </div>
-                <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+                <div
+                  className={cn(
+                    "p-3 border rounded-md cursor-pointer transition-colors",
+                    checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
+                    checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
+                  )}
+                  onClick={() => setCheckInFilter('all')} // Always reset to all
+                >
                   <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
                   <p className="text-sm text-muted-foreground">Total Aprovados</p>
                 </div>
@@ -823,22 +855,7 @@ const EventDetail: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mb-4 flex justify-center">
-                <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'checked_in' | 'overweight' | 'all') => value && setCheckInFilter(value)}>
-                  <ToggleGroupItem value="all" aria-label="Mostrar todos">
-                    Todos ({totalApprovedAthletes})
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
-                    Pendentes ({totalPendingCheckIn})
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="checked_in" aria-label="Mostrar check-in OK">
-                    Check-in OK ({totalCheckedInOk})
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="overweight" aria-label="Mostrar acima do peso">
-                    Acima do Peso ({totalOverweights})
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
+              {/* REMOVIDO: O ToggleGroup de filtro segmentado */}
 
               {filteredAthletesForCheckIn.length === 0 ? (
                 <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>

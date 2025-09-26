@@ -11,6 +11,7 @@ import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucid
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // Importar ToggleGroup
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 interface AttendanceManagementProps {
   eventId: string;
@@ -117,6 +118,10 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     }
   };
 
+  const handleAttendanceBoxClick = (filterType: 'present' | 'absent' | 'private_transportation' | 'pending') => {
+    setAttendanceFilter(prevFilter => (prevFilter === filterType ? 'all' : filterType));
+  };
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -125,19 +130,47 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
       </CardHeader>
       <CardContent>
         <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+          <div
+            className={cn(
+              "p-3 border rounded-md cursor-pointer transition-colors",
+              attendanceFilter === 'present' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+              attendanceFilter === 'present' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
+            )}
+            onClick={() => handleAttendanceBoxClick('present')}
+          >
             <p className="text-2xl font-bold text-green-600">{totalPresent}</p>
             <p className="text-sm text-muted-foreground">Presentes</p>
           </div>
-          <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+          <div
+            className={cn(
+              "p-3 border rounded-md cursor-pointer transition-colors",
+              attendanceFilter === 'absent' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
+              attendanceFilter === 'absent' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
+            )}
+            onClick={() => handleAttendanceBoxClick('absent')}
+          >
             <p className="text-2xl font-bold text-red-600">{totalAbsent}</p>
             <p className="text-sm text-muted-foreground">Ausentes</p>
           </div>
-          <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+          <div
+            className={cn(
+              "p-3 border rounded-md cursor-pointer transition-colors",
+              attendanceFilter === 'private_transportation' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
+              attendanceFilter === 'private_transportation' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
+            )}
+            onClick={() => handleAttendanceBoxClick('private_transportation')}
+          >
             <p className="text-2xl font-bold text-blue-600">{totalPrivateTransportation}</p>
             <p className="text-sm text-muted-foreground">Transp. Privado</p>
           </div>
-          <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+          <div
+            className={cn(
+              "p-3 border rounded-md cursor-pointer transition-colors",
+              attendanceFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
+              attendanceFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
+            )}
+            onClick={() => handleAttendanceBoxClick('pending')}
+          >
             <p className="text-2xl font-bold text-orange-600">{totalMissing}</p>
             <p className="text-sm text-muted-foreground">Faltando</p>
           </div>
@@ -154,25 +187,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
-        <div className="mb-4 flex justify-center">
-          <ToggleGroup type="single" value={attendanceFilter} onValueChange={(value: 'all' | 'present' | 'absent' | 'private_transportation' | 'pending') => value && setAttendanceFilter(value)}>
-            <ToggleGroupItem value="all" aria-label="Mostrar todos">
-              Todos ({totalApprovedAthletes})
-            </ToggleGroupItem>
-            <ToggleGroupItem value="present" aria-label="Mostrar presentes">
-              Presentes ({totalPresent})
-            </ToggleGroupItem>
-            <ToggleGroupItem value="absent" aria-label="Mostrar ausentes">
-              Ausentes ({totalAbsent})
-            </ToggleGroupItem>
-            <ToggleGroupItem value="private_transportation" aria-label="Mostrar transporte privado">
-              Transp. Privado ({totalPrivateTransportation})
-            </ToggleGroupItem>
-            <ToggleGroupItem value="pending" aria-label="Mostrar faltando">
-              Faltando ({totalMissing})
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+        {/* REMOVIDO: O ToggleGroup de filtro segmentado */}
 
         {filteredAthletes.length === 0 ? (
           <p className="text-muted-foreground">Nenhum atleta aprovado {userRole !== 'admin' && userClub ? 'do seu clube' : ''} encontrado com os critérios atuais.</p>
