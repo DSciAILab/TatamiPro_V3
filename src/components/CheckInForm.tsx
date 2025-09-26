@@ -7,24 +7,37 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Athlete, WeightAttempt } from '@/types/index';
+import { Athlete, WeightAttempt, Division } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { format } from 'date-fns';
 import { Edit } from 'lucide-react';
+import { findNextHigherWeightDivision, getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar funções utilitárias
 
 interface CheckInFormProps {
   athlete: Athlete;
-  onCheckIn: (athleteId: string, registeredWeight: number, checkInStatus: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => void;
+  onCheckIn: (updatedAthlete: Athlete) => void; // Updated signature
   isCheckInAllowed: boolean;
   divisionMaxWeight?: number;
-  isWeightCheckEnabled: boolean; // NOVO: Prop para controlar a verificação de peso
+  isWeightCheckEnabled: boolean;
+  isOverweightAutoMoveEnabled: boolean; // New prop
+  eventDivisions: Division[]; // New prop
+  isBeltGroupingEnabled: boolean; // New prop
 }
 
 const formSchema = z.object({
-  weight: z.coerce.number().min(1, { message: 'Peso deve ser um número positivo.' }),
+  weight: z.coerce.number().min(1, { message: 'Peso deve ser um número positivo.' }).optional(), // Make weight optional
 });
 
-const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckInAllowed, divisionMaxWeight, isWeightCheckEnabled }) => {
+const CheckInForm: React.FC<CheckInFormProps> = ({
+  athlete,
+  onCheckIn,
+  isCheckInAllowed,
+  divisionMaxWeight,
+  isWeightCheckEnabled,
+  isOverweightAutoMoveEnabled,
+  eventDivisions,
+  isBeltGroupingEnabled,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,10 +46,9 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
     },
   });
 
-  // Reset form with athlete's registered weight when athlete changes or edit mode is toggled
   useEffect(() => {
     reset({ weight: athlete.registeredWeight || 0 });
-    setIsEditing(false); // Exit edit mode when athlete changes
+    setIsEditing(false);
   }, [athlete.id, athlete.registeredWeight, reset]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -47,10 +59,11 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
 
     let newRegisteredWeight: number;
     let newCheckInStatus: 'checked_in' | 'overweight';
+    let updatedAthlete: Athlete = { ...athlete };
+    let currentDivision = athlete._division; // Assuming _division is available from EventDetail
 
     if (isWeightCheckEnabled) {
-      // Lógica de verificação de peso normal
-      newRegisteredWeight = values.weight;
+      newRegisteredWeight = values.weight!; // Weight is mandatory if check is enabled
       if (divisionMaxWeight !== undefined && newRegisteredWeight <= divisionMaxWeight) {
         newCheckInStatus = 'checked_in';
         showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} fez check-in com sucesso!`);
@@ -58,12 +71,40 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
         showError('Não foi possível determinar o limite de peso da divisão. Check-in manual necessário.');
         return;
       } else {
-        newCheckInStatus = 'overweight';
-        showError(`Atleta ${athlete.firstName} ${athlete.lastName} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg).`);
+        // Athlete is overweight
+        if (isOverweightAutoMoveEnabled && currentDivision) {
+          const nextHigherDivision = findNextHigherWeightDivision(
+            athlete,
+            currentDivision,
+            eventDivisions,
+            newRegisteredWeight,
+            isBeltGroupingEnabled
+          );
+
+          if (nextHigherDivision) {
+            updatedAthlete = {
+              ...updatedAthlete,
+              ageDivision: nextHigherDivision.ageCategoryName,
+              weightDivision: getWeightDivision(newRegisteredWeight), // Update weight division display
+              belt: nextHigherDivision.belt === 'Todas' ? updatedAthlete.belt : nextHigherDivision.belt as Athlete['belt'], // Update belt if specific
+              gender: nextHigherDivision.gender === 'Ambos' ? updatedAthlete.gender : nextHigherDivision.gender as Athlete['gender'], // Update gender if specific
+              movedToDivisionId: nextHigherDivision.id,
+              moveReason: `Movido automaticamente para ${nextHigherDivision.name} por excesso de peso (${newRegisteredWeight}kg).`,
+            };
+            newCheckInStatus = 'checked_in';
+            showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} acima do peso, movido para a divisão ${nextHigherDivision.name}!`);
+          } else {
+            newCheckInStatus = 'overweight';
+            showError(`Atleta ${athlete.firstName} ${athlete.lastName} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg) e não há categoria superior disponível.`);
+          }
+        } else {
+          newCheckInStatus = 'overweight';
+          showError(`Atleta ${athlete.firstName} ${athlete.lastName} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg).`);
+        }
       }
     } else {
-      // Check-in sem verificação de peso: assume que está no peso
-      newRegisteredWeight = athlete.weight; // Usa o peso de inscrição do atleta
+      // Check-in without weight verification: assume on weight
+      newRegisteredWeight = athlete.weight; // Use athlete's registered weight
       newCheckInStatus = 'checked_in';
       showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} fez check-in com sucesso (verificação de peso desabilitada)!`);
     }
@@ -76,8 +117,15 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
 
     const updatedWeightAttempts = [...athlete.weightAttempts, newAttempt];
 
-    onCheckIn(athlete.id, newRegisteredWeight, newCheckInStatus, updatedWeightAttempts);
-    setIsEditing(false); // Exit edit mode after submission
+    updatedAthlete = {
+      ...updatedAthlete,
+      registeredWeight: newRegisteredWeight,
+      checkInStatus: newCheckInStatus,
+      weightAttempts: updatedWeightAttempts,
+    };
+
+    onCheckIn(updatedAthlete); // Pass the fully updated athlete object
+    setIsEditing(false);
   };
 
   const hasCheckedIn = athlete.checkInStatus === 'checked_in' || athlete.checkInStatus === 'overweight';
@@ -90,7 +138,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
             <span className="text-sm text-muted-foreground">
               Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span>
             </span>
-            {isCheckInAllowed && isWeightCheckEnabled && ( // Only allow edit if check-in is generally allowed AND weight check is enabled
+            {isCheckInAllowed && isWeightCheckEnabled && (
               <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-1 h-3 w-3" /> Editar
               </Button>
@@ -98,7 +146,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
           </div>
         ) : (
           <>
-            {isWeightCheckEnabled && ( // Mostrar input de peso apenas se a verificação de peso estiver habilitada
+            {isWeightCheckEnabled && (
               <div className="flex-grow">
                 <Label htmlFor={`registeredWeight-${athlete.id}`} className="sr-only">Peso Registrado (kg)</Label>
                 <div className="relative">
@@ -107,7 +155,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckIn
                     type="number"
                     step="0.1"
                     placeholder="Peso (kg)"
-                    {...register('weight')}
+                    {...register('weight', { required: isWeightCheckEnabled ? 'Peso é obrigatório para o check-in.' : false })}
                     disabled={!isCheckInAllowed}
                     className="pr-20"
                   />

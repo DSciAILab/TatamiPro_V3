@@ -91,6 +91,43 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
   return undefined;
 };
 
+// Função para encontrar a próxima divisão de peso superior para um atleta
+export const findNextHigherWeightDivision = (
+  athlete: Athlete,
+  currentDivision: Division,
+  allDivisions: Division[],
+  weighedWeight: number,
+  isBeltGroupingEnabled: boolean
+): Division | undefined => {
+  // Filtrar divisões que correspondem ao gênero e idade do atleta
+  const relevantDivisions = allDivisions.filter(div =>
+    div.isEnabled &&
+    (div.gender === 'Ambos' || div.gender === athlete.gender) &&
+    div.ageCategoryName === athlete.ageDivision &&
+    div.maxWeight > currentDivision.maxWeight // Deve ser uma categoria de peso superior
+  );
+
+  // Se o agrupamento por faixa estiver habilitado, filtrar também pela faixa
+  if (isBeltGroupingEnabled) {
+    relevantDivisions.filter(div =>
+      div.belt === 'Todas' || div.belt === athlete.belt
+    );
+  }
+
+  // Ordenar por peso máximo para encontrar a "próxima" categoria
+  relevantDivisions.sort((a, b) => a.maxWeight - b.maxWeight);
+
+  // Encontrar a menor categoria de peso superior que o atleta se encaixa com o peso atual
+  for (const div of relevantDivisions) {
+    if (weighedWeight <= div.maxWeight) {
+      return div;
+    }
+  }
+
+  return undefined;
+};
+
+
 // Função para gerar a string de ordenação/exibição
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
   if (division) {

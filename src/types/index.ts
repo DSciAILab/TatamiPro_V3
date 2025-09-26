@@ -55,6 +55,10 @@ export interface Athlete {
   registeredWeight?: number; // Novo: Último peso registrado no check-in
   weightAttempts: WeightAttempt[]; // Novo: Log de tentativas de pesagem
   attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo: Status de presença
+  // NOVO: Propriedades para registrar movimentação por excesso de peso
+  movedToDivisionId?: string;
+  moveReason?: string;
+  _division?: Division; // Adicionado para facilitar o acesso à divisão no frontend
 }
 
 export interface Event {
@@ -72,4 +76,5 @@ export interface Event {
   isWeightCheckEnabled?: boolean; // NOVO: Se a verificação de peso está habilitada no check-in
   matAssignments?: Record<string, string[]>; // NOVO: Atribuições de categorias aos mats
   isBeltGroupingEnabled?: boolean; // NOVO: Se o agrupamento de categorias considera a faixa
+  isOverweightAutoMoveEnabled?: boolean; // NOVO: Se a movimentação automática por excesso de peso está habilitada
 }

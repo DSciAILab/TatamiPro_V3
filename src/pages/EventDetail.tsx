@@ -60,6 +60,8 @@ const EventDetail: React.FC = () => {
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
         attendanceStatus: athleteData.attendanceStatus || 'pending',
+        movedToDivisionId: athleteData.movedToDivisionId || undefined, // Load new prop
+        moveReason: athleteData.moveReason || undefined, // Load new prop
       };
     };
 
@@ -84,6 +86,7 @@ const EventDetail: React.FC = () => {
     let isWeightCheckEnabled = true; // Default to true
     let matAssignments: Record<string, string[]> = {}; // Initialize matAssignments
     let isBeltGroupingEnabled = true; // Initialize isBeltGroupingEnabled
+    let isOverweightAutoMoveEnabled = false; // Initialize isOverweightAutoMoveEnabled
 
     if (existingEventData) {
       try {
@@ -99,6 +102,7 @@ const EventDetail: React.FC = () => {
         isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
         matAssignments = parsedEvent.matAssignments || {}; // Load matAssignments
         isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true; // Load isBeltGroupingEnabled
+        isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false; // Load new state
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -116,6 +120,7 @@ const EventDetail: React.FC = () => {
       isWeightCheckEnabled,
       matAssignments, // Set matAssignments
       isBeltGroupingEnabled, // Set isBeltGroupingEnabled
+      isOverweightAutoMoveEnabled, // Set new state
       ...eventSettings,
     };
   });
@@ -130,6 +135,7 @@ const EventDetail: React.FC = () => {
   const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
   const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true);
   const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true); // New state for belt grouping toggle
+  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false); // New state for auto-move toggle
 
 
   // Configuração de campos obrigatórios para check-in
@@ -164,9 +170,10 @@ const EventDetail: React.FC = () => {
         isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
         isWeightCheckEnabled: isWeightCheckEnabled,
         isBeltGroupingEnabled: isBeltGroupingEnabled, // Save new state
+        isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled, // Save new state
       }));
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -214,13 +221,13 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
+  const handleCheckInAthlete = (updatedAthlete: Athlete) => { // Updated signature
     if (event) {
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
-          athlete.id === athleteId
-            ? { ...athlete, registeredWeight, checkInStatus: status, weightAttempts }
+          athlete.id === updatedAthlete.id
+            ? updatedAthlete // Replace with the fully updated athlete object
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -543,6 +550,11 @@ const EventDetail: React.FC = () => {
                   {filteredAthletesForDisplayInscricoes.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                       <div className="flex items-center space-x-4">
+                        <Checkbox
+                          checked={selectedAthletesForApproval.includes(athlete.id)}
+                          onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
+                          className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
+                        />
                         {athlete.photoUrl ? (
                           <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
@@ -554,6 +566,11 @@ const EventDetail: React.FC = () => {
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                           <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registrationStatus === 'approved' ? 'text-green-600' : athlete.registrationStatus === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registrationStatus === 'under_approval' ? 'Aguardando Aprovação' : athlete.registrationStatus === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
+                          {athlete.moveReason && (
+                            <p className="text-xs text-blue-500">
+                              <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -722,6 +739,11 @@ const EventDetail: React.FC = () => {
                           {athlete.registeredWeight && (
                             <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
                           )}
+                          {athlete.moveReason && (
+                            <p className="text-xs text-blue-500">
+                              <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
@@ -747,7 +769,10 @@ const EventDetail: React.FC = () => {
                           onCheckIn={handleCheckInAthlete}
                           isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'}
                           divisionMaxWeight={athlete._division?.maxWeight}
-                          isWeightCheckEnabled={isWeightCheckEnabled} // Pass new prop
+                          isWeightCheckEnabled={isWeightCheckEnabled}
+                          isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
+                          eventDivisions={event.divisions} // Pass all divisions for auto-move logic
+                          isBeltGroupingEnabled={isBeltGroupingEnabled} // Pass belt grouping setting
                         />
                       </div>
                     </li>
@@ -945,6 +970,14 @@ const EventDetail: React.FC = () => {
                         onCheckedChange={setIsBeltGroupingEnabled}
                       />
                       <Label htmlFor="belt-grouping-enabled">Habilitar Faixa no Agrupamento de Divisões</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="overweight-auto-move-enabled"
+                        checked={isOverweightAutoMoveEnabled}
+                        onCheckedChange={setIsOverweightAutoMoveEnabled}
+                      />
+                      <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso para próxima categoria</Label>
                     </div>
                   </div>
                   <CheckInMandatoryFieldsConfig eventId={event.id} />

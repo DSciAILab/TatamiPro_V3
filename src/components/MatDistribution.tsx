@@ -39,7 +39,8 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
   const allCategoryGroups = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
 
-    event.athletes.filter(a => a.registrationStatus === 'approved').forEach(athlete => {
+    // Filtrar atletas que fizeram check-in com sucesso
+    event.athletes.filter(a => a.registrationStatus === 'approved' && a.checkInStatus === 'checked_in').forEach(athlete => {
       const division = findAthleteDivision(athlete, event.divisions);
       if (!division) return;
 
