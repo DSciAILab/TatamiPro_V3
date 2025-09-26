@@ -70,4 +70,6 @@ export interface Event {
   divisions: Division[]; // Novo: Divisões configuradas para o evento
   isAttendanceMandatoryBeforeCheckIn?: boolean; // NOVO: Se a presença é obrigatória antes do check-in
   isWeightCheckEnabled?: boolean; // NOVO: Se a verificação de peso está habilitada no check-in
+  matAssignments?: Record<string, string[]>; // NOVO: Atribuições de categorias aos mats
+  isBeltGroupingEnabled?: boolean; // NOVO: Se o agrupamento de categorias considera a faixa
 }

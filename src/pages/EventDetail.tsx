@@ -17,6 +17,7 @@ import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
+import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -27,6 +28,7 @@ import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Importar Dialog
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +82,9 @@ const EventDetail: React.FC = () => {
     let existingDivisions: Division[] = [];
     let isAttendanceMandatoryBeforeCheckIn = false;
     let isWeightCheckEnabled = true; // Default to true
+    let matAssignments: Record<string, string[]> = {}; // Initialize matAssignments
+    let isBeltGroupingEnabled = true; // Initialize isBeltGroupingEnabled
+
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -92,6 +97,8 @@ const EventDetail: React.FC = () => {
         existingDivisions = parsedEvent.divisions || [];
         isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
         isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
+        matAssignments = parsedEvent.matAssignments || {}; // Load matAssignments
+        isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true; // Load isBeltGroupingEnabled
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -106,7 +113,9 @@ const EventDetail: React.FC = () => {
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
       isAttendanceMandatoryBeforeCheckIn,
-      isWeightCheckEnabled, // Initialize new state
+      isWeightCheckEnabled,
+      matAssignments, // Set matAssignments
+      isBeltGroupingEnabled, // Set isBeltGroupingEnabled
       ...eventSettings,
     };
   });
@@ -119,7 +128,8 @@ const EventDetail: React.FC = () => {
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
   const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
-  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true); // New state for weight check toggle
+  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true);
+  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true); // New state for belt grouping toggle
 
 
   // Configuração de campos obrigatórios para check-in
@@ -152,10 +162,11 @@ const EventDetail: React.FC = () => {
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas: numFightAreas,
         isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
-        isWeightCheckEnabled: isWeightCheckEnabled, // Save new state
+        isWeightCheckEnabled: isWeightCheckEnabled,
+        isBeltGroupingEnabled: isBeltGroupingEnabled, // Save new state
       }));
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -288,6 +299,16 @@ const EventDetail: React.FC = () => {
       return {
         ...prevEvent,
         divisions: updatedDivisions,
+      };
+    });
+  };
+
+  const handleUpdateMatAssignments = (assignments: Record<string, string[]>) => {
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      return {
+        ...prevEvent,
+        matAssignments: assignments,
       };
     });
   };
@@ -754,6 +775,23 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">Distribuição dos Mats</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Configurar Distribuição dos Mats</DialogTitle>
+                    </DialogHeader>
+                    <MatDistribution
+                      event={event}
+                      onUpdateMatAssignments={handleUpdateMatAssignments}
+                      isBeltGroupingEnabled={isBeltGroupingEnabled}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
               <p>Conteúdo da aba Brackets para o evento {event.name}.</p>
             </CardContent>
           </Card>
@@ -899,6 +937,14 @@ const EventDetail: React.FC = () => {
                         onCheckedChange={setIsWeightCheckEnabled}
                       />
                       <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso no Check-in</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="belt-grouping-enabled"
+                        checked={isBeltGroupingEnabled}
+                        onCheckedChange={setIsBeltGroupingEnabled}
+                      />
+                      <Label htmlFor="belt-grouping-enabled">Habilitar Faixa no Agrupamento de Divisões</Label>
                     </div>
                   </div>
                   <CheckInMandatoryFieldsConfig eventId={event.id} />
