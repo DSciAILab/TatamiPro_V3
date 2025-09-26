@@ -14,8 +14,8 @@ import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // Novo import
-import AttendanceManagement from '@/components/AttendanceManagement'; // Novo import
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import AttendanceManagement from '@/components/AttendanceManagement';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -25,13 +25,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-
+import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { userRole, userClub } = useSession(); // Get userRole and userClub from session context
   const [activeTab, setActiveTab] = useState('inscricoes');
-  const userRole = localStorage.getItem('userRole');
-  const userClub = localStorage.getItem('userClub');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -744,7 +743,7 @@ const EventDetail: React.FC = () => {
                       />
                     </div>
                   </div>
-                  <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}
+                  <CheckInMandatoryFieldsConfig eventId={event.id} />
                 </CardContent>
               </Card>
             </TabsContent>

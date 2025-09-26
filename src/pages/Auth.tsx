@@ -177,13 +177,6 @@ const Auth: React.FC = () => {
                 </Button>
               </form>
             )}
-            <div className="mt-6 text-center text-xs text-muted-foreground">
-              <p className="font-semibold mb-2">Credenciais de Demonstração (para perfis existentes):</p>
-              <p>Admin: admin@tatamipro.com / admin123</p>
-              <p>Coach: coach@tatamipro.com / coach123</p>
-              <p>Staff: staff@tatamipro.com / staff123</p>
-              <p>Atleta: athlete@tatamipro.com / athlete123</p>
-            </div>
           </CardContent>
         </Card>
       </div>
