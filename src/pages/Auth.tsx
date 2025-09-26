@@ -9,15 +9,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Layout from '@/components/Layout';
 import { showSuccess, showError } from '@/utils/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User } from '@/types'; // Importar o tipo User
+import { User } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [club, setClub] = useState(''); // Mantido para potencial uso futuro no registro
+  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete'); // Default role
+  const [club, setClub] = useState('');
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -34,12 +34,11 @@ const Auth: React.FC = () => {
         localStorage.setItem('userRole', foundUser.role);
         localStorage.setItem('userClub', foundUser.club || '');
         showSuccess(`Login de ${foundUser.name} (${foundUser.role}) realizado com sucesso!`);
-        navigate('/welcome'); // Redireciona para a página de boas-vindas
+        navigate('/welcome');
       } else {
         showError('Credenciais, papel ou status de usuário inválidos. Tente as credenciais de demonstração.');
       }
     } else {
-      // Lógica de registro
       const existingUser = users.find(u => u.email === email);
       if (existingUser) {
         showError('Já existe um usuário com este email.');
@@ -51,9 +50,9 @@ const Auth: React.FC = () => {
       const newUser: User = {
         id: uuidv4(),
         email,
-        password, // Em um app real, a senha seria hashed
+        password,
         role,
-        club: club || (role === 'admin' ? 'Tatamipro HQ' : 'Novo Clube'), // Default club for new users
+        club: club || (role === 'admin' ? 'Tatamipro HQ' : 'Novo Clube'),
         isActive: true,
         name: newUserName,
       };
@@ -61,7 +60,7 @@ const Auth: React.FC = () => {
       const updatedUsers = [...users, newUser];
       localStorage.setItem('users', JSON.stringify(updatedUsers));
       showSuccess('Registro realizado com sucesso! Por favor, faça login.');
-      setIsLogin(true); // Redireciona para a tela de login
+      setIsLogin(true);
     }
   };
 
@@ -100,23 +99,21 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
-                {/* A seleção de papel só aparece para registro */}
-                {!isLogin && (
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="role">Papel</Label>
-                    <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Selecione seu papel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="athlete">Atleta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {/* A seleção de papel agora aparece para login e registro */}
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="role">Papel</Label>
+                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Selecione seu papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="athlete">Atleta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full mt-4">
                   {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
