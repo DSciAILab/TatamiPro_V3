@@ -5,17 +5,37 @@ import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AthleteRegistrationForm from '@/components/AthleteRegistrationForm'; // New import
+import { Athlete, Event } from '../types/index'; // Corrigido: usando caminho relativo
+import { UserRound } from 'lucide-react'; // Corrigido: importando UserRound
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('inscricoes');
   const userRole = localStorage.getItem('userRole'); // For basic RBAC
 
-  // Mock event data
-  const event = {
-    id: id,
+  // Mock event data - In a real app, this would come from a global state or API
+  const [event, setEvent] = useState<Event | null>({
+    id: id || 'mock-event-id',
     name: `Evento #${id}`,
     description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
+    status: 'Aberto',
+    date: '2024-12-01',
+    athletes: [], // Initialize with an empty array for athletes
+  });
+
+  const handleAthleteRegistration = (newAthlete: Athlete) => {
+    if (event) {
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        return {
+          ...prevEvent,
+          athletes: [...prevEvent.athletes, newAthlete],
+        };
+      });
+      console.log('Atleta registrado:', newAthlete);
+      // Here you would typically send newAthlete to a backend API
+    }
   };
 
   if (!event) {
@@ -51,8 +71,29 @@ const EventDetail: React.FC = () => {
               <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Athlete registration form will go here */}
-              <p>Conteúdo da aba Inscrições para o evento {event.name}.</p>
+              <AthleteRegistrationForm eventId={event.id} onRegister={handleAthleteRegistration} />
+              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({event.athletes.length})</h3>
+              {event.athletes.length === 0 ? (
+                <p className="text-muted-foreground">Nenhum atleta inscrito ainda.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {event.athletes.map((athlete) => (
+                    <li key={athlete.id} className="flex items-center space-x-4 p-2 border rounded-md">
+                      {athlete.photoUrl ? (
+                        <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <UserRound className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.age} anos)</p>
+                        <p className="text-sm text-muted-foreground">{athlete.belt} - {athlete.club}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
