@@ -1,19 +1,17 @@
 "use client";
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from 'shadcn/ui/button';
 
-const LogoutButton = () => {
+export default function LogoutButton() {
   const handleLogout = () => {
-    // Placeholder logout logic
+    // Placeholder for logout logic
     console.log('User logged out');
   };
 
   return (
-    <Button variant="outline" onClick={handleLogout}>
+    <Button variant="outline" onClick={handleLogout} className="mt-4">
       Logout
     </Button>
   );
-};
-
-export default LogoutButton;
+}
