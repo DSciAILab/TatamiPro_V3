@@ -1,6 +1,6 @@
 export interface Athlete {
   id: string;
-  eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
+  eventId: string; // Adicionado: eventId é necessário para associar o atleta a um evento
   photoUrl?: string;
   firstName: string;
   lastName: string;
@@ -20,6 +20,24 @@ export interface Athlete {
   consentVersion: string;
 }
 
+export interface Match {
+  id: string;
+  round: number;
+  matchNumber: number;
+  fighter1?: Athlete | 'BYE';
+  fighter2?: Athlete | 'BYE';
+  winnerId?: string; // Athlete ID or 'BYE'
+  nextMatchId?: string;
+  prevMatch1Id?: string;
+  prevMatch2Id?: string;
+}
+
+export interface Bracket {
+  divisionId: string;
+  matches: Match[];
+  thirdPlaceMatch?: Match;
+}
+
 export interface Event {
   id: string;
   name: string;
@@ -27,4 +45,5 @@ export interface Event {
   status: 'Aberto' | 'Fechado';
   date: string;
   athletes: Athlete[];
+  brackets?: Bracket[]; // Adicionado para armazenar os brackets gerados
 }
