@@ -81,12 +81,14 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
           {categoriesOnSelectedMat.map(group => (
             <Button
               key={group.key}
-              variant={selectedCategoryKey === group.key ? 'default' : 'outline'}
-              onClick={() => onSelectCategory(group.key, group.divisionIds[0])} // Passa o primeiro divisionId
+              // Usar classes Tailwind para um azul escuro consistente para o estado selecionado
               className={cn(
                 "justify-start",
-                selectedCategoryKey === group.key ? "bg-primary text-primary-foreground" : ""
+                selectedCategoryKey === group.key
+                  ? "bg-blue-900 text-white hover:bg-blue-800 dark:bg-blue-900 dark:text-white dark:hover:bg-blue-800" // Azul escuro para seleção
+                  : "bg-background text-foreground hover:bg-accent hover:text-accent-foreground" // Estilo padrão
               )}
+              onClick={() => onSelectCategory(group.key, group.divisionIds[0])} // Passa o primeiro divisionId
             >
               {group.display} ({group.athleteCount} atletas)
             </Button>

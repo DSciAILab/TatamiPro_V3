@@ -129,6 +129,7 @@ const FightDetail: React.FC = () => {
 
     const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket)); // Deep copy
     let matchFound = false;
+    let updatedMatch: Match | null = null;
 
     // Update the current match
     for (const round of updatedBracket.rounds) {
@@ -138,6 +139,7 @@ const FightDetail: React.FC = () => {
         targetMatch.loserId = loserId;
         targetMatch.result = { type: selectedResultType, winnerId: selectedWinnerId, loserId: loserId, details: resultDetails };
         matchFound = true;
+        updatedMatch = targetMatch; // Store the updated match
 
         // Advance winner to next match
         if (targetMatch.nextMatchId) {
@@ -189,6 +191,7 @@ const FightDetail: React.FC = () => {
         updatedBracket.thirdPlaceWinnerId = updatedBracket.thirdPlaceMatch.winnerId;
       }
 
+      setCurrentMatch(updatedMatch); // Explicitly update currentMatch state to trigger re-render
       handleUpdateBracket(updatedBracket);
       showSuccess(`Resultado da luta ${currentMatch.matchNumber} registrado!`);
       setShowPostFightOptions(true);

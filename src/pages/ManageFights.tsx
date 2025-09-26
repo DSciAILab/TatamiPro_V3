@@ -21,6 +21,30 @@ const ManageFights: React.FC = () => {
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null); // Chave da categoria (e.g., "Masculino/Adult/Preta")
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null); // NOVO: ID da divisão selecionada
 
+  // Load selected mat/category from localStorage on mount
+  useEffect(() => {
+    const storedMat = localStorage.getItem(`manageFights_selectedMat_${eventId}`);
+    const storedCategoryKey = localStorage.getItem(`manageFights_selectedCategoryKey_${eventId}`);
+    const storedDivisionId = localStorage.getItem(`manageFights_selectedDivisionId_${eventId}`);
+
+    if (storedMat) setSelectedMat(storedMat);
+    if (storedCategoryKey) setSelectedCategoryKey(storedCategoryKey);
+    if (storedDivisionId) setSelectedDivisionId(storedDivisionId);
+  }, [eventId]);
+
+  // Save selected mat/category to localStorage whenever they change
+  useEffect(() => {
+    if (selectedMat) localStorage.setItem(`manageFights_selectedMat_${eventId}`, selectedMat);
+    else localStorage.removeItem(`manageFights_selectedMat_${eventId}`);
+
+    if (selectedCategoryKey) localStorage.setItem(`manageFights_selectedCategoryKey_${eventId}`, selectedCategoryKey);
+    else localStorage.removeItem(`manageFights_selectedCategoryKey_${eventId}`);
+
+    if (selectedDivisionId) localStorage.setItem(`manageFights_selectedDivisionId_${eventId}`, selectedDivisionId);
+    else localStorage.removeItem(`manageFights_selectedDivisionId_${eventId}`);
+  }, [selectedMat, selectedCategoryKey, selectedDivisionId, eventId]);
+
+
   useEffect(() => {
     if (eventId) {
       const existingEventData = localStorage.getItem(`event_${eventId}`);
