@@ -31,20 +31,28 @@ const seededRandom = (seed: number) => {
   };
 };
 
-// Ordem das faixas para comparação
-const beltOrder: DivisionBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Todas'];
+// Helper para obter a posição de um seed em um bracket de eliminação simples (0-indexed)
+const getSeedPosition = (seedNumber: number, bracketSize: number): number | null => {
+  if (seedNumber < 1) return null;
 
-// Ordem das categorias de idade para comparação
-const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
-
-// Ordem de gênero para comparação
-const genderOrder: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
-
+  // Posições clássicas de seeds para brackets de potência de 2 (0-indexed)
+  switch (seedNumber) {
+    case 1: return 0;
+    case 2: return bracketSize - 1;
+    case 3: return bracketSize >= 4 ? bracketSize / 2 - 1 : null;
+    case 4: return bracketSize >= 4 ? bracketSize / 2 : null;
+    case 5: return bracketSize >= 8 ? bracketSize / 4 - 1 : null;
+    case 6: return bracketSize >= 8 ? bracketSize - (bracketSize / 4) : null;
+    case 7: return bracketSize >= 8 ? bracketSize / 4 : null;
+    case 8: return bracketSize >= 8 ? bracketSize - (bracketSize / 4) - 1 : null;
+    // Para seeds > 8, eles serão tratados como não-seeds para fins de posicionamento inicial
+    default: return null;
+  }
+};
 
 interface GenerateBracketOptions {
   thirdPlace?: boolean;
   rngSeed?: number;
-  maxBlocks?: number; // Para o algoritmo de blocos
 }
 
 export const generateBracketForDivision = (
@@ -63,52 +71,65 @@ export const generateBracketForDivision = (
 
   const N0 = divisionAthletes.length;
   const bracketSize = getNextPowerOf2(N0);
-  const byes = bracketSize - N0;
+  const numByes = bracketSize - N0;
 
-  // Separar atletas com seed e sem seed
+  // 2. Separar atletas com seed e sem seed
   const seededAthletes = divisionAthletes.filter(a => a.seed !== undefined).sort((a, b) => a.seed! - b.seed!);
   let unseededAthletes = divisionAthletes.filter(a => a.seed === undefined);
 
-  // Embaralha os atletas não-seeded
-  unseededAthletes = shuffleArray(unseededAthletes, rng);
+  // 3. Inicializar o array de participantes final
+  const finalParticipants: (Athlete | 'BYE' | null)[] = new Array(bracketSize).fill(null);
 
-  // Crie a lista inicial de participantes com BYEs
-  const initialParticipants: (Athlete | 'BYE')[] = new Array(bracketSize).fill('BYE');
-
-  // Colocar seeds em posições "clássicas" (simplificado)
-  const seedPositions = [0, bracketSize - 1]; // Top and bottom
-  if (bracketSize > 2) {
-    seedPositions.push(bracketSize / 2);
-    seedPositions.push(bracketSize / 2 - 1);
-  }
-  for (let i = 0; i < seededAthletes.length && i < seedPositions.length; i++) {
-    initialParticipants[seedPositions[i]] = seededAthletes[i];
+  // 4. Colocar atletas cabeças de chave (seeds)
+  const placedSeedIds = new Set<string>();
+  for (const athlete of seededAthletes) {
+    const position = getSeedPosition(athlete.seed!, bracketSize);
+    if (position !== null && finalParticipants[position] === null) {
+      finalParticipants[position] = athlete;
+      placedSeedIds.add(athlete.id);
+    }
   }
 
-  // Preencher as posições restantes com atletas não-seeded
-  let currentUnseededIndex = 0;
+  // 5. Criar pool de preenchimento com atletas não-seed e BYEs
+  // Atletas não-seed que não foram colocados como seeds (se houver seeds > 8)
+  const remainingUnseededAthletes = unseededAthletes.filter(a => !placedSeedIds.has(a.id));
+  
+  // Pool de preenchimento: atletas não-seed embaralhados + BYEs
+  const fillers: (Athlete | 'BYE')[] = [
+    ...shuffleArray(remainingUnseededAthletes, rng),
+    ...Array(numByes).fill('BYE')
+  ];
+  shuffleArray(fillers, rng); // Embaralhar o pool de preenchimento para distribuição balanceada
+
+  // 6. Preencher slots restantes com o pool de preenchimento
   for (let i = 0; i < bracketSize; i++) {
-    if (initialParticipants[i] === 'BYE') { // Se a posição está vazia
-      if (currentUnseededIndex < unseededAthletes.length) {
-        initialParticipants[i] = unseededAthletes[currentUnseededIndex];
-        currentUnseededIndex++;
+    if (finalParticipants[i] === null) {
+      if (fillers.length > 0) {
+        finalParticipants[i] = fillers.shift()!;
+      } else {
+        // Isso não deve acontecer se numByes e unseededAthletes forem calculados corretamente
+        console.warn("Faltam atletas ou BYEs para preencher o bracket.");
+        finalParticipants[i] = 'BYE'; // Fallback
       }
     }
   }
 
-  // A lista final de participantes para a primeira rodada é agora initialParticipants.
-  // Quaisquer 'BYE's restantes em initialParticipants são BYEs reais.
-  const finalBracketParticipants = initialParticipants;
+  // Garantir que todos os slots foram preenchidos (para tipagem)
+  const initialRoundParticipants: (Athlete | 'BYE')[] = finalParticipants as (Athlete | 'BYE')[];
 
+  // 7. Anti-conflito (mesma equipe) - Primeira rodada (melhor esforço)
+  // A distribuição aleatória dos 'fillers' já ajuda a evitar agrupamentos.
+  // Uma implementação robusta de anti-conflito com swaps locais é complexa e pode ser adicionada futuramente.
+  // Por enquanto, a aleatoriedade dos não-seeds e BYEs é o principal mecanismo de balanceamento.
 
   const rounds: Match[][] = [];
-  let currentRoundParticipants = finalBracketParticipants;
+  let currentRoundParticipants = initialRoundParticipants;
   let roundNumber = 1;
 
-  // 8. Construção da árvore
+  // 8. Construção da árvore do bracket
   while (currentRoundParticipants.length > 1) {
     const matchesInRound: Match[] = [];
-    const nextRoundParticipants: (Athlete | 'BYE')[] = [];
+    const nextRoundParticipants: (Athlete | 'BYE' | undefined)[] = []; // Pode ter undefined para vencedores a serem determinados
 
     for (let i = 0; i < currentRoundParticipants.length; i += 2) {
       const fighter1 = currentRoundParticipants[i];
@@ -118,8 +139,8 @@ export const generateBracketForDivision = (
       const nextMatchId = roundNumber < Math.log2(bracketSize) ? `${division.id}-R${roundNumber + 1}-M${Math.floor(i / 4) + 1}` : undefined;
 
       let winner: Athlete | 'BYE' | undefined;
-      let fighter1Id: string | 'BYE' = fighter1 === 'BYE' ? 'BYE' : (fighter1 as Athlete)?.id;
-      let fighter2Id: string | 'BYE' = fighter2 === 'BYE' ? 'BYE' : (fighter2 as Athlete)?.id;
+      let fighter1Id: string | 'BYE' | undefined = fighter1 === 'BYE' ? 'BYE' : (fighter1 as Athlete)?.id;
+      let fighter2Id: string | 'BYE' | undefined = fighter2 === 'BYE' ? 'BYE' : (fighter2 as Athlete)?.id;
 
       if (fighter1 === 'BYE' && fighter2 !== 'BYE') {
         winner = fighter2;
@@ -132,7 +153,7 @@ export const generateBracketForDivision = (
         nextRoundParticipants.push('BYE');
       } else {
         // Luta real, vencedor indefinido por enquanto
-        nextRoundParticipants.push(undefined as any); // Placeholder para o vencedor
+        nextRoundParticipants.push(undefined); // Placeholder para o vencedor
       }
 
       matchesInRound.push({
@@ -142,12 +163,13 @@ export const generateBracketForDivision = (
         fighter1Id: fighter1Id,
         fighter2Id: fighter2Id,
         winnerId: winner === 'BYE' ? 'BYE' : (winner as Athlete)?.id,
+        loserId: (winner === fighter1) ? fighter2Id : (winner === fighter2 ? fighter1Id : undefined), // Define loser for BYE matches
         nextMatchId: nextMatchId,
         prevMatchIds: undefined, // Será preenchido no próximo loop se necessário
       });
     }
     rounds.push(matchesInRound);
-    currentRoundParticipants = nextRoundParticipants;
+    currentRoundParticipants = nextRoundParticipants as (Athlete | 'BYE')[]; // Cast para continuar o loop
     roundNumber++;
   }
 
@@ -186,6 +208,6 @@ export const generateBracketForDivision = (
     rounds,
     thirdPlaceMatch,
     bracketSize,
-    participants: finalBracketParticipants, // A lista final de participantes na ordem do bracket
+    participants: initialRoundParticipants, // A lista final de participantes na ordem do bracket
   };
 };
