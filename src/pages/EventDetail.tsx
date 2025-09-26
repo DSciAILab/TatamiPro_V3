@@ -117,6 +117,15 @@ const EventDetail: React.FC = () => {
     let matFightOrder: Record<string, string[]> = {}; // Initialize matFightOrder
     let includeThirdPlace = false; // Initialize new state
 
+    // New event properties
+    let isActive = true;
+    let championPoints = 9;
+    let runnerUpPoints = 3;
+    let thirdPlacePoints = 1;
+    let countSingleClubCategories = true;
+    let countWalkoverSingleFightCategories = true;
+
+
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -135,6 +144,15 @@ const EventDetail: React.FC = () => {
         existingBrackets = parsedEvent.brackets || {}; // Load existing brackets
         matFightOrder = parsedEvent.matFightOrder || {}; // Load matFightOrder
         includeThirdPlace = parsedEvent.includeThirdPlace !== undefined ? parsedEvent.includeThirdPlace : false; // Load new state
+        
+        // Load new event properties
+        isActive = parsedEvent.isActive !== undefined ? parsedEvent.isActive : true;
+        championPoints = parsedEvent.championPoints !== undefined ? parsedEvent.championPoints : 9;
+        runnerUpPoints = parsedEvent.runnerUpPoints !== undefined ? parsedEvent.runnerUpPoints : 3;
+        thirdPlacePoints = parsedEvent.thirdPlacePoints !== undefined ? parsedEvent.thirdPlacePoints : 1;
+        countSingleClubCategories = parsedEvent.countSingleClubCategories !== undefined ? parsedEvent.countSingleClubCategories : true;
+        countWalkoverSingleFightCategories = parsedEvent.countWalkoverSingleFightCategories !== undefined ? parsedEvent.countWalkoverSingleFightCategories : true;
+
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -156,6 +174,12 @@ const EventDetail: React.FC = () => {
       brackets: existingBrackets, // Set existing brackets
       matFightOrder, // Set matFightOrder
       includeThirdPlace, // Set new state
+      isActive, // Set new state
+      championPoints, // Set new state
+      runnerUpPoints, // Set new state
+      thirdPlacePoints, // Set new state
+      countSingleClubCategories, // Set new state
+      countWalkoverSingleFightCategories, // Set new state
       ...eventSettings,
     };
   });
@@ -172,6 +196,14 @@ const EventDetail: React.FC = () => {
   const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true); // New state for belt grouping toggle
   const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false); // New state for auto-move toggle
   const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false); // New state for third place toggle
+  // New states for event configuration
+  const [isActive, setIsActive] = useState<boolean>(event?.isActive || true);
+  const [championPoints, setChampionPoints] = useState<number>(event?.championPoints || 9);
+  const [runnerUpPoints, setRunnerUpPoints] = useState<number>(event?.runnerUpPoints || 3);
+  const [thirdPlacePoints, setThirdPlacePoints] = useState<number>(event?.thirdPlacePoints || 1);
+  const [countSingleClubCategories, setCountSingleClubCategories] = useState<boolean>(event?.countSingleClubCategories || true);
+  const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(event?.countWalkoverSingleFightCategories || true);
+
 
   // State for inner tabs within 'Config'
   const [configSubTab, setConfigSubTab] = useState('event-settings');
@@ -213,9 +245,15 @@ const EventDetail: React.FC = () => {
         isBeltGroupingEnabled: isBeltGroupingEnabled, // Save new state
         isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled, // Save new state
         includeThirdPlace: includeThirdPlace, // Save new state
+        isActive: isActive, // Save new state
+        championPoints: championPoints, // Save new state
+        runnerUpPoints: runnerUpPoints, // Save new state
+        thirdPlacePoints: thirdPlacePoints, // Save new state
+        countSingleClubCategories: countSingleClubCategories, // Save new state
+        countWalkoverSingleFightCategories: countWalkoverSingleFightCategories, // Save new state
       }));
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -605,12 +643,21 @@ const EventDetail: React.FC = () => {
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
                     <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
-                    <TabsTrigger value="fight-time">Tempo de Luta</TabsTrigger>
+                    <TabsTrigger value="results-settings">Resultados</TabsTrigger> {/* NOVO: Aba de Resultados */}
                   </TabsList>
 
                   <TabsContent value="event-settings" className="mt-6">
                     <div className="space-y-4">
-                      <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
+                      <h3 className="text-xl font-semibold">Configurações Gerais</h3>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="event-active"
+                          checked={isActive}
+                          onCheckedChange={setIsActive}
+                        />
+                        <Label htmlFor="event-active">Evento Ativo</Label>
+                      </div>
+                      <h3 className="text-xl font-semibold mt-6">Configurações de Check-in</h3>
                       <div>
                         <Label htmlFor="checkInStartTime">Início do Check-in</Label>
                         <Popover>
@@ -772,12 +819,61 @@ const EventDetail: React.FC = () => {
                     <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
                   </TabsContent>
 
-                  <TabsContent value="fight-time" className="mt-6">
-                    <h3 className="text-xl font-semibold mb-4">Configuração de Tempo de Luta</h3>
-                    <p className="text-muted-foreground">
-                      Aqui você poderá configurar os tempos de luta para diferentes faixas e categorias de idade.
-                      (Funcionalidade em desenvolvimento)
-                    </p>
+                  {/* NOVO: Aba de Configurações de Resultados */}
+                  <TabsContent value="results-settings" className="mt-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold mb-4">Configuração de Pontos</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="championPoints">Pontos Campeão</Label>
+                          <Input
+                            id="championPoints"
+                            type="number"
+                            min="0"
+                            value={championPoints}
+                            onChange={(e) => setChampionPoints(Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="runnerUpPoints">Pontos Vice-Campeão</Label>
+                          <Input
+                            id="runnerUpPoints"
+                            type="number"
+                            min="0"
+                            value={runnerUpPoints}
+                            onChange={(e) => setRunnerUpPoints(Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="thirdPlacePoints">Pontos 3º Lugar</Label>
+                          <Input
+                            id="thirdPlacePoints"
+                            type="number"
+                            min="0"
+                            value={thirdPlacePoints}
+                            onChange={(e) => setThirdPlacePoints(Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-semibold mt-6 mb-4">Regras de Contagem de Pontos</h3>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="count-single-club-categories"
+                          checked={countSingleClubCategories}
+                          onCheckedChange={setCountSingleClubCategories}
+                        />
+                        <Label htmlFor="count-single-club-categories">Categorias com apenas uma equipe contam pontos</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Switch
+                          id="count-walkover-single-fight-categories"
+                          checked={countWalkoverSingleFightCategories}
+                          onCheckedChange={setCountWalkoverSingleFightCategories}
+                        />
+                        <Label htmlFor="count-walkover-single-fight-categories">W.O. em lutas únicas (equipes diferentes) contam pontos</Label>
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>

@@ -205,6 +205,12 @@ const AthleteRegistrationForm: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         athletes: [],
         divisions: [],
+        isActive: true, // Default value
+        championPoints: 9, // Default value
+        runnerUpPoints: 3, // Default value
+        thirdPlacePoints: 1, // Default value
+        countSingleClubCategories: true, // Default value
+        countWalkoverSingleFightCategories: true, // Default value
       };
       if (existingEventData) {
         try {

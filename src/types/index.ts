@@ -117,4 +117,10 @@ export interface Event {
   brackets?: Record<string, Bracket>; // NOVO: Brackets gerados para cada divisão
   matFightOrder?: Record<string, string[]>; // NOVO: Ordem sequencial das lutas por mat
   includeThirdPlace?: boolean; // NOVO: Se a luta pelo 3º lugar está habilitada
+  isActive: boolean; // NOVO: Se o evento está ativo ou inativo
+  championPoints: number; // NOVO: Pontos para o campeão
+  runnerUpPoints: number; // NOVO: Pontos para o vice-campeão
+  thirdPlacePoints: number; // NOVO: Pontos para o terceiro lugar
+  countSingleClubCategories: boolean; // NOVO: Se categorias com apenas uma escola contam pontos
+  countWalkoverSingleFightCategories: boolean; // NOVO: Se W.O. em lutas únicas entre escolas diferentes contam pontos
 }
