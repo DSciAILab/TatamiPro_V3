@@ -14,6 +14,8 @@ import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // Novo import
+import AttendanceManagement from '@/components/AttendanceManagement'; // Novo import
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -29,6 +31,7 @@ const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('inscricoes');
   const userRole = localStorage.getItem('userRole');
+  const userClub = localStorage.getItem('userClub');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -40,7 +43,7 @@ const EventDetail: React.FC = () => {
     const processAthleteData = (athleteData: any): Athlete => {
       const age = new Date().getFullYear() - new Date(athleteData.dateOfBirth).getFullYear();
       const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(athleteData.weight); // Keep for backward compatibility if needed, but findAthleteDivision is primary
+      const weightDivision = getWeightDivision(athleteData.weight);
       return {
         ...athleteData,
         dateOfBirth: new Date(athleteData.dateOfBirth),
@@ -52,6 +55,7 @@ const EventDetail: React.FC = () => {
         checkInStatus: athleteData.checkInStatus || 'pending',
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
+        attendanceStatus: athleteData.attendanceStatus || 'pending', // Default attendance status
       };
     };
 
@@ -106,6 +110,28 @@ const EventDetail: React.FC = () => {
     event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
+
+  // Configuração de campos obrigatórios para check-in
+  const mandatoryFieldsConfig = useMemo(() => {
+    const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${id}`);
+    return storedConfig ? JSON.parse(storedConfig) : {
+      club: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      belt: true,
+      weight: true,
+      idNumber: true, // Representa Emirates ID ou School ID
+      gender: true,
+      nationality: true,
+      email: true,
+      phone: true,
+      photo: false,
+      emiratesIdFront: false,
+      emiratesIdBack: false,
+      paymentProof: false,
+    };
+  }, [id]);
 
   useEffect(() => {
     if (event) {
@@ -178,6 +204,20 @@ const EventDetail: React.FC = () => {
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           athlete.id === athleteId
             ? { ...athlete, registeredWeight, checkInStatus: status, weightAttempts }
+            : athlete
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+    }
+  };
+
+  const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendanceStatus']) => {
+    if (event) {
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes.map(athlete =>
+          athlete.id === athleteId
+            ? { ...athlete, attendanceStatus: status }
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -293,6 +333,9 @@ const EventDetail: React.FC = () => {
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletesToFilter = processedApprovedAthletes;
 
+    // Filtra por attendanceStatus: apenas 'present'
+    athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+
     if (scannedAthleteId) {
       athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
     } else if (searchTerm) {
@@ -336,7 +379,8 @@ const EventDetail: React.FC = () => {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          <TabsTrigger value="pesagem">Pesagem</TabsTrigger>
+          {/* Aba Pesagem removida */}
+          <TabsTrigger value="attendance">Attendance</TabsTrigger> {/* Nova aba */}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
@@ -371,6 +415,7 @@ const EventDetail: React.FC = () => {
                   athlete={editingAthlete}
                   onSave={handleAthleteUpdate}
                   onCancel={() => setEditingAthlete(null)}
+                  mandatoryFieldsConfig={mandatoryFieldsConfig}
                 />
               )}
 
@@ -553,16 +598,12 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="pesagem" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pesagem</CardTitle>
-              <CardDescription>Registre o peso dos atletas.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Conteúdo da aba Pesagem para o evento {event.name}.</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="attendance" className="mt-6">
+          <AttendanceManagement
+            eventId={event.id}
+            eventDivisions={event.divisions}
+            onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
+          />
         </TabsContent>
 
         <TabsContent value="brackets" className="mt-6">
@@ -703,6 +744,7 @@ const EventDetail: React.FC = () => {
                       />
                     </div>
                   </div>
+                  <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}
                 </CardContent>
               </Card>
             </TabsContent>

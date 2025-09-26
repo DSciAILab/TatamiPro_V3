@@ -41,6 +41,7 @@ export interface Athlete {
   checkInStatus: 'pending' | 'checked_in' | 'overweight'; // Novo: Status do check-in
   registeredWeight?: number; // Novo: Último peso registrado no check-in
   weightAttempts: WeightAttempt[]; // Novo: Log de tentativas de pesagem
+  attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo: Status de presença
 }
 
 export interface Division {

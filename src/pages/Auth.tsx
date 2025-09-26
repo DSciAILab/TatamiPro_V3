@@ -8,33 +8,62 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/Layout';
 import { showSuccess, showError } from '@/utils/toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
+  const [club, setClub] = useState('');
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For MVP, a very simplified "admin" user check.
-    // In a real app, this would involve a backend call.
+    // Para MVP, uma verificação de usuário simplificada.
+    // Em um aplicativo real, isso envolveria uma chamada de backend.
     if (isLogin) {
-      if (email === 'admin@tatamipro.com' && password === 'admin123') {
-        showSuccess('Login realizado com sucesso!');
-        localStorage.setItem('userRole', 'admin'); // Store role for basic RBAC
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        showSuccess('Login de Admin realizado com sucesso!');
+        localStorage.setItem('userRole', 'admin');
+        localStorage.removeItem('userClub'); // Admins generally don't have a specific club context
         navigate('/events');
-      } else {
-        showError('Credenciais inválidas. Tente admin@tatamipro.com / admin123');
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        showSuccess('Login de Coach realizado com sucesso!');
+        localStorage.setItem('userRole', 'coach');
+        localStorage.setItem('userClub', 'Gracie Barra'); // Mock club for coach
+        navigate('/events');
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        showSuccess('Login de Staff realizado com sucesso!');
+        localStorage.setItem('userRole', 'staff');
+        localStorage.setItem('userClub', 'Alliance'); // Mock club for staff
+        navigate('/events');
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        showSuccess('Login de Atleta realizado com sucesso!');
+        localStorage.setItem('userRole', 'athlete');
+        localStorage.setItem('userClub', 'Checkmat'); // Mock club for athlete
+        navigate('/events');
+      }
+      else {
+        showError('Credenciais ou papel inválidos. Tente as credenciais de demonstração.');
       }
     } else {
-      // Simplified registration: just "creates" the admin user if it doesn't exist
-      // In a real app, this would create a new user in the backend.
-      if (email === 'admin@tatamipro.com' && password === 'admin123') {
-        showSuccess('Registro realizado com sucesso! Faça login.');
+      // Registro simplificado: apenas "cria" o usuário admin/coach/staff/athlete se não existir
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        showSuccess('Registro de Admin realizado com sucesso! Faça login.');
         setIsLogin(true);
-      } else {
-        showError('Para o MVP, apenas o registro do admin@tatamipro.com / admin123 é suportado.');
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        showSuccess('Registro de Coach realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        showSuccess('Registro de Staff realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        showSuccess('Registro de Atleta realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      }
+      else {
+        showError('Para o MVP, apenas o registro de usuários de demonstração é suportado.');
       }
     }
   };
@@ -74,6 +103,20 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="role">Papel</Label>
+                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Selecione seu papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="athlete">Atleta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full mt-4">
                   {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
@@ -95,6 +138,13 @@ const Auth: React.FC = () => {
                   </Button>
                 </>
               )}
+            </div>
+            <div className="mt-6 text-center text-xs text-muted-foreground">
+              <p className="font-semibold mb-2">Credenciais de Demonstração:</p>
+              <p>Admin: admin@tatamipro.com / admin123</p>
+              <p>Coach: coach@tatamipro.com / coach123</p>
+              <p>Staff: staff@tatamipro.com / staff123</p>
+              <p>Atleta: athlete@tatamipro.com / athlete123</p>
             </div>
           </CardContent>
         </Card>
