@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,7 @@ const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [club, setClub] = useState(''); // Not directly used in MVP login logic, but kept for consistency
+  // 'club' and 'setClub' are not directly used in MVP login logic, so they are removed.
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,7 +54,11 @@ const Auth: React.FC = () => {
       if (loggedInUserRole) {
         showSuccess(`Login de ${loggedInUserName} realizado com sucesso!`);
         localStorage.setItem('userRole', loggedInUserRole);
-        localStorage.setItem('userName', loggedInUserName);
+        if (loggedInUserName) { // Ensure loggedInUserName is not null
+          localStorage.setItem('userName', loggedInUserName);
+        } else {
+          localStorage.removeItem('userName');
+        }
         if (loggedInUserClub) {
           localStorage.setItem('userClub', loggedInUserClub);
         } else {

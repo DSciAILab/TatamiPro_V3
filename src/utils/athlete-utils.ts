@@ -1,6 +1,6 @@
 "use client";
 
-import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
+import { Athlete, Division, AgeCategory, Belt } from '@/types/index';
 
 export const getAgeDivision = (age: number): AgeCategory => {
   if (age >= 4 && age <= 6) return "Kids 1";

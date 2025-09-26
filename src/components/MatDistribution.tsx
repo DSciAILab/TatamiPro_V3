@@ -3,9 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Event, Athlete, Division, AgeCategory, Belt, Gender, DivisionGender, DivisionBelt } from '@/types/index';
-import { showSuccess, showError } from '@/utils/toast';
-import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
+import { Event, AgeCategory, DivisionGender, DivisionBelt } from '@/types/index';
+import { showSuccess } from '@/utils/toast';
 import { GripVertical, Trash2 } from 'lucide-react';
 
 interface MatDistributionProps {

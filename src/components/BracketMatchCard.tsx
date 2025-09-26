@@ -11,7 +11,7 @@ interface BracketMatchCardProps {
   match: Match;
   athletesMap: Map<string, Athlete>;
   isFinal?: boolean;
-  isThirdPlace?: boolean;
+  // isThirdPlace?: boolean; // Removed
   // New props for ranking
   bracketWinnerId?: string;
   bracketRunnerUpId?: string;
@@ -33,7 +33,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   match,
   athletesMap,
   isFinal,
-  isThirdPlace,
+  // isThirdPlace, // Removed
   bracketWinnerId,
   bracketRunnerUpId,
   bracketThirdPlaceWinnerId,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -78,7 +78,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
   const currentSchema = useMemo(() => createDynamicSchema(mandatoryFieldsConfig), [mandatoryFieldsConfig]);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
       firstName: athlete.firstName,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -102,7 +102,7 @@ const AthleteRegistrationForm: React.FC = () => {
 
   const currentSchema = useMemo(() => createDynamicSchema(mandatoryFieldsConfig), [mandatoryFieldsConfig]);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
       firstName: '',
@@ -119,10 +119,11 @@ const AthleteRegistrationForm: React.FC = () => {
   });
 
   const dateOfBirth = watch('dateOfBirth');
-  const paymentProof = watch('paymentProof');
-  const photo = watch('photo');
-  const emiratesIdFront = watch('emiratesIdFront');
-  const emiratesIdBack = watch('emiratesIdBack');
+  // These are used in onSubmit, so keeping them as watch variables is appropriate.
+  const _paymentProof = watch('paymentProof');
+  const _photo = watch('photo');
+  const _emiratesIdFront = watch('emiratesIdFront');
+  const _emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     if (!eventId) {

@@ -110,6 +110,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.74.4(react@18.3.1)
+      '@types/papaparse':
+        specifier: ^5.3.16
+        version: 5.3.16
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1681,6 +1684,9 @@ packages:
 
   '@types/pako@2.0.4':
     resolution: {integrity: sha512-VWDCbrLeVXJM9fihYodcLiIv0ku+AlOa/TQ1SvYOaBuyrSKgEcro95LJyIsJ4vSo6BXIxOKxiJAat04CmST9Fw==}
+
+  '@types/papaparse@5.3.16':
+    resolution: {integrity: sha512-T3VuKMC2H0lgsjI9buTB3uuKj3EMD2eap1MOuEQuBQ44EnDx/IkGhU6EwiTf9zG3za4SKlmwKAImdDKdNnCsXg==}
 
   '@types/prop-types@15.7.14':
     resolution: {integrity: sha512-gNMvNH49DJ7OJYv+KAKn0Xp45p8PLl6zo2YnvDIbTd4J6MER2BmWN49TG7n9LvkyihINxeKW8+3bfS2yDC9dzQ==}
@@ -5255,6 +5261,10 @@ snapshots:
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/pako@2.0.4': {}
+
+  '@types/papaparse@5.3.16':
+    dependencies:
+      '@types/node': 22.14.1
 
   '@types/prop-types@15.7.14': {}
 

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Bracket, Athlete, Division } from '@/types/index';
 import BracketMatchCard from './BracketMatchCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+// import { cn } from '@/lib/utils'; // Removed
 
 interface BracketViewProps {
   bracket: Bracket;
@@ -52,7 +52,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   // const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8') - REMOVIDO
 
   // Calcula as posições Y (top) e os margin-tops para cada luta
-  const { matchYtops, matchMarginTops } = useMemo(() => {
+  const matchMarginTops = useMemo(() => {
     const yTops: Map<string, number> = new Map();
     const marginTops: Map<string, number> = new Map();
 
@@ -100,7 +100,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
       });
     });
 
-    return { matchYtops: yTops, matchMarginTops: marginTops };
+    return marginTops;
   }, [bracket]); // Recalcular se o bracket mudar
 
   return (
@@ -153,7 +153,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             <BracketMatchCard
               match={bracket.thirdPlaceMatch}
               athletesMap={athletesMap}
-              isThirdPlace
+              // isThirdPlace // Removed
               bracketWinnerId={bracket.winnerId}
               bracketRunnerUpId={bracket.runnerUpId}
               bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}

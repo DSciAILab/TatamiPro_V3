@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom'; // Importar useNavigate
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
+// import AthleteRegistrationForm from '@/components/AthleteRegistrationForm'; // Removed
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
@@ -17,21 +17,23 @@ import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
-import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
-import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react'; // Adicionar Swords
+import MatDistribution from '@/components/MatDistribution';
+import { Athlete, Event, Division, Bracket } from '../types/index'; // Removed WeightAttempt
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils'; // Importar processAthleteData
+import { getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils'; // Removed getAgeDivision, getWeightDivision
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
+import { format, parseISO, differenceInSeconds } from 'date-fns'; // Removed isValid, differenceInMinutes
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Importar Dialog
-import BracketView from '@/components/BracketView'; // Importar BracketView
-import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
-import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import BracketView from '@/components/BracketView';
+import { generateMatFightOrder } from '@/utils/fight-order-generator';
+import { cn } from '@/lib/utils';
+import { useLanguage } from '@/context/language-context';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,11 +47,10 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const navigate = useNavigate(); // Inicializar useNavigate
+  const navigate = useNavigate();
+  const { language } = useLanguage();
 
   const [event, setEvent] = useState<Event | null>(() => {
-    // Temporarily define divisions here for initial processing, will be overwritten by stored event.
-    // This is a fallback to prevent errors if divisions are not yet loaded.
     let tempDivisions: Division[] = [];
     const existingEventDataRaw = localStorage.getItem(`event_${id}`);
     if (existingEventDataRaw) {
@@ -79,15 +80,14 @@ const EventDetail: React.FC = () => {
     let eventSettings = {};
     let existingDivisions: Division[] = [];
     let isAttendanceMandatoryBeforeCheckIn = false;
-    let isWeightCheckEnabled = true; // Default to true
-    let matAssignments: Record<string, string[]> = {}; // Initialize matAssignments
-    let isBeltGroupingEnabled = true; // Initialize isBeltGroupingEnabled
-    let isOverweightAutoMoveEnabled = false; // Initialize isOverweightAutoMoveEnabled
-    let existingBrackets: Record<string, Bracket> = {}; // Initialize existingBrackets
-    let matFightOrder: Record<string, string[]> = {}; // Initialize matFightOrder
-    let includeThirdPlace = false; // Initialize new state
-
-    // New event properties
+    let isWeightCheckEnabled = true;
+    let matAssignments: Record<string, string[]> = {};
+    let isBeltGroupingEnabled = true;
+    let isOverweightAutoMoveEnabled = false;
+    let existingBrackets: Record<string, Bracket> = {};
+    let matFightOrder: Record<string, string[]> = {};
+    let includeThirdPlace = false;
+    
     let isActive = true;
     let championPoints = 9;
     let runnerUpPoints = 3;
@@ -100,7 +100,7 @@ const EventDetail: React.FC = () => {
       try {
         const parsedEvent = JSON.parse(existingEventData);
         existingDivisions = parsedEvent.divisions || [];
-        existingAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, existingDivisions)); // Process with actual divisions
+        existingAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, existingDivisions));
         eventSettings = {
           checkInStartTime: parsedEvent.checkInStartTime,
           checkInEndTime: parsedEvent.checkInEndTime,
@@ -108,14 +108,13 @@ const EventDetail: React.FC = () => {
         };
         isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
         isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
-        matAssignments = parsedEvent.matAssignments || {}; // Load matAssignments
-        isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true; // Load isBeltGroupingEnabled
-        isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false; // Load new state
-        existingBrackets = parsedEvent.brackets || {}; // Load existing brackets
-        matFightOrder = parsedEvent.matFightOrder || {}; // Load matFightOrder
-        includeThirdPlace = parsedEvent.includeThirdPlace !== undefined ? parsedEvent.includeThirdPlace : false; // Load new state
+        matAssignments = parsedEvent.matAssignments || {};
+        isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true;
+        isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false;
+        existingBrackets = parsedEvent.brackets || {};
+        matFightOrder = parsedEvent.matFightOrder || {};
+        includeThirdPlace = parsedEvent.includeThirdPlace !== undefined ? parsedEvent.includeThirdPlace : false;
         
-        // Load new event properties
         isActive = parsedEvent.isActive !== undefined ? parsedEvent.isActive : true;
         championPoints = parsedEvent.championPoints !== undefined ? parsedEvent.championPoints : 9;
         runnerUpPoints = parsedEvent.runnerUpPoints !== undefined ? parsedEvent.runnerUpPoints : 3;
@@ -138,18 +137,18 @@ const EventDetail: React.FC = () => {
       divisions: existingDivisions,
       isAttendanceMandatoryBeforeCheckIn,
       isWeightCheckEnabled,
-      matAssignments, // Set matAssignments
-      isBeltGroupingEnabled, // Set isBeltGroupingEnabled
-      isOverweightAutoMoveEnabled, // Set new state
-      brackets: existingBrackets, // Set existing brackets
-      matFightOrder, // Set matFightOrder
-      includeThirdPlace, // Set new state
-      isActive, // Set new state
-      championPoints, // Set new state
-      runnerUpPoints, // Set new state
-      thirdPlacePoints, // Set new state
-      countSingleClubCategories, // Set new state
-      countWalkoverSingleFightCategories, // Set new state
+      matAssignments,
+      isBeltGroupingEnabled,
+      isOverweightAutoMoveEnabled,
+      brackets: existingBrackets,
+      matFightOrder,
+      includeThirdPlace,
+      isActive,
+      championPoints,
+      runnerUpPoints,
+      thirdPlacePoints,
+      countSingleClubCategories,
+      countWalkoverSingleFightCategories,
       ...eventSettings,
     };
   });
@@ -163,10 +162,10 @@ const EventDetail: React.FC = () => {
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
   const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
   const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true);
-  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true); // New state for belt grouping toggle
-  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false); // New state for auto-move toggle
-  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false); // New state for third place toggle
-  // New states for event configuration
+  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true);
+  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false);
+  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false);
+  
   const [isActive, setIsActive] = useState<boolean>(event?.isActive || true);
   const [championPoints, setChampionPoints] = useState<number>(event?.championPoints || 9);
   const [runnerUpPoints, setRunnerUpPoints] = useState<number>(event?.runnerUpPoints || 3);
@@ -175,13 +174,10 @@ const EventDetail: React.FC = () => {
   const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(event?.countWalkoverSingleFightCategories || true);
 
 
-  // State for inner tabs within 'Config'
   const [configSubTab, setConfigSubTab] = useState('event-settings');
-  // State for inner tabs within 'Inscrições'
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
 
 
-  // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${id}`);
     return storedConfig ? JSON.parse(storedConfig) : {
@@ -191,7 +187,7 @@ const EventDetail: React.FC = () => {
       dateOfBirth: true,
       belt: true,
       weight: true,
-      idNumber: true, // Representa Emirates ID ou School ID
+      idNumber: true,
       gender: true,
       nationality: true,
       email: true,
@@ -212,20 +208,19 @@ const EventDetail: React.FC = () => {
         numFightAreas: numFightAreas,
         isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
         isWeightCheckEnabled: isWeightCheckEnabled,
-        isBeltGroupingEnabled: isBeltGroupingEnabled, // Save new state
-        isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled, // Save new state
-        includeThirdPlace: includeThirdPlace, // Save new state
-        isActive: isActive, // Save new state
-        championPoints: championPoints, // Save new state
-        runnerUpPoints: runnerUpPoints, // Save new state
-        thirdPlacePoints: thirdPlacePoints, // Save new state
-        countSingleClubCategories: countSingleClubCategories, // Save new state
-        countWalkoverSingleFightCategories: countWalkoverSingleFightCategories, // Save new state
+        isBeltGroupingEnabled: isBeltGroupingEnabled,
+        isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled,
+        includeThirdPlace: includeThirdPlace,
+        isActive: isActive,
+        championPoints: championPoints,
+        runnerUpPoints: runnerUpPoints,
+        thirdPlacePoints: thirdPlacePoints,
+        countSingleClubCategories: countSingleClubCategories,
+        countWalkoverSingleFightCategories: countWalkoverSingleFightCategories,
       }));
     }
   }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
-  // Timer for current time and time remaining
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -234,18 +229,18 @@ const EventDetail: React.FC = () => {
   }, []);
 
 
-  const handleAthleteRegistration = (newAthlete: Athlete) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        return {
-          ...prevEvent,
-          athletes: [...prevEvent.athletes, newAthlete],
-        };
-      });
-      showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
-    }
-  };
+  // const handleAthleteRegistration = (newAthlete: Athlete) => { // Removed: function not used
+  //   if (event) {
+  //     setEvent(prevEvent => {
+  //       if (!prevEvent) return null;
+  //       return {
+  //         ...prevEvent,
+  //         athletes: [...prevEvent.athletes, newAthlete],
+  //       };
+  //     });
+  //     showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
+  //   }
+  // };
 
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
     if (event) {
@@ -271,13 +266,13 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleCheckInAthlete = (updatedAthlete: Athlete) => { // Updated signature
+  const handleCheckInAthlete = (updatedAthlete: Athlete) => {
     if (event) {
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           athlete.id === updatedAthlete.id
-            ? updatedAthlete // Replace with the fully updated athlete object
+            ? updatedAthlete
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -353,13 +348,11 @@ const EventDetail: React.FC = () => {
   const handleUpdateDivisions = (updatedDivisions: Division[]) => {
     setEvent(prevEvent => {
       if (!prevEvent) return null;
-      // Re-process all athletes with the new divisions to update their _division property
       const updatedAthletes = prevEvent.athletes.map(athlete => {
         const updatedAthlete = { ...athlete };
         updatedAthlete._division = findAthleteDivision(updatedAthlete, updatedDivisions);
         return updatedAthlete;
       });
-      // Recalculate mat fight order if brackets and mat assignments exist
       let newBrackets = prevEvent.brackets;
       let newMatFightOrder = prevEvent.matFightOrder;
       if (prevEvent.brackets && prevEvent.matAssignments && prevEvent.numFightAreas) {
@@ -385,7 +378,6 @@ const EventDetail: React.FC = () => {
   const handleUpdateMatAssignments = (assignments: Record<string, string[]>) => {
     setEvent(prevEvent => {
       if (!prevEvent) return null;
-      // Recalculate mat fight order when mat assignments change
       let newBrackets = prevEvent.brackets;
       let newMatFightOrder = prevEvent.matFightOrder;
       if (prevEvent.brackets && prevEvent.numFightAreas) {
@@ -406,29 +398,27 @@ const EventDetail: React.FC = () => {
     });
   };
 
-  // Function to update brackets and matFightOrder after bracket generation
-  const handleUpdateBracketsAndFightOrder = (newBrackets: Record<string, Bracket>) => {
-    setEvent(prevEvent => {
-      if (!prevEvent) return null;
-      const eventWithNewBrackets = { ...prevEvent, brackets: newBrackets };
+  // const handleUpdateBracketsAndFightOrder = (newBrackets: Record<string, Bracket>) => { // Removed: function not used
+  //   setEvent(prevEvent => {
+  //     if (!prevEvent) return null;
+  //     const eventWithNewBrackets = { ...prevEvent, brackets: newBrackets };
       
-      let newMatFightOrder = prevEvent.matFightOrder;
-      let finalBrackets = newBrackets;
+  //     let newMatFightOrder = prevEvent.matFightOrder;
+  //     let finalBrackets = newBrackets;
 
-      // Only recalculate if mat assignments exist
-      if (eventWithNewBrackets.matAssignments && eventWithNewBrackets.numFightAreas) {
-        const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder(eventWithNewBrackets);
-        finalBrackets = recalculatedBrackets;
-        newMatFightOrder = recalculatedMatFightOrder;
-      }
+  //     if (eventWithNewBrackets.matAssignments && eventWithNewBrackets.numFightAreas) {
+  //       const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder(eventWithNewBrackets);
+  //       finalBrackets = recalculatedBrackets;
+  //       newMatFightOrder = recalculatedMatFightOrder;
+  //     }
 
-      return {
-        ...eventWithNewBrackets,
-        brackets: finalBrackets,
-        matFightOrder: newMatFightOrder,
-      };
-    });
-  };
+  //     return {
+  //       ...eventWithNewBrackets,
+  //       brackets: finalBrackets,
+  //       matFightOrder: newMatFightOrder,
+  //     };
+  //   });
+  // };
 
 
   if (!event) {
@@ -439,20 +429,17 @@ const EventDetail: React.FC = () => {
     );
   }
 
-  // Listas de atletas para as abas de aprovação e check-in (mantidas como estão)
   const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
-  const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
+  // const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected'); // Removed
 
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
-      // The _division should already be set by processAthleteData, but we ensure it here.
-      // If an athlete was moved, their _division should reflect the moved division.
       let division: Division | undefined;
       if (athlete.movedToDivisionId) {
         division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
       } else {
-        division = athlete._division; // Use the pre-calculated _division
+        division = athlete._division;
       }
       return {
         ...athlete,
@@ -463,27 +450,24 @@ const EventDetail: React.FC = () => {
 
   const sortedAthletesUnderApproval = useMemo(() => {
     return athletesUnderApproval.map(athlete => {
-      // The _division should already be set by processAthleteData.
       return {
         ...athlete,
-        _division: athlete._division, // Use the pre-calculated _division
+        _division: athlete._division,
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [athletesUnderApproval, event.divisions]);
 
-  // Lógica para a aba 'Inscrições' para coaches
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event.athletes;
     if (userRole === 'coach' && userClub) {
       athletes = athletes.filter(a => a.club === userClub);
     }
     return athletes.map(athlete => {
-      // The _division should already be set by processAthleteData.
       let division: Division | undefined;
       if (athlete.movedToDivisionId) {
         division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
       } else {
-        division = athlete._division; // Use the pre-calculated _division
+        division = athlete._division;
       }
       return {
         ...athlete,
@@ -500,7 +484,6 @@ const EventDetail: React.FC = () => {
   const filteredAthletesForDisplayInscricoes = useMemo(() => {
     let athletesToDisplay = allAthletesForInscricoesTab;
 
-    // If not logged in, only show approved athletes
     if (!userRole) {
       athletesToDisplay = athletesToDisplay.filter(a => a.registrationStatus === 'approved');
     } else if (registrationStatusFilter !== 'all') {
@@ -522,21 +505,17 @@ const EventDetail: React.FC = () => {
   }, [allAthletesForInscricoesTab, searchTerm, registrationStatusFilter, userRole]);
 
 
-  // Lógica para verificar se o check-in é permitido
   const isCheckInTimeValid = () => {
     if (!checkInStartTime || !checkInEndTime) return false;
     const now = new Date();
     return now >= checkInStartTime && now <= checkInEndTime;
   };
 
-  // ATUALIZADO: Lógica de isCheckInAllowed (global)
   const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
 
-  // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletesToFilter = processedApprovedAthletes;
 
-    // Se a presença for obrigatória, filtrar apenas os presentes
     if (isAttendanceMandatory) {
       athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
     }
@@ -555,7 +534,6 @@ const EventDetail: React.FC = () => {
       );
     }
 
-    // ATUALIZADO: Lógica de filtragem para o novo filtro de check-in
     if (checkInFilter === 'pending') {
       return athletesToFilter.filter(a => a.checkInStatus === 'pending');
     } else if (checkInFilter === 'checked_in') {
@@ -563,10 +541,9 @@ const EventDetail: React.FC = () => {
     } else if (checkInFilter === 'overweight') {
       return athletesToFilter.filter(a => a.checkInStatus === 'overweight');
     }
-    return athletesToFilter; // 'all' filter
+    return athletesToFilter;
   }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter, isAttendanceMandatory]);
 
-  // Check-in Summary Calculations
   const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
   const totalCheckedInOk = processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length;
   const totalPendingCheckIn = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
@@ -581,13 +558,29 @@ const EventDetail: React.FC = () => {
     setCheckInFilter(prevFilter => (prevFilter === filterType ? 'all' : filterType));
   };
 
+  const getTranslatedText = (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      pt: {
+        welcomeMessage: "Bem-vindo ao TatamiPro!",
+        generalSettings: "Configurações Gerais",
+        languageDemo: "Este é um texto de demonstração para o idioma.",
+      },
+      en: {
+        welcomeMessage: "Welcome to TatamiPro!",
+        generalSettings: "General Settings",
+        languageDemo: "This is a language demonstration text.",
+      },
+    };
+    return translations[language]?.[key] || key;
+  };
+
   return (
     <Layout>
       <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7"> {/* Ajustado para 7 colunas */}
+        <TabsList className="grid w-full grid-cols-7">
           {userRole === 'admin' && (
             <TabsTrigger value="config">Config</TabsTrigger>
           )}
@@ -613,12 +606,16 @@ const EventDetail: React.FC = () => {
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
                     <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
-                    <TabsTrigger value="results-settings">Resultados</TabsTrigger> {/* NOVO: Aba de Resultados */}
+                    <TabsTrigger value="results-settings">Resultados</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="event-settings" className="mt-6">
                     <div className="space-y-4">
-                      <h3 className="text-xl font-semibold">Configurações Gerais</h3>
+                      <h3 className="text-xl font-semibold flex items-center justify-between">
+                        {getTranslatedText('generalSettings')}
+                        <LanguageToggle />
+                      </h3>
+                      <p className="text-muted-foreground">{getTranslatedText('languageDemo')}</p>
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="event-active"
@@ -650,7 +647,7 @@ const EventDetail: React.FC = () => {
                                   if (checkInStartTime) {
                                     newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
                                   } else {
-                                    newDate.setHours(9, 0); // Default to 9 AM
+                                    newDate.setHours(9, 0);
                                   }
                                   setCheckInStartTime(newDate);
                                 }
@@ -700,7 +697,7 @@ const EventDetail: React.FC = () => {
                                   if (checkInEndTime) {
                                     newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
                                   } else {
-                                    newDate.setHours(17, 0); // Default to 5 PM
+                                    newDate.setHours(17, 0);
                                   }
                                   setCheckInEndTime(newDate);
                                 }
@@ -789,7 +786,6 @@ const EventDetail: React.FC = () => {
                     <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
                   </TabsContent>
 
-                  {/* NOVO: Aba de Configurações de Resultados */}
                   <TabsContent value="results-settings" className="mt-6">
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold mb-4">Configuração de Pontos</h3>
@@ -902,7 +898,7 @@ const EventDetail: React.FC = () => {
                         </div>
                       </div>
 
-                      {userRole && ( // Only show filter if logged in
+                      {userRole && (
                         <div className="mb-4 flex justify-center">
                           <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
                             <ToggleGroupItem value="all" aria-label="Mostrar todos">
@@ -940,10 +936,10 @@ const EventDetail: React.FC = () => {
                       {filteredAthletesForDisplayInscricoes.map((athlete) => (
                         <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                           <div className="flex items-center space-x-4">
-                            {userRole && <Checkbox // Only show checkbox if logged in
+                            {userRole && <Checkbox
                               checked={selectedAthletesForApproval.includes(athlete.id)}
                               onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                              className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
+                              className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''}
                             />}
                             {athlete.photoUrl ? (
                               <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
@@ -977,7 +973,7 @@ const EventDetail: React.FC = () => {
                                 </PopoverContent>
                               </Popover>
                             )}
-                            {userRole && ( // Only show edit/delete if logged in
+                            {userRole && (
                               <>
                                 <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                                   <Edit className="h-4 w-4" />
@@ -1186,7 +1182,7 @@ const EventDetail: React.FC = () => {
                     checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
                     checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
                   )}
-                  onClick={() => setCheckInFilter('all')} // Always reset to all
+                  onClick={() => setCheckInFilter('all')}
                 >
                   <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
                   <p className="text-sm text-muted-foreground">Total Aprovados</p>
@@ -1270,12 +1266,12 @@ const EventDetail: React.FC = () => {
                         <CheckInForm
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
-                          isCheckInAllowed={isCheckInAllowedGlobally && (isAttendanceMandatory ? athlete.attendanceStatus === 'present' : true)} // ATUALIZADO: Lógica de permissão de check-in
+                          isCheckInAllowed={isCheckInAllowedGlobally && (isAttendanceMandatory ? athlete.attendanceStatus === 'present' : true)}
                           divisionMaxWeight={athlete._division?.maxWeight}
                           isWeightCheckEnabled={isWeightCheckEnabled}
                           isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
-                          eventDivisions={event.divisions} // Pass all divisions for auto-move logic
-                          isBeltGroupingEnabled={isBeltGroupingEnabled} // Pass belt grouping setting
+                          eventDivisions={event.divisions}
+                          isBeltGroupingEnabled={isBeltGroupingEnabled}
                         />
                       </div>
                     </li>
@@ -1293,7 +1289,7 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {userRole && <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2"> {/* Alterado para grid de 3 colunas */}
+              {userRole && <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button className="w-full">Distribuição dos Mats</Button>
@@ -1314,7 +1310,6 @@ const EventDetail: React.FC = () => {
                     <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
                   </Button>
                 </Link>
-                {/* NOVO BOTÃO: Gerenciar Lutas */}
                 <Button className="w-full" variant="outline" onClick={() => navigate(`/events/${event.id}/manage-fights`)}>
                   <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
                 </Button>
@@ -1331,7 +1326,7 @@ const EventDetail: React.FC = () => {
                         bracket={bracket}
                         allAthletes={event.athletes}
                         division={division}
-                        eventId={event.id} // Passar eventId
+                        eventId={event.id}
                       />
                     );
                   })}

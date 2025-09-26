@@ -3,8 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { parseISO } from 'date-fns'; // Removed format, ptBR
 import { z } from 'zod';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -197,7 +196,7 @@ const BatchAthleteImport: React.FC = () => {
       Papa.parse(uploadedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
+        complete: (results: Papa.ParseResult<any>) => { // Added type annotation
           if (results.errors.length) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
             setFile(null);

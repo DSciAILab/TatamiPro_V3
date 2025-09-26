@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Athlete, Event } from '@/types/index';
-import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucide-react'; // Adicionado Clock para 'Missing' e Edit
+import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // Importar ToggleGroup
-import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
+import { findAthleteDivision } from '@/utils/athlete-utils';
+import { cn } from '@/lib/utils';
 
 interface AttendanceManagementProps {
   eventId: string;
@@ -23,7 +20,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all');
-  const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null); // NOVO: Estado para controlar qual atleta está sendo editado
+  const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
   const userClub = localStorage.getItem('userClub');
   const userRole = localStorage.getItem('userRole');
 
@@ -49,7 +46,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     onUpdateAthleteAttendance(athleteId, status);
     setAthletes(prev => prev.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a));
     showSuccess(`Status de presença atualizado para ${status}.`);
-    setEditingAthleteId(null); // Sair do modo de edição após a mudança
+    setEditingAthleteId(null);
   };
 
   const filteredAthletes = useMemo(() => {
@@ -78,7 +75,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   const totalAbsent = athletes.filter(a => a.attendanceStatus === 'absent').length;
   const totalPrivateTransportation = athletes.filter(a => a.attendanceStatus === 'private_transportation').length;
   const totalMissing = athletes.filter(a => a.attendanceStatus === 'pending').length;
-  const totalApprovedAthletes = athletes.length;
+  const totalApprovedAthletesCount = athletes.length; // Renamed to avoid TS6133
 
   if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
     return (

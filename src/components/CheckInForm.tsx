@@ -11,7 +11,7 @@ import { Athlete, WeightAttempt, Division } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { format } from 'date-fns';
 import { Edit } from 'lucide-react';
-import { findNextHigherWeightDivision, getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar funções utilitárias
+import { findNextHigherWeightDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar funções utilitárias
 
 interface CheckInFormProps {
   athlete: Athlete;
