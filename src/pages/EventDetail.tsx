@@ -705,7 +705,7 @@ const EventDetail: React.FC = () => {
                             </PopoverContent>
                           </Popover>
                         )}
-                        {userRole === 'admin' && ( // Only show edit/delete if admin
+                        {userRole && ( // Only show edit/delete if logged in
                           <>
                             <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                               <Edit className="h-4 w-4" />
@@ -919,7 +919,7 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {userRole && <div className="mb-4 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
+              {userRole && <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2"> {/* Alterado para grid de 3 colunas */}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button className="w-full">Distribuição dos Mats</Button>
