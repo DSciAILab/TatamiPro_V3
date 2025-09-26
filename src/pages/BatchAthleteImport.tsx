@@ -196,10 +196,12 @@ const BatchAthleteImport: React.FC = () => {
       }
     });
 
-    // In a real application, you would send successfulAthletes to your backend API
-    // For this MVP, we'll just log them and update a mock state.
-    console.log('Atletas importados com sucesso (mock):', successfulAthletes);
-    console.log('Atletas com falha na importação:', failedImports);
+    // Store successful athletes in localStorage for EventDetail to pick up
+    if (successfulAthletes.length > 0) {
+      const existingImportedAthletes = JSON.parse(localStorage.getItem(`importedAthletes_${eventId}`) || '[]') as Athlete[];
+      const updatedImportedAthletes = [...existingImportedAthletes, ...successfulAthletes];
+      localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(updatedImportedAthletes));
+    }
 
     setImportResults({
       success: successfulAthletes.length,

@@ -1,28 +1,50 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom'; // Importar Link
+import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Importar Button
+import { Button } from '@/components/ui/button';
 import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import { Athlete, Event } from '../types/index';
 import { UserRound } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast'; // Certifique-se de que estes estão importados
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('inscricoes');
-  const userRole = localStorage.getItem('userRole'); // For basic RBAC
+  const userRole = localStorage.getItem('userRole');
 
   // Mock event data - In a real app, this would come from a global state or API
-  const [event, setEvent] = useState<Event | null>({
-    id: id || 'mock-event-id',
-    name: `Evento #${id}`,
-    description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
-    status: 'Aberto',
-    date: '2024-12-01',
-    athletes: [], // Initialize with an empty array for athletes
+  const [event, setEvent] = useState<Event | null>(() => {
+    const storedAthletes = localStorage.getItem(`importedAthletes_${id}`);
+    let initialAthletes: Athlete[] = [];
+    if (storedAthletes) {
+      try {
+        // Parse as strings de data de volta para objetos Date
+        initialAthletes = JSON.parse(storedAthletes).map((athlete: any) => ({
+          ...athlete,
+          dateOfBirth: new Date(athlete.dateOfBirth),
+          consentDate: new Date(athlete.consentDate),
+        }));
+        // Limpar do localStorage após carregar para evitar duplicações em carregamentos futuros
+        localStorage.removeItem(`importedAthletes_${id}`);
+        showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
+      } catch (e) {
+        console.error("Falha ao analisar atletas armazenados do localStorage", e);
+        showError("Erro ao carregar atletas importados do armazenamento local.");
+      }
+    }
+
+    return {
+      id: id || 'mock-event-id',
+      name: `Evento #${id}`,
+      description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
+      status: 'Aberto',
+      date: '2024-12-01',
+      athletes: initialAthletes, // Usar atletas carregados
+    };
   });
 
   const handleAthleteRegistration = (newAthlete: Athlete) => {
@@ -34,8 +56,7 @@ const EventDetail: React.FC = () => {
           athletes: [...prevEvent.athletes, newAthlete],
         };
       });
-      console.log('Atleta registrado:', newAthlete);
-      // Here you would typically send newAthlete to a backend API
+      showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso!`);
     }
   };
 
