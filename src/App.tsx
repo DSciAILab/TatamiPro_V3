@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react'; // Importar useState
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Auth from './pages/Auth';
 import Welcome from './pages/Welcome'; // Importar Welcome
@@ -15,7 +15,7 @@ import { User } from './types'; // Importar o tipo User
 import { v4 as uuidv4 } from 'uuid';
 
 const App: React.FC = () => {
-  const isAuthenticated = localStorage.getItem('currentUser') !== null;
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Inicializa usuários de demonstração no localStorage se não existirem
   useEffect(() => {
@@ -30,6 +30,26 @@ const App: React.FC = () => {
       localStorage.setItem('users', JSON.stringify(defaultUsers));
     }
   }, []);
+
+  // Efeito para verificar o status de autenticação e reagir a mudanças
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const currentUser = localStorage.getItem('currentUser');
+      setIsAuthenticated(currentUser !== null);
+    };
+
+    // Verifica o status na montagem inicial
+    checkAuthStatus();
+
+    // Adiciona um listener para um evento personalizado 'authChange'
+    // Isso permite que outros componentes (como Auth.tsx) notifiquem App.tsx sobre mudanças de autenticação
+    window.addEventListener('authChange', checkAuthStatus);
+
+    // Limpa o listener quando o componente é desmontado
+    return () => {
+      window.removeEventListener('authChange', checkAuthStatus);
+    };
+  }, []); // Array de dependências vazio para rodar apenas na montagem e desmontagem
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

@@ -33,6 +33,7 @@ const Auth: React.FC = () => {
         localStorage.setItem('userName', foundUser.name);
         localStorage.setItem('userRole', foundUser.role);
         localStorage.setItem('userClub', foundUser.club || '');
+        window.dispatchEvent(new Event('authChange')); // Dispara o evento personalizado
         showSuccess(`Login de ${foundUser.name} (${foundUser.role}) realizado com sucesso!`);
         navigate('/welcome');
       } else {
