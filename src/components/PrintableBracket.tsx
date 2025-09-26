@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { Bracket, Athlete, Division } from '@/types/index';
+import { Bracket, Athlete, Division, Match } from '@/types/index'; // Adicionado Match
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { UserRound, CheckCircle, Trophy } from 'lucide-react';
