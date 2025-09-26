@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
@@ -19,10 +18,10 @@ import AttendanceManagement from '@/components/AttendanceManagement';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
+import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isValid, differenceInSeconds } from 'date-fns';
+import { format, parseISO, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSession } from '@/components/SessionContextProvider';
@@ -30,7 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
-  const { userRole, userClub } = useSession();
+  const { userRole } = useSession();
   const [activeTab, setActiveTab] = useState('inscricoes');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
@@ -44,12 +43,10 @@ const EventDetail: React.FC = () => {
   const [eventDivisions, setEventDivisions] = useState<Division[]>([]);
   const [loadingEventData, setLoadingEventData] = useState(true);
 
-  // State variables for the event settings form
   const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>(undefined);
   const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>(undefined);
   const [numFightAreas, setNumFightAreas] = useState<number>(1);
 
-  // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
     return storedConfig ? JSON.parse(storedConfig) : {
@@ -64,7 +61,6 @@ const EventDetail: React.FC = () => {
       if (!eventId) return;
       setLoadingEventData(true);
 
-      // Fetch Event
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .select('*')
@@ -76,13 +72,11 @@ const EventDetail: React.FC = () => {
         setEvent(null);
       } else {
         setEvent(eventData);
-        // Initialize state variables from fetched event data
         setCheckInStartTime(eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined);
         setCheckInEndTime(eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined);
         setNumFightAreas(eventData.num_fight_areas || 1);
       }
 
-      // Fetch Athletes
       const { data: athletesData, error: athletesError } = await supabase
         .from('athletes')
         .select('*')
@@ -92,7 +86,6 @@ const EventDetail: React.FC = () => {
         showError('Erro ao carregar atletas: ' + athletesError.message);
         setEventAthletes([]);
       } else {
-        // Convert date strings to Date objects
         const processedAthletes = (athletesData || []).map(a => ({
           ...a,
           dateOfBirth: parseISO(a.date_of_birth),
@@ -102,7 +95,6 @@ const EventDetail: React.FC = () => {
         setEventAthletes(processedAthletes);
       }
 
-      // Fetch Divisions
       const { data: divisionsData, error: divisionsError } = await supabase
         .from('divisions')
         .select('*')
@@ -119,77 +111,14 @@ const EventDetail: React.FC = () => {
     };
 
     fetchEventData();
-
-    // Handle imported athletes from localStorage (one-time transfer)
-    const storedImportedAthletes = localStorage.getItem(`importedAthletes_${eventId}`);
-    if (storedImportedAthletes) {
-      try {
-        const initialImportedAthletes: Athlete[] = JSON.parse(storedImportedAthletes).map((a: any) => ({
-          ...a,
-          dateOfBirth: new Date(a.dateOfBirth),
-          consentDate: new Date(a.consentDate),
-        }));
-        if (initialImportedAthletes.length > 0) {
-          // Insert into Supabase
-          supabase.from('athletes').insert(initialImportedAthletes.map(a => ({
-            ...a,
-            event_id: a.eventId,
-            date_of_birth: format(a.dateOfBirth, 'yyyy-MM-dd'),
-            consent_date: a.consentDate.toISOString(),
-            weight_attempts: JSON.stringify(a.weightAttempts),
-            // Ensure other date/time fields are ISO strings if they exist
-          }))).then(({ error }) => {
-            if (error) {
-              showError('Erro ao importar atletas do CSV para o Supabase: ' + error.message);
-            } else {
-              showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${eventId}.`);
-              setEventAthletes(prev => [...prev, ...initialImportedAthletes]);
-              localStorage.removeItem(`importedAthletes_${eventId}`);
-            }
-          });
-        }
-      } catch (e) {
-        console.error("Falha ao analisar atletas importados do localStorage", e);
-        showError("Erro ao carregar atletas importados do armazenamento local.");
-      }
-    }
   }, [eventId]);
 
-  // Timer for current time and time remaining
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const handleAthleteRegistration = async (newAthlete: Athlete) => {
-    if (!eventId) return;
-
-    const { data, error } = await supabase
-      .from('athletes')
-      .insert({
-        ...newAthlete,
-        event_id: eventId,
-        date_of_birth: format(newAthlete.dateOfBirth, 'yyyy-MM-dd'),
-        consent_date: newAthlete.consentDate.toISOString(),
-        weight_attempts: JSON.stringify(newAthlete.weightAttempts),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      showError('Erro ao registrar atleta: ' + error.message);
-    } else if (data) {
-      setEventAthletes(prev => [...prev, {
-        ...data,
-        dateOfBirth: parseISO(data.date_of_birth),
-        consentDate: parseISO(data.consent_date),
-        weightAttempts: data.weight_attempts || [],
-      }]);
-      showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
-    }
-  };
 
   const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
     if (!eventId) return;
@@ -335,7 +264,6 @@ const EventDetail: React.FC = () => {
   const handleUpdateDivisions = async (updatedDivisions: Division[]) => {
     if (!eventId) return;
 
-    // Separate inserts/updates/deletes
     const existingDivisionIds = new Set(eventDivisions.map(d => d.id));
     const updatedDivisionIds = new Set(updatedDivisions.map(d => d.id));
 
@@ -345,34 +273,19 @@ const EventDetail: React.FC = () => {
 
     let hasError = false;
 
-    // Inserts
     if (divisionsToInsert.length > 0) {
-      const { error } = await supabase.from('divisions').insert(divisionsToInsert.map(d => ({
-        ...d,
-        event_id: eventId,
-      })));
-      if (error) {
-        showError('Erro ao adicionar divisões: ' + error.message);
-        hasError = true;
-      }
+      const { error } = await supabase.from('divisions').insert(divisionsToInsert.map(d => ({ ...d, event_id: eventId })));
+      if (error) { showError('Erro ao adicionar divisões: ' + error.message); hasError = true; }
     }
 
-    // Updates
     for (const division of divisionsToUpdate) {
       const { error } = await supabase.from('divisions').update(division).eq('id', division.id);
-      if (error) {
-        showError(`Erro ao atualizar divisão ${division.name}: ` + error.message);
-        hasError = true;
-      }
+      if (error) { showError(`Erro ao atualizar divisão ${division.name}: ` + error.message); hasError = true; }
     }
 
-    // Deletes
     if (divisionsToDelete.length > 0) {
       const { error } = await supabase.from('divisions').delete().in('id', divisionsToDelete.map(d => d.id));
-      if (error) {
-        showError('Erro ao remover divisões: ' + error.message);
-        hasError = true;
-      }
+      if (error) { showError('Erro ao remover divisões: ' + error.message); hasError = true; }
     }
 
     if (!hasError) {
@@ -407,90 +320,61 @@ const EventDetail: React.FC = () => {
   };
 
   if (loadingEventData || !event) {
-    return (
-      <Layout>
-        <div className="text-center text-xl mt-8">Carregando detalhes do evento...</div>
-      </Layout>
-    );
+    return <Layout><div className="text-center text-xl mt-8">Carregando detalhes do evento...</div></Layout>;
   }
 
   const athletesUnderApproval = eventAthletes.filter(a => a.registrationStatus === 'under_approval');
   const approvedAthletes = eventAthletes.filter(a => a.registrationStatus === 'approved');
-  const rejectedAthletes = eventAthletes.filter(a => a.registrationStatus === 'rejected');
 
-  // Processar atletas aprovados para incluir informações da divisão
   const processedApprovedAthletes = useMemo(() => {
-    return approvedAthletes.map(athlete => {
-      const division = findAthleteDivision(athlete, eventDivisions);
-      return {
-        ...athlete,
-        _division: division, // Armazenar a divisão encontrada para uso posterior
-      };
-    }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
+    return approvedAthletes.map(athlete => ({
+      ...athlete,
+      _division: findAthleteDivision(athlete, eventDivisions),
+    })).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [approvedAthletes, eventDivisions]);
 
   const sortedAthletesUnderApproval = useMemo(() => {
-    return athletesUnderApproval.map(athlete => {
-      const division = findAthleteDivision(athlete, eventDivisions);
-      return {
-        ...athlete,
-        _division: division,
-      };
-    }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
+    return athletesUnderApproval.map(athlete => ({
+      ...athlete,
+      _division: findAthleteDivision(athlete, eventDivisions),
+    })).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [athletesUnderApproval, eventDivisions]);
 
-
-  // Lógica para verificar se o check-in é permitido
   const isCheckInTimeValid = () => {
     if (!event.checkInStartTime || !event.checkInEndTime) return false;
     const start = parseISO(event.checkInStartTime);
     const end = parseISO(event.checkInEndTime);
-    const now = new Date();
-    return now >= start && now <= end;
+    return currentTime >= start && currentTime <= end;
   };
 
   const isCheckInAllowed = userRole === 'admin' || isCheckInTimeValid();
 
-  // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
-    let athletesToFilter = processedApprovedAthletes;
-
-    // Filtra por attendanceStatus: apenas 'present'
-    athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+    let athletesToFilter = processedApprovedAthletes.filter(a => a.attendanceStatus === 'present');
 
     if (scannedAthleteId) {
       athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
     } else if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       athletesToFilter = athletesToFilter.filter(athlete =>
-        athlete.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
-        athlete.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
-        athlete.club.toLowerCase().includes(lowerCaseSearchTerm) ||
-        athlete.ageDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
-        athlete.weightDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
-        athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
+        `${athlete.firstName} ${athlete.lastName}`.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.club.toLowerCase().includes(lowerCaseSearchTerm)
       );
     }
 
-    if (checkInFilter === 'pending') {
-      return athletesToFilter.filter(a => a.checkInStatus === 'pending');
-    } else if (checkInFilter === 'done') {
-      return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
-    }
-    return athletesToFilter; // 'all' filter
+    if (checkInFilter === 'pending') return athletesToFilter.filter(a => a.checkInStatus === 'pending');
+    if (checkInFilter === 'done') return athletesToFilter.filter(a => a.checkInStatus !== 'pending');
+    return athletesToFilter;
   }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter]);
 
-  // Check-in Summary Calculations
-  const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
   const totalCheckedInOk = processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length;
+  const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
   const totalPending = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
-  const totalApprovedAthletes = processedApprovedAthletes.length;
 
   const timeRemainingInSeconds = event.checkInEndTime ? differenceInSeconds(parseISO(event.checkInEndTime), currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0
     ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
     : 'Encerrado';
-
 
   return (
     <Layout>
@@ -531,14 +415,12 @@ const EventDetail: React.FC = () => {
                 </div>
               )}
 
-              {editingAthlete && (
-                <AthleteProfileEditForm
-                  athlete={editingAthlete}
-                  onSave={handleAthleteUpdate}
-                  onCancel={() => setEditingAthlete(null)}
-                  mandatoryFieldsConfig={mandatoryFieldsConfig}
-                />
-              )}
+              <AthleteProfileEditForm
+                athlete={editingAthlete}
+                onSave={handleAthleteUpdate}
+                onCancel={() => setEditingAthlete(null)}
+                mandatoryFieldsConfig={mandatoryFieldsConfig}
+              />
 
               <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({processedApprovedAthletes.length})</h3>
               {processedApprovedAthletes.length === 0 ? (
@@ -619,7 +501,7 @@ const EventDetail: React.FC = () => {
                   <span className="text-muted-foreground block mt-2">Horário: {format(parseISO(event.checkInStartTime), 'dd/MM HH:mm')} - {format(parseISO(event.checkInEndTime), 'dd/MM HH:mm')}</span>
                 )}
                 <div className="mt-4 text-sm">
-                  <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
+                  <p>Total de Atletas Aprovados: <span className="font-semibold">{processedApprovedAthletes.length}</span></p>
                   <p>Check-in OK: <span className="font-semibold text-green-600">{totalCheckedInOk}</span></p>
                   <p>Acima do Peso: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
                   <p>Faltam: <span className="font-semibold text-orange-500">{totalPending}</span></p>
@@ -776,7 +658,7 @@ const EventDetail: React.FC = () => {
                                 if (checkInStartTime) {
                                   newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
                                 } else {
-                                  newDate.setHours(9, 0); // Default to 9 AM
+                                  newDate.setHours(9, 0);
                                 }
                                 setCheckInStartTime(newDate);
                               }
@@ -789,15 +671,9 @@ const EventDetail: React.FC = () => {
                               value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
                               onChange={(e) => {
                                 const [hours, minutes] = e.target.value.split(':').map(Number);
-                                if (checkInStartTime) {
-                                  const newDate = new Date(checkInStartTime);
-                                  newDate.setHours(hours, minutes);
-                                  setCheckInStartTime(newDate);
-                                } else {
-                                  const newDate = new Date();
-                                  newDate.setHours(hours, minutes);
-                                  setCheckInStartTime(newDate);
-                                }
+                                const newDate = checkInStartTime ? new Date(checkInStartTime) : new Date();
+                                newDate.setHours(hours, minutes);
+                                setCheckInStartTime(newDate);
                               }}
                             />
                           </div>
@@ -826,7 +702,7 @@ const EventDetail: React.FC = () => {
                                 if (checkInEndTime) {
                                   newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
                                 } else {
-                                  newDate.setHours(17, 0); // Default to 5 PM
+                                  newDate.setHours(17, 0);
                                 }
                                 setCheckInEndTime(newDate);
                               }
@@ -839,15 +715,9 @@ const EventDetail: React.FC = () => {
                               value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
                               onChange={(e) => {
                                 const [hours, minutes] = e.target.value.split(':').map(Number);
-                                if (checkInEndTime) {
-                                  const newDate = new Date(checkInEndTime);
-                                  newDate.setHours(hours, minutes);
-                                  setCheckInEndTime(newDate);
-                                } else {
-                                  const newDate = new Date();
-                                  newDate.setHours(hours, minutes);
-                                  setCheckInEndTime(newDate);
-                                }
+                                const newDate = checkInEndTime ? new Date(checkInEndTime) : new Date();
+                                newDate.setHours(hours, minutes);
+                                setCheckInEndTime(newDate);
                               }}
                             />
                           </div>
