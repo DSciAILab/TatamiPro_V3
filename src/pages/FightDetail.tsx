@@ -4,14 +4,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Keep Select for now, but not used for winner/result type
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // NEW: Import ToggleGroup
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Match, Athlete, Bracket, FightResultType, Event } from '@/types/index';
 import { UserRound, Trophy, ArrowLeft, ArrowRight, List } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
@@ -279,11 +279,35 @@ const FightDetail: React.FC = () => {
         </CardHeader>
         <CardContent className="grid gap-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={`flex flex-col items-center p-4 border rounded-md ${currentMatch.winnerId === currentMatch.fighter1Id ? 'border-green-500 bg-green-50 dark:bg-green-950' : currentMatch.loserId === currentMatch.fighter1Id ? 'border-red-500 bg-red-50 dark:bg-red-950' : ''}`}>
+            <div
+              className={cn(
+                "flex flex-col items-center p-4 border rounded-md cursor-pointer transition-colors",
+                isFightCompleted
+                  ? currentMatch.winnerId === currentMatch.fighter1Id
+                    ? 'border-green-500 bg-green-50 dark:bg-green-950'
+                    : 'border-red-500 bg-red-50 dark:bg-red-950'
+                  : selectedWinnerId === currentMatch.fighter1Id
+                    ? 'border-primary bg-accent'
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
+              )}
+              onClick={() => !isFightCompleted && currentMatch.fighter1Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter1Id)}
+            >
               {getFighterPhoto(fighter1Athlete)}
               <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter1Athlete)}</span>
             </div>
-            <div className={`flex flex-col items-center p-4 border rounded-md ${currentMatch.winnerId === currentMatch.fighter2Id ? 'border-green-500 bg-green-50 dark:bg-green-950' : currentMatch.loserId === currentMatch.fighter2Id ? 'border-red-500 bg-red-50 dark:bg-red-950' : ''}`}>
+            <div
+              className={cn(
+                "flex flex-col items-center p-4 border rounded-md cursor-pointer transition-colors",
+                isFightCompleted
+                  ? currentMatch.winnerId === currentMatch.fighter2Id
+                    ? 'border-green-500 bg-green-50 dark:bg-green-950'
+                    : 'border-red-500 bg-red-50 dark:bg-red-950'
+                  : selectedWinnerId === currentMatch.fighter2Id
+                    ? 'border-primary bg-accent'
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
+              )}
+              onClick={() => !isFightCompleted && currentMatch.fighter2Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter2Id)}
+            >
               {getFighterPhoto(fighter2Athlete)}
               <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter2Athlete)}</span>
             </div>
@@ -304,30 +328,6 @@ const FightDetail: React.FC = () => {
           ) : (
             <>
               <div className="grid gap-2">
-                <Label>Vencedor</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {currentMatch.fighter1Id && currentMatch.fighter1Id !== 'BYE' && (
-                    <Button
-                      variant={selectedWinnerId === currentMatch.fighter1Id ? 'default' : 'outline'}
-                      onClick={() => setSelectedWinnerId(currentMatch.fighter1Id)}
-                      disabled={!currentMatch.fighter1Id || currentMatch.fighter1Id === 'BYE'}
-                    >
-                      {getFighterDisplay(fighter1Athlete)}
-                    </Button>
-                  )}
-                  {currentMatch.fighter2Id && currentMatch.fighter2Id !== 'BYE' && (
-                    <Button
-                      variant={selectedWinnerId === currentMatch.fighter2Id ? 'default' : 'outline'}
-                      onClick={() => setSelectedWinnerId(currentMatch.fighter2Id)}
-                      disabled={!currentMatch.fighter2Id || currentMatch.fighter2Id === 'BYE'}
-                    >
-                      {getFighterDisplay(fighter2Athlete)}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid gap-2">
                 <Label>Tipo de Resultado</Label>
                 <ToggleGroup
                   type="single"
@@ -336,7 +336,7 @@ const FightDetail: React.FC = () => {
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"
                 >
                   {fightResultTypes.map(type => (
-                    <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label}>
+                    <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label} variant={selectedResultType === type.value ? 'default' : 'outline'}>
                       {type.label}
                     </ToggleGroupItem>
                   ))}
