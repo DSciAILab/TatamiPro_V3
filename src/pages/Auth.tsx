@@ -9,74 +9,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Layout from '@/components/Layout';
 import { showSuccess, showError } from '@/utils/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User } from '@/types'; // Importar o tipo User
+import { v4 as uuidv4 } from 'uuid';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [club, setClub] = useState(''); // This state is not used in the current mock logic, but kept for potential future use
+  const [club, setClub] = useState(''); // Mantido para potencial uso futuro no registro
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    let storedUserName = '';
+    const storedUsersString = localStorage.getItem('users');
+    const users: User[] = storedUsersString ? JSON.parse(storedUsersString) : [];
 
     if (isLogin) {
-      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
-        showSuccess('Login de Admin realizado com sucesso!');
-        localStorage.setItem('userRole', 'admin');
-        localStorage.setItem('userClub', 'Tatamipro HQ');
-        storedUserName = 'Admin';
-        localStorage.setItem('userName', storedUserName);
-        navigate('/events');
-      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
-        showSuccess('Login de Coach realizado com sucesso!');
-        localStorage.setItem('userRole', 'coach');
-        localStorage.setItem('userClub', 'Gracie Barra');
-        storedUserName = 'Coach';
-        localStorage.setItem('userName', storedUserName);
-        navigate('/events');
-      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
-        showSuccess('Login de Staff realizado com sucesso!');
-        localStorage.setItem('userRole', 'staff');
-        localStorage.setItem('userClub', 'Alliance');
-        storedUserName = 'Staff';
-        localStorage.setItem('userName', storedUserName);
-        navigate('/events');
-      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
-        showSuccess('Login de Atleta realizado com sucesso!');
-        localStorage.setItem('userRole', 'athlete');
-        localStorage.setItem('userClub', 'Checkmat');
-        storedUserName = 'Atleta';
-        localStorage.setItem('userName', storedUserName);
-        navigate('/events');
-      }
-      else {
-        showError('Credenciais ou papel inválidos. Tente as credenciais de demonstração.');
+      const foundUser = users.find(u => u.email === email && u.password === password && u.role === role && u.isActive);
+
+      if (foundUser) {
+        localStorage.setItem('currentUser', JSON.stringify(foundUser));
+        localStorage.setItem('userName', foundUser.name);
+        localStorage.setItem('userRole', foundUser.role);
+        localStorage.setItem('userClub', foundUser.club || '');
+        showSuccess(`Login de ${foundUser.name} (${foundUser.role}) realizado com sucesso!`);
+        navigate('/welcome'); // Redireciona para a página de boas-vindas
+      } else {
+        showError('Credenciais, papel ou status de usuário inválidos. Tente as credenciais de demonstração.');
       }
     } else {
-      // Registro simplificado: apenas "cria" o usuário admin/coach/staff/athlete se não existir
-      // For registration, we can derive a name from the email or use the role
-      const baseName = email.split('@')[0];
-      storedUserName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+      // Lógica de registro
+      const existingUser = users.find(u => u.email === email);
+      if (existingUser) {
+        showError('Já existe um usuário com este email.');
+        return;
+      }
 
-      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
-        showSuccess('Registro de Admin realizado com sucesso! Faça login.');
-        setIsLogin(true);
-      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
-        showSuccess('Registro de Coach realizado com sucesso! Faça login.');
-        setIsLogin(true);
-      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
-        showSuccess('Registro de Staff realizado com sucesso! Faça login.');
-        setIsLogin(true);
-      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
-        showSuccess('Registro de Atleta realizado com sucesso! Faça login.');
-        setIsLogin(true);
-      }
-      else {
-        showError('Para o MVP, apenas o registro de usuários de demonstração é suportado.');
-      }
+      const newUserName = email.split('@')[0].replace('.', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      const newUser: User = {
+        id: uuidv4(),
+        email,
+        password, // Em um app real, a senha seria hashed
+        role,
+        club: club || (role === 'admin' ? 'Tatamipro HQ' : 'Novo Clube'), // Default club for new users
+        isActive: true,
+        name: newUserName,
+      };
+
+      const updatedUsers = [...users, newUser];
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
+      showSuccess('Registro realizado com sucesso! Por favor, faça login.');
+      setIsLogin(true); // Redireciona para a tela de login
     }
   };
 

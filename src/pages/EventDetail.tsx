@@ -16,6 +16,7 @@ import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
+import UserManagementTable from '@/components/UserManagementTable'; // Importar o novo componente
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -387,6 +388,7 @@ const EventDetail: React.FC = () => {
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
               <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+              <TabsTrigger value="users">Usuários</TabsTrigger> {/* Nova aba para gerenciamento de usuários */}
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
@@ -484,7 +486,7 @@ const EventDetail: React.FC = () => {
                   <span>Tempo para fechar: {timeRemainingFormatted}</span>
                 </div>
               </CardTitle>
-              <CardDescription>
+            <CardDescription>
                 Confirme a presença e o peso dos atletas.
                 {!isCheckInTimeValid() && userRole !== 'admin' && (
                   <span className="text-red-500 block mt-2">O check-in está fora do horário permitido. Apenas administradores podem realizar o check-in agora.</span>
@@ -564,7 +566,7 @@ const EventDetail: React.FC = () => {
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                           {athlete.registeredWeight && (
-                            <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                            <p className className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
                           )}
                         </div>
                       </div>
@@ -859,6 +861,18 @@ const EventDetail: React.FC = () => {
                     <Button className="w-full">Importar Divisões em Lote</Button>
                   </Link>
                   <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="users" className="mt-6"> {/* Nova aba para UserManagementTable */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gerenciamento de Usuários</CardTitle>
+                  <CardDescription>Adicione, edite e gerencie os usuários do sistema.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <UserManagementTable />
                 </CardContent>
               </Card>
             </TabsContent>

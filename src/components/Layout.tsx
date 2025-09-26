@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { User } from '@/types'; // Importar o tipo User
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,22 +15,21 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUserName = localStorage.getItem('userName');
-    const storedUserRole = localStorage.getItem('userRole');
-    setUserName(storedUserName);
-    setUserRole(storedUserRole);
-  }, []); // Executa uma vez ao montar o componente
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userClub');
-    setUserName(null);
-    setUserRole(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userName'); // Remover também o userName antigo
+    localStorage.removeItem('userRole'); // Remover também o userRole antigo
+    localStorage.removeItem('userClub'); // Remover também o userClub antigo
+    setCurrentUser(null);
     navigate('/auth'); // Redireciona para a página de autenticação após o logout
   };
 
@@ -38,12 +38,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-primary text-primary-foreground p-4 shadow-md flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/" className="text-2xl font-bold">Tatamipro</Link>
-          {userName && userRole && (
-            <span className="text-lg ml-4">Olá, {userName} ({userRole})</span>
+          {currentUser && (
+            <span className="text-lg ml-4">Olá, {currentUser.name} ({currentUser.role})</span>
           )}
         </div>
         <div className="flex items-center space-x-4">
-          {userName && userRole && ( // Mostra o botão de logout apenas se o usuário estiver logado
+          {currentUser && ( // Mostra o botão de logout apenas se o usuário estiver logado
             <Button variant="ghost" onClick={handleLogout} className="text-primary-foreground hover:bg-primary-foreground/20">
               Sair
             </Button>

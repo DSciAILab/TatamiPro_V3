@@ -67,3 +67,13 @@ export interface Event {
   numFightAreas?: number;
   isAttendanceMandatoryBeforeCheckIn?: boolean;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  password?: string; // Apenas para mock, não em produção real
+  role: 'admin' | 'coach' | 'staff' | 'athlete';
+  club?: string;
+  isActive: boolean;
+  name: string; // Nome para exibição
+}
