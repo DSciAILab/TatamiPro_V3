@@ -20,8 +20,9 @@ import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 
 const EventDetail: React.FC = () => {
@@ -32,6 +33,8 @@ const EventDetail: React.FC = () => {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
+  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'done' | 'all'>('pending');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const [event, setEvent] = useState<Event | null>(() => {
     const processAthleteData = (athleteData: any): Athlete => {
@@ -121,6 +124,14 @@ const EventDetail: React.FC = () => {
       };
     });
   }, [checkInStartTime, checkInEndTime, numFightAreas]);
+
+  // Timer for current time and time remaining
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
 
   const handleAthleteRegistration = (newAthlete: Athlete) => {
@@ -295,8 +306,26 @@ const EventDetail: React.FC = () => {
         athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
       );
     }
-    return athletesToFilter;
-  }, [processedApprovedAthletes, searchTerm, scannedAthleteId]);
+
+    if (checkInFilter === 'pending') {
+      return athletesToFilter.filter(a => a.checkInStatus === 'pending');
+    } else if (checkInFilter === 'done') {
+      return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
+    }
+    return athletesToFilter; // 'all' filter
+  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter]);
+
+  // Check-in Summary Calculations
+  const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
+  const totalCheckedInOk = processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length;
+  const totalPending = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
+  const totalApprovedAthletes = processedApprovedAthletes.length;
+
+  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
+  const timeRemainingFormatted = timeRemainingInSeconds > 0
+    ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
+    : 'Encerrado';
+
 
   return (
     <Layout>
@@ -403,7 +432,13 @@ const EventDetail: React.FC = () => {
         <TabsContent value="checkin" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Check-in de Atletas</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Check-in de Atletas</span>
+                <div className="text-sm font-normal text-muted-foreground flex flex-col items-end">
+                  <span>Hora Atual: {format(currentTime, 'HH:mm:ss')}</span>
+                  <span>Tempo para fechar: {timeRemainingFormatted}</span>
+                </div>
+              </CardTitle>
               <CardDescription>
                 Confirme a presença e o peso dos atletas.
                 {!isCheckInTimeValid() && userRole !== 'admin' && (
@@ -417,6 +452,12 @@ const EventDetail: React.FC = () => {
                 ) : (
                   <span className="text-muted-foreground block mt-2">Horário: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
                 )}
+                <div className="mt-4 text-sm">
+                  <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
+                  <p>Check-in OK: <span className="font-semibold text-green-600">{totalCheckedInOk}</span></p>
+                  <p>Acima do Peso: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
+                  <p>Faltam: <span className="font-semibold text-orange-500">{totalPending}</span></p>
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -441,6 +482,20 @@ const EventDetail: React.FC = () => {
                   />
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
+              </div>
+
+              <div className="mb-4 flex justify-center">
+                <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'done' | 'all') => value && setCheckInFilter(value)}>
+                  <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
+                    Pendentes
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="done" aria-label="Mostrar concluídos">
+                    Concluídos
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                    Todos
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               {filteredAthletesForCheckIn.length === 0 ? (
@@ -487,7 +542,7 @@ const EventDetail: React.FC = () => {
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
                           isCheckInAllowed={isCheckInAllowed}
-                          divisionMaxWeight={athlete._division?.maxWeight} // Passar o limite de peso
+                          divisionMaxWeight={athlete._division?.maxWeight}
                         />
                       </div>
                     </li>
