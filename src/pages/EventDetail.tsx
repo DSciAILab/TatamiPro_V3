@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-// import AthleteRegistrationForm from '@/components/AthleteRegistrationForm'; // Removed
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
@@ -18,13 +17,13 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution';
-import { Athlete, Event, Division, Bracket } from '../types/index'; // Removed WeightAttempt
+import { Athlete, Event, Division, Bracket } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils'; // Removed getAgeDivision, getWeightDivision
+import { getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, differenceInSeconds } from 'date-fns'; // Removed isValid, differenceInMinutes
+import { format, parseISO, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
@@ -201,7 +200,7 @@ const EventDetail: React.FC = () => {
 
   useEffect(() => {
     if (event) {
-      localStorage.setItem(`event_${id}`, JSON.stringify({
+      const eventDataToSave = {
         ...event,
         checkInStartTime: checkInStartTime?.toISOString(),
         checkInEndTime: checkInEndTime?.toISOString(),
@@ -217,7 +216,23 @@ const EventDetail: React.FC = () => {
         thirdPlacePoints: thirdPlacePoints,
         countSingleClubCategories: countSingleClubCategories,
         countWalkoverSingleFightCategories: countWalkoverSingleFightCategories,
-      }));
+      };
+      localStorage.setItem(`event_${id}`, JSON.stringify(eventDataToSave));
+
+      // Update the summary list in localStorage
+      const eventsListRaw = localStorage.getItem('events');
+      if (eventsListRaw) {
+        try {
+          let eventsList: { id: string; isActive: boolean }[] = JSON.parse(eventsListRaw);
+          const eventIndex = eventsList.findIndex(e => e.id === id);
+          if (eventIndex > -1) {
+            eventsList[eventIndex].isActive = isActive;
+            localStorage.setItem('events', JSON.stringify(eventsList));
+          }
+        } catch (e) {
+          console.error("Failed to update events list in localStorage", e);
+        }
+      }
     }
   }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
@@ -228,19 +243,6 @@ const EventDetail: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-
-  // const handleAthleteRegistration = (newAthlete: Athlete) => { // Removed: function not used
-  //   if (event) {
-  //     setEvent(prevEvent => {
-  //       if (!prevEvent) return null;
-  //       return {
-  //         ...prevEvent,
-  //         athletes: [...prevEvent.athletes, newAthlete],
-  //       };
-  //     });
-  //     showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
-  //   }
-  // };
 
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
     if (event) {
@@ -398,29 +400,6 @@ const EventDetail: React.FC = () => {
     });
   };
 
-  // const handleUpdateBracketsAndFightOrder = (newBrackets: Record<string, Bracket>) => { // Removed: function not used
-  //   setEvent(prevEvent => {
-  //     if (!prevEvent) return null;
-  //     const eventWithNewBrackets = { ...prevEvent, brackets: newBrackets };
-      
-  //     let newMatFightOrder = prevEvent.matFightOrder;
-  //     let finalBrackets = newBrackets;
-
-  //     if (eventWithNewBrackets.matAssignments && eventWithNewBrackets.numFightAreas) {
-  //       const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder(eventWithNewBrackets);
-  //       finalBrackets = recalculatedBrackets;
-  //       newMatFightOrder = recalculatedMatFightOrder;
-  //     }
-
-  //     return {
-  //       ...eventWithNewBrackets,
-  //       brackets: finalBrackets,
-  //       matFightOrder: newMatFightOrder,
-  //     };
-  //   });
-  // };
-
-
   if (!event) {
     return (
       <Layout>
@@ -431,7 +410,6 @@ const EventDetail: React.FC = () => {
 
   const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
-  // const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected'); // Removed
 
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
@@ -455,7 +433,7 @@ const EventDetail: React.FC = () => {
         _division: athlete._division,
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
-  }, [athletesUnderApproval, event.divisions]);
+  }, [athletesUnderApproval]);
 
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event.athletes;

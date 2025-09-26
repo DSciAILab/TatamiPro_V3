@@ -17,14 +17,20 @@ import GenerateBrackets from "./pages/GenerateBrackets";
 import ManageFights from "./pages/ManageFights";
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
-import CreateEvent from "./pages/CreateEvent"; // Importar a nova página
+import CreateEvent from "./pages/CreateEvent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="vite-ui-theme"
+    >
       <LanguageProvider>
         <TooltipProvider>
           <Toaster />
@@ -34,7 +40,7 @@ const App = () => (
               <Route path="/" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/events" element={<Events />} />
-              <Route path="/events/create" element={<CreateEvent />} /> {/* NOVA ROTA */}
+              <Route path="/events/create" element={<CreateEvent />} />
               <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
               <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
