@@ -11,6 +11,17 @@ interface BracketViewProps {
   division: Division;
 }
 
+const getRoundName = (roundIndex: number, totalRounds: number): string => {
+  const roundFromEnd = totalRounds - roundIndex;
+  switch (roundFromEnd) {
+    case 1: return 'Final';
+    case 2: return 'Semi-final';
+    case 3: return 'Quartas de Final';
+    case 4: return 'Oitavas de Final';
+    default: return `Rodada ${roundIndex + 1}`;
+  }
+};
+
 const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division }) => {
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
@@ -29,6 +40,8 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     );
   }
 
+  const totalRounds = bracket.rounds.length;
+
   return (
     <Card className="p-4">
       <CardHeader>
@@ -38,7 +51,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
         <div className="flex space-x-4 p-4">
           {bracket.rounds.map((round, roundIndex) => (
             <div key={roundIndex} className="flex flex-col items-center space-y-8 min-w-[220px]">
-              <h3 className="text-lg font-semibold">Rodada {roundIndex + 1}</h3>
+              <h3 className="text-lg font-semibold">{getRoundName(roundIndex, totalRounds)}</h3>
               {round.map(match => (
                 <BracketMatchCard
                   key={match.id}

@@ -24,6 +24,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
+const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch: boolean = false): string => {
+  if (isThirdPlaceMatch) return 'Luta pelo 3º Lugar';
+  const roundFromEnd = totalRounds - roundIndex;
+  switch (roundFromEnd) {
+    case 1: return 'Final';
+    case 2: return 'Semi-final';
+    case 3: return 'Quartas de Final';
+    case 4: return 'Oitavas de Final';
+    default: return `Rodada ${roundIndex + 1}`;
+  }
+};
+
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
   const navigate = useNavigate();
@@ -217,7 +229,7 @@ const FightDetail: React.FC = () => {
       setShowPostFightOptions(true);
 
       // Check if this is the last fight of the round (excluding third-place match for this check)
-      if (currentMatch.round > 0) { // Only for main bracket rounds
+      if (currentMatch.round > 0 && currentBracket.rounds.length > 0) { // Only for main bracket rounds
         const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];
         const allMatchesInRoundCompleted = currentRoundMatches.every(m => m.winnerId !== undefined);
         if (allMatchesInRoundCompleted) {
@@ -307,11 +319,16 @@ const FightDetail: React.FC = () => {
     { value: 'walkover', label: 'W.O.' },
   ];
 
+  const matNumber = currentMatch._matName?.replace('Mat ', '') || 'N/A';
+  const fightNumberDisplay = `${matNumber}-${currentMatch.matFightNumber}`;
+  const currentRoundName = currentMatch.round === -1 ? 'Luta pelo 3º Lugar' : getRoundName(currentMatch.round - 1, currentBracket.rounds.length);
+
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">
-          {currentMatch._matName} - Luta {currentMatch.matFightNumber} {/* NOVO: Título com matFightNumber */}
+          {currentMatch._matName} - Luta {fightNumberDisplay} {/* NOVO: Título com matFightNumber */}
         </h1>
         <Button onClick={() => navigate(`/events/${eventId}/manage-fights`)} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerenciar Lutas
@@ -320,7 +337,7 @@ const FightDetail: React.FC = () => {
 
       <Card className={`mb-6 border-2 ${mainCardBorderClass}`}> {/* Added dynamic border */}
         <CardHeader>
-          <CardTitle className="text-2xl">Detalhes da Luta</CardTitle>
+          <CardTitle className="text-2xl">Detalhes da Luta ({currentRoundName})</CardTitle>
           <CardDescription>Registre o resultado desta luta.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 py-4">
@@ -436,9 +453,9 @@ const FightDetail: React.FC = () => {
       <AlertDialog open={showRoundEndDialog} onOpenChange={setShowRoundEndDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Fim da Rodada {currentMatch?.round}</AlertDialogTitle>
+            <AlertDialogTitle>Fim da {currentRoundName}</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as lutas da Rodada {currentMatch?.round} foram concluídas. O que você gostaria de fazer a seguir?
+              Todas as lutas da {currentRoundName} foram concluídas. O que você gostaria de fazer a seguir?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

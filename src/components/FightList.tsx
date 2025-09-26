@@ -37,6 +37,13 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
     return new Map(athletes.map(athlete => [athlete.id, athlete]));
   }, [athletes]);
 
+  const getFighterDisplay = (fighterId: string | 'BYE' | undefined) => {
+    if (fighterId === 'BYE') return 'BYE';
+    if (!fighterId) return 'Aguardando';
+    const fighter = athletesMap.get(fighterId);
+    return fighter ? `${fighter.firstName} ${fighter.lastName}` : 'Atleta Desconhecido';
+  };
+
   const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
     if (fighterId === 'BYE' || !fighterId) {
       return (
@@ -72,7 +79,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
 
     matMatchesIds.forEach(matchId => {
       const match = allMatchesMap.get(matchId);
-      if (match && match._divisionId === selectedDivisionId) { // Filter by selected division
+      // Filter by selected division AND hide BYE vs BYE fights
+      if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
         fights.push(match);
       }
     });
@@ -101,11 +109,13 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCateg
     const resultText = match.result?.details || (match.winnerId && match.result?.type ? match.result.type : '');
     const resultTime = "XX:XX"; // Placeholder for now, as no match start/end time is stored.
 
+    const matNumber = selectedMat.replace('Mat ', '');
+
     const cardContent = (
       <div className="flex items-center p-4">
         {/* Left: Fight Number */}
         <div className="flex-shrink-0 w-16 text-center">
-          <span className="text-4xl font-extrabold text-primary">{match.matFightNumber}</span>
+          <span className="text-4xl font-extrabold text-primary">{matNumber}-{match.matFightNumber}</span> {/* NOVO: Número sequencial */}
         </div>
 
         {/* Middle: Fighter Details */}
