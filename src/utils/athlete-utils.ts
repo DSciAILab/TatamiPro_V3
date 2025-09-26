@@ -104,6 +104,14 @@ export const findPossibleDivisions = (athlete: Athlete, divisions: Division[]): 
   return refinedDivisions;
 };
 
+// Exportando findAthleteDivision para ser usado onde uma única divisão é esperada
+export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Division | undefined => {
+  const possibleDivs = findPossibleDivisions(athlete, divisions);
+  // Para simplificar, retorna a primeira divisão encontrada.
+  // Em um cenário real, pode haver uma lógica mais complexa para escolher a 'melhor' divisão.
+  return possibleDivs.length > 0 ? possibleDivs[0] : undefined;
+};
+
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
   if (division) {
     return `${division.gender} / ${division.ageCategoryName} / ${division.belt} / ${division.maxWeight}kg - ${athlete.club}`;

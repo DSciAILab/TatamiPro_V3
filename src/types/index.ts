@@ -5,7 +5,7 @@ export type DivisionBelt = AthleteBelt | 'Todas'; // Novo tipo para faixa de div
 export type AgeCategory = 'Kids I' | 'Kids II' | 'Kids III' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master 1' | 'Master 2' | 'Master 3' | 'Master 4' | 'Master 5' | 'Master 6' | 'Master 7'; // Novo tipo para categorias de idade
 
 export type RegistrationStatus = 'pending' | 'under_approval' | 'approved' | 'rejected';
-export type CheckInStatus = 'pending' | 'checked_in' | 'missed';
+export type CheckInStatus = 'pending' | 'checked_in' | 'missed' | 'overweight'; // Adicionado 'overweight'
 export type AttendanceStatus = 'pending' | 'present' | 'absent' | 'private_transportation'; // Adicionado 'private_transportation'
 export type UserRole = 'admin' | 'coach' | 'staff' | 'athlete';
 
@@ -62,9 +62,9 @@ export interface Event {
   id: string;
   name: string;
   date: Date;
-  location: string;
-  registrationOpenDate: Date;
-  registrationCloseDate: Date;
+  location: string; // Adicionado
+  registrationOpenDate: Date; // Adicionado
+  registrationCloseDate: Date; // Adicionado
   status: 'upcoming' | 'open' | 'closed' | 'completed';
   description?: string;
   posterUrl?: string;

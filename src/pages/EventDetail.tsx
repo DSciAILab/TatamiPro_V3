@@ -17,7 +17,7 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import UserManagementTable from '@/components/UserManagementTable'; // Importar o novo componente
-import { Athlete, Event, WeightAttempt, Division } from '../types/index';
+import { Athlete, Event, WeightAttempt, Division, CheckInStatus } from '../types/index'; // Import CheckInStatus
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
@@ -98,8 +98,11 @@ const EventDetail: React.FC = () => {
       id: id || 'mock-event-id',
       name: `Evento #${id}`,
       description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
-      status: 'Aberto',
-      date: '2024-12-01',
+      status: 'open', // Corrigido para 'open'
+      date: new Date('2024-12-01'), // Default Date
+      location: 'Local Padrão', // Default string
+      registrationOpenDate: new Date('2024-11-01'), // Default Date
+      registrationCloseDate: new Date('2024-11-30'), // Default Date
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
       isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatoryBeforeCheckIn, // Set initial value
@@ -197,7 +200,7 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
+  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: CheckInStatus, weightAttempts: WeightAttempt[]) => { // Changed status type
     if (event) {
       setEvent(prevEvent => {
         if (!prevEvent) return null;
@@ -592,7 +595,7 @@ const EventDetail: React.FC = () => {
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
                           isCheckInAllowed={isCheckInAllowed}
-                          divisionMaxWeight={athlete._division?.maxWeight}
+                          divisionMaxWeight={athlete._division?.maxWeight || 0} // Adicionado fallback para 0
                         />
                       </div>
                     </li>
@@ -860,7 +863,7 @@ const EventDetail: React.FC = () => {
                   <Link to={`/events/${event.id}/import-divisions`}>
                     <Button className="w-full">Importar Divisões em Lote</Button>
                   </Link>
-                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} eventId={event.id} />
                 </CardContent>
               </Card>
             </TabsContent>
