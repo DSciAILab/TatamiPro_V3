@@ -3,23 +3,20 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, UserRound } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Athlete } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
-import { Athlete } from '../types/index'; // Corrigido: usando caminho relativo
 
 interface AthleteRegistrationFormProps {
   eventId: string;
@@ -27,8 +24,8 @@ interface AthleteRegistrationFormProps {
 }
 
 const formSchema = z.object({
-  firstName: z.string().min(2, { message: 'Nome deve ter pelo menos 2 caracteres.' }),
-  lastName: z.string().min(2, { message: 'Sobrenome deve ter pelo menos 2 caracteres.' }),
+  firstName: z.string().min(2, { message: 'Nome é obrigatório.' }),
+  lastName: z.string().min(2, { message: 'Sobrenome é obrigatório.' }),
   dateOfBirth: z.date({ required_error: 'Data de nascimento é obrigatória.' }),
   club: z.string().min(1, { message: 'Clube é obrigatório.' }),
   gender: z.enum(['Masculino', 'Feminino', 'Outro'], { required_error: 'Gênero é obrigatório.' }),
@@ -36,392 +33,215 @@ const formSchema = z.object({
   weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
   email: z.string().email({ message: 'Email inválido.' }),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
-  emiratesId: z.string().optional(), // Basic validation, can be enhanced
+  emiratesId: z.string().optional(),
   schoolId: z.string().optional(),
-  photo: z.any().optional(), // File object
-  signature: z.any().optional(), // File object
-  consentAccepted: z.boolean().refine(val => val === true, { message: 'Você deve aceitar o termo de consentimento.' }),
+  consentAccepted: z.boolean().refine(val => val === true, { message: 'Você deve aceitar os termos e condições.' }),
+  paymentProof: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // FileList for client-side
+}).refine(data => data.emiratesId || data.schoolId, {
+  message: 'Pelo menos um ID (Emirates ID ou School ID) é obrigatório.',
+  path: ['emiratesId'],
 });
 
-const clubs = ['Gracie Barra', 'Alliance', 'Checkmat', 'Atos', 'Nova União', 'Outro'];
-const belts = ['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'];
-
 const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ eventId, onRegister }) => {
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       club: '',
-      gender: 'Masculino',
+      gender: 'Outro',
       belt: 'Branca',
       weight: 0,
       email: '',
       phone: '',
-      emiratesId: '',
-      schoolId: '',
       consentAccepted: false,
     },
   });
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      form.setValue('photo', file);
-      setPhotoPreview(URL.createObjectURL(file));
-    } else {
-      form.setValue('photo', undefined);
-      setPhotoPreview(null);
-    }
-  };
+  const dateOfBirth = watch('dateOfBirth');
+  const paymentProof = watch('paymentProof');
 
-  const handleSignatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      form.setValue('signature', file);
-      setSignaturePreview(URL.createObjectURL(file));
-    } else {
-      form.setValue('signature', undefined);
-      setSignaturePreview(null);
-    }
-  };
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const age = new Date().getFullYear() - values.dateOfBirth.getFullYear();
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const age = new Date().getFullYear() - values.dateOfBirth.getFullYear();
-    const newAthlete: Athlete = {
-      id: `athlete-${Date.now()}`, // Simple unique ID for MVP
-      eventId,
-      firstName: values.firstName,
-      lastName: values.lastName,
-      dateOfBirth: values.dateOfBirth,
-      age,
-      club: values.club,
-      gender: values.gender,
-      belt: values.belt,
-      weight: values.weight,
-      email: values.email,
-      phone: values.phone,
-      emiratesId: values.emiratesId,
-      schoolId: values.schoolId,
-      photoUrl: photoPreview || undefined, // In a real app, this would be a URL after upload
-      signatureUrl: signaturePreview || undefined, // In a real app, this would be a URL after upload
-      consentAccepted: values.consentAccepted,
-      consentDate: new Date(), // Current date for consent
-      consentVersion: '1.0', // Fixed version for MVP
-    };
-    onRegister(newAthlete);
-    showSuccess('Atleta registrado com sucesso!');
-    form.reset();
-    setPhotoPreview(null);
-    setSignaturePreview(null);
+      let paymentProofUrl: string | undefined;
+      if (paymentProof && paymentProof.length > 0) {
+        // In a real application, you would upload this file to a storage service (e.g., S3, Cloudinary)
+        // and get a URL back. For this MVP, we'll just use a mock URL or file name.
+        paymentProofUrl = `mock-payment-proof-url/${paymentProof[0].name}`;
+        showSuccess(`Comprovante de pagamento ${paymentProof[0].name} anexado.`);
+      }
+
+      const newAthlete: Athlete = {
+        id: `athlete-${Date.now()}`,
+        eventId,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        dateOfBirth: values.dateOfBirth,
+        age,
+        club: values.club,
+        gender: values.gender,
+        belt: values.belt,
+        weight: values.weight,
+        email: values.email,
+        phone: values.phone,
+        emiratesId: values.emiratesId,
+        schoolId: values.schoolId,
+        consentAccepted: values.consentAccepted,
+        consentDate: new Date(),
+        consentVersion: '1.0',
+        paymentProofUrl,
+        registrationStatus: 'under_approval', // Default status for new registrations
+      };
+
+      onRegister(newAthlete);
+      showSuccess('Inscrição enviada para aprovação!');
+      // Optionally reset form here
+    } catch (error: any) {
+      showError('Erro ao registrar atleta: ' + error.message);
+    }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nome do atleta" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sobrenome</FormLabel>
-                <FormControl>
-                  <Input placeholder="Sobrenome do atleta" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md">
+      <h3 className="text-xl font-semibold mb-4">Registrar Novo Atleta</h3>
 
-        <FormField
-          control={form.control}
-          name="dateOfBirth"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data de Nascimento</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: ptBR })
-                      ) : (
-                        <span>Selecione uma data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                A idade será calculada automaticamente.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="firstName">Nome</Label>
+          <Input id="firstName" {...register('firstName')} />
+          {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="lastName">Sobrenome</Label>
+          <Input id="lastName" {...register('lastName')} />
+          {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="dateOfBirth">Data de Nascimento</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !dateOfBirth && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Selecione uma data</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={dateOfBirth}
+              onSelect={(date) => setValue('dateOfBirth', date!)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="club">Clube</Label>
+        <Input id="club" {...register('club')} />
+        {errors.club && <p className="text-red-500 text-sm mt-1">{errors.club.message}</p>}
+      </div>
+
+      <div>
+        <Label>Gênero</Label>
+        <RadioGroup
+          onValueChange={(value: 'Masculino' | 'Feminino' | 'Outro') => setValue('gender', value)}
+          defaultValue={watch('gender')}
+          className="flex space-x-4 mt-2"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="Masculino" id="gender-male" />
+            <Label htmlFor="gender-male">Masculino</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="Feminino" id="gender-female" />
+            <Label htmlFor="gender-female">Feminino</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="Outro" id="gender-other" />
+            <Label htmlFor="gender-other">Outro</Label>
+          </div>
+        </RadioGroup>
+        {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="belt">Faixa</Label>
+        <Select onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta') => setValue('belt', value)} defaultValue={watch('belt')}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a faixa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Branca">Branca</SelectItem>
+            <SelectItem value="Azul">Azul</SelectItem>
+            <SelectItem value="Roxa">Roxa</SelectItem>
+            <SelectItem value="Marrom">Marrom</SelectItem>
+            <SelectItem value="Preta">Preta</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.belt && <p className="text-red-500 text-sm mt-1">{errors.belt.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="weight">Peso (kg)</Label>
+        <Input id="weight" type="number" step="0.1" {...register('weight')} />
+        {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" type="email" {...register('email')} />
+        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="phone">Telefone (E.164, ex: +5511987654321)</Label>
+        <Input id="phone" type="tel" {...register('phone')} />
+        {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="emiratesId">Emirates ID (Opcional)</Label>
+          <Input id="emiratesId" {...register('emiratesId')} />
+          {errors.emiratesId && <p className="text-red-500 text-sm mt-1">{errors.emiratesId.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="schoolId">School ID (Opcional)</Label>
+          <Input id="schoolId" {...register('schoolId')} />
+          {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="paymentProof">Comprovante de Pagamento (PDF, Imagem)</Label>
+        <Input id="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('paymentProof')} />
+        {errors.paymentProof && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message}</p>}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="consentAccepted"
+          checked={watch('consentAccepted')}
+          onCheckedChange={(checked) => setValue('consentAccepted', checked as boolean)}
         />
+        <Label htmlFor="consentAccepted">Eu aceito os termos e condições.</Label>
+      </div>
+      {errors.consentAccepted && <p className="text-red-500 text-sm mt-1">{errors.consentAccepted.message}</p>}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="club"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clube Associado</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o clube" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clubs.map((club) => (
-                      <SelectItem key={club} value={club}>{club}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="gender"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>Gênero</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="Masculino" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Masculino</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="Feminino" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Feminino</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="Outro" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Outro</FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="belt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Faixa</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a faixa" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {belts.map((belt) => (
-                      <SelectItem key={belt} value={belt}>{belt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="weight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Peso (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Ex: 75.5" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="seu@email.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telefone (E.164)</FormLabel>
-                <FormControl>
-                  <Input type="tel" placeholder="+5511987654321" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Formato E.164, ex: +5511987654321
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="emiratesId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Emirates ID (Opcional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="XXX-XXXX-XXXXXXX-X" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="schoolId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>School ID (Opcional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="ID da escola" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormItem>
-            <FormLabel>Foto do Atleta</FormLabel>
-            <FormControl>
-              <Input type="file" accept="image/*" onChange={handlePhotoChange} />
-            </FormControl>
-            {photoPreview && (
-              <div className="mt-2">
-                <img src={photoPreview} alt="Pré-visualização da foto" className="w-24 h-24 object-cover rounded-md" />
-              </div>
-            )}
-            <FormDescription>
-              Faça upload de uma foto clara do atleta.
-            </FormDescription>
-            <FormMessage>{form.formState.errors.photo?.message as string}</FormMessage>
-          </FormItem>
-
-          <FormItem>
-            <FormLabel>Assinatura</FormLabel>
-            <FormControl>
-              <Input type="file" accept="image/*" onChange={handleSignatureChange} />
-            </FormControl>
-            {signaturePreview && (
-              <div className="mt-2">
-                <img src={signaturePreview} alt="Pré-visualização da assinatura" className="w-24 h-24 object-cover rounded-md" />
-              </div>
-            )}
-            <FormDescription>
-              Faça upload da assinatura do atleta ou responsável.
-            </FormDescription>
-            <FormMessage>{form.formState.errors.signature?.message as string}</FormMessage>
-          </FormItem>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="consentAccepted"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>
-                  Eu concordo com os termos e condições do evento (versão 1.0, {format(new Date(), 'dd/MM/yyyy')}).
-                </FormLabel>
-                <FormDescription>
-                  Ao marcar esta caixa, você confirma que leu e aceita as regras e regulamentos do campeonato.
-                </FormDescription>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" className="w-full">Registrar Atleta</Button>
-      </form>
-    </Form>
+      <Button type="submit" className="w-full">Registrar Atleta</Button>
+    </form>
   );
 };
 
