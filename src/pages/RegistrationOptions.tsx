@@ -1,33 +1,35 @@
 "use client";
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Link, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, UserPlus } from 'lucide-react';
+import { UserPlus, Upload } from 'lucide-react';
 
-const Welcome: React.FC = () => {
+const RegistrationOptions: React.FC = () => {
+  const { id: eventId } = useParams<{ id: string }>();
+
   return (
     <Layout>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-128px)] text-center">
-        <h1 className="text-5xl font-extrabold mb-6 text-primary">Bem-vindo ao TatamiPro</h1>
+        <h1 className="text-4xl font-bold mb-6 text-primary">Opções de Inscrição</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
-          Sua plataforma completa para gerenciar campeonatos de Jiu-Jitsu de forma eficiente e organizada.
+          Selecione como você gostaria de registrar atletas para o evento {eventId ? `#${eventId}` : 'selecionado'}.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
           <Card className="flex flex-col items-center p-6">
             <CardHeader>
-              <CalendarDays className="h-16 w-16 text-primary mb-4" />
-              <CardTitle className="text-2xl">Visualizar Eventos</CardTitle>
+              <UserPlus className="h-16 w-16 text-primary mb-4" />
+              <CardTitle className="text-2xl">Inscrição Individual</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <CardDescription className="mb-6 text-center">
-                Explore os campeonatos disponíveis, veja os inscritos e os brackets.
+                Registre um atleta por vez, preenchendo todos os detalhes manualmente.
               </CardDescription>
-              <Link to="/events">
+              <Link to={`/events/${eventId}/register-athlete`}>
                 <Button size="lg">
-                  Visualizar Eventos
+                  <UserPlus className="mr-2 h-5 w-5" /> Inscrição Individual
                 </Button>
               </Link>
             </CardContent>
@@ -35,16 +37,16 @@ const Welcome: React.FC = () => {
 
           <Card className="flex flex-col items-center p-6">
             <CardHeader>
-              <UserPlus className="h-16 w-16 text-primary mb-4" />
-              <CardTitle className="text-2xl">Fazer Cadastro</CardTitle>
+              <Upload className="h-16 w-16 text-primary mb-4" />
+              <CardTitle className="text-2xl">Importar em Lote</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <CardDescription className="mb-6 text-center">
-                Registre-se como atleta ou importe inscrições em lote para um evento.
+                Faça upload de um arquivo CSV para registrar múltiplos atletas de uma vez.
               </CardDescription>
-              <Link to="/auth"> {/* Temporariamente para /auth, será ajustado para RegistrationOptions */}
+              <Link to={`/events/${eventId}/import-athletes`}>
                 <Button size="lg" variant="secondary">
-                  Fazer Cadastro
+                  <Upload className="mr-2 h-5 w-5" /> Importar em Lote
                 </Button>
               </Link>
             </CardContent>
@@ -55,4 +57,4 @@ const Welcome: React.FC = () => {
   );
 };
 
-export default Welcome;
+export default RegistrationOptions;

@@ -14,7 +14,7 @@ export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' |
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
-  photoUrl?: string;
+  photoUrl?: string; // Novo: URL da foto de perfil do atleta
   firstName: string;
   lastName: string;
   dateOfBirth: Date;
@@ -30,6 +30,8 @@ export interface Athlete {
   phone: string; // E.164 format
   emiratesId?: string;
   schoolId?: string;
+  emiratesIdFrontUrl?: string; // Novo: URL da foto da frente do Emirates ID
+  emiratesIdBackUrl?: string; // Novo: URL da foto do verso do Emirates ID
   signatureUrl?: string;
   consentAccepted: boolean;
   consentDate: Date;
@@ -46,7 +48,7 @@ export interface Division {
   name: string; // Nome completo da divisão, ex: "Adulto Masculino Faixa Azul Peso Pena"
   minAge: number;
   maxAge: number;
-  minWeight: number;
+  // minWeight removido, será inferido do maxWeight da divisão anterior
   maxWeight: number;
   gender: DivisionGender;
   belt: DivisionBelt;

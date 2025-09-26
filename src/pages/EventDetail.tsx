@@ -15,9 +15,9 @@ import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2 } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils'; // Importar findAthleteDivision
+import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid } from 'date-fns';
@@ -37,7 +37,7 @@ const EventDetail: React.FC = () => {
     const processAthleteData = (athleteData: any): Athlete => {
       const age = new Date().getFullYear() - new Date(athleteData.dateOfBirth).getFullYear();
       const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(athleteData.weight);
+      const weightDivision = getWeightDivision(athleteData.weight); // Keep for backward compatibility if needed, but findAthleteDivision is primary
       return {
         ...athleteData,
         dateOfBirth: new Date(athleteData.dateOfBirth),
@@ -247,13 +247,6 @@ const EventDetail: React.FC = () => {
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
   const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
 
-  // Função de comparação para ordenar atletas
-  const sortAthletes = (a: Athlete, b: Athlete) => {
-    const displayA = getAthleteDisplayString(a);
-    const displayB = getAthleteDisplayString(b);
-    return displayA.localeCompare(displayB);
-  };
-
   // Processar atletas aprovados para incluir informações da divisão
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
@@ -335,7 +328,13 @@ const EventDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               {!editingAthlete && (
-                <AthleteRegistrationForm eventId={event.id} onRegister={handleAthleteRegistration} />
+                <div className="mb-6">
+                  <Link to={`/events/${event.id}/registration-options`}>
+                    <Button className="w-full">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
+                    </Button>
+                  </Link>
+                </div>
               )}
 
               {editingAthlete && (
@@ -532,7 +531,6 @@ const EventDetail: React.FC = () => {
                   <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p>Conteúdo da aba Admin para o evento {event.name}.</p>
                   <Link to={`/events/${event.id}/import-athletes`}>
                     <Button className="w-full">Importar Atletas em Lote</Button>
                   </Link>

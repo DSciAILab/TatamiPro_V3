@@ -32,8 +32,7 @@ const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
 const requiredDivisionFields = {
   name: 'Nome da Divisão', // Corresponde a Division.name
   ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
-  minWeight: 'Peso Mínimo',
-  maxWeight: 'Peso Máximo',
+  maxWeight: 'Peso Máximo', // minWeight removido
   gender: 'Gênero',
   belt: 'Faixa',
 };
@@ -54,8 +53,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }),
-  minWeight: z.coerce.number().min(0, { message: 'Peso mínimo deve ser >= 0.' }),
-  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }),
+  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // minWeight removido
   gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
@@ -85,9 +83,9 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<DivisionBelt>,
-}).refine(data => data.minWeight <= data.maxWeight, {
-  message: 'Peso mínimo não pode ser maior que o peso máximo.',
-  path: ['minWeight'],
+}).refine(data => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
+  message: 'A validação de peso será feita na lógica de encaixe.',
+  path: ['maxWeight'],
 });
 
 interface ImportResult {
@@ -195,7 +193,7 @@ const DivisionImport: React.FC = () => {
           return;
         }
 
-        const { name, ageCategory, minWeight, maxWeight, gender, belt } = parsed.data;
+        const { name, ageCategory, maxWeight, gender, belt } = parsed.data; // minWeight removido
 
         const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
         if (!ageBounds) {
@@ -208,8 +206,7 @@ const DivisionImport: React.FC = () => {
           name,
           minAge: ageBounds.min,
           maxAge: ageBounds.max,
-          minWeight,
-          maxWeight,
+          maxWeight, // minWeight removido
           gender,
           belt,
           ageCategoryName: ageCategory,
@@ -289,7 +286,7 @@ const DivisionImport: React.FC = () => {
               <Label htmlFor="division-file">Arquivo CSV</Label>
               <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids 1, Kids 2, Kids 3, Infant, Junior, Teen, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos/Male/Female/Both), Faixa (Branca/Cinza/Amarela/Laranja/Verde/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids 1, Kids 2, Kids 3, Infant, Junior, Teen, Juvenile, Adulto, Master), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos/Male/Female/Both), Faixa (Branca/Cinza/Amarela/Laranja/Verde/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
               </p>
             </div>
           )}

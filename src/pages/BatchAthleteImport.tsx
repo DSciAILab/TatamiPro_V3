@@ -29,6 +29,10 @@ const requiredAthleteFields = {
   club: 'Clube',
   gender: 'Gênero',
   nationality: 'Nacionalidade', // Adicionado
+  photoUrl: 'URL da Foto de Perfil (Opcional)', // Novo
+  emiratesIdFrontUrl: 'URL da Frente do EID (Opcional)', // Novo
+  emiratesIdBackUrl: 'URL do Verso do EID (Opcional)', // Novo
+  paymentProofUrl: 'URL do Comprovante de Pagamento (Opcional)', // Novo
 };
 
 type RequiredAthleteField = keyof typeof requiredAthleteFields;
@@ -85,6 +89,10 @@ const importSchema = z.object({
     return z.NEVER;
   }) as z.ZodType<Gender>,
   nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Adicionado
+  photoUrl: z.string().url().optional().or(z.literal('')), // URL da foto de perfil
+  emiratesIdFrontUrl: z.string().url().optional().or(z.literal('')), // URL da frente do EID
+  emiratesIdBackUrl: z.string().url().optional().or(z.literal('')), // URL do verso do EID
+  paymentProofUrl: z.string().url().optional().or(z.literal('')), // URL do comprovante de pagamento
 });
 
 interface ImportResult {
@@ -159,7 +167,8 @@ const BatchAthleteImport: React.FC = () => {
 
   const validateMapping = () => {
     for (const field of Object.keys(requiredAthleteFields) as RequiredAthleteField[]) {
-      if (!columnMapping[field]) {
+      // Make photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl optional for mapping
+      if (!columnMapping[field] && !['photoUrl', 'emiratesIdFrontUrl', 'emiratesIdBackUrl', 'paymentProofUrl'].includes(field)) {
         showError(`O campo "${requiredAthleteFields[field]}" não foi mapeado.`);
         return false;
       }
@@ -193,7 +202,7 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality } = parsed.data;
+        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data;
 
         // Split fullName into firstName and lastName
         const nameParts = fullName.split(' ');
@@ -222,9 +231,13 @@ const BatchAthleteImport: React.FC = () => {
           phone,
           emiratesId: idNumber, // Assuming ID maps to emiratesId for now
           schoolId: undefined, // Not explicitly mapped
+          photoUrl: photoUrl || undefined,
+          emiratesIdFrontUrl: emiratesIdFrontUrl || undefined,
+          emiratesIdBackUrl: emiratesIdBackUrl || undefined,
           consentAccepted: true, // Assuming consent for batch import
           consentDate: new Date(),
           consentVersion: '1.0',
+          paymentProofUrl: paymentProofUrl || undefined,
           registrationStatus: 'under_approval',
           checkInStatus: 'pending',
           registeredWeight: undefined,
@@ -278,7 +291,7 @@ const BatchAthleteImport: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Importar Atletas em Lote para Evento #{eventId}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
+        <Button onClick={() => navigate(`/events/${eventId}/registration-options`)} variant="outline">Voltar para Opções de Inscrição</Button>
       </div>
 
       <Card>
@@ -287,7 +300,6 @@ const BatchAthleteImport: React.FC = () => {
           <CardDescription>
             {step === 'upload' && 'Faça upload de um arquivo CSV para iniciar a importação de atletas.'}
             {step === 'map' && 'Mapeie as colunas do seu arquivo CSV para os campos de atleta.'}
-            {step === 'review' && 'Revise os dados antes de finalizar a importação.'}
             {step === 'results' && 'Resultados da importação.'}
           </CardDescription>
         </CardHeader>
@@ -297,7 +309,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade. Campos opcionais: URL da Foto de Perfil, URL da Frente do EID, URL do Verso do EID, URL do Comprovante de Pagamento.
               </p>
             </div>
           )}

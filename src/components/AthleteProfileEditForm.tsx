@@ -37,7 +37,9 @@ const formSchema = z.object({
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
   emiratesId: z.string().optional(),
   schoolId: z.string().optional(),
-  // paymentProofUrl is not editable via this form, it's for initial registration
+  photo: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // Photo upload
+  emiratesIdFront: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // EID Front
+  emiratesIdBack: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // EID Back
 }).refine(data => data.emiratesId || data.schoolId, {
   message: 'Pelo menos um ID (Emirates ID ou School ID) é obrigatório.',
   path: ['emiratesId'],
@@ -66,6 +68,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const currentWeight = watch('weight');
   const currentGender = watch('gender');
   const currentBelt = watch('belt');
+  const photo = watch('photo');
+  const emiratesIdFront = watch('emiratesIdFront');
+  const emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -97,6 +102,24 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         showSuccess('Perfil atualizado com sucesso!');
       }
 
+      let photoUrl = athlete.photoUrl;
+      if (photo && photo.length > 0) {
+        photoUrl = `mock-photo-url/${photo[0].name}`;
+        showSuccess(`Nova foto de perfil ${photo[0].name} anexada.`);
+      }
+
+      let emiratesIdFrontUrl = athlete.emiratesIdFrontUrl;
+      if (emiratesIdFront && emiratesIdFront.length > 0) {
+        emiratesIdFrontUrl = `mock-eid-front-url/${emiratesIdFront[0].name}`;
+        showSuccess(`Nova foto da frente do EID ${emiratesIdFront[0].name} anexada.`);
+      }
+
+      let emiratesIdBackUrl = athlete.emiratesIdBackUrl;
+      if (emiratesIdBack && emiratesIdBack.length > 0) {
+        emiratesIdBackUrl = `mock-eid-back-url/${emiratesIdBack[0].name}`;
+        showSuccess(`Nova foto do verso do EID ${emiratesIdBack[0].name} anexada.`);
+      }
+
       const updatedAthlete: Athlete = {
         ...athlete,
         ...values,
@@ -104,6 +127,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         ageDivision,
         weightDivision,
         registrationStatus: newRegistrationStatus,
+        photoUrl,
+        emiratesIdFrontUrl,
+        emiratesIdBackUrl,
       };
 
       onSave(updatedAthlete);
@@ -240,6 +266,34 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
           <Label htmlFor="schoolId">School ID (Opcional)</Label>
           <Input id="schoolId" {...register('schoolId')} />
           {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="photo">Foto de Perfil (Opcional)</Label>
+        <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
+        {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
+        {athlete.photoUrl && !photo?.length && (
+          <p className="text-sm text-muted-foreground mt-1">Foto atual: <a href={athlete.photoUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="emiratesIdFront">Emirates ID (Frente - Opcional)</Label>
+          <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
+          {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
+          {athlete.emiratesIdFrontUrl && !emiratesIdFront?.length && (
+            <p className="text-sm text-muted-foreground mt-1">Frente atual: <a href={athlete.emiratesIdFrontUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="emiratesIdBack">Emirates ID (Verso - Opcional)</Label>
+          <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
+          {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
+          {athlete.emiratesIdBackUrl && !emiratesIdBack?.length && (
+            <p className="text-sm text-muted-foreground mt-1">Verso atual: <a href={athlete.emiratesIdBackUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+          )}
         </div>
       </div>
 

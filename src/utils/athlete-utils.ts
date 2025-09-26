@@ -1,4 +1,4 @@
-import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index'; // Importação adicionada
+import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
 
 export const getAgeDivision = (age: number): AgeCategory => {
   if (age >= 4 && age <= 6) return "Kids 1";
@@ -14,8 +14,8 @@ export const getAgeDivision = (age: number): AgeCategory => {
 };
 
 export const getWeightDivision = (weight: number): string => {
-  // Simplificado para MVP. Em um cenário real, isso seria mais complexo,
-  // considerando gênero, faixa e regras específicas da federação.
+  // Esta função é um fallback e não será usada para o encaixe principal de divisões
+  // mas pode ser útil para exibição genérica.
   if (weight <= 57.5) return "Galo";
   if (weight <= 64) return "Pluma";
   if (weight <= 70) return "Pena";
@@ -30,6 +30,9 @@ export const getWeightDivision = (weight: number): string => {
 
 // Ordem das faixas para comparação
 const beltOrder: Belt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
+
+// Ordem das categorias de idade para comparação
+const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
 
 // Nova função para encontrar a divisão de um atleta
 export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Division | undefined => {
@@ -51,8 +54,10 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
       if (b.gender === 'Feminino') return 1;
     }
 
-    // 2. Idade (usando minAge como proxy para categoria de idade)
-    if (a.minAge !== b.minAge) return a.minAge - b.minAge;
+    // 2. Categoria de Idade
+    const ageAIndex = ageCategoryOrder.indexOf(a.ageCategoryName);
+    const ageBIndex = ageCategoryOrder.indexOf(b.ageCategoryName);
+    if (ageAIndex !== ageBIndex) return ageAIndex - ageBIndex;
 
     // 3. Faixa
     const beltAIndex = beltOrder.indexOf(a.belt as Belt);
@@ -66,9 +71,16 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
   // Encontrar a divisão que o atleta se encaixa
   for (let i = 0; i < possibleDivisions.length; i++) {
     const div = possibleDivisions[i];
-    const effectiveMinWeight = (i === 0 || possibleDivisions[i-1].gender !== div.gender || possibleDivisions[i-1].ageCategoryName !== div.ageCategoryName || possibleDivisions[i-1].belt !== div.belt)
-      ? 0 // Primeira divisão em um novo grupo de gênero/idade/faixa
-      : possibleDivisions[i-1].maxWeight; // Limite superior da anterior
+
+    // O peso mínimo efetivo é o maxWeight da divisão anterior no mesmo grupo (gênero, idade, faixa)
+    // ou 0 se for a primeira divisão do grupo.
+    let effectiveMinWeight = 0;
+    if (i > 0) {
+      const prevDiv = possibleDivisions[i - 1];
+      if (prevDiv.gender === div.gender && prevDiv.ageCategoryName === div.ageCategoryName && prevDiv.belt === div.belt) {
+        effectiveMinWeight = prevDiv.maxWeight;
+      }
+    }
 
     if (athlete.age >= div.minAge && athlete.age <= div.maxAge &&
         athlete.weight > effectiveMinWeight && athlete.weight <= div.maxWeight) {

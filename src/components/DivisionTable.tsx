@@ -22,8 +22,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     name: '',
     minAge: 0,
     maxAge: 99,
-    minWeight: 0,
-    maxWeight: 999,
+    maxWeight: 999, // minWeight removido
     gender: 'Ambos',
     belt: 'Todas',
     ageCategoryName: 'Adult', // Default para uma das novas categorias
@@ -32,12 +31,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
   const handleAddDivision = () => {
     if (!newDivision.name || !newDivision.ageCategoryName || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
-        newDivision.minWeight === undefined || newDivision.maxWeight === undefined) {
+        newDivision.maxWeight === undefined) { // minWeight removido da validação
       showError('Por favor, preencha todos os campos da nova divisão.');
       return;
     }
-    if (newDivision.minAge > newDivision.maxAge || newDivision.minWeight > newDivision.maxWeight) {
-      showError('Idade mínima/peso mínimo não pode ser maior que idade máxima/peso máximo.');
+    if (newDivision.minAge > newDivision.maxAge) {
+      showError('Idade mínima não pode ser maior que idade máxima.');
       return;
     }
 
@@ -45,7 +44,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     const updatedDivisions = [...divisions, { ...newDivision, id, isEnabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', minAge: 0, maxAge: 99, minWeight: 0, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
+    setNewDivision({ name: '', minAge: 0, maxAge: 99, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -56,12 +55,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
   const handleSaveEdit = () => {
     if (currentEdit) {
       if (!currentEdit.name || !currentEdit.ageCategoryName || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
-          currentEdit.minWeight === undefined || currentEdit.maxWeight === undefined) {
+          currentEdit.maxWeight === undefined) { // minWeight removido da validação
         showError('Por favor, preencha todos os campos da divisão.');
         return;
       }
-      if (currentEdit.minAge > currentEdit.maxAge || currentEdit.minWeight > currentEdit.maxWeight) {
-        showError('Idade mínima/peso mínimo não pode ser maior que idade máxima/peso máximo.');
+      if (currentEdit.minAge > currentEdit.maxAge) {
+        showError('Idade mínima não pode ser maior que idade máxima.');
         return;
       }
 
@@ -129,10 +128,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           <Label htmlFor="newMaxAge">Idade Máxima</Label>
           <Input id="newMaxAge" type="number" value={newDivision.maxAge} onChange={(e) => setNewDivision(prev => ({ ...prev, maxAge: Number(e.target.value) }))} />
         </div>
-        <div>
-          <Label htmlFor="newMinWeight">Peso Mínimo (kg)</Label>
-          <Input id="newMinWeight" type="number" step="0.1" value={newDivision.minWeight} onChange={(e) => setNewDivision(prev => ({ ...prev, minWeight: Number(e.target.value) }))} />
-        </div>
+        {/* minWeight removido */}
         <div>
           <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
           <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.maxWeight} onChange={(e) => setNewDivision(prev => ({ ...prev, maxWeight: Number(e.target.value) }))} />
@@ -193,9 +189,9 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                         <Input type="number" value={currentEdit.maxAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
                       </div>
                     </TableCell>
-                    <TableCell className="flex space-x-1">
-                      <Input type="number" step="0.1" value={currentEdit.minWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minWeight: Number(e.target.value) } : null)} className="w-1/2" />
-                      <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-1/2" />
+                    <TableCell>
+                      {/* minWeight removido */}
+                      <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-full" />
                     </TableCell>
                     <TableCell>
                       <Select value={currentEdit.gender} onValueChange={(value: DivisionGender) => setCurrentEdit(prev => prev ? { ...prev, gender: value } : null)}>
@@ -228,7 +224,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                   <>
                     <TableCell className="font-medium">{division.name}</TableCell>
                     <TableCell>{division.ageCategoryName} ({division.minAge}-{division.maxAge})</TableCell>
-                    <TableCell>{division.minWeight}-{division.maxWeight}kg</TableCell>
+                    <TableCell>Até {division.maxWeight}kg</TableCell> {/* Exibir apenas maxWeight */}
                     <TableCell>{division.gender}</TableCell>
                     <TableCell>{division.belt}</TableCell>
                     <TableCell className="text-center">

@@ -37,6 +37,9 @@ const formSchema = z.object({
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
   emiratesId: z.string().optional(),
   schoolId: z.string().optional(),
+  photo: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // Photo upload
+  emiratesIdFront: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // EID Front
+  emiratesIdBack: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // EID Back
   consentAccepted: z.boolean().refine(val => val === true, { message: 'Você deve aceitar os termos e condições.' }),
   paymentProof: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // FileList for client-side
 }).refine(data => data.emiratesId || data.schoolId, {
@@ -63,9 +66,9 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
 
   const dateOfBirth = watch('dateOfBirth');
   const paymentProof = watch('paymentProof');
-  const weight = watch('weight');
-  const gender = watch('gender');
-  const belt = watch('belt'); // Watch the belt value
+  const photo = watch('photo');
+  const emiratesIdFront = watch('emiratesIdFront');
+  const emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -79,6 +82,24 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         showSuccess(`Comprovante de pagamento ${paymentProof[0].name} anexado.`);
       }
 
+      let photoUrl: string | undefined;
+      if (photo && photo.length > 0) {
+        photoUrl = `mock-photo-url/${photo[0].name}`;
+        showSuccess(`Foto de perfil ${photo[0].name} anexada.`);
+      }
+
+      let emiratesIdFrontUrl: string | undefined;
+      if (emiratesIdFront && emiratesIdFront.length > 0) {
+        emiratesIdFrontUrl = `mock-eid-front-url/${emiratesIdFront[0].name}`;
+        showSuccess(`Foto da frente do EID ${emiratesIdFront[0].name} anexada.`);
+      }
+
+      let emiratesIdBackUrl: string | undefined;
+      if (emiratesIdBack && emiratesIdBack.length > 0) {
+        emiratesIdBackUrl = `mock-eid-back-url/${emiratesIdBack[0].name}`;
+        showSuccess(`Foto do verso do EID ${emiratesIdBack[0].name} anexada.`);
+      }
+
       const newAthlete: Athlete = {
         id: `athlete-${Date.now()}`,
         eventId,
@@ -88,7 +109,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         age,
         club: values.club,
         gender: values.gender,
-        belt: values.belt, // Use the validated belt value
+        belt: values.belt,
         weight: values.weight,
         nationality: values.nationality,
         ageDivision,
@@ -97,6 +118,9 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         phone: values.phone,
         emiratesId: values.emiratesId,
         schoolId: values.schoolId,
+        photoUrl,
+        emiratesIdFrontUrl,
+        emiratesIdBackUrl,
         consentAccepted: values.consentAccepted,
         consentDate: new Date(),
         consentVersion: '1.0',
@@ -104,7 +128,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         registrationStatus: 'under_approval',
         checkInStatus: 'pending',
         registeredWeight: undefined,
-        weightAttempts: [], // Inicializado como array vazio
+        weightAttempts: [],
       };
 
       onRegister(newAthlete);
@@ -242,6 +266,25 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
           <Label htmlFor="schoolId">School ID (Opcional)</Label>
           <Input id="schoolId" {...register('schoolId')} />
           {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="photo">Foto de Perfil (Opcional)</Label>
+        <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
+        {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="emiratesIdFront">Emirates ID (Frente - Opcional)</Label>
+          <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
+          {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
+        </div>
+        <div>
+          <Label htmlFor="emiratesIdBack">Emirates ID (Verso - Opcional)</Label>
+          <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
+          {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
         </div>
       </div>
 
