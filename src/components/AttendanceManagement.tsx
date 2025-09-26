@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Athlete, Event } from '@/types/index';
-import { UserRound, CheckCircle, XCircle, Car, Search, Clock } from 'lucide-react'; // Adicionado Clock para 'Missing'
+import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucide-react'; // Adicionado Clock para 'Missing' e Edit
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // Importar ToggleGroup
@@ -21,16 +21,16 @@ interface AttendanceManagementProps {
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, eventDivisions, onUpdateAthleteAttendance }) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all'); // NOVO: Estado para o filtro de presença
-  const userClub = localStorage.getItem('userClub'); // Mock do clube do usuário logado
-  const userRole = localStorage.getItem('userRole'); // Mock do papel do usuário logado
+  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all');
+  const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null); // NOVO: Estado para controlar qual atleta está sendo editado
+  const userClub = localStorage.getItem('userClub');
+  const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
     const existingEventData = localStorage.getItem(`event_${eventId}`);
     if (existingEventData) {
       try {
         const parsedEvent: Event = JSON.parse(existingEventData);
-        // Filtrar atletas para mostrar apenas os do clube do usuário e aprovados, ou todos se for admin
         const filteredAthletes = userRole === 'admin'
           ? parsedEvent.athletes.filter(a => a.registrationStatus === 'approved')
           : parsedEvent.athletes.filter(
@@ -48,12 +48,12 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     onUpdateAthleteAttendance(athleteId, status);
     setAthletes(prev => prev.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a));
     showSuccess(`Status de presença atualizado para ${status}.`);
+    setEditingAthleteId(null); // Sair do modo de edição após a mudança
   };
 
   const filteredAthletes = useMemo(() => {
     let currentAthletes = athletes;
 
-    // Filtragem por termo de busca
     if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       currentAthletes = currentAthletes.filter(athlete =>
@@ -66,7 +66,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
       );
     }
 
-    // Filtragem por status de presença
     if (attendanceFilter !== 'all') {
       currentAthletes = currentAthletes.filter(athlete => athlete.attendanceStatus === attendanceFilter);
     }
@@ -74,15 +73,12 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     return currentAthletes;
   }, [athletes, searchTerm, attendanceFilter]);
 
-  // Cálculos para o resumo de presença
   const totalPresent = athletes.filter(a => a.attendanceStatus === 'present').length;
   const totalAbsent = athletes.filter(a => a.attendanceStatus === 'absent').length;
   const totalPrivateTransportation = athletes.filter(a => a.attendanceStatus === 'private_transportation').length;
   const totalMissing = athletes.filter(a => a.attendanceStatus === 'pending').length;
   const totalApprovedAthletes = athletes.length;
 
-
-  // Permite acesso a admins, coaches e staff
   if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
     return (
       <Card className="mt-6">
@@ -97,7 +93,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     );
   }
 
-  // Se não for admin e não tiver clube associado
   if (!userClub && userRole !== 'admin') {
     return (
       <Card className="mt-6">
@@ -111,6 +106,16 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
       </Card>
     );
   }
+
+  const getAttendanceStatusDisplay = (status: Athlete['attendanceStatus']) => {
+    switch (status) {
+      case 'present': return <span className="flex items-center text-green-600 font-semibold text-sm"><CheckCircle className="h-4 w-4 mr-1" /> Presente</span>;
+      case 'absent': return <span className="flex items-center text-red-600 font-semibold text-sm"><XCircle className="h-4 w-4 mr-1" /> Ausente</span>;
+      case 'private_transportation': return <span className="flex items-center text-blue-600 font-semibold text-sm"><Car className="h-4 w-4 mr-1" /> Transp. Privado</span>;
+      case 'pending': return <span className="flex items-center text-orange-500 font-semibold text-sm"><Clock className="h-4 w-4 mr-1" /> Faltando</span>;
+      default: return <span className="text-muted-foreground text-sm">Desconhecido</span>;
+    }
+  };
 
   return (
     <Card className="mt-6">
@@ -175,6 +180,9 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
           <ul className="space-y-4">
             {filteredAthletes.map((athlete) => {
               const division = findAthleteDivision(athlete, eventDivisions);
+              const hasAttendanceStatus = athlete.attendanceStatus !== 'pending';
+              const isCurrentlyEditing = editingAthleteId === athlete.id;
+
               return (
                 <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                   <div className="flex items-center space-x-3 flex-grow">
@@ -192,27 +200,38 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button
-                      variant={athlete.attendanceStatus === 'present' ? 'default' : 'outline'}
-                      onClick={() => handleAttendanceChange(athlete.id, 'present')}
-                      size="sm"
-                    >
-                      <CheckCircle className="mr-1 h-4 w-4" /> Presente
-                    </Button>
-                    <Button
-                      variant={athlete.attendanceStatus === 'absent' ? 'destructive' : 'outline'}
-                      onClick={() => handleAttendanceChange(athlete.id, 'absent')}
-                      size="sm"
-                    >
-                      <XCircle className="mr-1 h-4 w-4" /> Ausente
-                    </Button>
-                    <Button
-                      variant={athlete.attendanceStatus === 'private_transportation' ? 'secondary' : 'outline'}
-                      onClick={() => handleAttendanceChange(athlete.id, 'private_transportation')}
-                      size="sm"
-                    >
-                      <Car className="mr-1 h-4 w-4" /> Transp. Privado
-                    </Button>
+                    {hasAttendanceStatus && !isCurrentlyEditing ? (
+                      <>
+                        {getAttendanceStatusDisplay(athlete.attendanceStatus)}
+                        <Button variant="outline" size="sm" onClick={() => setEditingAthleteId(athlete.id)}>
+                          <Edit className="mr-1 h-3 w-3" /> Editar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant={athlete.attendanceStatus === 'present' ? 'default' : 'outline'}
+                          onClick={() => handleAttendanceChange(athlete.id, 'present')}
+                          size="sm"
+                        >
+                          <CheckCircle className="mr-1 h-4 w-4" /> Presente
+                        </Button>
+                        <Button
+                          variant={athlete.attendanceStatus === 'absent' ? 'destructive' : 'outline'}
+                          onClick={() => handleAttendanceChange(athlete.id, 'absent')}
+                          size="sm"
+                        >
+                          <XCircle className="mr-1 h-4 w-4" /> Ausente
+                        </Button>
+                        <Button
+                          variant={athlete.attendanceStatus === 'private_transportation' ? 'secondary' : 'outline'}
+                          onClick={() => handleAttendanceChange(athlete.id, 'private_transportation')}
+                          size="sm"
+                        >
+                          <Car className="mr-1 h-4 w-4" /> Transp. Privado
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </li>
               );

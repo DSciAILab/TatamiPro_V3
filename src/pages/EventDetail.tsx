@@ -592,11 +592,15 @@ const EventDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               {!editingAthlete && (
-                <div className="mb-6">
+                <div className="mb-6 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
                   <Link to={`/events/${event.id}/registration-options`}>
                     <Button className="w-full">
                       <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
                     </Button>
+                  </Link>
+                  {/* Botão de Importar Atletas em Lote movido para cá */}
+                  <Link to={`/events/${event.id}/import-athletes`}>
+                    <Button className="w-full" variant="secondary">Importar Atletas em Lote</Button>
                   </Link>
                 </div>
               )}
@@ -969,9 +973,7 @@ const EventDetail: React.FC = () => {
                   <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Link to={`/events/${event.id}/import-athletes`}>
-                    <Button className="w-full">Importar Atletas em Lote</Button>
-                  </Link>
+                  {/* Botão de Importar Atletas em Lote REMOVIDO daqui */}
 
                   <div className="mt-8 space-y-4">
                     <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
