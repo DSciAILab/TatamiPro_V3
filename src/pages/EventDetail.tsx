@@ -17,6 +17,7 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution';
+import LLMChat from '@/components/LLMChat'; // Importar o novo componente
 import { Athlete, Event, Division, Bracket } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -1335,7 +1336,7 @@ const EventDetail: React.FC = () => {
               <CardDescription>Faça perguntas sobre os dados do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Conteúdo da aba LLM (stub) para o evento {event.name}.</p>
+              <LLMChat event={event} />
             </CardContent>
           </Card>
         </TabsContent>
