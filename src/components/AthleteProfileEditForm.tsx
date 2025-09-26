@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,18 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Athlete } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar utilitários
+import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
-interface AthleteRegistrationFormProps {
-  eventId: string;
-  onRegister: (athlete: Athlete) => void;
+interface AthleteProfileEditFormProps {
+  athlete: Athlete;
+  onSave: (updatedAthlete: Athlete) => void;
+  onCancel: () => void;
 }
 
 const formSchema = z.object({
@@ -32,91 +32,89 @@ const formSchema = z.object({
   gender: z.enum(['Masculino', 'Feminino', 'Outro'], { required_error: 'Gênero é obrigatório.' }),
   belt: z.enum(['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'], { required_error: 'Faixa é obrigatória.' }),
   weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
-  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Novo campo
+  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }),
   email: z.string().email({ message: 'Email inválido.' }),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
   emiratesId: z.string().optional(),
   schoolId: z.string().optional(),
-  consentAccepted: z.boolean().refine(val => val === true, { message: 'Você deve aceitar os termos e condições.' }),
-  paymentProof: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(), // FileList for client-side
+  // paymentProofUrl is not editable via this form, it's for initial registration
 }).refine(data => data.emiratesId || data.schoolId, {
   message: 'Pelo menos um ID (Emirates ID ou School ID) é obrigatório.',
   path: ['emiratesId'],
 });
 
-const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ eventId, onRegister }) => {
+const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel }) => {
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      club: '',
-      gender: 'Outro',
-      belt: 'Branca',
-      weight: 0,
-      nationality: '', // Valor padrão para nacionalidade
-      email: '',
-      phone: '',
-      consentAccepted: false,
+      firstName: athlete.firstName,
+      lastName: athlete.lastName,
+      dateOfBirth: athlete.dateOfBirth,
+      club: athlete.club,
+      gender: athlete.gender,
+      belt: athlete.belt,
+      weight: athlete.weight,
+      nationality: athlete.nationality,
+      email: athlete.email,
+      phone: athlete.phone,
+      emiratesId: athlete.emiratesId,
+      schoolId: athlete.schoolId,
     },
   });
 
   const dateOfBirth = watch('dateOfBirth');
-  const paymentProof = watch('paymentProof');
-  const weight = watch('weight');
-  const gender = watch('gender');
-  const belt = watch('belt');
+  const currentWeight = watch('weight');
+  const currentGender = watch('gender');
+  const currentBelt = watch('belt');
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const age = new Date().getFullYear() - values.dateOfBirth.getFullYear();
       const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(values.weight); // Simplificado, pode ser mais complexo
+      const weightDivision = getWeightDivision(values.weight);
 
-      let paymentProofUrl: string | undefined;
-      if (paymentProof && paymentProof.length > 0) {
-        // In a real application, you would upload this file to a storage service (e.g., S3, Cloudinary)
-        // and get a URL back. For this MVP, we'll just use a mock URL or file name.
-        paymentProofUrl = `mock-payment-proof-url/${paymentProof[0].name}`;
-        showSuccess(`Comprovante de pagamento ${paymentProof[0].name} anexado.`);
+      let newRegistrationStatus = athlete.registrationStatus;
+
+      // Check if any significant field has changed that would require re-approval
+      const hasChangesRequiringReapproval =
+        values.firstName !== athlete.firstName ||
+        values.lastName !== athlete.lastName ||
+        values.dateOfBirth.getTime() !== athlete.dateOfBirth.getTime() ||
+        values.club !== athlete.club ||
+        values.gender !== athlete.gender ||
+        values.belt !== athlete.belt ||
+        values.weight !== athlete.weight ||
+        values.nationality !== athlete.nationality ||
+        values.email !== athlete.email ||
+        values.phone !== athlete.phone ||
+        values.emiratesId !== athlete.emiratesId ||
+        values.schoolId !== athlete.schoolId;
+
+      if (athlete.registrationStatus === 'approved' && hasChangesRequiringReapproval) {
+        newRegistrationStatus = 'under_approval';
+        showSuccess('Perfil atualizado. A aprovação anterior foi cancelada e requer nova aprovação.');
+      } else {
+        showSuccess('Perfil atualizado com sucesso!');
       }
 
-      const newAthlete: Athlete = {
-        id: `athlete-${Date.now()}`,
-        eventId,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        dateOfBirth: values.dateOfBirth,
+      const updatedAthlete: Athlete = {
+        ...athlete,
+        ...values,
         age,
-        club: values.club,
-        gender: values.gender,
-        belt: values.belt,
-        weight: values.weight,
-        nationality: values.nationality, // Adicionado
-        ageDivision, // Adicionado
-        weightDivision, // Adicionado
-        email: values.email,
-        phone: values.phone,
-        emiratesId: values.emiratesId,
-        schoolId: values.schoolId,
-        consentAccepted: values.consentAccepted,
-        consentDate: new Date(),
-        consentVersion: '1.0',
-        paymentProofUrl,
-        registrationStatus: 'under_approval', // Default status for new registrations
+        ageDivision,
+        weightDivision,
+        registrationStatus: newRegistrationStatus,
       };
 
-      onRegister(newAthlete);
-      showSuccess('Inscrição enviada para aprovação!');
-      // Optionally reset form here
+      onSave(updatedAthlete);
     } catch (error: any) {
-      showError('Erro ao registrar atleta: ' + error.message);
+      showError('Erro ao atualizar atleta: ' + error.message);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md">
-      <h3 className="text-xl font-semibold mb-4">Registrar Novo Atleta</h3>
+      <h3 className="text-xl font-semibold mb-4">Editar Perfil do Atleta</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -168,7 +166,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         <Label>Gênero</Label>
         <RadioGroup
           onValueChange={(value: 'Masculino' | 'Feminino' | 'Outro') => setValue('gender', value)}
-          defaultValue={watch('gender')}
+          value={currentGender}
           className="flex space-x-4 mt-2"
         >
           <div className="flex items-center space-x-2">
@@ -189,7 +187,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
 
       <div>
         <Label htmlFor="belt">Faixa</Label>
-        <Select onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta') => setValue('belt', value)} defaultValue={watch('belt')}>
+        <Select onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta') => setValue('belt', value)} value={currentBelt}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a faixa" />
           </SelectTrigger>
@@ -241,25 +239,12 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="paymentProof">Comprovante de Pagamento (PDF, Imagem)</Label>
-        <Input id="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('paymentProof')} />
-        {errors.paymentProof?.message && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message as string}</p>}
+      <div className="flex justify-end space-x-2 mt-6">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit">Salvar Alterações</Button>
       </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="consentAccepted"
-          checked={watch('consentAccepted')}
-          onCheckedChange={(checked) => setValue('consentAccepted', checked as boolean)}
-        />
-        <Label htmlFor="consentAccepted">Eu aceito os termos e condições.</Label>
-      </div>
-      {errors.consentAccepted && <p className="text-red-500 text-sm mt-1">{errors.consentAccepted.message}</p>}
-
-      <Button type="submit" className="w-full">Registrar Atleta</Button>
     </form>
   );
 };
 
-export default AthleteRegistrationForm;
+export default AthleteProfileEditForm;

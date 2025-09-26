@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
 import { Athlete } from '@/types/index';
+import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar utilitários
 
 // Define os campos mínimos esperados no arquivo de importação
 const requiredAthleteFields = {
@@ -26,7 +27,8 @@ const requiredAthleteFields = {
   email: 'Email',
   idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
   club: 'Clube',
-  gender: 'Gênero', // Adicionado o campo Gênero
+  gender: 'Gênero',
+  nationality: 'Nacionalidade', // Novo campo
 };
 
 type RequiredAthleteField = keyof typeof requiredAthleteFields;
@@ -55,7 +57,7 @@ const importSchema = z.object({
   email: z.string().email({ message: 'Email inválido.' }),
   idNumber: z.string().optional(), // Pode ser Emirates ID ou School ID
   club: z.string().min(1, { message: 'Clube é obrigatório.' }),
-  gender: z.string().transform((str, ctx) => { // Adicionado o campo Gênero
+  gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
     if (lowerStr === 'feminino' || lowerStr === 'female') return 'Feminino';
@@ -64,7 +66,8 @@ const importSchema = z.object({
       message: 'Gênero inválido. Use "Masculino", "Feminino", "Male" ou "Female".',
     });
     return z.NEVER;
-  }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>, // Cast para o tipo correto
+  }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>,
+  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Novo campo
 });
 
 interface ImportResult {
@@ -76,7 +79,7 @@ interface ImportResult {
 const BatchAthleteImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null); // Corrigido: inicialização do useState
+  const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => {
@@ -173,7 +176,7 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender } = parsed.data; // Adicionado gender
+        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality } = parsed.data;
 
         // Split fullName into firstName and lastName
         const nameParts = fullName.split(' ');
@@ -181,6 +184,8 @@ const BatchAthleteImport: React.FC = () => {
         const lastName = nameParts.slice(1).join(' ') || '';
 
         const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+        const ageDivision = getAgeDivision(age);
+        const weightDivision = getWeightDivision(weight);
 
         const newAthlete: Athlete = {
           id: `athlete-${Date.now()}-${index}`, // Unique ID
@@ -190,9 +195,12 @@ const BatchAthleteImport: React.FC = () => {
           dateOfBirth,
           age,
           club,
-          gender, // Usar o gênero parseado
+          gender,
           belt,
           weight,
+          nationality, // Adicionado
+          ageDivision, // Adicionado
+          weightDivision, // Adicionado
           email,
           phone,
           emiratesId: idNumber, // Assuming ID maps to emiratesId for now
@@ -269,7 +277,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Male/Female).
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Male/Female), Nacionalidade.
               </p>
             </div>
           )}

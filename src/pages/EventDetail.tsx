@@ -7,50 +7,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label'; // Corrigido: Importando Label
+import { Label } from '@/components/ui/label';
 import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
+import AthleteProfileEditForm from '@/components/AthleteProfileEditForm'; // Novo import
 import { Athlete, Event } from '../types/index';
-import { UserRound } from 'lucide-react';
+import { UserRound, Edit } from 'lucide-react'; // Novo import: Edit icon
 import { showSuccess, showError } from '@/utils/toast';
+import { getAgeDivision, getWeightDivision, getAthleteDisplayString } from '@/utils/athlete-utils'; // Importar utilitários
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('inscricoes');
-  const userRole = localStorage.getItem('userRole'); // Para controle de acesso básico
+  const userRole = localStorage.getItem('userRole');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
+  const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null); // Estado para atleta em edição
 
-  // Mock event data - In a real app, this would come from a global state or API
   const [event, setEvent] = useState<Event | null>(() => {
-    const storedAthletes = localStorage.getItem(`importedAthletes_${id}`);
-    let initialAthletes: Athlete[] = [];
-    if (storedAthletes) {
+    const processAthleteData = (athleteData: any): Athlete => {
+      const age = new Date().getFullYear() - new Date(athleteData.dateOfBirth).getFullYear();
+      const ageDivision = getAgeDivision(age);
+      const weightDivision = getWeightDivision(athleteData.weight);
+      return {
+        ...athleteData,
+        dateOfBirth: new Date(athleteData.dateOfBirth),
+        consentDate: new Date(athleteData.consentDate),
+        age,
+        ageDivision,
+        weightDivision,
+        registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
+      };
+    };
+
+    const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
+    let initialImportedAthletes: Athlete[] = [];
+    if (storedImportedAthletes) {
       try {
-        initialAthletes = JSON.parse(storedAthletes).map((athlete: any) => ({
-          ...athlete,
-          dateOfBirth: new Date(athlete.dateOfBirth),
-          consentDate: new Date(athlete.consentDate),
-          registrationStatus: athlete.registrationStatus as 'under_approval' | 'approved' | 'rejected', // Corrigido: Cast explícito
-        }));
+        initialImportedAthletes = JSON.parse(storedImportedAthletes).map(processAthleteData);
         localStorage.removeItem(`importedAthletes_${id}`);
         showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
       } catch (e) {
-        console.error("Falha ao analisar atletas armazenados do localStorage", e);
+        console.error("Falha ao analisar atletas importados do localStorage", e);
         showError("Erro ao carregar atletas importados do armazenamento local.");
       }
     }
 
-    // Load existing athletes from local storage if any, or initialize
     const existingEventData = localStorage.getItem(`event_${id}`);
     let existingAthletes: Athlete[] = [];
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
-        existingAthletes = parsedEvent.athletes.map((athlete: any) => ({
-          ...athlete,
-          dateOfBirth: new Date(athlete.dateOfBirth),
-          consentDate: new Date(athlete.consentDate),
-          registrationStatus: athlete.registrationStatus as 'under_approval' | 'approved' | 'rejected', // Corrigido: Cast explícito
-        }));
+        existingAthletes = parsedEvent.athletes.map(processAthleteData);
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -62,11 +68,10 @@ const EventDetail: React.FC = () => {
       description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
       status: 'Aberto',
       date: '2024-12-01',
-      athletes: [...existingAthletes, ...initialAthletes], // Combine existing and newly imported
+      athletes: [...existingAthletes, ...initialImportedAthletes],
     };
   });
 
-  // Effect to save event data (athletes) to localStorage whenever it changes
   useEffect(() => {
     if (event) {
       localStorage.setItem(`event_${id}`, JSON.stringify(event));
@@ -83,6 +88,19 @@ const EventDetail: React.FC = () => {
         };
       });
       showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
+    }
+  };
+
+  const handleAthleteUpdate = (updatedAthlete: Athlete) => {
+    if (event) {
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes.map(athlete =>
+          athlete.id === updatedAthlete.id ? updatedAthlete : athlete
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+      setEditingAthlete(null); // Fechar o formulário de edição
     }
   };
 
@@ -111,7 +129,7 @@ const EventDetail: React.FC = () => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'approved' as const } // Corrigido: Cast explícito
+            ? { ...athlete, registrationStatus: 'approved' as const }
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -127,7 +145,7 @@ const EventDetail: React.FC = () => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'rejected' as const } // Corrigido: Cast explícito
+            ? { ...athlete, registrationStatus: 'rejected' as const }
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -149,13 +167,23 @@ const EventDetail: React.FC = () => {
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
   const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
 
+  // Função de comparação para ordenar atletas
+  const sortAthletes = (a: Athlete, b: Athlete) => {
+    const displayA = getAthleteDisplayString(a);
+    const displayB = getAthleteDisplayString(b);
+    return displayA.localeCompare(displayB);
+  };
+
+  const sortedApprovedAthletes = [...approvedAthletes].sort(sortAthletes);
+  const sortedAthletesUnderApproval = [...athletesUnderApproval].sort(sortAthletes);
+
   return (
     <Layout>
       <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8"> {/* Increased grid columns */}
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
           <TabsTrigger value="pesagem">Pesagem</TabsTrigger>
@@ -163,7 +191,7 @@ const EventDetail: React.FC = () => {
           {userRole === 'admin' && (
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
-              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger> {/* New tab */}
+              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
@@ -177,26 +205,44 @@ const EventDetail: React.FC = () => {
               <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <AthleteRegistrationForm eventId={event.id} onRegister={handleAthleteRegistration} />
-              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({approvedAthletes.length})</h3>
-              {approvedAthletes.length === 0 ? (
+              {!editingAthlete && (
+                <AthleteRegistrationForm eventId={event.id} onRegister={handleAthleteRegistration} />
+              )}
+
+              {editingAthlete && (
+                <AthleteProfileEditForm
+                  athlete={editingAthlete}
+                  onSave={handleAthleteUpdate}
+                  onCancel={() => setEditingAthlete(null)}
+                />
+              )}
+
+              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({sortedApprovedAthletes.length})</h3>
+              {sortedApprovedAthletes.length === 0 ? (
                 <p className="text-muted-foreground">Nenhum atleta aprovado ainda.</p>
               ) : (
                 <ul className="space-y-2">
-                  {approvedAthletes.map((athlete) => (
-                    <li key={athlete.id} className="flex items-center space-x-4 p-2 border rounded-md">
-                      {athlete.photoUrl ? (
-                        <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <UserRound className="h-5 w-5 text-muted-foreground" />
+                  {sortedApprovedAthletes.map((athlete) => (
+                    <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
+                      <div className="flex items-center space-x-4">
+                        {athlete.photoUrl ? (
+                          <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                            <UserRound className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                          <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete)}</p>
+                          <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Aprovado</span></p>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.age} anos)</p>
-                        <p className="text-sm text-muted-foreground">{athlete.belt} - {athlete.club}</p>
-                        <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Aprovado</span></p>
                       </div>
+                      {userRole === 'admin' && (
+                        <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -265,14 +311,14 @@ const EventDetail: React.FC = () => {
                   <CardDescription>Revise e aprove ou rejeite as inscrições pendentes.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {athletesUnderApproval.length === 0 ? (
+                  {sortedAthletesUnderApproval.length === 0 ? (
                     <p className="text-muted-foreground">Nenhuma inscrição aguardando aprovação.</p>
                   ) : (
                     <>
                       <div className="flex items-center space-x-2 mb-4">
                         <Checkbox
                           id="selectAll"
-                          checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
+                          checked={selectedAthletesForApproval.length === sortedAthletesUnderApproval.length && sortedAthletesUnderApproval.length > 0}
                           onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean)}
                         />
                         <Label htmlFor="selectAll">Selecionar Todos</Label>
@@ -286,29 +332,38 @@ const EventDetail: React.FC = () => {
                         </Button>
                       </div>
                       <ul className="space-y-2">
-                        {athletesUnderApproval.map((athlete) => (
-                          <li key={athlete.id} className="flex items-center space-x-4 p-2 border rounded-md">
-                            <Checkbox
-                              checked={selectedAthletesForApproval.includes(athlete.id)}
-                              onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                            />
-                            {athlete.photoUrl ? (
-                              <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                <UserRound className="h-5 w-5 text-muted-foreground" />
+                        {sortedAthletesUnderApproval.map((athlete) => (
+                          <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
+                            <div className="flex items-center space-x-4">
+                              <Checkbox
+                                checked={selectedAthletesForApproval.includes(athlete.id)}
+                                onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
+                              />
+                              {athlete.photoUrl ? (
+                                <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                  <UserRound className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-grow">
+                                <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete)}</p>
+                                {athlete.paymentProofUrl && (
+                                  <p className="text-xs text-blue-500">
+                                    <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
+                                  </p>
+                                )}
                               </div>
-                            )}
-                            <div className="flex-grow">
-                              <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.age} anos)</p>
-                              <p className="text-sm text-muted-foreground">{athlete.belt} - {athlete.club}</p>
-                              {athlete.paymentProofUrl && (
-                                <p className="text-xs text-blue-500">
-                                  <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
-                                </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
+                              {userRole === 'admin' && (
+                                <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
                               )}
                             </div>
-                            <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
                           </li>
                         ))}
                       </ul>

@@ -10,6 +10,9 @@ export interface Athlete {
   gender: 'Masculino' | 'Feminino' | 'Outro';
   belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta';
   weight: number; // in kg
+  nationality: string; // Novo: Nacionalidade do atleta
+  ageDivision: string; // Novo: Divisão de idade calculada
+  weightDivision: string; // Novo: Divisão de peso calculada
   email: string;
   phone: string; // E.164 format
   emiratesId?: string;
