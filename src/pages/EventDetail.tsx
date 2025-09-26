@@ -37,8 +37,8 @@ const EventDetail: React.FC = () => {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
-  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'done' | 'all'>('pending');
-  const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all'); // NOVO: Estado para o filtro de status de inscrição
+  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all'); // ATUALIZADO: Inclui 'overweight'
+  const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [event, setEvent] = useState<Event | null>(() => {
@@ -57,7 +57,7 @@ const EventDetail: React.FC = () => {
         checkInStatus: athleteData.checkInStatus || 'pending',
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
-        attendanceStatus: athleteData.attendanceStatus || 'pending', // Default attendance status
+        attendanceStatus: athleteData.attendanceStatus || 'pending',
       };
     };
 
@@ -78,7 +78,7 @@ const EventDetail: React.FC = () => {
     let existingAthletes: Athlete[] = [];
     let eventSettings = {};
     let existingDivisions: Division[] = [];
-    let isAttendanceMandatoryBeforeCheckIn = false; // Default value
+    let isAttendanceMandatoryBeforeCheckIn = false;
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -103,7 +103,7 @@ const EventDetail: React.FC = () => {
       date: '2024-12-01',
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
-      isAttendanceMandatoryBeforeCheckIn, // Initialize the new setting
+      isAttendanceMandatoryBeforeCheckIn,
       ...eventSettings,
     };
   });
@@ -128,7 +128,7 @@ const EventDetail: React.FC = () => {
       dateOfBirth: true,
       belt: true,
       weight: true,
-      idNumber: true, // Representa Emirates ID ou School ID
+      idNumber: true,
       gender: true,
       nationality: true,
       email: true,
@@ -381,7 +381,6 @@ const EventDetail: React.FC = () => {
     }
 
     if (scannedAthleteId) {
-      // Se um QR code foi escaneado, procurar pelo registrationQrCodeId
       athletesToFilter = athletesToFilter.filter(athlete => athlete.registrationQrCodeId === scannedAthleteId);
     } else if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -395,10 +394,13 @@ const EventDetail: React.FC = () => {
       );
     }
 
+    // ATUALIZADO: Lógica de filtragem para o novo filtro de check-in
     if (checkInFilter === 'pending') {
       return athletesToFilter.filter(a => a.checkInStatus === 'pending');
-    } else if (checkInFilter === 'done') {
-      return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
+    } else if (checkInFilter === 'checked_in') { // NOVO: Filtro para 'checked_in'
+      return athletesToFilter.filter(a => a.checkInStatus === 'checked_in');
+    } else if (checkInFilter === 'overweight') { // NOVO: Filtro para 'overweight'
+      return athletesToFilter.filter(a => a.checkInStatus === 'overweight');
     }
     return athletesToFilter; // 'all' filter
   }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter, isAttendanceMandatory]);
@@ -425,7 +427,7 @@ const EventDetail: React.FC = () => {
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
           {/* Aba Pesagem removida */}
-          {(!isAttendanceMandatory || userRole === 'admin') && ( // Ocultar aba de attendance se não for mandatório e não for admin
+          {(!isAttendanceMandatory || userRole === 'admin') && (
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
           )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
@@ -628,10 +630,9 @@ const EventDetail: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                   <QrCodeScanner onScanSuccess={(qrCodeId) => {
-                    // Find athlete by registrationQrCodeId
                     const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
                     if (athlete) {
-                      setScannedAthleteId(qrCodeId); // Store the QR code ID
+                      setScannedAthleteId(qrCodeId);
                       setSearchTerm('');
                       showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
                     } else {
@@ -656,15 +657,18 @@ const EventDetail: React.FC = () => {
               </div>
 
               <div className="mb-4 flex justify-center">
-                <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'done' | 'all') => value && setCheckInFilter(value)}>
+                <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'checked_in' | 'overweight' | 'all') => value && setCheckInFilter(value)}>
                   <ToggleGroupItem value="all" aria-label="Mostrar todos">
                     Todos ({totalApprovedAthletes})
                   </ToggleGroupItem>
                   <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
                     Pendentes ({totalPendingCheckIn})
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="done" aria-label="Mostrar concluídos">
-                    Concluídos ({totalCheckedInOk + totalOverweights})
+                  <ToggleGroupItem value="checked_in" aria-label="Mostrar check-in OK"> {/* NOVO ITEM */}
+                    Check-in OK ({totalCheckedInOk})
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="overweight" aria-label="Mostrar acima do peso"> {/* NOVO ITEM */}
+                    Acima do Peso ({totalOverweights})
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
