@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { Event, Division } from '@/types/index';
+import { Event, Division, Athlete, Bracket } from '@/types/index'; // Adicionado Athlete
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PrintableBracket from '@/components/PrintableBracket'; // Importar o novo componente
+import { getAgeDivision, getWeightDivision, findAthleteDivision } from '@/utils/athlete-utils'; // Importar utilitários
 
 const PrintBrackets: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -21,18 +22,46 @@ const PrintBrackets: React.FC = () => {
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const printableRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Função para processar dados do atleta (copiada de EventDetail para consistência)
+  const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
+    const dateOfBirth = new Date(athleteData.dateOfBirth);
+    const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+    const ageDivision = getAgeDivision(age);
+    const weightDivision = getWeightDivision(athleteData.weight);
+
+    const athleteWithCalculatedProps: Athlete = {
+      ...athleteData,
+      dateOfBirth,
+      consentDate: new Date(athleteData.consentDate),
+      age,
+      ageDivision,
+      weightDivision,
+      registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
+      checkInStatus: athleteData.checkInStatus || 'pending',
+      registeredWeight: athleteData.registeredWeight || undefined,
+      weightAttempts: athleteData.weightAttempts || [],
+      attendanceStatus: athleteData.attendanceStatus || 'pending',
+      movedToDivisionId: athleteData.movedToDivisionId || undefined,
+      moveReason: athleteData.moveReason || undefined,
+      seed: athleteData.seed || undefined,
+    };
+    
+    // Atribuir a propriedade _division
+    athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
+
+    return athleteWithCalculatedProps;
+  };
+
   useEffect(() => {
     if (eventId) {
       const existingEventData = localStorage.getItem(`event_${eventId}`);
       if (existingEventData) {
         try {
           const parsedEvent: Event = JSON.parse(existingEventData);
-          // Re-parse dates for Athlete objects
-          const processedAthletes = parsedEvent.athletes.map(athlete => ({
-            ...athlete,
-            dateOfBirth: new Date(athlete.dateOfBirth),
-            consentDate: new Date(athlete.consentDate),
-          }));
+          // Re-parse dates and assign _division for Athlete objects
+          const processedAthletes = parsedEvent.athletes.map(athlete =>
+            processAthleteData(athlete, parsedEvent.divisions || [])
+          );
           setEvent({ ...parsedEvent, athletes: processedAthletes });
         } catch (e) {
           console.error("Failed to parse event data from localStorage", e);
