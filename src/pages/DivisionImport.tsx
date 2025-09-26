@@ -72,7 +72,7 @@ const importSchema = z.object({
     if (lowerStr === 'todas' || lowerStr === 'all') return 'Todas';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Faixa inválida. Use "Branca", "Azul", "Roxa", "Marrom", "Preta" ou "Todas".',
+      message: 'Faixa inválida. Use "Branca", "Azul", "Roxa", "Marrom", "Preta" ou "Todas" (ou seus equivalentes em inglês).',
     });
     return z.NEVER;
   }) as z.ZodType<'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas'>,
@@ -280,7 +280,7 @@ const DivisionImport: React.FC = () => {
               <Label htmlFor="division-file">Arquivo CSV</Label>
               <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas).
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
               </p>
             </div>
           )}

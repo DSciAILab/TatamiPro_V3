@@ -52,7 +52,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
       lastName: '',
       club: '',
       gender: 'Outro',
-      belt: 'Branca',
+      belt: 'Branca', // Default belt
       weight: 0,
       nationality: '',
       email: '',
@@ -65,7 +65,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
   const paymentProof = watch('paymentProof');
   const weight = watch('weight');
   const gender = watch('gender');
-  const belt = watch('belt');
+  const belt = watch('belt'); // Watch the belt value
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -88,7 +88,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         age,
         club: values.club,
         gender: values.gender,
-        belt: values.belt,
+        belt: values.belt, // Use the validated belt value
         weight: values.weight,
         nationality: values.nationality,
         ageDivision,
