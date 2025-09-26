@@ -627,7 +627,7 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         <TabsContent key="admin" value="admin" className="mt-6">
-          {userRole === 'admin' ? (
+          <div className={userRole !== 'admin' ? 'hidden' : ''}>
             <Card>
               <CardHeader>
                 <CardTitle>Administração do Evento</CardTitle>
@@ -743,11 +743,12 @@ const EventDetail: React.FC = () => {
                 <CheckInMandatoryFieldsConfig eventId={eventId} />
               </CardContent>
             </Card>
-          ) : <AccessDenied />}
+          </div>
+          {userRole !== 'admin' && <AccessDenied />}
         </TabsContent>
 
         <TabsContent key="approvals" value="approvals" className="mt-6">
-          {userRole === 'admin' ? (
+          <div className={userRole !== 'admin' ? 'hidden' : ''}>
             <Card>
               <CardHeader>
                 <CardTitle>Aprovações de Inscrição</CardTitle>
@@ -833,11 +834,12 @@ const EventDetail: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          ) : <AccessDenied />}
+          </div>
+          {userRole !== 'admin' && <AccessDenied />}
         </TabsContent>
 
         <TabsContent key="divisions" value="divisions" className="mt-6">
-          {userRole === 'admin' ? (
+          <div className={userRole !== 'admin' ? 'hidden' : ''}>
             <Card>
               <CardHeader>
                 <CardTitle>Gerenciar Divisões do Evento</CardTitle>
@@ -850,7 +852,8 @@ const EventDetail: React.FC = () => {
                 <DivisionTable eventId={eventId} divisions={eventDivisions} onUpdateDivisions={handleUpdateDivisions} />
               </CardContent>
             </Card>
-          ) : <AccessDenied />}
+          </div>
+          {userRole !== 'admin' && <AccessDenied />}
         </TabsContent>
 
         <TabsContent key="resultados" value="resultados" className="mt-6">
