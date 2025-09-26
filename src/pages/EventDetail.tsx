@@ -566,7 +566,7 @@ const EventDetail: React.FC = () => {
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                           {athlete.registeredWeight && (
-                            <p className className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                            <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
                           )}
                         </div>
                       </div>
