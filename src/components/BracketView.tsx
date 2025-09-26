@@ -47,7 +47,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   const cardHeight = 140; // Altura calculada de um BracketMatchCard (2 slots * 56px + padding/margin + bordas)
   const baseVerticalGap = 40; // Espaçamento vertical entre as lutas na primeira rodada (AUMENTADO)
   const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
-  const cardWidth = 250; // Largura máxima de um BracketMatchCard
+  const cardWidth = 375; // Largura máxima de um BracketMatchCard (250 * 1.5 = 375)
   // const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8') - REMOVIDO
 
   // Calcula as posições Y (top) e os margin-tops para cada luta
@@ -114,7 +114,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             return (
               <React.Fragment key={roundIndex}>
                 <div
-                  className="flex flex-col items-center min-w-[250px]"
+                  className="flex flex-col items-center min-w-[375px]"
                   style={{ width: `${cardWidth}px` }} // Largura explícita para a coluna da rodada
                 >
                   <h3 className="text-lg font-semibold mb-4">{getRoundName(roundIndex, totalRounds)}</h3>

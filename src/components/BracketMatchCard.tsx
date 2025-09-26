@@ -95,7 +95,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   const matchNumberDisplay = match.matFightNumber ? `${match._matName?.replace('Mat ', '') || ''}-${match.matFightNumber}` : `${getShortMatchIdentifier(match.id)}`;
 
   return (
-    <Card className="w-full min-w-[200px] max-w-[250px] border-2 bg-card text-foreground">
+    <Card className="w-full min-w-[300px] max-w-[375px] border-2 bg-card text-foreground">
       <CardContent className="p-2 text-sm">
         <div className="flex justify-between items-center mb-1">
           <span className="font-semibold text-xs text-muted-foreground">{matchNumberDisplay}</span>
