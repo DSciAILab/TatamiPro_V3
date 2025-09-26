@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface QrCodeGeneratorProps {
   value: string;
@@ -17,7 +17,7 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({
   includeMargin = false,
 }) => {
   return (
-    <QRCode
+    <QRCodeSVG
       value={value}
       size={size}
       level={level}
