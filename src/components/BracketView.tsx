@@ -43,9 +43,30 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
 
   const totalRounds = bracket.rounds.length;
 
-  // Base dimensions for visual calculation (approximate)
-  const cardHeight = 100; // Estimated height of a match card (adjust if BracketMatchCard changes)
-  const baseVerticalGap = 20; // Estimated vertical space between matches in the first round
+  // Definindo alturas e espaçamentos base para o cálculo do layout
+  const cardHeight = 100; // Altura aproximada de um BracketMatchCard
+  const baseVerticalGap = 20; // Espaçamento vertical entre as lutas na primeira rodada
+  const matchCardTotalHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
+
+  // Pré-calcula os `marginTop` para o primeiro card de cada rodada e entre os cards da mesma rodada
+  const { initialMarginTops, interMatchMarginTops } = useMemo(() => {
+    const initialMts: number[] = [];
+    const interMts: number[] = [];
+
+    initialMts[0] = 0; // O primeiro card da primeira rodada não tem margin-top inicial
+    interMts[0] = baseVerticalGap; // Espaçamento padrão entre cards na primeira rodada
+
+    for (let r = 1; r < totalRounds; r++) {
+      // O margin-top inicial de uma rodada é o margin-top inicial da rodada anterior
+      // mais metade do espaçamento entre os cards da rodada anterior.
+      initialMts[r] = initialMts[r - 1] + interMts[r - 1] / 2;
+      
+      // O margin-top entre os cards de uma rodada subsequente aumenta exponencialmente
+      // para criar o efeito de pirâmide.
+      interMts[r] = (Math.pow(2, r) * matchCardTotalHeight) - cardHeight;
+    }
+    return { initialMarginTops: initialMts, interMatchMarginTops: interMts };
+  }, [totalRounds]);
 
   return (
     <Card className="p-4">
@@ -55,33 +76,31 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
       <CardContent className="flex flex-col items-center overflow-x-auto">
         <div className="flex space-x-8 p-4">
           {bracket.rounds.map((round, roundIndex) => {
-            // Calculate dynamic vertical spacing for each round
-            // Each subsequent round needs to be shifted up by half the height of the previous round's "gap"
-            const numMatchesInPrevRound = roundIndex > 0 ? bracket.rounds[roundIndex - 1].length : 0;
-            const numMatchesInCurrentRound = round.length;
-
-            // Calculate the total height occupied by matches and gaps in the *first* round
-            // This is a simplified approach to get the "tree" effect
-            const verticalShift = (numMatchesInPrevRound - numMatchesInCurrentRound) * (cardHeight + baseVerticalGap) / 2;
-
             return (
               <div
                 key={roundIndex}
                 className="flex flex-col items-center min-w-[250px]"
-                style={{ marginTop: roundIndex > 0 ? `${verticalShift}px` : '0px' }}
               >
                 <h3 className="text-lg font-semibold mb-4">{getRoundName(roundIndex, totalRounds)}</h3>
-                <div className="flex flex-col space-y-8"> {/* Space between matches in a round */}
-                  {round.map(match => (
-                    <BracketMatchCard
+                <div className="flex flex-col">
+                  {round.map((match, matchIndex) => (
+                    <div
                       key={match.id}
-                      match={match}
-                      athletesMap={athletesMap}
-                      isFinal={roundIndex === bracket.rounds.length - 1}
-                      bracketWinnerId={bracket.winnerId}
-                      bracketRunnerUpId={bracket.runnerUpId}
-                      bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
-                    />
+                      style={{
+                        // Aplica o margin-top calculado para o primeiro card da rodada
+                        // ou o margin-top calculado entre os cards da mesma rodada.
+                        marginTop: matchIndex === 0 ? `${initialMarginTops[roundIndex]}px` : `${interMatchMarginTops[roundIndex]}px`,
+                      }}
+                    >
+                      <BracketMatchCard
+                        match={match}
+                        athletesMap={athletesMap}
+                        isFinal={roundIndex === bracket.rounds.length - 1}
+                        bracketWinnerId={bracket.winnerId}
+                        bracketRunnerUpId={bracket.runnerUpId}
+                        bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
