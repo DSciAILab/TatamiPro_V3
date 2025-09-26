@@ -69,4 +69,5 @@ export interface Event {
   numFightAreas?: number; // Novo: Número de áreas de luta
   divisions: Division[]; // Novo: Divisões configuradas para o evento
   isAttendanceMandatoryBeforeCheckIn?: boolean; // NOVO: Se a presença é obrigatória antes do check-in
+  isWeightCheckEnabled?: boolean; // NOVO: Se a verificação de peso está habilitada no check-in
 }

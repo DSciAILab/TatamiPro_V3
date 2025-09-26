@@ -329,9 +329,17 @@ const BatchAthleteImport: React.FC = () => {
 
     // Store successful athletes in localStorage for EventDetail to pick up
     if (successfulAthletes.length > 0) {
-      const existingImportedAthletes = JSON.parse(localStorage.getItem(`importedAthletes_${eventId}`) || '[]') as Athlete[];
-      const updatedImportedAthletes = [...existingImportedAthletes, ...successfulAthletes];
-      localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(updatedImportedAthletes));
+      const existingEventData = localStorage.getItem(`event_${eventId}`);
+      let currentEvent = { athletes: [] };
+      if (existingEventData) {
+        try {
+          currentEvent = JSON.parse(existingEventData);
+        } catch (e) {
+          console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
+        }
+      }
+      const updatedAthletes = [...(currentEvent.athletes || []), ...successfulAthletes];
+      localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, athletes: updatedAthletes }));
     }
 
     setImportResults({
@@ -369,7 +377,7 @@ const BatchAthleteImport: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Importar Atletas em Lote para Evento #{eventId}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}/registration-options`)} variant="outline">Voltar para Opções de Inscrição</Button>
+        <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
       </div>
 
       <Card>

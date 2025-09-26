@@ -10,13 +10,20 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const userName = localStorage.getItem('userName'); // Get user name from localStorage
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
-          <Link to="/" className="text-2xl font-bold text-primary">
-            TatamiPro
-          </Link>
+          <div className="flex items-center space-x-2">
+            <Link to="/" className="text-2xl font-bold text-primary">
+              TatamiPro
+            </Link>
+            {userName && (
+              <span className="text-lg text-muted-foreground">({userName})</span>
+            )}
+          </div>
           <nav className="flex items-center space-x-4">
             <Link to="/events">
               <Button variant="ghost">Eventos</Button>

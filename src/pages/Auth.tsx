@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,36 +15,53 @@ const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [club, setClub] = useState('');
+  const [club, setClub] = useState(''); // Not directly used in MVP login logic, but kept for consistency
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole) {
+      // If already logged in, redirect to events page
+      navigate('/events');
+    }
+  }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Para MVP, uma verificação de usuário simplificada.
-    // Em um aplicativo real, isso envolveria uma chamada de backend.
+    let loggedInUserRole: 'admin' | 'coach' | 'staff' | 'athlete' | null = null;
+    let loggedInUserName: string | null = null;
+    let loggedInUserClub: string | null = null;
+
     if (isLogin) {
       if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
-        showSuccess('Login de Admin realizado com sucesso!');
-        localStorage.setItem('userRole', 'admin');
-        localStorage.removeItem('userClub'); // Admins generally don't have a specific club context
-        navigate('/events');
+        loggedInUserRole = 'admin';
+        loggedInUserName = 'Administrador';
+        loggedInUserClub = null;
       } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
-        showSuccess('Login de Coach realizado com sucesso!');
-        localStorage.setItem('userRole', 'coach');
-        localStorage.setItem('userClub', 'Gracie Barra'); // Mock club for coach
-        navigate('/events');
+        loggedInUserRole = 'coach';
+        loggedInUserName = 'Coach';
+        loggedInUserClub = 'Gracie Barra';
       } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
-        showSuccess('Login de Staff realizado com sucesso!');
-        localStorage.setItem('userRole', 'staff');
-        localStorage.setItem('userClub', 'Alliance'); // Mock club for staff
-        navigate('/events');
+        loggedInUserRole = 'staff';
+        loggedInUserName = 'Staff';
+        loggedInUserClub = 'Alliance';
       } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
-        showSuccess('Login de Atleta realizado com sucesso!');
-        localStorage.setItem('userRole', 'athlete');
-        localStorage.setItem('userClub', 'Checkmat'); // Mock club for athlete
-        navigate('/events');
+        loggedInUserRole = 'athlete';
+        loggedInUserName = 'Atleta';
+        loggedInUserClub = 'Checkmat';
       }
-      else {
+
+      if (loggedInUserRole) {
+        showSuccess(`Login de ${loggedInUserName} realizado com sucesso!`);
+        localStorage.setItem('userRole', loggedInUserRole);
+        localStorage.setItem('userName', loggedInUserName);
+        if (loggedInUserClub) {
+          localStorage.setItem('userClub', loggedInUserClub);
+        } else {
+          localStorage.removeItem('userClub');
+        }
+        navigate('/events');
+      } else {
         showError('Credenciais ou papel inválidos. Tente as credenciais de demonstração.');
       }
     } else {

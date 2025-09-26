@@ -37,7 +37,7 @@ const EventDetail: React.FC = () => {
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
-  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all'); // ATUALIZADO: Inclui 'overweight'
+  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -79,6 +79,7 @@ const EventDetail: React.FC = () => {
     let eventSettings = {};
     let existingDivisions: Division[] = [];
     let isAttendanceMandatoryBeforeCheckIn = false;
+    let isWeightCheckEnabled = true; // Default to true
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -90,6 +91,7 @@ const EventDetail: React.FC = () => {
         };
         existingDivisions = parsedEvent.divisions || [];
         isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
+        isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -104,6 +106,7 @@ const EventDetail: React.FC = () => {
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
       isAttendanceMandatoryBeforeCheckIn,
+      isWeightCheckEnabled, // Initialize new state
       ...eventSettings,
     };
   });
@@ -116,6 +119,7 @@ const EventDetail: React.FC = () => {
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
   const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
+  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true); // New state for weight check toggle
 
 
   // Configuração de campos obrigatórios para check-in
@@ -148,9 +152,10 @@ const EventDetail: React.FC = () => {
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas: numFightAreas,
         isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
+        isWeightCheckEnabled: isWeightCheckEnabled, // Save new state
       }));
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -397,9 +402,9 @@ const EventDetail: React.FC = () => {
     // ATUALIZADO: Lógica de filtragem para o novo filtro de check-in
     if (checkInFilter === 'pending') {
       return athletesToFilter.filter(a => a.checkInStatus === 'pending');
-    } else if (checkInFilter === 'checked_in') { // NOVO: Filtro para 'checked_in'
+    } else if (checkInFilter === 'checked_in') {
       return athletesToFilter.filter(a => a.checkInStatus === 'checked_in');
-    } else if (checkInFilter === 'overweight') { // NOVO: Filtro para 'overweight'
+    } else if (checkInFilter === 'overweight') {
       return athletesToFilter.filter(a => a.checkInStatus === 'overweight');
     }
     return athletesToFilter; // 'all' filter
@@ -433,7 +438,7 @@ const EventDetail: React.FC = () => {
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
-              <TabsTrigger value="admin">Admin</TabsTrigger>
+              <TabsTrigger value="config">Config</TabsTrigger> {/* Renomeado de 'Admin' para 'Config' */}
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
               <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
             </>
@@ -605,6 +610,9 @@ const EventDetail: React.FC = () => {
                 {isAttendanceMandatory && (
                   <p className="text-orange-500 mt-2">Atenção: A presença é obrigatória antes do check-in. Apenas atletas marcados como 'Presente' aparecerão aqui.</p>
                 )}
+                {!isWeightCheckEnabled && (
+                  <p className="text-blue-500 mt-2">Verificação de peso desabilitada. Todos os atletas serão considerados no peso.</p>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -664,10 +672,10 @@ const EventDetail: React.FC = () => {
                   <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
                     Pendentes ({totalPendingCheckIn})
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="checked_in" aria-label="Mostrar check-in OK"> {/* NOVO ITEM */}
+                  <ToggleGroupItem value="checked_in" aria-label="Mostrar check-in OK">
                     Check-in OK ({totalCheckedInOk})
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="overweight" aria-label="Mostrar acima do peso"> {/* NOVO ITEM */}
+                  <ToggleGroupItem value="overweight" aria-label="Mostrar acima do peso">
                     Acima do Peso ({totalOverweights})
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -718,6 +726,7 @@ const EventDetail: React.FC = () => {
                           onCheckIn={handleCheckInAthlete}
                           isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'}
                           divisionMaxWeight={athlete._division?.maxWeight}
+                          isWeightCheckEnabled={isWeightCheckEnabled} // Pass new prop
                         />
                       </div>
                     </li>
@@ -752,10 +761,10 @@ const EventDetail: React.FC = () => {
 
         {userRole === 'admin' && (
           <>
-            <TabsContent value="admin" className="mt-6">
+            <TabsContent value="config" className="mt-6"> {/* Renomeado de 'admin' para 'config' */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Administração do Evento</CardTitle>
+                  <CardTitle>Configurações do Evento</CardTitle> {/* Título atualizado */}
                   <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -882,6 +891,14 @@ const EventDetail: React.FC = () => {
                         onCheckedChange={setIsAttendanceMandatory}
                       />
                       <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="weight-check-enabled"
+                        checked={isWeightCheckEnabled}
+                        onCheckedChange={setIsWeightCheckEnabled}
+                      />
+                      <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso no Check-in</Label>
                     </div>
                   </div>
                   <CheckInMandatoryFieldsConfig eventId={event.id} />

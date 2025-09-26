@@ -233,173 +233,177 @@ const AthleteRegistrationForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md">
-      <h3 className="text-xl font-semibold mb-4">Registrar Novo Atleta</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="firstName">Nome {isFieldMandatory('firstName') && <span className="text-red-500">*</span>}</Label>
-          <Input id="firstName" {...register('firstName')} />
-          {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="lastName">Sobrenome {isFieldMandatory('lastName') && <span className="text-red-500">*</span>}</Label>
-          <Input id="lastName" {...register('lastName')} />
-          {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
-        </div>
+    <div className="p-4 border rounded-md">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-semibold">Registrar Novo Atleta</h3>
+        <Button onClick={() => navigate(`/events/${eventId}/registration-options`)} variant="outline">Voltar para Opções</Button>
       </div>
-
-      <div>
-        <Label htmlFor="dateOfBirth">Data de Nascimento {isFieldMandatory('dateOfBirth') && <span className="text-red-500">*</span>}</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dateOfBirth && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Selecione uma data</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={dateOfBirth}
-              onSelect={(date) => setValue('dateOfBirth', date!)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-        {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="club">Clube {isFieldMandatory('club') && <span className="text-red-500">*</span>}</Label>
-        <Input id="club" {...register('club')} />
-        {errors.club && <p className="text-red-500 text-sm mt-1">{errors.club.message}</p>}
-      </div>
-
-      <div>
-        <Label>Gênero {isFieldMandatory('gender') && <span className="text-red-500">*</span>}</Label>
-        <RadioGroup
-          onValueChange={(value: Gender) => setValue('gender', value)}
-          defaultValue={watch('gender')}
-          className="flex space-x-4 mt-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="Masculino" id="gender-male" />
-            <Label htmlFor="gender-male">Masculino</Label>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="firstName">Nome {isFieldMandatory('firstName') && <span className="text-red-500">*</span>}</Label>
+            <Input id="firstName" {...register('firstName')} />
+            {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
           </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="Feminino" id="gender-female" />
-            <Label htmlFor="gender-female">Feminino</Label>
+          <div>
+            <Label htmlFor="lastName">Sobrenome {isFieldMandatory('lastName') && <span className="text-red-500">*</span>}</Label>
+            <Input id="lastName" {...register('lastName')} />
+            {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
           </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="Outro" id="gender-other" />
-            <Label htmlFor="gender-other">Outro</Label>
+        </div>
+
+        <div>
+          <Label htmlFor="dateOfBirth">Data de Nascimento {isFieldMandatory('dateOfBirth') && <span className="text-red-500">*</span>}</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dateOfBirth && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Selecione uma data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={dateOfBirth}
+                onSelect={(date) => setValue('dateOfBirth', date!)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="club">Clube {isFieldMandatory('club') && <span className="text-red-500">*</span>}</Label>
+          <Input id="club" {...register('club')} />
+          {errors.club && <p className="text-red-500 text-sm mt-1">{errors.club.message}</p>}
+        </div>
+
+        <div>
+          <Label>Gênero {isFieldMandatory('gender') && <span className="text-red-500">*</span>}</Label>
+          <RadioGroup
+            onValueChange={(value: Gender) => setValue('gender', value)}
+            defaultValue={watch('gender')}
+            className="flex space-x-4 mt-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Masculino" id="gender-male" />
+              <Label htmlFor="gender-male">Masculino</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Feminino" id="gender-female" />
+              <Label htmlFor="gender-female">Feminino</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Outro" id="gender-other" />
+              <Label htmlFor="gender-other">Outro</Label>
+            </div>
+          </RadioGroup>
+          {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="belt">Faixa {isFieldMandatory('belt') && <span className="text-red-500">*</span>}</Label>
+          <Select onValueChange={(value: Belt) => setValue('belt', value)} defaultValue={watch('belt')}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione a faixa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Branca">Branca</SelectItem>
+              <SelectItem value="Cinza">Cinza</SelectItem>
+              <SelectItem value="Amarela">Amarela</SelectItem>
+              <SelectItem value="Laranja">Laranja</SelectItem>
+              <SelectItem value="Verde">Verde</SelectItem>
+              <SelectItem value="Azul">Azul</SelectItem>
+              <SelectItem value="Roxa">Roxa</SelectItem>
+              <SelectItem value="Marrom">Marrom</SelectItem>
+              <SelectItem value="Preta">Preta</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.belt && <p className="text-red-500 text-sm mt-1">{errors.belt.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="weight">Peso (kg) {isFieldMandatory('weight') && <span className="text-red-500">*</span>}</Label>
+          <Input id="weight" type="number" step="0.1" {...register('weight')} />
+          {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="nationality">Nacionalidade {isFieldMandatory('nationality') && <span className="text-red-500">*</span>}</Label>
+          <Input id="nationality" {...register('nationality')} />
+          {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="email">Email {isFieldMandatory('email') && <span className="text-red-500">*</span>}</Label>
+          <Input id="email" type="email" {...register('email')} />
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="phone">Telefone (E.164, ex: +5511987654321) {isFieldMandatory('phone') && <span className="text-red-500">*</span>}</Label>
+          <Input id="phone" type="tel" {...register('phone')} />
+          {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="emiratesId">Emirates ID (Opcional)</Label>
+            <Input id="emiratesId" {...register('emiratesId')} />
+            {errors.emiratesId && <p className="text-red-500 text-sm mt-1">{errors.emiratesId.message}</p>}
           </div>
-        </RadioGroup>
-        {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="belt">Faixa {isFieldMandatory('belt') && <span className="text-red-500">*</span>}</Label>
-        <Select onValueChange={(value: Belt) => setValue('belt', value)} defaultValue={watch('belt')}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a faixa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Branca">Branca</SelectItem>
-            <SelectItem value="Cinza">Cinza</SelectItem>
-            <SelectItem value="Amarela">Amarela</SelectItem>
-            <SelectItem value="Laranja">Laranja</SelectItem>
-            <SelectItem value="Verde">Verde</SelectItem>
-            <SelectItem value="Azul">Azul</SelectItem>
-            <SelectItem value="Roxa">Roxa</SelectItem>
-            <SelectItem value="Marrom">Marrom</SelectItem>
-            <SelectItem value="Preta">Preta</SelectItem>
-          </SelectContent>
-        </Select>
-        {errors.belt && <p className="text-red-500 text-sm mt-1">{errors.belt.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="weight">Peso (kg) {isFieldMandatory('weight') && <span className="text-red-500">*</span>}</Label>
-        <Input id="weight" type="number" step="0.1" {...register('weight')} />
-        {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="nationality">Nacionalidade {isFieldMandatory('nationality') && <span className="text-red-500">*</span>}</Label>
-        <Input id="nationality" {...register('nationality')} />
-        {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="email">Email {isFieldMandatory('email') && <span className="text-red-500">*</span>}</Label>
-        <Input id="email" type="email" {...register('email')} />
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="phone">Telefone (E.164, ex: +5511987654321) {isFieldMandatory('phone') && <span className="text-red-500">*</span>}</Label>
-        <Input id="phone" type="tel" {...register('phone')} />
-        {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="emiratesId">Emirates ID (Opcional)</Label>
-          <Input id="emiratesId" {...register('emiratesId')} />
-          {errors.emiratesId && <p className="text-red-500 text-sm mt-1">{errors.emiratesId.message}</p>}
+          <div>
+            <Label htmlFor="schoolId">School ID (Opcional)</Label>
+            <Input id="schoolId" {...register('schoolId')} />
+            {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+          </div>
         </div>
+
         <div>
-          <Label htmlFor="schoolId">School ID (Opcional)</Label>
-          <Input id="schoolId" {...register('schoolId')} />
-          {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+          <Label htmlFor="photo">Foto de Perfil {isFieldMandatory('photo') && <span className="text-red-500">*</span>}</Label>
+          <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
+          {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="photo">Foto de Perfil {isFieldMandatory('photo') && <span className="text-red-500">*</span>}</Label>
-        <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
-        {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="emiratesIdFront">Emirates ID (Frente {isFieldMandatory('emiratesIdFront') && <span className="text-red-500">*</span>})</Label>
+            <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
+            {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
+          </div>
+          <div>
+            <Label htmlFor="emiratesIdBack">Emirates ID (Verso {isFieldMandatory('emiratesIdBack') && <span className="text-red-500">*</span>})</Label>
+            <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
+            {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="emiratesIdFront">Emirates ID (Frente {isFieldMandatory('emiratesIdFront') && <span className="text-red-500">*</span>})</Label>
-          <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
-          {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
+          <Label htmlFor="paymentProof">Comprovante de Pagamento {isFieldMandatory('paymentProof') && <span className="text-red-500">*</span>}</Label>
+          <Input id="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('paymentProof')} />
+          {errors.paymentProof?.message && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message as string}</p>}
         </div>
-        <div>
-          <Label htmlFor="emiratesIdBack">Emirates ID (Verso {isFieldMandatory('emiratesIdBack') && <span className="text-red-500">*</span>})</Label>
-          <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
-          {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="consentAccepted"
+            checked={watch('consentAccepted')}
+            onCheckedChange={(checked) => setValue('consentAccepted', checked as boolean)}
+          />
+          <Label htmlFor="consentAccepted">Eu aceito os termos e condições. {isFieldMandatory('consentAccepted') && <span className="text-red-500">*</span>}</Label>
         </div>
-      </div>
+        {errors.consentAccepted && <p className="text-red-500 text-sm mt-1">{errors.consentAccepted.message}</p>}
 
-      <div>
-        <Label htmlFor="paymentProof">Comprovante de Pagamento {isFieldMandatory('paymentProof') && <span className="text-red-500">*</span>}</Label>
-        <Input id="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('paymentProof')} />
-        {errors.paymentProof?.message && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message as string}</p>}
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="consentAccepted"
-          checked={watch('consentAccepted')}
-          onCheckedChange={(checked) => setValue('consentAccepted', checked as boolean)}
-        />
-        <Label htmlFor="consentAccepted">Eu aceito os termos e condições. {isFieldMandatory('consentAccepted') && <span className="text-red-500">*</span>}</Label>
-      </div>
-      {errors.consentAccepted && <p className="text-red-500 text-sm mt-1">{errors.consentAccepted.message}</p>}
-
-      <Button type="submit" className="w-full">Registrar Atleta</Button>
-    </form>
+        <Button type="submit" className="w-full">Registrar Atleta</Button>
+      </form>
+    </div>
   );
 };
 
