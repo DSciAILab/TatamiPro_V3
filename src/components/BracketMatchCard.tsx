@@ -17,6 +17,17 @@ interface BracketMatchCardProps {
   bracketThirdPlaceWinnerId?: string;
 }
 
+// Helper para formatar o ID da luta anterior para exibição
+const getShortMatchIdentifier = (fullMatchId: string): string => {
+  const parts = fullMatchId.split('-'); // Ex: divisionId-R1-M1
+  if (parts.length >= 3) {
+    const roundPart = parts[1]; // R1
+    const matchNumPart = parts[2]; // M1
+    return `${roundPart}-${matchNumPart}`; // R1-M1
+  }
+  return fullMatchId; // Fallback
+};
+
 const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   match,
   athletesMap,
@@ -29,9 +40,19 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   const fighter1 = match.fighter1Id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1Id || '');
   const fighter2 = match.fighter2Id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2Id || '');
 
-  const getFighterDisplay = (fighter: Athlete | 'BYE' | undefined) => {
+  const getFighterDisplay = (fighter: Athlete | 'BYE' | undefined, fighterSlot: 1 | 2) => {
     if (fighter === 'BYE') return 'BYE';
-    if (!fighter) return 'Aguardando';
+    if (!fighter) {
+      // Se o lutador é undefined, significa que estamos esperando o vencedor de uma luta anterior
+      const prevMatchId = fighterSlot === 1 ? match.prevMatchIds?.[0] : match.prevMatchIds?.[1];
+      return (
+        <div className="flex flex-col items-start">
+          <span className="font-medium text-sm text-muted-foreground">
+            Aguardando {prevMatchId ? getShortMatchIdentifier(prevMatchId) : 'Luta Anterior'}
+          </span>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-start">
         <span className="font-medium text-sm flex items-center">
@@ -67,7 +88,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     return null;
   };
 
-  const matchNumberDisplay = match.matFightNumber ? `${match._matName?.replace('Mat ', '') || ''}-${match.matFightNumber}` : `R${match.round}-M${match.matchNumber}`;
+  const matchNumberDisplay = match.matFightNumber ? `${match._matName?.replace('Mat ', '') || ''}-${match.matFightNumber}` : `${getShortMatchIdentifier(match.id)}`;
 
   return (
     <Card className="w-full min-w-[200px] max-w-[250px] border-2 bg-card text-foreground">
@@ -84,7 +105,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
           )}>
             {getFighterPhoto(fighter1)}
             <div className="flex-1 flex items-center justify-between">
-              {getFighterDisplay(fighter1)}
+              {getFighterDisplay(fighter1, 1)}
               {isFinal && getRankingIndicator(fighter1 !== 'BYE' ? fighter1?.id : undefined)}
             </div>
           </div>
@@ -95,21 +116,11 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
           )}>
             {getFighterPhoto(fighter2)}
             <div className="flex-1 flex items-center justify-between">
-              {getFighterDisplay(fighter2)}
+              {getFighterDisplay(fighter2, 2)}
               {isFinal && getRankingIndicator(fighter2 !== 'BYE' ? fighter2?.id : undefined)}
             </div>
           </div>
         </div>
-        {(fighter1 === 'BYE' && fighter2 !== 'BYE') && (
-          <div className="mt-2 text-right text-xs font-medium text-blue-600">
-            {getFighterDisplay(fighter2)} avança por BYE
-          </div>
-        )}
-        {(fighter2 === 'BYE' && fighter1 !== 'BYE') && (
-          <div className="mt-2 text-right text-xs font-medium text-blue-600">
-            {getFighterDisplay(fighter1)} avança por BYE
-          </div>
-        )}
       </CardContent>
     </Card>
   );
