@@ -13,7 +13,7 @@ import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
-import QrCodeGenerator from '@/components/QrCodeGenerator'; // NOVO: Importar o gerador de QR Code
+import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
@@ -26,7 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Switch } from '@/components/ui/switch'; // NOVO: Importar Switch
+import { Switch } from '@/components/ui/switch';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +38,7 @@ const EventDetail: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'done' | 'all'>('pending');
+  const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all'); // NOVO: Estado para o filtro de status de inscrição
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [event, setEvent] = useState<Event | null>(() => {
@@ -294,17 +295,17 @@ const EventDetail: React.FC = () => {
     );
   }
 
+  // Listas de atletas para as abas de aprovação e check-in (mantidas como estão)
   const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
   const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
 
-  // Processar atletas aprovados para incluir informações da divisão
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
       const division = findAthleteDivision(athlete, event.divisions);
       return {
         ...athlete,
-        _division: division, // Armazenar a divisão encontrada para uso posterior
+        _division: division,
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [approvedAthletes, event.divisions]);
@@ -318,6 +319,47 @@ const EventDetail: React.FC = () => {
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [athletesUnderApproval, event.divisions]);
+
+  // NOVO: Lógica para a aba 'Inscrições' para coaches
+  const allAthletesForInscricoesTab = useMemo(() => {
+    let athletes = event.athletes;
+    if (userRole === 'coach' && userClub) {
+      athletes = athletes.filter(a => a.club === userClub);
+    }
+    return athletes.map(athlete => {
+      const division = findAthleteDivision(athlete, event.divisions);
+      return {
+        ...athlete,
+        _division: division,
+      };
+    }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
+  }, [event.athletes, event.divisions, userRole, userClub]);
+
+  const coachTotalRegistrations = allAthletesForInscricoesTab.length;
+  const coachTotalApproved = allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'approved').length;
+  const coachTotalPending = allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'under_approval').length;
+  const coachTotalRejected = allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'rejected').length;
+
+  const filteredAthletesForDisplayInscricoes = useMemo(() => {
+    let athletesToDisplay = allAthletesForInscricoesTab;
+
+    if (registrationStatusFilter !== 'all') {
+      athletesToDisplay = athletesToDisplay.filter(a => a.registrationStatus === registrationStatusFilter);
+    }
+
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      athletesToDisplay = athletesToDisplay.filter(athlete =>
+        athlete.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.club.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.ageDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.weightDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    }
+    return athletesToDisplay;
+  }, [allAthletesForInscricoesTab, searchTerm, registrationStatusFilter]);
 
 
   // Lógica para verificar se o check-in é permitido
@@ -415,6 +457,47 @@ const EventDetail: React.FC = () => {
                 </div>
               )}
 
+              {userRole === 'coach' && userClub && (
+                <div className="mb-6 space-y-4">
+                  <h3 className="text-xl font-semibold">Minhas Inscrições ({userClub})</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+                      <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
+                      <p className="text-sm text-muted-foreground">Total</p>
+                    </div>
+                    <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                      <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
+                      <p className="text-sm text-muted-foreground">Aprovadas</p>
+                    </div>
+                    <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+                      <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
+                      <p className="text-sm text-muted-foreground">Pendentes</p>
+                    </div>
+                    <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+                      <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
+                      <p className="text-sm text-muted-foreground">Recusadas</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex justify-center">
+                    <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
+                      <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                        Todos ({coachTotalRegistrations})
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
+                        Aprovados ({coachTotalApproved})
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
+                        Pendentes ({coachTotalPending})
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
+                        Recusados ({coachTotalRejected})
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                </div>
+              )}
+
               {editingAthlete && (
                 <AthleteProfileEditForm
                   athlete={editingAthlete}
@@ -424,12 +507,12 @@ const EventDetail: React.FC = () => {
                 />
               )}
 
-              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({processedApprovedAthletes.length})</h3>
-              {processedApprovedAthletes.length === 0 ? (
-                <p className="text-muted-foreground">Nenhum atleta aprovado ainda.</p>
+              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({filteredAthletesForDisplayInscricoes.length})</h3>
+              {filteredAthletesForDisplayInscricoes.length === 0 ? (
+                <p className="text-muted-foreground">Nenhum atleta encontrado com os critérios atuais.</p>
               ) : (
                 <ul className="space-y-2">
-                  {processedApprovedAthletes.map((athlete) => (
+                  {filteredAthletesForDisplayInscricoes.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                       <div className="flex items-center space-x-4">
                         {athlete.photoUrl ? (
@@ -442,7 +525,7 @@ const EventDetail: React.FC = () => {
                         <div>
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                          <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Aprovado</span></p>
+                          <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registrationStatus === 'approved' ? 'text-green-600' : athlete.registrationStatus === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registrationStatus === 'under_approval' ? 'Aguardando Aprovação' : athlete.registrationStatus === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -616,7 +699,7 @@ const EventDetail: React.FC = () => {
                         <CheckInForm
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
-                          isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'} // Check attendance status
+                          isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'}
                           divisionMaxWeight={athlete._division?.maxWeight}
                         />
                       </div>
@@ -784,7 +867,7 @@ const EventDetail: React.FC = () => {
                       <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
                     </div>
                   </div>
-                  <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}
+                  <CheckInMandatoryFieldsConfig eventId={event.id} />
                 </CardContent>
               </Card>
             </TabsContent>
