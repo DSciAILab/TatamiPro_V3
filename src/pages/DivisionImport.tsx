@@ -12,11 +12,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Division } from '@/types/index';
+import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
 
 // Mapeamento de categoria de idade para minAge/maxAge
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
-  'kids': { min: 0, max: 15 },
+  'kids 1': { min: 4, max: 6 },
+  'kids 2': { min: 7, max: 8 },
+  'kids 3': { min: 9, max: 10 },
+  'infant': { min: 11, max: 12 },
+  'junior': { min: 13, max: 14 },
+  'teen': { min: 15, max: 15 },
   'juvenile': { min: 16, max: 17 },
   'adulto': { min: 18, max: 29 },
   'adult': { min: 18, max: 29 },
@@ -41,7 +46,7 @@ const importSchema = z.object({
   ageCategory: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (ageCategoryMap[lowerStr]) {
-      return str; // Retorna a string original se for uma categoria válida
+      return str as AgeCategory; // Retorna a string original se for uma categoria válida
     }
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -58,13 +63,17 @@ const importSchema = z.object({
     if (lowerStr === 'ambos' || lowerStr === 'both') return 'Ambos';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Gênero inválido. Use "Masculino", "Feminino" ou "Ambos".',
+      message: 'Gênero inválido. Use "Masculino", "Feminino" ou "Ambos" (ou seus equivalentes em inglês).',
     });
     return z.NEVER;
-  }) as z.ZodType<'Masculino' | 'Feminino' | 'Ambos'>,
+  }) as z.ZodType<DivisionGender>,
   belt: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'branca' || lowerStr === 'white') return 'Branca';
+    if (lowerStr === 'cinza' || lowerStr === 'grey' || lowerStr === 'gray') return 'Cinza';
+    if (lowerStr === 'amarela' || lowerStr === 'yellow') return 'Amarela';
+    if (lowerStr === 'laranja' || lowerStr === 'orange') return 'Laranja';
+    if (lowerStr === 'verde' || lowerStr === 'green') return 'Verde';
     if (lowerStr === 'azul' || lowerStr === 'blue') return 'Azul';
     if (lowerStr === 'roxa' || lowerStr === 'purple') return 'Roxa';
     if (lowerStr === 'marrom' || lowerStr === 'brown') return 'Marrom';
@@ -72,10 +81,10 @@ const importSchema = z.object({
     if (lowerStr === 'todas' || lowerStr === 'all') return 'Todas';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Faixa inválida. Use "Branca", "Azul", "Roxa", "Marrom", "Preta" ou "Todas" (ou seus equivalentes em inglês).',
+      message: 'Faixa inválida. Use "Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul", "Roxa", "Marrom", "Preta" ou "Todas" (ou seus equivalentes em inglês).',
     });
     return z.NEVER;
-  }) as z.ZodType<'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas'>,
+  }) as z.ZodType<DivisionBelt>,
 }).refine(data => data.minWeight <= data.maxWeight, {
   message: 'Peso mínimo não pode ser maior que o peso máximo.',
   path: ['minWeight'],
@@ -280,7 +289,7 @@ const DivisionImport: React.FC = () => {
               <Label htmlFor="division-file">Arquivo CSV</Label>
               <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids 1, Kids 2, Kids 3, Infant, Junior, Teen, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos/Male/Female/Both), Faixa (Branca/Cinza/Amarela/Laranja/Verde/Azul/Roxa/Marrom/Preta/Todas, ou seus equivalentes em inglês).
               </p>
             </div>
           )}

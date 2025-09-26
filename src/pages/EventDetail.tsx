@@ -15,12 +15,14 @@ import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils'; // Importar findAthleteDivision
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -147,6 +149,17 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteAthlete = (athleteId: string) => {
+    if (event) {
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes.filter(athlete => athlete.id !== athleteId);
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+      showSuccess('Inscrição do atleta removida com sucesso!');
+    }
+  };
+
   const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
     if (event) {
       setEvent(prevEvent => {
@@ -252,7 +265,16 @@ const EventDetail: React.FC = () => {
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [approvedAthletes, event.divisions]);
 
-  const sortedAthletesUnderApproval = [...athletesUnderApproval].sort(sortAthletes);
+  const sortedAthletesUnderApproval = useMemo(() => {
+    return athletesUnderApproval.map(athlete => {
+      const division = findAthleteDivision(athlete, event.divisions);
+      return {
+        ...athlete,
+        _division: division,
+      };
+    }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
+  }, [athletesUnderApproval, event.divisions]);
+
 
   // Lógica para verificar se o check-in é permitido
   const isCheckInTimeValid = () => {
@@ -346,9 +368,30 @@ const EventDetail: React.FC = () => {
                         </div>
                       </div>
                       {userRole === 'admin' && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       )}
                     </li>
                   ))}
@@ -655,7 +698,7 @@ const EventDetail: React.FC = () => {
                               )}
                               <div className="flex-grow">
                                 <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
-                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete)}</p>
+                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                                 {athlete.paymentProofUrl && (
                                   <p className="text-xs text-blue-500">
                                     <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
@@ -670,6 +713,25 @@ const EventDetail: React.FC = () => {
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </li>
                         ))}

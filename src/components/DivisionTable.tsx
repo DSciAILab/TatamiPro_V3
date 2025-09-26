@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
-import { Division } from '@/types/index';
+import { Division, Belt, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index'; // Importar tipos
 import { showSuccess, showError } from '@/utils/toast';
 
 interface DivisionTableProps {
@@ -26,7 +26,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     maxWeight: 999,
     gender: 'Ambos',
     belt: 'Todas',
-    ageCategoryName: '', // Novo campo
+    ageCategoryName: 'Adult', // Default para uma das novas categorias
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
 
@@ -45,7 +45,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     const updatedDivisions = [...divisions, { ...newDivision, id, isEnabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', minAge: 0, maxAge: 99, minWeight: 0, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: '' });
+    setNewDivision({ name: '', minAge: 0, maxAge: 99, minWeight: 0, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -96,6 +96,11 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     showSuccess(`Divisão ${isEnabled ? 'habilitada' : 'desabilitada'}.`);
   };
 
+  const beltOptions: DivisionBelt[] = ['Todas', 'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
+  const genderOptions: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
+  const ageCategoryOptions: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master'];
+
+
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold">Divisões do Evento</h3>
@@ -108,8 +113,13 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           <Input id="newName" value={newDivision.name} onChange={(e) => setNewDivision(prev => ({ ...prev, name: e.target.value }))} />
         </div>
         <div>
-          <Label htmlFor="newAgeCategoryName">Categoria de Idade (Ex: Adulto)</Label>
-          <Input id="newAgeCategoryName" value={newDivision.ageCategoryName} onChange={(e) => setNewDivision(prev => ({ ...prev, ageCategoryName: e.target.value }))} />
+          <Label htmlFor="newAgeCategoryName">Categoria de Idade</Label>
+          <Select value={newDivision.ageCategoryName} onValueChange={(value: AgeCategory) => setNewDivision(prev => ({ ...prev, ageCategoryName: value }))}>
+            <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder="Categoria de Idade" /></SelectTrigger>
+            <SelectContent>
+              {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="newMinAge">Idade Mínima</Label>
@@ -129,26 +139,19 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         </div>
         <div>
           <Label htmlFor="newGender">Gênero</Label>
-          <Select value={newDivision.gender} onValueChange={(value: 'Masculino' | 'Feminino' | 'Ambos') => setNewDivision(prev => ({ ...prev, gender: value }))}>
+          <Select value={newDivision.gender} onValueChange={(value: DivisionGender) => setNewDivision(prev => ({ ...prev, gender: value }))}>
             <SelectTrigger id="newGender"><SelectValue placeholder="Gênero" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Masculino">Masculino</SelectItem>
-              <SelectItem value="Feminino">Feminino</SelectItem>
-              <SelectItem value="Ambos">Ambos</SelectItem>
+              {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{gen}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="newBelt">Faixa</Label>
-          <Select value={newDivision.belt} onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas') => setNewDivision(prev => ({ ...prev, belt: value }))}>
+          <Select value={newDivision.belt} onValueChange={(value: DivisionBelt) => setNewDivision(prev => ({ ...prev, belt: value }))}>
             <SelectTrigger id="newBelt"><SelectValue placeholder="Faixa" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Todas">Todas</SelectItem>
-              <SelectItem value="Branca">Branca</SelectItem>
-              <SelectItem value="Azul">Azul</SelectItem>
-              <SelectItem value="Roxa">Roxa</SelectItem>
-              <SelectItem value="Marrom">Marrom</SelectItem>
-              <SelectItem value="Preta">Preta</SelectItem>
+              {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{belt}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -179,7 +182,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                   <>
                     <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
                     <TableCell>
-                      <Input value={currentEdit.ageCategoryName} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, ageCategoryName: e.target.value } : null)} />
+                      <Select value={currentEdit.ageCategoryName} onValueChange={(value: AgeCategory) => setCurrentEdit(prev => prev ? { ...prev, ageCategoryName: value } : null)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                       <div className="flex space-x-1 mt-1">
                         <Input type="number" value={currentEdit.minAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Min Age" />
                         <Input type="number" value={currentEdit.maxAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
@@ -190,25 +198,18 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-1/2" />
                     </TableCell>
                     <TableCell>
-                      <Select value={currentEdit.gender} onValueChange={(value: 'Masculino' | 'Feminino' | 'Ambos') => setCurrentEdit(prev => prev ? { ...prev, gender: value } : null)}>
+                      <Select value={currentEdit.gender} onValueChange={(value: DivisionGender) => setCurrentEdit(prev => prev ? { ...prev, gender: value } : null)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Masculino">Masculino</SelectItem>
-                          <SelectItem value="Feminino">Feminino</SelectItem>
-                          <SelectItem value="Ambos">Ambos</SelectItem>
+                          {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{gen}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Select value={currentEdit.belt} onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas') => setCurrentEdit(prev => prev ? { ...prev, belt: value } : null)}>
+                      <Select value={currentEdit.belt} onValueChange={(value: DivisionBelt) => setCurrentEdit(prev => prev ? { ...prev, belt: value } : null)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Todas">Todas</SelectItem>
-                          <SelectItem value="Branca">Branca</SelectItem>
-                          <SelectItem value="Azul">Azul</SelectItem>
-                          <SelectItem value="Roxa">Roxa</SelectItem>
-                          <SelectItem value="Marrom">Marrom</SelectItem>
-                          <SelectItem value="Preta">Preta</SelectItem>
+                          {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{belt}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </TableCell>

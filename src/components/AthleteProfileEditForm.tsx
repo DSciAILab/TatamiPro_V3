@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Athlete } from '@/types/index';
+import { Athlete, Belt, Gender } from '@/types/index'; // Importar Belt e Gender
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
@@ -30,7 +30,7 @@ const formSchema = z.object({
   dateOfBirth: z.date({ required_error: 'Data de nascimento é obrigatória.' }),
   club: z.string().min(1, { message: 'Clube é obrigatório.' }),
   gender: z.enum(['Masculino', 'Feminino', 'Outro'], { required_error: 'Gênero é obrigatório.' }),
-  belt: z.enum(['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'], { required_error: 'Faixa é obrigatória.' }),
+  belt: z.enum(['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'], { required_error: 'Faixa é obrigatória.' }),
   weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
   nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }),
   email: z.string().email({ message: 'Email inválido.' }),
@@ -165,7 +165,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       <div>
         <Label>Gênero</Label>
         <RadioGroup
-          onValueChange={(value: 'Masculino' | 'Feminino' | 'Outro') => setValue('gender', value)}
+          onValueChange={(value: Gender) => setValue('gender', value)}
           value={currentGender}
           className="flex space-x-4 mt-2"
         >
@@ -187,12 +187,16 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       <div>
         <Label htmlFor="belt">Faixa</Label>
-        <Select onValueChange={(value: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta') => setValue('belt', value)} value={currentBelt}>
+        <Select onValueChange={(value: Belt) => setValue('belt', value)} value={currentBelt}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a faixa" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="Branca">Branca</SelectItem>
+            <SelectItem value="Cinza">Cinza</SelectItem>
+            <SelectItem value="Amarela">Amarela</SelectItem>
+            <SelectItem value="Laranja">Laranja</SelectItem>
+            <SelectItem value="Verde">Verde</SelectItem>
             <SelectItem value="Azul">Azul</SelectItem>
             <SelectItem value="Roxa">Roxa</SelectItem>
             <SelectItem value="Marrom">Marrom</SelectItem>

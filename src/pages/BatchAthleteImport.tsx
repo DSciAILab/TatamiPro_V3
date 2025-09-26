@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Athlete } from '@/types/index';
+import { Athlete, Belt, Gender } from '@/types/index'; // Importar Belt e Gender
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 // Define os campos mínimos esperados no arquivo de importação
@@ -54,16 +54,20 @@ const importSchema = z.object({
   belt: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'branca' || lowerStr === 'white') return 'Branca';
+    if (lowerStr === 'cinza' || lowerStr === 'grey' || lowerStr === 'gray') return 'Cinza';
+    if (lowerStr === 'amarela' || lowerStr === 'yellow') return 'Amarela';
+    if (lowerStr === 'laranja' || lowerStr === 'orange') return 'Laranja';
+    if (lowerStr === 'verde' || lowerStr === 'green') return 'Verde';
     if (lowerStr === 'azul' || lowerStr === 'blue') return 'Azul';
     if (lowerStr === 'roxa' || lowerStr === 'purple') return 'Roxa';
     if (lowerStr === 'marrom' || lowerStr === 'brown') return 'Marrom';
     if (lowerStr === 'preta' || lowerStr === 'black') return 'Preta';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Faixa inválida. Use "Branca", "Azul", "Roxa", "Marrom", "Preta" (ou seus equivalentes em inglês).',
+      message: 'Faixa inválida. Use "Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul", "Roxa", "Marrom", "Preta" (ou seus equivalentes em inglês).',
     });
     return z.NEVER;
-  }) as z.ZodType<'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta'>,
+  }) as z.ZodType<Belt>,
   weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
   email: z.string().email({ message: 'Email inválido.' }),
@@ -73,12 +77,13 @@ const importSchema = z.object({
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
     if (lowerStr === 'feminino' || lowerStr === 'female') return 'Feminino';
+    if (lowerStr === 'outro' || lowerStr === 'other') return 'Outro';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Gênero inválido. Use "Masculino", "Feminino", "Male" ou "Female".',
+      message: 'Gênero inválido. Use "Masculino", "Feminino" ou "Outro" (ou seus equivalentes em inglês).',
     });
     return z.NEVER;
-  }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>,
+  }) as z.ZodType<Gender>,
   nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Adicionado
 });
 
@@ -292,7 +297,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Male/Female), Nacionalidade.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade.
               </p>
             </div>
           )}

@@ -4,6 +4,13 @@ export interface WeightAttempt {
   status: 'checked_in' | 'overweight';
 }
 
+export type Belt = 'Branca' | 'Cinza' | 'Amarela' | 'Laranja' | 'Verde' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta';
+export type Gender = 'Masculino' | 'Feminino' | 'Outro';
+export type DivisionGender = 'Masculino' | 'Feminino' | 'Ambos';
+export type DivisionBelt = Belt | 'Todas';
+export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master' | 'Indefinido';
+
+
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
@@ -13,11 +20,11 @@ export interface Athlete {
   dateOfBirth: Date;
   age: number; // Calculated
   club: string;
-  gender: 'Masculino' | 'Feminino' | 'Outro';
-  belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta';
+  gender: Gender;
+  belt: Belt;
   weight: number; // in kg (peso de inscrição)
   nationality: string; // Novo: Nacionalidade do atleta
-  ageDivision: string; // Novo: Divisão de idade calculada
+  ageDivision: AgeCategory; // Novo: Divisão de idade calculada
   weightDivision: string; // Novo: Divisão de peso calculada
   email: string;
   phone: string; // E.164 format
@@ -41,9 +48,9 @@ export interface Division {
   maxAge: number;
   minWeight: number;
   maxWeight: number;
-  gender: 'Masculino' | 'Feminino' | 'Ambos';
-  belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas';
-  ageCategoryName: string; // Nome público da categoria de idade, ex: "Adulto", "Juvenil"
+  gender: DivisionGender;
+  belt: DivisionBelt;
+  ageCategoryName: AgeCategory; // Nome público da categoria de idade, ex: "Adulto", "Juvenil"
   isEnabled: boolean; // Para habilitar/desabilitar no evento
 }
 
