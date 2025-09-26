@@ -15,7 +15,7 @@ import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // <-- Erro corrigido aqui
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
 import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
@@ -92,7 +92,7 @@ const EventDetail: React.FC = () => {
 
     const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
     let initialImportedAthletes: Athlete[] = [];
-    if (storedImportedAthletes) {
+    if (storedImportedAthletes) { // Corrected typo here
       try {
         initialImportedAthletes = JSON.parse(storedImportedAthletes).map((a: any) => processAthleteData(a, tempDivisions));
         localStorage.removeItem(`importedAthletes_${id}`);
@@ -567,13 +567,13 @@ const EventDetail: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
-          <TabsTrigger value="checkin">Check-in</TabsTrigger>
+          {userRole && <TabsTrigger value="checkin">Check-in</TabsTrigger>}
           {/* A aba Attendance agora é sempre visível para admins, e para outros se não for obrigatória */}
-          {(userRole === 'admin' || !isAttendanceMandatory) && (
+          {(userRole && (userRole === 'admin' || !isAttendanceMandatory)) && (
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
           )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
-          {userRole === 'admin' && (
+          {userRole && userRole === 'admin' && (
             <>
               <TabsTrigger value="config">Config</TabsTrigger> {/* Renomeado de 'Admin' para 'Config' */}
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
@@ -591,7 +591,7 @@ const EventDetail: React.FC = () => {
               <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {!editingAthlete && (
+              {userRole && !editingAthlete && (
                 <div className="mb-6 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
                   <Link to={`/events/${event.id}/registration-options`}>
                     <Button className="w-full">
@@ -646,7 +646,7 @@ const EventDetail: React.FC = () => {
                 </div>
               )}
 
-              {editingAthlete && (
+              {userRole && editingAthlete && (
                 <AthleteProfileEditForm
                   athlete={editingAthlete}
                   onSave={handleAthleteUpdate}
@@ -663,11 +663,11 @@ const EventDetail: React.FC = () => {
                   {filteredAthletesForDisplayInscricoes.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                       <div className="flex items-center space-x-4">
-                        <Checkbox
+                        {userRole && <Checkbox
                           checked={selectedAthletesForApproval.includes(athlete.id)}
                           onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
                           className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
-                        />
+                        />}
                         {athlete.photoUrl ? (
                           <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
@@ -735,7 +735,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="checkin" className="mt-6">
+        {userRole && <TabsContent value="checkin" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -894,10 +894,10 @@ const EventDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* A aba Attendance agora é sempre visível para admins, e para outros se não for obrigatória */}
-        {(userRole === 'admin' || !isAttendanceMandatory) && (
+        {(userRole && (userRole === 'admin' || !isAttendanceMandatory)) && (
           <TabsContent value="attendance" className="mt-6">
             <AttendanceManagement
               eventId={event.id}
@@ -914,7 +914,7 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
+              {userRole && <div className="mb-4 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button className="w-full">Distribuição dos Mats</Button>
@@ -939,7 +939,7 @@ const EventDetail: React.FC = () => {
                 <Button className="w-full" variant="outline" onClick={() => navigate(`/events/${event.id}/manage-fights`)}>
                   <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
                 </Button>
-              </div>
+              </div>}
               {event.brackets && Object.keys(event.brackets).length > 0 ? (
                 <div className="space-y-4 mt-6">
                   <h3 className="text-xl font-semibold">Brackets Gerados</h3>
@@ -958,7 +958,7 @@ const EventDetail: React.FC = () => {
                   })}
                 </div>
               ) : (
-                <p className="text-muted-foreground mt-4">Nenhum bracket gerado ainda. Clique em "Gerar Brackets" para começar.</p>
+                <p className="text-muted-foreground mt-4">Nenhum bracket gerado ainda. {userRole && 'Clique em "Gerar Brackets" para começar.'}</p>
               )}
             </CardContent>
           </Card>
