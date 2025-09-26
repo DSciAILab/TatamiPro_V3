@@ -92,7 +92,7 @@ const EventDetail: React.FC = () => {
 
     const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
     let initialImportedAthletes: Athlete[] = [];
-    if (storedImportedAthletes) { // Corrected typo here
+    if (storedImportedAthletes) {
       try {
         initialImportedAthletes = JSON.parse(storedImportedAthletes).map((a: any) => processAthleteData(a, tempDivisions));
         localStorage.removeItem(`importedAthletes_${id}`);
@@ -481,7 +481,10 @@ const EventDetail: React.FC = () => {
   const filteredAthletesForDisplayInscricoes = useMemo(() => {
     let athletesToDisplay = allAthletesForInscricoesTab;
 
-    if (registrationStatusFilter !== 'all') {
+    // If not logged in, only show approved athletes
+    if (!userRole) {
+      athletesToDisplay = athletesToDisplay.filter(a => a.registrationStatus === 'approved');
+    } else if (registrationStatusFilter !== 'all') {
       athletesToDisplay = athletesToDisplay.filter(a => a.registrationStatus === registrationStatusFilter);
     }
 
@@ -497,7 +500,7 @@ const EventDetail: React.FC = () => {
       );
     }
     return athletesToDisplay;
-  }, [allAthletesForInscricoesTab, searchTerm, registrationStatusFilter]);
+  }, [allAthletesForInscricoesTab, searchTerm, registrationStatusFilter, userRole]);
 
 
   // Lógica para verificar se o check-in é permitido
@@ -627,22 +630,24 @@ const EventDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mb-4 flex justify-center">
-                    <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
-                      <ToggleGroupItem value="all" aria-label="Mostrar todos">
-                        Todos ({coachTotalRegistrations})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
-                        Aprovados ({coachTotalApproved})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
-                        Pendentes ({coachTotalPending})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
-                        Recusados ({coachTotalRejected})
-                      </ToggleGroupItem>
-                    </ToggleGroup>
-                  </div>
+                  {userRole && ( // Only show filter if logged in
+                    <div className="mb-4 flex justify-center">
+                      <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
+                        <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                          Todos ({coachTotalRegistrations})
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
+                          Aprovados ({coachTotalApproved})
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
+                          Pendentes ({coachTotalPending})
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
+                          Recusados ({coachTotalRejected})
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -663,7 +668,7 @@ const EventDetail: React.FC = () => {
                   {filteredAthletesForDisplayInscricoes.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                       <div className="flex items-center space-x-4">
-                        {userRole && <Checkbox
+                        {userRole && <Checkbox // Only show checkbox if logged in
                           checked={selectedAthletesForApproval.includes(athlete.id)}
                           onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
                           className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
@@ -700,7 +705,7 @@ const EventDetail: React.FC = () => {
                             </PopoverContent>
                           </Popover>
                         )}
-                        {userRole === 'admin' && (
+                        {userRole === 'admin' && ( // Only show edit/delete if admin
                           <>
                             <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                               <Edit className="h-4 w-4" />
