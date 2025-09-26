@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Event, Athlete, Division, AgeCategory, Belt, Gender } from '@/types/index';
+import { Event, Athlete, Division, AgeCategory, Belt, Gender, DivisionGender, DivisionBelt } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { GripVertical, Trash2 } from 'lucide-react';
@@ -17,9 +17,9 @@ interface MatDistributionProps {
 interface CategoryGroup {
   key: string; // e.g., "Masculino/Adult/Preta" or "Masculino/Adult"
   display: string; // e.g., "Masculino / Adult / Preta"
-  gender: Gender;
+  gender: DivisionGender; // Usar DivisionGender para ser consistente com a divisão
   ageCategoryName: AgeCategory;
-  belt?: Belt; // Optional if belt grouping is disabled
+  belt?: DivisionBelt; // Optional if belt grouping is disabled, use DivisionBelt
   athleteCount: number;
   divisionIds: string[]; // IDs of divisions that match this group
 }
@@ -39,30 +39,31 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
   const allCategoryGroups = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
 
-    // Filtrar atletas que fizeram check-in com sucesso
+    // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
     event.athletes.filter(a => a.registrationStatus === 'approved' && a.checkInStatus === 'checked_in').forEach(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
-      if (!division) return;
+      // Usar a _division já calculada e anexada em EventDetail
+      const division = athlete._division; 
+      if (!division) return; // Se não houver divisão (o que não deveria acontecer para atletas aprovados/check-in), pular
 
       let key: string;
       let display: string;
-      let belt: Belt | undefined;
+      let belt: DivisionBelt | undefined;
 
       if (isBeltGroupingEnabled) {
-        key = `${athlete.gender}/${athlete.ageDivision}/${athlete.belt}`;
-        display = `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt}`;
-        belt = athlete.belt;
+        key = `${division.gender}/${division.ageCategoryName}/${division.belt}`;
+        display = `${division.gender} / ${division.ageCategoryName} / ${division.belt}`;
+        belt = division.belt;
       } else {
-        key = `${athlete.gender}/${athlete.ageDivision}`;
-        display = `${athlete.gender} / ${athlete.ageDivision}`;
+        key = `${division.gender}/${division.ageCategoryName}`;
+        display = `${division.gender} / ${division.ageCategoryName}`;
       }
 
       if (!groupsMap.has(key)) {
         groupsMap.set(key, {
           key,
           display,
-          gender: athlete.gender,
-          ageCategoryName: athlete.ageDivision,
+          gender: division.gender,
+          ageCategoryName: division.ageCategoryName,
           belt,
           athleteCount: 0,
           divisionIds: [],
@@ -75,10 +76,10 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
       }
     });
 
-    // Sort order: Gender (Masculino, Feminino, Outro), AgeCategory, Belt
-    const genderOrder: Gender[] = ['Masculino', 'Feminino', 'Outro'];
+    // Sort order: Gender (Masculino, Feminino, Ambos), AgeCategory, Belt (Branca...Todas)
+    const genderOrder: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
     const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
-    const beltOrder: Belt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
+    const beltOrder: DivisionBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Todas'];
 
     return Array.from(groupsMap.values()).sort((a, b) => {
       const genderDiff = genderOrder.indexOf(a.gender) - genderOrder.indexOf(b.gender);
@@ -88,13 +89,14 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
       if (ageDiff !== 0) return ageDiff;
 
       if (isBeltGroupingEnabled && a.belt && b.belt) {
-        const beltDiff = beltOrder.indexOf(a.belt) - beltOrder.indexOf(b.belt);
-        if (beltDiff !== 0) return beltDiff;
+        const beltAIndex = beltOrder.indexOf(a.belt);
+        const beltBIndex = beltOrder.indexOf(b.belt);
+        if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
       }
 
       return 0;
     });
-  }, [event.athletes, event.divisions, isBeltGroupingEnabled]);
+  }, [event.athletes, isBeltGroupingEnabled]); // event.divisions não é mais necessário aqui
 
   const unassignedCategories = useMemo(() => {
     const assignedKeys = new Set<string>();
