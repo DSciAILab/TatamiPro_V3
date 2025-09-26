@@ -45,11 +45,11 @@ const Welcome: React.FC = () => {
               <Card className="flex flex-col items-center p-6 h-full hover:bg-accent transition-colors">
                 <CardHeader>
                   <UserPlus className="h-16 w-16 text-primary mb-4" />
-                  <CardTitle className="text-2xl">Fazer Cadastro</CardTitle>
+                  <CardTitle className="text-2xl">Fazer Login ou Cadastro</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
                   <CardDescription className="mb-6 text-center">
-                    Registre-se como atleta ou importe inscrições em lote para um evento.
+                    Acesse sua conta ou crie um novo perfil para participar e gerenciar eventos.
                   </CardDescription>
                 </CardContent>
               </Card>

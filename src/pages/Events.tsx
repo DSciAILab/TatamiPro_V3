@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,17 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 
 const Events: React.FC = () => {
-  // Base mock data for events
-  const baseEvents = [
-    { id: '1', name: 'Campeonato Aberto de Verão', status: 'Aberto', date: '2024-12-01', isActive: true },
-    { id: '2', name: 'Copa TatamiPro Inverno', status: 'Fechado', date: '2024-07-15', isActive: true },
-    { id: '3', name: 'Desafio de Faixas Coloridas', status: 'Aberto', date: '2025-03-10', isActive: false },
-  ];
+  // Esta função agora é chamada a cada renderização para garantir que os dados mais recentes do localStorage sejam exibidos.
+  const getEvents = () => {
+    const baseEvents = [
+      { id: '1', name: 'Campeonato Aberto de Verão', status: 'Aberto', date: '2024-12-01', isActive: true },
+      { id: '2', name: 'Copa TatamiPro Inverno', status: 'Fechado', date: '2024-07-15', isActive: true },
+      { id: '3', name: 'Desafio de Faixas Coloridas', status: 'Aberto', date: '2025-03-10', isActive: false },
+    ];
 
-  const [events, setEvents] = useState(baseEvents);
-
-  useEffect(() => {
-    // Load events from localStorage, merging with base events
     const storedEventsListRaw = localStorage.getItem('events');
     let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
     if (storedEventsListRaw) {
@@ -29,20 +26,21 @@ const Events: React.FC = () => {
       }
     }
 
-    // Combine base events with stored events, prioritizing stored data
     const combinedEventsMap = new Map<string, typeof baseEvents[0]>();
     baseEvents.forEach(event => combinedEventsMap.set(event.id, event));
     storedEventsList.forEach(event => combinedEventsMap.set(event.id, event));
 
-    setEvents(Array.from(combinedEventsMap.values()));
-  }, []); // Empty dependency array means this runs once on mount
+    return Array.from(combinedEventsMap.values());
+  };
+
+  const events = getEvents();
 
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Eventos</h1>
         {localStorage.getItem('userRole') === 'admin' && (
-          <Link to="/events/create"> {/* Adicionado Link para a página de criação */}
+          <Link to="/events/create">
             <Button>Criar Novo Evento</Button>
           </Link>
         )}
@@ -50,17 +48,30 @@ const Events: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => (
-          <Card key={event.id} className={cn({ 'opacity-50 grayscale': !event.isActive })}>
-            <CardHeader>
-              <CardTitle>{event.name}</CardTitle>
-              <CardDescription>Status: {event.status} | Data: {event.date}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to={`/events/${event.id}`}>
-                <Button className="w-full" disabled={!event.isActive}>Ver Detalhes</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <Link
+            to={`/events/${event.id}`}
+            key={event.id}
+            className={cn({ 'pointer-events-none': !event.isActive })}
+            aria-disabled={!event.isActive}
+          >
+            <Card
+              className={cn(
+                "h-full transition-colors",
+                { 'opacity-50 grayscale': !event.isActive },
+                event.isActive && "hover:bg-accent"
+              )}
+            >
+              <CardHeader>
+                <CardTitle>{event.name}</CardTitle>
+                <CardDescription>Status: {event.status} | Data: {event.date}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {event.isActive ? "Clique para ver os detalhes" : "Este evento está inativo"}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </Layout>
