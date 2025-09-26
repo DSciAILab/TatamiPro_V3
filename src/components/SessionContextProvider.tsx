@@ -25,6 +25,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const navigate = useNavigate();
 
   const fetchUserProfile = async (userId: string) => {
+    console.log('Fetching user profile for userId:', userId); // Log 1
     const { data, error } = await supabase
       .from('profiles')
       .select('role, club')
@@ -39,19 +40,24 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       localStorage.removeItem('userRole');
       localStorage.removeItem('userClub');
     } else if (data) {
+      console.log('User profile data fetched:', data); // Log 2
       setUserRole(data.role);
       setUserClub(data.club);
       localStorage.setItem('userRole', data.role);
+      console.log('userRole set in localStorage:', data.role); // Log 3
       if (data.club) {
         localStorage.setItem('userClub', data.club);
+        console.log('userClub set in localStorage:', data.club); // Log 4
       } else {
         localStorage.removeItem('userClub');
+        console.log('userClub removed from localStorage'); // Log 5
       }
     }
   };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('Auth state change event:', event, 'Session:', currentSession); // Log 6
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         setSession(currentSession);
         setUser(currentSession?.user || null);
@@ -69,6 +75,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         setUserClub(null);
         localStorage.removeItem('userRole');
         localStorage.removeItem('userClub');
+        console.log('User signed out, userRole and userClub removed from localStorage'); // Log 7
         // Redirect unauthenticated users to login page
         if (window.location.pathname !== '/auth') {
           navigate('/auth');
@@ -87,6 +94,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
     // Fetch initial session and profile
     supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      console.log('Initial session fetch:', initialSession); // Log 8
       setSession(initialSession);
       setUser(initialSession?.user || null);
       if (initialSession?.user) {
@@ -102,6 +110,10 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    console.log('SessionContext - Current userRole state:', userRole); // Log 9
+  }, [userRole]);
 
   return (
     <SessionContext.Provider value={{ session, user, userRole, userClub, isLoading }}>
