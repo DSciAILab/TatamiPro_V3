@@ -5,13 +5,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Corrigido aqui
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Match, Athlete, Bracket, FightResultType, Event } from '@/types/index';
 import { UserRound, Trophy, ArrowLeft, ArrowRight, List } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
@@ -24,6 +34,7 @@ const FightDetail: React.FC = () => {
   const [selectedResultType, setSelectedResultType] = useState<FightResultType | undefined>(undefined);
   const [resultDetails, setResultDetails] = useState<string | undefined>(undefined);
   const [showPostFightOptions, setShowPostFightOptions] = useState(false);
+  const [showRoundEndDialog, setShowRoundEndDialog] = useState(false); // Novo estado para o diálogo
 
   useEffect(() => {
     if (eventId && divisionId && matchId) {
@@ -195,6 +206,15 @@ const FightDetail: React.FC = () => {
       handleUpdateBracket(updatedBracket);
       showSuccess(`Resultado da luta ${currentMatch.matchNumber} registrado!`);
       setShowPostFightOptions(true);
+
+      // Check if this is the last fight of the round (excluding third-place match for this check)
+      if (currentMatch.round > 0) { // Only for main bracket rounds
+        const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];
+        const allMatchesInRoundCompleted = currentRoundMatches.every(m => m.winnerId !== undefined);
+        if (allMatchesInRoundCompleted) {
+          setShowRoundEndDialog(true);
+        }
+      }
     } else {
       showError("Luta não encontrada no bracket.");
     }
@@ -204,7 +224,11 @@ const FightDetail: React.FC = () => {
     if (!currentBracket || !currentMatch) return undefined;
 
     const currentRoundIndex = currentBracket.rounds.findIndex(r => r.some(m => m.id === currentMatch.id));
-    if (currentRoundIndex === -1) return undefined;
+    
+    // If current match is a third-place match, there's no "next" in the main bracket flow
+    if (currentMatch.round === -1) {
+      return undefined;
+    }
 
     const currentMatchIndex = currentBracket.rounds[currentRoundIndex].findIndex(m => m.id === currentMatch.id);
 
@@ -218,7 +242,7 @@ const FightDetail: React.FC = () => {
       return currentBracket.rounds[currentRoundIndex + 1][0];
     }
 
-    // If it's the final match, check for third place match if not played
+    // If it's the final match of the main bracket, check for third place match if not played
     if (currentRoundIndex === currentBracket.rounds.length - 1 && currentBracket.thirdPlaceMatch && !currentBracket.thirdPlaceMatch.winnerId) {
       return currentBracket.thirdPlaceMatch;
     }
@@ -234,6 +258,22 @@ const FightDetail: React.FC = () => {
       showError("Não há próxima luta disponível.");
       navigate(`/events/${eventId}/manage-fights`);
     }
+  };
+
+  const handleAdvanceToNextRound = () => {
+    setShowRoundEndDialog(false);
+    const nextFight = findNextFight(); // This logic already handles moving to next round or 3rd place
+    if (nextFight) {
+      navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
+    } else {
+      showSuccess("Todas as lutas desta divisão foram concluídas!");
+      navigate(`/events/${eventId}/manage-fights`);
+    }
+  };
+
+  const handleReturnToManageFights = () => {
+    setShowRoundEndDialog(false);
+    navigate(`/events/${eventId}/manage-fights`);
   };
 
   if (!event || !currentMatch || !currentBracket) {
@@ -379,7 +419,7 @@ const FightDetail: React.FC = () => {
             </>
           )}
 
-          {showPostFightOptions && (
+          {showPostFightOptions && !showRoundEndDialog && ( // Esconder se o diálogo de fim de rodada estiver visível
             <div className="flex flex-col gap-2 mt-4">
               <Button onClick={handleNextFight} className="w-full">
                 <ArrowRight className="mr-2 h-4 w-4" /> Próxima Luta
@@ -391,6 +431,26 @@ const FightDetail: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* AlertDialog para o fim da rodada */}
+      <AlertDialog open={showRoundEndDialog} onOpenChange={setShowRoundEndDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fim da Rodada {currentMatch?.round}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as lutas da Rodada {currentMatch?.round} foram concluídas. O que você gostaria de fazer a seguir?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleReturnToManageFights}>
+              Retornar ao Gerenciamento de Lutas
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleAdvanceToNextRound}>
+              Avançar para a Próxima Rodada
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };
