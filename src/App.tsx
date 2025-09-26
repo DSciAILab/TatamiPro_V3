@@ -11,9 +11,12 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
-import AthleteRegistrationPage from "./pages/AthleteRegistrationPage"; // Importa a nova página
+import AthleteRegistrationPage from "./pages/AthleteRegistrationPage";
 import DivisionImport from "./pages/DivisionImport";
-import Index from "./pages/Index";
+import GenerateBrackets from "./pages/GenerateBrackets";
+import ManageFights from "./pages/ManageFights";
+import FightDetail from "./pages/FightDetail";
+import PrintBrackets from "./pages/PrintBrackets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,13 +31,18 @@ const App = () => (
           <SessionContextProvider>
             <Routes>
               <Route path="/" element={<Welcome />} />
+              <Route path="/welcome" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/events" element={<Events />} />
               <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationPage />} /> {/* Usa a nova página */}
+              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationPage />} />
               <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
               <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+              <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
+              <Route path="/events/:id/manage-fights" element={<ManageFights />} />
+              <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
+              <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
