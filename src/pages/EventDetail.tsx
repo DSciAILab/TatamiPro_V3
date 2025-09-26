@@ -17,7 +17,7 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution';
-import LLMChat from '@/components/LLMChat'; // Importar o novo componente
+import LLMChat from '@/components/LLMChat';
 import { Athlete, Event, Division, Bracket } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -32,8 +32,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import BracketView from '@/components/BracketView';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { cn } from '@/lib/utils';
-import { useLanguage } from '@/context/language-context';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { useTranslations } from '@/hooks/use-translations';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +48,7 @@ const EventDetail: React.FC = () => {
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
   const navigate = useNavigate();
-  const { language } = useLanguage();
+  const { t } = useTranslations();
 
   const [event, setEvent] = useState<Event | null>(() => {
     let tempDivisions: Division[] = [];
@@ -537,21 +537,15 @@ const EventDetail: React.FC = () => {
     setCheckInFilter(prevFilter => (prevFilter === filterType ? 'all' : filterType));
   };
 
-  const getTranslatedText = (key: string) => {
-    const translations: Record<string, Record<string, string>> = {
-      pt: {
-        welcomeMessage: "Bem-vindo ao TatamiPro!",
-        generalSettings: "Configurações Gerais",
-        languageDemo: "Este é um texto de demonstração para o idioma.",
-      },
-      en: {
-        welcomeMessage: "Welcome to TatamiPro!",
-        generalSettings: "General Settings",
-        languageDemo: "This is a language demonstration text.",
-      },
-    };
-    return translations[language]?.[key] || key;
-  };
+  const visibleTabs = [
+    userRole === 'admin' && { value: 'config', label: 'Config' },
+    { value: 'inscricoes', label: 'Inscrições' },
+    isAttendanceMandatory && { value: 'attendance', label: 'Attendance' },
+    userRole && { value: 'checkin', label: 'Check-in' },
+    { value: 'brackets', label: 'Brackets' },
+    { value: 'resultados', label: 'Resultados' },
+    { value: 'llm', label: 'LLM (Q&A)' },
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab));
 
   return (
     <Layout>
@@ -559,18 +553,10 @@ const EventDetail: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          {userRole === 'admin' && (
-            <TabsTrigger value="config">Config</TabsTrigger>
-          )}
-          <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
-          {(userRole && (userRole === 'admin' || !isAttendanceMandatory)) && (
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          )}
-          {userRole && <TabsTrigger value="checkin">Check-in</TabsTrigger>}
-          <TabsTrigger value="brackets">Brackets</TabsTrigger>
-          <TabsTrigger value="resultados">Resultados</TabsTrigger>
-          <TabsTrigger value="llm">LLM (Q&A)</TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-${visibleTabs.length}`}>
+          {visibleTabs.map(tab => (
+            <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
+          ))}
         </TabsList>
 
         {userRole === 'admin' && (
@@ -589,121 +575,105 @@ const EventDetail: React.FC = () => {
                   </TabsList>
 
                   <TabsContent value="event-settings" className="mt-6">
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold flex items-center justify-between">
-                        {getTranslatedText('generalSettings')}
-                        <LanguageToggle />
-                      </h3>
-                      <p className="text-muted-foreground">{getTranslatedText('languageDemo')}</p>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="event-active"
-                          checked={isActive}
-                          onCheckedChange={setIsActive}
-                        />
-                        <Label htmlFor="event-active">Evento Ativo</Label>
-                      </div>
-                      <h3 className="text-xl font-semibold mt-6">Configurações de Check-in</h3>
+                    <div className="space-y-6">
                       <div>
-                        <Label htmlFor="checkInStartTime">Início do Check-in</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={"outline"}
-                              className="w-full justify-start text-left font-normal"
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={checkInStartTime}
-                              onSelect={(date) => {
-                                if (date) {
-                                  const newDate = new Date(date);
-                                  if (checkInStartTime) {
-                                    newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
-                                  } else {
-                                    newDate.setHours(9, 0);
-                                  }
-                                  setCheckInStartTime(newDate);
-                                }
-                              }}
-                              initialFocus
-                            />
-                            <div className="p-3 border-t border-border">
-                              <Input
-                                type="time"
-                                value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
-                                onChange={(e) => {
-                                  const [hours, minutes] = e.target.value.split(':').map(Number);
-                                  if (checkInStartTime) {
-                                    const newDate = new Date(checkInStartTime);
-                                    newDate.setHours(hours, minutes);
-                                    setCheckInStartTime(newDate);
-                                  } else {
-                                    const newDate = new Date();
-                                    newDate.setHours(hours, minutes);
-                                    setCheckInStartTime(newDate);
-                                  }
-                                }}
-                              />
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                        <h3 className="text-xl font-semibold flex items-center justify-between mb-2">
+                          {t('generalSettings')}
+                          <LanguageToggle />
+                        </h3>
+                        <p className="text-muted-foreground">{t('languageDemo')}</p>
+                        <div className="flex items-center space-x-2 mt-4">
+                          <Switch
+                            id="event-active"
+                            checked={isActive}
+                            onCheckedChange={setIsActive}
+                          />
+                          <Label htmlFor="event-active">Evento Ativo</Label>
+                        </div>
                       </div>
+
                       <div>
-                        <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={"outline"}
-                              className="w-full justify-start text-left font-normal"
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={checkInEndTime}
-                              onSelect={(date) => {
-                                if (date) {
-                                  const newDate = new Date(date);
-                                  if (checkInEndTime) {
-                                    newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
-                                  } else {
-                                    newDate.setHours(17, 0);
-                                  }
-                                  setCheckInEndTime(newDate);
-                                }
-                              }}
-                              initialFocus
-                            />
-                            <div className="p-3 border-t border-border">
-                              <Input
-                                type="time"
-                                value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
-                                onChange={(e) => {
-                                  const [hours, minutes] = e.target.value.split(':').map(Number);
-                                  if (checkInEndTime) {
-                                    const newDate = new Date(checkInEndTime);
-                                    newDate.setHours(hours, minutes);
-                                    setCheckInEndTime(newDate);
-                                  } else {
-                                    const newDate = new Date();
-                                    newDate.setHours(hours, minutes);
-                                    setCheckInEndTime(newDate);
-                                  }
-                                }}
-                              />
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                        <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <Label htmlFor="checkInStartTime">Início do Check-in</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant={"outline"} className="w-full justify-start text-left font-normal">
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={checkInStartTime}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      const newDate = new Date(date);
+                                      if (checkInStartTime) newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
+                                      else newDate.setHours(9, 0);
+                                      setCheckInStartTime(newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                />
+                                <div className="p-3 border-t border-border">
+                                  <Input
+                                    type="time"
+                                    value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
+                                    onChange={(e) => {
+                                      const [hours, minutes] = e.target.value.split(':').map(Number);
+                                      const newDate = checkInStartTime ? new Date(checkInStartTime) : new Date();
+                                      newDate.setHours(hours, minutes);
+                                      setCheckInStartTime(newDate);
+                                    }}
+                                  />
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant={"outline"} className="w-full justify-start text-left font-normal">
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={checkInEndTime}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      const newDate = new Date(date);
+                                      if (checkInEndTime) newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
+                                      else newDate.setHours(17, 0);
+                                      setCheckInEndTime(newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                />
+                                <div className="p-3 border-t border-border">
+                                  <Input
+                                    type="time"
+                                    value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
+                                    onChange={(e) => {
+                                      const [hours, minutes] = e.target.value.split(':').map(Number);
+                                      const newDate = checkInEndTime ? new Date(checkInEndTime) : new Date();
+                                      newDate.setHours(hours, minutes);
+                                      setCheckInEndTime(newDate);
+                                    }}
+                                  />
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
                       </div>
+
                       <div>
                         <Label htmlFor="numFightAreas">Número de Áreas de Luta</Label>
                         <Input
@@ -714,45 +684,28 @@ const EventDetail: React.FC = () => {
                           onChange={(e) => setNumFightAreas(Number(e.target.value))}
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="attendance-mandatory"
-                          checked={isAttendanceMandatory}
-                          onCheckedChange={setIsAttendanceMandatory}
-                        />
-                        <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="weight-check-enabled"
-                          checked={isWeightCheckEnabled}
-                          onCheckedChange={setIsWeightCheckEnabled}
-                        />
-                        <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso no Check-in</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="belt-grouping-enabled"
-                          checked={isBeltGroupingEnabled}
-                          onCheckedChange={setIsBeltGroupingEnabled}
-                        />
-                        <Label htmlFor="belt-grouping-enabled">Habilitar Faixa no Agrupamento de Divisões</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="overweight-auto-move-enabled"
-                          checked={isOverweightAutoMoveEnabled}
-                          onCheckedChange={setIsOverweightAutoMoveEnabled}
-                        />
-                        <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso para próxima categoria</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="include-third-place"
-                          checked={includeThirdPlace}
-                          onCheckedChange={setIncludeThirdPlace}
-                        />
-                        <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch id="attendance-mandatory" checked={isAttendanceMandatory} onCheckedChange={setIsAttendanceMandatory} />
+                          <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="weight-check-enabled" checked={isWeightCheckEnabled} onCheckedChange={setIsWeightCheckEnabled} />
+                          <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="belt-grouping-enabled" checked={isBeltGroupingEnabled} onCheckedChange={setIsBeltGroupingEnabled} />
+                          <Label htmlFor="belt-grouping-enabled">Agrupar Divisões por Faixa</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="overweight-auto-move-enabled" checked={isOverweightAutoMoveEnabled} onCheckedChange={setIsOverweightAutoMoveEnabled} />
+                          <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="include-third-place" checked={includeThirdPlace} onCheckedChange={setIncludeThirdPlace} />
+                          <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
+                        </div>
                       </div>
                     </div>
                     <CheckInMandatoryFieldsConfig eventId={event.id} />
@@ -1079,7 +1032,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {(userRole && (userRole === 'admin' || !isAttendanceMandatory)) && (
+        {isAttendanceMandatory && (
           <TabsContent value="attendance" className="mt-6">
             <AttendanceManagement
               eventId={event.id}

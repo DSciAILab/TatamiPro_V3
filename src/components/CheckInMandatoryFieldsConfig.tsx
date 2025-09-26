@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { showSuccess } from '@/utils/toast'; // Removed showError
+import { showSuccess } from '@/utils/toast';
 
 interface CheckInMandatoryFieldsConfigProps {
   eventId: string;
@@ -40,6 +39,7 @@ const CheckInMandatoryFieldsConfig: React.FC<CheckInMandatoryFieldsConfigProps> 
 
   const handleToggle = (field: string, checked: boolean) => {
     setConfig(prev => ({ ...prev, [field]: checked }));
+    showSuccess('Configuração salva!');
   };
 
   const fieldsToConfigure = [
@@ -68,7 +68,6 @@ const CheckInMandatoryFieldsConfig: React.FC<CheckInMandatoryFieldsConfigProps> 
           </div>
         ))}
       </div>
-      <Button onClick={() => showSuccess('Configuração salva!')}>Salvar Configuração</Button>
     </div>
   );
 };

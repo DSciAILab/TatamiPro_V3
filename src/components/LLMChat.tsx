@@ -43,7 +43,7 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
       const { data, error } = await supabase.functions.invoke('chat-with-event', {
         body: { query: input, eventData: event },
         responseType: 'stream',
-      });
+      } as any);
 
       if (error) throw error;
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { showSuccess } from '@/utils/toast';
 import { LogOut } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations'; // Importar o hook
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const { t } = useTranslations(); // Usar o hook
   const userName = localStorage.getItem('userName');
   const userRole = localStorage.getItem('userRole');
 
@@ -38,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           <nav className="flex items-center space-x-2">
             <Link to="/events">
-              <Button variant="ghost">Eventos</Button>
+              <Button variant="ghost">{t('events')}</Button>
             </Link>
             <ModeToggle />
             {userRole && (
