@@ -1,6 +1,6 @@
 "use client";
 
-import { Athlete, Division, AthleteBelt, Gender, DivisionGender, DivisionBelt, AgeCategory } from '@/types/index'; // Updated imports
+import { Athlete, Division, AthleteBelt, Gender, DivisionGender, DivisionBelt, AgeCategory } from '@/types/index';
 import { format } from 'date-fns';
 
 // Helper para obter a categoria de idade
@@ -48,7 +48,7 @@ const ageCategoryOrder: AgeCategory[] = [
 export const findPossibleDivisions = (athlete: Athlete, divisions: Division[]): Division[] => {
   const possibleDivisions = divisions.filter(div =>
     div.isEnabled &&
-    (div.gender === 'Ambos' || div.gender === athlete.gender) &&
+    (div.gender === 'Both' || div.gender === athlete.gender) && // Updated to English
     (div.belt === 'Todas' || div.belt === athlete.belt) &&
     athlete.age >= div.minAge && athlete.age <= div.maxAge &&
     athlete.weight > div.minWeight && athlete.weight <= div.maxWeight
@@ -56,11 +56,11 @@ export const findPossibleDivisions = (athlete: Athlete, divisions: Division[]): 
 
   // Sort divisions for consistent assignment
   possibleDivisions.sort((a, b) => {
-    // 1. Gênero (Ambos primeiro, depois Masculino, Feminino)
-    if (a.gender === 'Ambos' && b.gender !== 'Ambos') return -1;
-    if (b.gender === 'Ambos' && a.gender !== 'Ambos') return 1;
-    if (a.gender === 'Masculino' && b.gender === 'Feminino') return -1;
-    if (a.gender === 'Feminino' && b.gender === 'Masculino') return 1;
+    // 1. Gênero (Both first, then Male, Female)
+    if (a.gender === 'Both' && b.gender !== 'Both') return -1;
+    if (b.gender === 'Both' && a.gender !== 'Both') return 1;
+    if (a.gender === 'Male' && b.gender === 'Female') return -1; // Updated to English
+    if (a.gender === 'Female' && b.gender === 'Male') return 1; // Updated to English
 
     // 2. Categoria de Idade
     const ageAIndex = ageCategoryOrder.indexOf(a.ageCategoryName);
