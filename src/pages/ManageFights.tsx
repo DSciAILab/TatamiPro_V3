@@ -19,6 +19,7 @@ const ManageFights: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedMat, setSelectedMat] = useState<string | null>(null);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null); // Chave da categoria (e.g., "Masculino/Adult/Preta")
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null); // NOVO: ID da divisão selecionada
 
   useEffect(() => {
     if (eventId) {
@@ -59,6 +60,11 @@ const ManageFights: React.FC = () => {
     });
   };
 
+  const handleSelectCategory = (categoryKey: string, divisionId: string) => {
+    setSelectedCategoryKey(categoryKey);
+    setSelectedDivisionId(divisionId);
+  };
+
   if (!event) {
     return (
       <Layout>
@@ -84,7 +90,7 @@ const ManageFights: React.FC = () => {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
-            <Select value={selectedMat || ''} onValueChange={(value) => { setSelectedMat(value); setSelectedCategoryKey(null); }}>
+            <Select value={selectedMat || ''} onValueChange={(value) => { setSelectedMat(value); setSelectedCategoryKey(null); setSelectedDivisionId(null); }}>
               <SelectTrigger id="mat-select">
                 <SelectValue placeholder="Selecione um Mat" />
               </SelectTrigger>
@@ -101,13 +107,13 @@ const ManageFights: React.FC = () => {
               event={event}
               selectedMat={selectedMat}
               selectedCategoryKey={selectedCategoryKey}
-              onSelectCategory={setSelectedCategoryKey}
+              onSelectCategory={handleSelectCategory}
             />
           )}
         </CardContent>
       </Card>
 
-      {selectedMat && selectedCategoryKey && event.brackets && (
+      {selectedMat && selectedCategoryKey && selectedDivisionId && event.brackets && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -119,6 +125,7 @@ const ManageFights: React.FC = () => {
             <FightList
               event={event}
               selectedCategoryKey={selectedCategoryKey}
+              selectedDivisionId={selectedDivisionId} // Passa o ID da divisão
               onUpdateBracket={handleUpdateBracket}
             />
           </CardContent>

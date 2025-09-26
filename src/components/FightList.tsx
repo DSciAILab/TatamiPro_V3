@@ -10,31 +10,20 @@ import { showSuccess, showError } from '@/utils/toast';
 interface FightListProps {
   event: Event;
   selectedCategoryKey: string; // e.g., "Masculino/Adult/Preta"
+  selectedDivisionId: string; // NOVO: ID da divisão
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
 }
 
-const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, onUpdateBracket }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
   const { divisions, athletes, brackets, isBeltGroupingEnabled } = event;
 
-  const relevantDivisionIds = useMemo(() => {
-    // Find all division IDs that match the selected category key
-    return divisions.filter(div => {
-      let divKey: string;
-      if (isBeltGroupingEnabled) {
-        divKey = `${div.gender}/${div.ageCategoryName}/${div.belt}`;
-      } else {
-        divKey = `${div.gender}/${div.ageCategoryName}`;
-      }
-      return divKey === selectedCategoryKey;
-    }).map(div => div.id);
-  }, [divisions, selectedCategoryKey, isBeltGroupingEnabled]);
-
+  // O bracket agora é buscado diretamente pelo selectedDivisionId
   const currentBracket = useMemo(() => {
-    // For simplicity, we'll assume one bracket per category key for now.
-    // In a more complex scenario, you might need to combine brackets or select one.
-    if (!brackets || relevantDivisionIds.length === 0) return null;
-    return brackets[relevantDivisionIds[0]];
-  }, [brackets, relevantDivisionIds]);
+    if (!brackets || !selectedDivisionId) return null;
+    const bracket = brackets[selectedDivisionId];
+    // console.log('FightList: currentBracket found', bracket); // Debug log
+    return bracket;
+  }, [brackets, selectedDivisionId]);
 
   const athletesMap = useMemo(() => {
     return new Map(athletes.map(athlete => [athlete.id, athlete]));

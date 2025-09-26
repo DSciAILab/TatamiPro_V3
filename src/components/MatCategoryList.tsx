@@ -10,7 +10,7 @@ interface MatCategoryListProps {
   event: Event;
   selectedMat: string;
   selectedCategoryKey: string | null;
-  onSelectCategory: (categoryKey: string) => void;
+  onSelectCategory: (categoryKey: string, divisionId: string) => void; // Adicionado divisionId
 }
 
 interface CategoryGroup {
@@ -82,7 +82,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
             <Button
               key={group.key}
               variant={selectedCategoryKey === group.key ? 'default' : 'outline'}
-              onClick={() => onSelectCategory(group.key)}
+              onClick={() => onSelectCategory(group.key, group.divisionIds[0])} // Passa o primeiro divisionId
               className={cn(
                 "justify-start",
                 selectedCategoryKey === group.key ? "bg-primary text-primary-foreground" : ""
