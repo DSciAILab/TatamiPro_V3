@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,17 +8,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; // Importar Input para as configurações de admin
+import { Input } from '@/components/ui/input';
 import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
-import CheckInForm from '@/components/CheckInForm'; // Novo import
-import { Athlete, Event } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon } from 'lucide-react'; // Novos imports: CheckCircle, XCircle, Scale icons, CalendarIcon
+import CheckInForm from '@/components/CheckInForm';
+import QrCodeScanner from '@/components/QrCodeScanner'; // Novo import
+import DivisionTable from '@/components/DivisionTable'; // Novo import
+import { Athlete, Event, WeightAttempt, Division } from '../types/index'; // Importar Division
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search } from 'lucide-react'; // Novo import: Search icon
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString } from '@/utils/athlete-utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Para o seletor de data/hora
-import { Calendar } from '@/components/ui/calendar'; // Para o seletor de data/hora
-import { format, parseISO, isValid } from 'date-fns'; // Para formatar e parsear datas
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, parseISO, isValid } from 'date-fns';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +28,8 @@ const EventDetail: React.FC = () => {
   const userRole = localStorage.getItem('userRole');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>(''); // Estado para busca manual
+  const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null); // Estado para atleta escaneado
 
   const [event, setEvent] = useState<Event | null>(() => {
     const processAthleteData = (athleteData: any): Athlete => {
@@ -40,8 +44,9 @@ const EventDetail: React.FC = () => {
         ageDivision,
         weightDivision,
         registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
-        checkInStatus: athleteData.checkInStatus || 'pending', // Default to 'pending'
+        checkInStatus: athleteData.checkInStatus || 'pending',
         registeredWeight: athleteData.registeredWeight || undefined,
+        weightAttempts: athleteData.weightAttempts || [], // Inicializar weightAttempts
       };
     };
 
@@ -61,6 +66,7 @@ const EventDetail: React.FC = () => {
     const existingEventData = localStorage.getItem(`event_${id}`);
     let existingAthletes: Athlete[] = [];
     let eventSettings = {};
+    let existingDivisions: Division[] = []; // Para carregar divisões
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -70,6 +76,7 @@ const EventDetail: React.FC = () => {
           checkInEndTime: parsedEvent.checkInEndTime,
           numFightAreas: parsedEvent.numFightAreas,
         };
+        existingDivisions = parsedEvent.divisions || []; // Carregar divisões existentes
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -82,6 +89,7 @@ const EventDetail: React.FC = () => {
       status: 'Aberto',
       date: '2024-12-01',
       athletes: [...existingAthletes, ...initialImportedAthletes],
+      divisions: existingDivisions, // Adicionar divisões ao estado inicial
       ...eventSettings,
     };
   });
@@ -141,13 +149,13 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight') => {
+  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
     if (event) {
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           athlete.id === athleteId
-            ? { ...athlete, registeredWeight, checkInStatus: status }
+            ? { ...athlete, registeredWeight, checkInStatus: status, weightAttempts }
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -206,6 +214,16 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  const handleUpdateDivisions = (updatedDivisions: Division[]) => {
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      return {
+        ...prevEvent,
+        divisions: updatedDivisions,
+      };
+    });
+  };
+
   if (!event) {
     return (
       <Layout>
@@ -237,6 +255,26 @@ const EventDetail: React.FC = () => {
 
   const isCheckInAllowed = userRole === 'admin' || isCheckInTimeValid();
 
+  // Filtragem de atletas para o check-in
+  const filteredAthletesForCheckIn = useMemo(() => {
+    let athletesToFilter = sortedApprovedAthletes;
+
+    if (scannedAthleteId) {
+      athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
+    } else if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      athletesToFilter = athletesToFilter.filter(athlete =>
+        athlete.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.club.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.ageDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.weightDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    }
+    return athletesToFilter;
+  }, [sortedApprovedAthletes, searchTerm, scannedAthleteId]);
+
   return (
     <Layout>
       <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
@@ -252,6 +290,7 @@ const EventDetail: React.FC = () => {
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
+              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger> {/* Nova aba */}
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
@@ -331,11 +370,34 @@ const EventDetail: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {sortedApprovedAthletes.length === 0 ? (
-                <p className="text-muted-foreground">Nenhum atleta aprovado para check-in ainda.</p>
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                  <QrCodeScanner onScanSuccess={(id) => {
+                    setScannedAthleteId(id);
+                    setSearchTerm(''); // Limpa a busca manual ao escanear
+                    showSuccess(`Atleta ${id} escaneado!`);
+                  }} />
+                </div>
+                <div className="flex-1 relative">
+                  <Input
+                    type="text"
+                    placeholder="Buscar atleta (nome, clube, divisão...)"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setScannedAthleteId(null); // Limpa o atleta escaneado ao digitar
+                    }}
+                    className="pr-10"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+
+              {filteredAthletesForCheckIn.length === 0 ? (
+                <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
               ) : (
                 <ul className="space-y-4">
-                  {sortedApprovedAthletes.map((athlete) => (
+                  {filteredAthletesForCheckIn.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                       <div className="flex items-center space-x-3 flex-grow">
                         {athlete.photoUrl ? (
@@ -349,26 +411,28 @@ const EventDetail: React.FC = () => {
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete)}</p>
                           {athlete.registeredWeight && (
-                            <p className="text-xs text-gray-500">Peso registrado: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                            <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {athlete.checkInStatus === 'checked_in' && (
-                          <span className="flex items-center text-green-600 font-semibold text-sm">
-                            <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
-                          </span>
-                        )}
-                        {athlete.checkInStatus === 'overweight' && (
-                          <span className="flex items-center text-red-600 font-semibold text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Overweight ({athlete.registeredWeight}kg)
-                          </span>
-                        )}
-                        {athlete.checkInStatus === 'pending' && (
-                          <span className="flex items-center text-orange-500 font-semibold text-sm">
-                            <Scale className="h-4 w-4 mr-1" /> Pendente
-                          </span>
-                        )}
+                      <div className="flex flex-col items-end space-y-2">
+                        <div className="flex items-center space-x-2">
+                          {athlete.checkInStatus === 'checked_in' && (
+                            <span className="flex items-center text-green-600 font-semibold text-sm">
+                              <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
+                            </span>
+                          )}
+                          {athlete.checkInStatus === 'overweight' && (
+                            <span className="flex items-center text-red-600 font-semibold text-sm">
+                              <XCircle className="h-4 w-4 mr-1" /> Overweight ({athlete.registeredWeight}kg)
+                            </span>
+                          )}
+                          {athlete.checkInStatus === 'pending' && (
+                            <span className="flex items-center text-orange-500 font-semibold text-sm">
+                              <Scale className="h-4 w-4 mr-1" /> Pendente
+                            </span>
+                          )}
+                        </div>
                         <CheckInForm athlete={athlete} onCheckIn={handleCheckInAthlete} isCheckInAllowed={isCheckInAllowed} />
                       </div>
                     </li>
@@ -599,6 +663,21 @@ const EventDetail: React.FC = () => {
                       </ul>
                     </>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="divisions" className="mt-6"> {/* Nova aba de divisões */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gerenciar Divisões do Evento</CardTitle>
+                  <CardDescription>Configure as divisões de idade, peso, gênero e faixa para este evento.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Link to={`/events/${event.id}/import-divisions`}>
+                    <Button className="w-full">Importar Divisões em Lote</Button>
+                  </Link>
+                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
                 </CardContent>
               </Card>
             </TabsContent>

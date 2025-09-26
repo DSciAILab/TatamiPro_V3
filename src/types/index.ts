@@ -1,3 +1,9 @@
+export interface WeightAttempt {
+  weight: number;
+  timestamp: Date;
+  status: 'checked_in' | 'overweight';
+}
+
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
@@ -24,7 +30,20 @@ export interface Athlete {
   paymentProofUrl?: string; // Novo: URL do comprovante de pagamento
   registrationStatus: 'under_approval' | 'approved' | 'rejected'; // Novo: Status da inscrição
   checkInStatus: 'pending' | 'checked_in' | 'overweight'; // Novo: Status do check-in
-  registeredWeight?: number; // Novo: Peso registrado no check-in
+  registeredWeight?: number; // Novo: Último peso registrado no check-in
+  weightAttempts: WeightAttempt[]; // Novo: Log de tentativas de pesagem
+}
+
+export interface Division {
+  id: string;
+  name: string;
+  minAge: number;
+  maxAge: number;
+  minWeight: number;
+  maxWeight: number;
+  gender: 'Masculino' | 'Feminino' | 'Ambos';
+  belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas';
+  isEnabled: boolean; // Para habilitar/desabilitar no evento
 }
 
 export interface Event {
@@ -37,4 +56,5 @@ export interface Event {
   checkInStartTime?: string; // Novo: Horário de início do check-in (ISO string)
   checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
   numFightAreas?: number; // Novo: Número de áreas de luta
+  divisions: Division[]; // Novo: Divisões configuradas para o evento
 }

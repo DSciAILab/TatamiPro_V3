@@ -102,8 +102,9 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         consentVersion: '1.0',
         paymentProofUrl,
         registrationStatus: 'under_approval',
-        checkInStatus: 'pending', // Adicionado: status inicial do check-in
-        registeredWeight: undefined, // Adicionado: peso registrado inicialmente indefinido
+        checkInStatus: 'pending',
+        registeredWeight: undefined,
+        weightAttempts: [], // Inicializado como array vazio
       };
 
       onRegister(newAthlete);

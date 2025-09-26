@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -14,60 +12,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Athlete } from '@/types/index';
-import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
+import { Division } from '@/types/index';
 
-// Define os campos mínimos esperados no arquivo de importação
-const requiredAthleteFields = {
-  fullName: 'Nome do Atleta',
-  dateOfBirth: 'Data de Nascimento',
-  belt: 'Faixa',
-  weight: 'Peso',
-  phone: 'Telefone',
-  email: 'Email',
-  idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
-  club: 'Clube',
+// Define os campos mínimos esperados no arquivo de importação para divisões
+const requiredDivisionFields = {
+  name: 'Nome da Divisão',
+  minAge: 'Idade Mínima',
+  maxAge: 'Idade Máxima',
+  minWeight: 'Peso Mínimo',
+  maxWeight: 'Peso Máximo',
   gender: 'Gênero',
-  nationality: 'Nacionalidade', // Adicionado
+  belt: 'Faixa',
 };
 
-type RequiredAthleteField = keyof typeof requiredAthleteFields;
+type RequiredDivisionField = keyof typeof requiredDivisionFields;
 
 // Esquema de validação para os dados de entrada do CSV
 const importSchema = z.object({
-  fullName: z.string().min(2, { message: 'Nome completo é obrigatório.' }),
-  dateOfBirth: z.string().transform((str, ctx) => {
-    try {
-      const date = parseISO(str); // Tenta parsear como ISO 8601
-      if (isNaN(date.getTime())) {
-        throw new Error('Formato de data inválido. Use YYYY-MM-DD.');
-      }
-      return date;
-    } catch (e: any) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: e.message,
-      });
-      return z.NEVER;
-    }
-  }),
-  belt: z.enum(['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'], { message: 'Faixa inválida.' }),
-  weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
-  email: z.string().email({ message: 'Email inválido.' }),
-  idNumber: z.string().optional(), // Pode ser Emirates ID ou School ID
-  club: z.string().min(1, { message: 'Clube é obrigatório.' }),
+  name: z.string().min(1, { message: 'Nome da divisão é obrigatório.' }),
+  minAge: z.coerce.number().min(0, { message: 'Idade mínima deve ser >= 0.' }),
+  maxAge: z.coerce.number().min(0, { message: 'Idade máxima deve ser >= 0.' }),
+  minWeight: z.coerce.number().min(0, { message: 'Peso mínimo deve ser >= 0.' }),
+  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }),
   gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
     if (lowerStr === 'feminino' || lowerStr === 'female') return 'Feminino';
+    if (lowerStr === 'ambos' || lowerStr === 'both') return 'Ambos';
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Gênero inválido. Use "Masculino", "Feminino", "Male" ou "Female".',
+      message: 'Gênero inválido. Use "Masculino", "Feminino" ou "Ambos".',
     });
     return z.NEVER;
-  }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>,
-  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Adicionado
+  }) as z.ZodType<'Masculino' | 'Feminino' | 'Ambos'>,
+  belt: z.string().transform((str, ctx) => {
+    const lowerStr = str.toLowerCase();
+    if (lowerStr === 'branca' || lowerStr === 'white') return 'Branca';
+    if (lowerStr === 'azul' || lowerStr === 'blue') return 'Azul';
+    if (lowerStr === 'roxa' || lowerStr === 'purple') return 'Roxa';
+    if (lowerStr === 'marrom' || lowerStr === 'brown') return 'Marrom';
+    if (lowerStr === 'preta' || lowerStr === 'black') return 'Preta';
+    if (lowerStr === 'todas' || lowerStr === 'all') return 'Todas';
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Faixa inválida. Use "Branca", "Azul", "Roxa", "Marrom", "Preta" ou "Todas".',
+    });
+    return z.NEVER;
+  }) as z.ZodType<'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas'>,
+}).refine(data => data.minAge <= data.maxAge, {
+  message: 'Idade mínima não pode ser maior que a idade máxima.',
+  path: ['minAge'],
+}).refine(data => data.minWeight <= data.maxWeight, {
+  message: 'Peso mínimo não pode ser maior que o peso máximo.',
+  path: ['minWeight'],
 });
 
 interface ImportResult {
@@ -76,18 +73,18 @@ interface ImportResult {
   reason: string;
 }
 
-const BatchAthleteImport: React.FC = () => {
+const DivisionImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
-  const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => {
-    const initialMapping: Partial<Record<RequiredAthleteField, string | undefined>> = {};
-    Object.keys(requiredAthleteFields).forEach(key => {
-      initialMapping[key as RequiredAthleteField] = undefined;
+  const [columnMapping, setColumnMapping] = useState<Record<RequiredDivisionField, string | undefined>>(() => {
+    const initialMapping: Partial<Record<RequiredDivisionField, string | undefined>> = {};
+    Object.keys(requiredDivisionFields).forEach(key => {
+      initialMapping[key as RequiredDivisionField] = undefined;
     });
-    return initialMapping as Record<RequiredAthleteField, string | undefined>;
+    return initialMapping as Record<RequiredDivisionField, string | undefined>;
   });
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: ImportResult[] } | null>(null);
   const [step, setStep] = useState<'upload' | 'map' | 'review' | 'results'>('upload');
@@ -96,7 +93,7 @@ const BatchAthleteImport: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
       setFile(uploadedFile);
-      setImportResults(null); // Reset results on new file upload
+      setImportResults(null);
 
       Papa.parse(uploadedFile, {
         header: true,
@@ -115,12 +112,11 @@ const BatchAthleteImport: React.FC = () => {
           setCsvData(results.data);
           setStep('map');
 
-          // Tenta mapear automaticamente as colunas
-          const autoMapping: Partial<Record<RequiredAthleteField, string | undefined>> = {};
-          Object.entries(requiredAthleteFields).forEach(([fieldKey, fieldLabel]) => {
+          const autoMapping: Partial<Record<RequiredDivisionField, string | undefined>> = {};
+          Object.entries(requiredDivisionFields).forEach(([fieldKey, fieldLabel]) => {
             const foundHeader = headers.find(header => header.toLowerCase().includes(fieldLabel.toLowerCase().replace(/ /g, '')));
             if (foundHeader) {
-              autoMapping[fieldKey as RequiredAthleteField] = foundHeader;
+              autoMapping[fieldKey as RequiredDivisionField] = foundHeader;
             }
           });
           setColumnMapping(prev => ({ ...prev, ...autoMapping }));
@@ -136,14 +132,14 @@ const BatchAthleteImport: React.FC = () => {
     }
   };
 
-  const handleMappingChange = (field: RequiredAthleteField, csvColumn: string) => {
+  const handleMappingChange = (field: RequiredDivisionField, csvColumn: string) => {
     setColumnMapping(prev => ({ ...prev, [field]: csvColumn }));
   };
 
   const validateMapping = () => {
-    for (const field of Object.keys(requiredAthleteFields) as RequiredAthleteField[]) {
+    for (const field of Object.keys(requiredDivisionFields) as RequiredDivisionField[]) {
       if (!columnMapping[field]) {
-        showError(`O campo "${requiredAthleteFields[field]}" não foi mapeado.`);
+        showError(`O campo "${requiredDivisionFields[field]}" não foi mapeado.`);
         return false;
       }
     }
@@ -155,11 +151,11 @@ const BatchAthleteImport: React.FC = () => {
       return;
     }
 
-    const successfulAthletes: Athlete[] = [];
+    const successfulDivisions: Division[] = [];
     const failedImports: ImportResult[] = [];
 
     csvData.forEach((row, index) => {
-      const rowNumber = index + 2; // +1 for 0-index, +1 for header row
+      const rowNumber = index + 2;
       try {
         const mappedData: Record<string, any> = {};
         for (const [fieldKey, csvColumn] of Object.entries(columnMapping)) {
@@ -176,58 +172,33 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality } = parsed.data;
-
-        // Split fullName into firstName and lastName
-        const nameParts = fullName.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-        const ageDivision = getAgeDivision(age);
-        const weightDivision = getWeightDivision(weight);
-
-        const newAthlete: Athlete = {
-          id: `athlete-${Date.now()}-${index}`, // Unique ID
-          eventId: eventId!,
-          firstName,
-          lastName,
-          dateOfBirth,
-          age,
-          club,
-          gender,
-          belt,
-          weight,
-          nationality,
-          ageDivision,
-          weightDivision,
-          email,
-          phone,
-          emiratesId: idNumber, // Assuming ID maps to emiratesId for now
-          schoolId: undefined, // Not explicitly mapped
-          consentAccepted: true, // Assuming consent for batch import
-          consentDate: new Date(),
-          consentVersion: '1.0',
-          registrationStatus: 'under_approval',
-          checkInStatus: 'pending',
-          registeredWeight: undefined,
-          weightAttempts: [], // Inicializado como array vazio
+        const newDivision: Division = {
+          id: `division-${Date.now()}-${index}`,
+          ...parsed.data,
+          isEnabled: true, // Default to enabled
         };
-        successfulAthletes.push(newAthlete);
+        successfulDivisions.push(newDivision);
       } catch (error: any) {
         failedImports.push({ row: rowNumber, data: row, reason: error.message || 'Erro desconhecido' });
       }
     });
 
-    // Store successful athletes in localStorage for EventDetail to pick up
-    if (successfulAthletes.length > 0) {
-      const existingImportedAthletes = JSON.parse(localStorage.getItem(`importedAthletes_${eventId}`) || '[]') as Athlete[];
-      const updatedImportedAthletes = [...existingImportedAthletes, ...successfulAthletes];
-      localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(updatedImportedAthletes));
+    // Load existing event data to merge divisions
+    const existingEventData = localStorage.getItem(`event_${eventId}`);
+    let currentEvent = { divisions: [] };
+    if (existingEventData) {
+      try {
+        currentEvent = JSON.parse(existingEventData);
+      } catch (e) {
+        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
+      }
     }
 
+    const updatedDivisions = [...(currentEvent.divisions || []), ...successfulDivisions];
+    localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, divisions: updatedDivisions }));
+
     setImportResults({
-      success: successfulAthletes.length,
+      success: successfulDivisions.length,
       failed: failedImports.length,
       errors: failedImports,
     });
@@ -250,7 +221,7 @@ const BatchAthleteImport: React.FC = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `erros_importacao_atletas_evento_${eventId}.csv`);
+    link.setAttribute('download', `erros_importacao_divisoes_evento_${eventId}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -260,16 +231,16 @@ const BatchAthleteImport: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Importar Atletas em Lote para Evento #{eventId}</h1>
+        <h1 className="text-3xl font-bold">Importar Divisões em Lote para Evento #{eventId}</h1>
         <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Importação de Atletas</CardTitle>
+          <CardTitle>Importação de Divisões</CardTitle>
           <CardDescription>
-            {step === 'upload' && 'Faça upload de um arquivo CSV para iniciar a importação de atletas.'}
-            {step === 'map' && 'Mapeie as colunas do seu arquivo CSV para os campos de atleta.'}
+            {step === 'upload' && 'Faça upload de um arquivo CSV para iniciar a importação de divisões.'}
+            {step === 'map' && 'Mapeie as colunas do seu arquivo CSV para os campos de divisão.'}
             {step === 'review' && 'Revise os dados antes de finalizar a importação.'}
             {step === 'results' && 'Resultados da importação.'}
           </CardDescription>
@@ -277,10 +248,10 @@ const BatchAthleteImport: React.FC = () => {
         <CardContent>
           {step === 'upload' && (
             <div className="space-y-4">
-              <Label htmlFor="athlete-file">Arquivo CSV</Label>
-              <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
+              <Label htmlFor="division-file">Arquivo CSV</Label>
+              <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Male/Female), Nacionalidade.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Idade Mínima, Idade Máxima, Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas).
               </p>
             </div>
           )}
@@ -289,15 +260,15 @@ const BatchAthleteImport: React.FC = () => {
             <div className="space-y-6">
               <h3 className="text-xl font-semibold">Mapeamento de Colunas</h3>
               <p className="text-muted-foreground">
-                Selecione a coluna do seu arquivo CSV que corresponde a cada campo de atleta.
+                Selecione a coluna do seu arquivo CSV que corresponde a cada campo de divisão.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(requiredAthleteFields).map(([fieldKey, fieldLabel]) => (
+                {Object.entries(requiredDivisionFields).map(([fieldKey, fieldLabel]) => (
                   <div key={fieldKey} className="flex flex-col space-y-1.5">
                     <Label htmlFor={`map-${fieldKey}`}>{fieldLabel}</Label>
                     <Select
-                      onValueChange={(value) => handleMappingChange(fieldKey as RequiredAthleteField, value)}
-                      value={columnMapping[fieldKey as RequiredAthleteField] || ''}
+                      onValueChange={(value) => handleMappingChange(fieldKey as RequiredDivisionField, value)}
+                      value={columnMapping[fieldKey as RequiredDivisionField] || ''}
                     >
                       <SelectTrigger id={`map-${fieldKey}`}>
                         <SelectValue placeholder={`Selecione a coluna para ${fieldLabel}`} />
@@ -319,10 +290,10 @@ const BatchAthleteImport: React.FC = () => {
             <div className="space-y-6">
               <h3 className="text-xl font-semibold">Resultados da Importação</h3>
               <p className="text-lg">
-                Atletas importados com sucesso: <span className="font-bold text-green-600">{importResults.success}</span>
+                Divisões importadas com sucesso: <span className="font-bold text-green-600">{importResults.success}</span>
               </p>
               <p className="text-lg">
-                Atletas descartados: <span className="font-bold text-red-600">{importResults.failed}</span>
+                Divisões descartadas: <span className="font-bold text-red-600">{importResults.failed}</span>
               </p>
 
               {importResults.errors.length > 0 && (
@@ -360,4 +331,4 @@ const BatchAthleteImport: React.FC = () => {
   );
 };
 
-export default BatchAthleteImport;
+export default DivisionImport;
