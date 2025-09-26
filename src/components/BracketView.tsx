@@ -44,29 +44,61 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   const totalRounds = bracket.rounds.length;
 
   // Definindo alturas e espaçamentos base para o cálculo do layout
-  const cardHeight = 100; // Altura aproximada de um BracketMatchCard
+  const cardHeight = 100; // Altura aproximada de um BracketMatchCard (ajuste se o design do card mudar)
   const baseVerticalGap = 20; // Espaçamento vertical entre as lutas na primeira rodada
-  const matchCardTotalHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
+  const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
 
-  // Pré-calcula os `marginTop` para o primeiro card de cada rodada e entre os cards da mesma rodada
-  const { initialMarginTops, interMatchMarginTops } = useMemo(() => {
-    const initialMts: number[] = [];
-    const interMts: number[] = [];
+  // Calcula as posições Y (top) e os margin-tops para cada luta
+  const { matchYtops, matchMarginTops } = useMemo(() => {
+    const yTops: Map<string, number> = new Map();
+    const marginTops: Map<string, number> = new Map();
 
-    initialMts[0] = 0; // O primeiro card da primeira rodada não tem margin-top inicial
-    interMts[0] = baseVerticalGap; // Espaçamento padrão entre cards na primeira rodada
+    // 1. Calcular a posição Y (top) absoluta de cada luta dentro de sua coluna
+    bracket.rounds.forEach((round, roundIndex) => {
+      round.forEach((match, matchIndex) => {
+        if (roundIndex === 0) {
+          // Primeira rodada: empilhamento simples
+          yTops.set(match.id, matchIndex * matchFullHeight);
+        } else {
+          // Rodadas subsequentes: centralizar entre os pais
+          const prevRound = bracket.rounds[roundIndex - 1];
+          const parent1 = prevRound[matchIndex * 2];
+          const parent2 = prevRound[matchIndex * 2 + 1];
 
-    for (let r = 1; r < totalRounds; r++) {
-      // O margin-top inicial de uma rodada é o margin-top inicial da rodada anterior
-      // mais metade do espaçamento entre os cards da rodada anterior.
-      initialMts[r] = initialMts[r - 1] + interMts[r - 1] / 2;
-      
-      // O margin-top entre os cards de uma rodada subsequente aumenta exponencialmente
-      // para criar o efeito de pirâmide.
-      interMts[r] = (Math.pow(2, r) * matchCardTotalHeight) - cardHeight;
-    }
-    return { initialMarginTops: initialMts, interMatchMarginTops: interMts };
-  }, [totalRounds]);
+          if (parent1 && parent2) {
+            const center1 = yTops.get(parent1.id)! + cardHeight / 2;
+            const center2 = yTops.get(parent2.id)! + cardHeight / 2;
+            const midPoint = (center1 + center2) / 2;
+            yTops.set(match.id, midPoint - cardHeight / 2);
+          } else {
+            // Fallback, embora não deva acontecer em brackets válidos
+            yTops.set(match.id, 0);
+          }
+        }
+      });
+    });
+
+    // 2. Calcular o margin-top para cada luta com base nas posições Y absolutas
+    bracket.rounds.forEach((round, roundIndex) => {
+      round.forEach((match, matchIndex) => {
+        const currentYTop = yTops.get(match.id)!;
+        let calculatedMarginTop = 0;
+
+        if (matchIndex === 0) {
+          // O primeiro card da rodada tem seu margin-top igual à sua posição Y absoluta
+          calculatedMarginTop = currentYTop;
+        } else {
+          // Cards subsequentes na mesma rodada: margin-top é o espaço do final do card anterior até o início do atual
+          const prevMatchInRound = round[matchIndex - 1];
+          const prevYTop = yTops.get(prevMatchInRound.id)!;
+          calculatedMarginTop = currentYTop - (prevYTop + cardHeight);
+        }
+        marginTops.set(match.id, calculatedMarginTop);
+      });
+    });
+
+    return { matchYtops: yTops, matchMarginTops: marginTops };
+  }, [bracket]); // Recalcular se o bracket mudar
 
   return (
     <Card className="p-4">
@@ -87,9 +119,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                     <div
                       key={match.id}
                       style={{
-                        // Aplica o margin-top calculado para o primeiro card da rodada
-                        // ou o margin-top calculado entre os cards da mesma rodada.
-                        marginTop: matchIndex === 0 ? `${initialMarginTops[roundIndex]}px` : `${interMatchMarginTops[roundIndex]}px`,
+                        marginTop: `${matchMarginTops.get(match.id) || 0}px`,
                       }}
                     >
                       <BracketMatchCard
