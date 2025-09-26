@@ -39,7 +39,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       } else if (event === 'INITIAL_SESSION') {
         setSession(currentSession);
         setUser(currentSession?.user || null);
-      } else if (event === 'AUTH_ERROR') {
+      } else if ((event as any) === 'AUTH_ERROR') { // Fixed: Cast event to any for AUTH_ERROR comparison
         showError('Erro de autenticação: ' + (currentSession as any)?.error?.message || 'Erro desconhecido');
       }
       setIsLoading(false);
