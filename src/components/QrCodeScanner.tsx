@@ -28,7 +28,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onScanErro
         false // verbose
       );
 
-      const html5QrcodeSuccessCallback = (decodedText: string, _decodedResult: any) => { // Renamed to _decodedResult
+      const html5QrcodeSuccessCallback = (decodedText: string, decodedResult: any) => {
         onScanSuccess(decodedText);
         setIsScanning(false); // Stop scanning after success
         scannerRef.current?.clear().catch(error => {

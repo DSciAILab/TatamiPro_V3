@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
-import { Division, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index'; // Importar tipos
+import { Division, Belt, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index'; // Importar tipos
 import { showSuccess, showError } from '@/utils/toast';
 
 interface DivisionTableProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,15 +9,11 @@ import { UserPlus, Upload } from 'lucide-react';
 
 const RegistrationOptions: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
   return (
     <Layout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Opções de Inscrição</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
-      </div>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-128px)] text-center">
+        <h1 className="text-4xl font-bold mb-6 text-primary">Opções de Inscrição</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
           Selecione como você gostaria de registrar atletas para o evento {eventId ? `#${eventId}` : 'selecionado'}.
         </p>

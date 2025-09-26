@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
-import { parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -18,13 +19,14 @@ import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
-  fullName: 'Nome Completo', // Agora lida com o nome completo
+  firstName: 'Nome', // Separado de fullName
+  lastName: 'Sobrenome', // Separado de fullName
   dateOfBirth: 'Data de Nascimento',
   belt: 'Faixa',
   weight: 'Peso',
-  phone: 'Telefone', // Será opcional no esquema
-  email: 'Email',   // Será opcional no esquema
-  idNumber: 'ID (Emirates ID ou School ID)', // Permanece obrigatório via refine
+  phone: 'Telefone',
+  email: 'Email',
+  idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
   club: 'Clube',
   gender: 'Gênero',
   nationality: 'Nacionalidade',
@@ -37,12 +39,8 @@ const baseRequiredAthleteFields = {
 type RequiredAthleteField = keyof typeof baseRequiredAthleteFields;
 
 // Define os esquemas base para campos de importação
-const importFullNameSchema = z.string()
-  .min(1, { message: 'Nome completo é obrigatório.' })
-  .transform(str => str.replace(/\s+/g, ' ').trim()) // Normaliza espaços
-  .refine(str => str.split(' ').filter(Boolean).length >= 2, { message: 'Nome completo deve conter pelo menos duas palavras.' }) // Não aceita um único nome
-  .transform(str => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')); // Capitaliza a primeira letra de cada palavra
-
+const importFirstNameSchema = z.string().min(2, { message: 'Nome é obrigatório.' });
+const importLastNameSchema = z.string().min(2, { message: 'Sobrenome é obrigatório.' });
 const importDateOfBirthSchema = z.string().transform((str, ctx) => {
   try {
     const date = parseISO(str);
@@ -54,49 +52,27 @@ const importDateOfBirthSchema = z.string().transform((str, ctx) => {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: e.message });
     return z.NEVER;
   }
-}).pipe(z.date());
+}).pipe(z.date()); // Garante que o tipo final é Date
 
 const importBeltSchema = z.string().transform((str, ctx) => {
   const lowerStr = str.toLowerCase();
   const validBelts = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta', 'white', 'grey', 'gray', 'yellow', 'orange', 'green', 'blue', 'purple', 'brown', 'black'];
-  if (validBelts.includes(lowerStr)) {
-    // Retorna a versão padronizada em português para o tipo Belt
-    if (lowerStr === 'white') return 'Branca';
-    if (lowerStr === 'grey' || lowerStr === 'gray') return 'Cinza';
-    if (lowerStr === 'yellow') return 'Amarela';
-    if (lowerStr === 'orange') return 'Laranja';
-    if (lowerStr === 'green') return 'Verde';
-    if (lowerStr === 'blue') return 'Azul';
-    if (lowerStr === 'purple') return 'Roxa';
-    if (lowerStr === 'brown') return 'Marrom';
-    if (lowerStr === 'black') return 'Preta';
-    return str as Belt; // Se já estiver em português, mantém
-  }
+  if (validBelts.includes(lowerStr)) return str as Belt;
   ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Faixa inválida.' });
   return z.NEVER;
-}).pipe(z.enum(['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta']));
+}).pipe(z.enum(['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'])); // Garante que o tipo final é Belt
 
 const importWeightSchema = z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' });
-
-// Email e Telefone agora são opcionais
-const importPhoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164).' }).optional().or(z.literal(''));
-const importEmailSchema = z.string().email({ message: 'Email inválido.' }).optional().or(z.literal(''));
-
+const importPhoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164).' });
+const importEmailSchema = z.string().email({ message: 'Email inválido.' });
 const importClubSchema = z.string().min(1, { message: 'Clube é obrigatório.' });
-
 const importGenderSchema = z.string().transform((str, ctx) => {
   const lowerStr = str.toLowerCase();
   const validGenders = ['masculino', 'feminino', 'outro', 'male', 'female', 'other'];
-  if (validGenders.includes(lowerStr)) {
-    // Retorna a versão padronizada em português para o tipo Gender
-    if (lowerStr === 'male') return 'Masculino';
-    if (lowerStr === 'female') return 'Feminino';
-    if (lowerStr === 'other') return 'Outro';
-    return str as Gender; // Se já estiver em português, mantém
-  }
+  if (validGenders.includes(lowerStr)) return str as Gender;
   ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Gênero inválido.' });
   return z.NEVER;
-}).pipe(z.enum(['Masculino', 'Feminino', 'Outro']));
+}).pipe(z.enum(['Masculino', 'Feminino', 'Outro'])); // Garante que o tipo final é Gender
 
 const importNationalitySchema = z.string().min(2, { message: 'Nacionalidade é obrigatória.' });
 
@@ -114,6 +90,7 @@ interface ImportResult {
 const BatchAthleteImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [file, setFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => {
@@ -141,36 +118,37 @@ const BatchAthleteImport: React.FC = () => {
       nationality: true,
       email: true,
       phone: true,
-      photo: false,
-      emiratesIdFront: false,
-      emiratesIdBack: false,
-      paymentProof: false,
+      photoUrl: false,
+      emiratesIdFrontUrl: false,
+      emiratesIdBackUrl: false,
+      paymentProofUrl: false,
     };
   }, [eventId]);
 
   // Função para criar o esquema de validação dinamicamente
   const createDynamicImportSchema = (config: Record<string, boolean>) => {
     const schemaDefinition = {
-      fullName: importFullNameSchema,
+      firstName: importFirstNameSchema,
+      lastName: importLastNameSchema,
       dateOfBirth: importDateOfBirthSchema,
       belt: importBeltSchema,
       weight: importWeightSchema,
-      phone: importPhoneSchema, // Sempre opcional para importação
-      email: importEmailSchema,   // Sempre opcional para importação
+      phone: importPhoneSchema,
+      email: importEmailSchema,
       idNumber: importIdNumberSchema,
       club: importClubSchema,
       gender: importGenderSchema,
       nationality: importNationalitySchema,
-      photoUrl: config.photo
+      photoUrl: config.photoUrl
         ? z.string().url({ message: 'URL da foto de perfil inválida.' }).min(1, { message: 'URL da foto de perfil é obrigatória.' })
         : importUrlSchema,
-      emiratesIdFrontUrl: config.emiratesIdFront
+      emiratesIdFrontUrl: config.emiratesIdFrontUrl
         ? z.string().url({ message: 'URL da frente do EID inválida.' }).min(1, { message: 'URL da frente do EID é obrigatória.' })
         : importUrlSchema,
-      emiratesIdBackUrl: config.emiratesIdBack
+      emiratesIdBackUrl: config.emiratesIdBackUrl
         ? z.string().url({ message: 'URL do verso do EID inválida.' }).min(1, { message: 'URL do verso do EID é obrigatória.' })
         : importUrlSchema,
-      paymentProofUrl: config.paymentProof
+      paymentProofUrl: config.paymentProofUrl
         ? z.string().url({ message: 'URL do comprovante de pagamento inválida.' }).min(1, { message: 'URL do comprovante de pagamento é obrigatória.' })
         : importUrlSchema,
     };
@@ -189,14 +167,16 @@ const BatchAthleteImport: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
+      setFile(uploadedFile);
       setImportResults(null); // Reset results on new file upload
 
       Papa.parse(uploadedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results: Papa.ParseResult<any>) => { // Added type annotation
+        complete: (results) => {
           if (results.errors.length) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
+            setFile(null);
             setCsvHeaders([]);
             setCsvData([]);
             setStep('upload');
@@ -219,6 +199,7 @@ const BatchAthleteImport: React.FC = () => {
         },
         error: (err: any) => {
           showError('Erro ao ler o arquivo: ' + err.message);
+          setFile(null);
           setCsvHeaders([]);
           setCsvData([]);
           setStep('upload');
@@ -233,10 +214,8 @@ const BatchAthleteImport: React.FC = () => {
 
   const validateMapping = () => {
     for (const field of Object.keys(baseRequiredAthleteFields) as RequiredAthleteField[]) {
-      // Campos que são sempre obrigatórios para importação (conforme solicitação do usuário e lógica existente)
-      const alwaysMandatoryForImport = ['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'];
-      const isMandatory = alwaysMandatoryForImport.includes(field);
-
+      // Campos que são SEMPRE obrigatórios ou obrigatórios via config
+      const isMandatory = mandatoryFieldsConfig[field] || ['firstName', 'lastName', 'dateOfBirth', 'belt', 'weight', 'phone', 'email', 'idNumber', 'club', 'gender', 'nationality'].includes(field);
       if (isMandatory && !columnMapping[field]) {
         showError(`O campo "${baseRequiredAthleteFields[field]}" não foi mapeado.`);
         return false;
@@ -271,23 +250,15 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
-
-        const nameParts = fullName.split(' ').filter(Boolean);
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' '); // O restante do nome como sobrenome
+        const { firstName, lastName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
 
         const age = new Date().getFullYear() - dateOfBirth.getFullYear();
         const ageDivision = getAgeDivision(age);
         const weightDivision = getWeightDivision(weight);
 
-        const athleteId = `ath-${Date.now()}-${index}`; // Gerar um ID de atleta único
-        const registrationQrCodeId = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
-
         const newAthlete: Athlete = {
-          id: athleteId, // Unique ID
+          id: `athlete-${Date.now()}-${index}`, // Unique ID
           eventId: eventId!,
-          registrationQrCodeId, // Adicionar o ID do QR Code
           firstName,
           lastName,
           dateOfBirth,
@@ -299,14 +270,14 @@ const BatchAthleteImport: React.FC = () => {
           nationality,
           ageDivision,
           weightDivision,
-          email: email || '', // Garante que email é string, mesmo se opcional
-          phone: phone || '', // Garante que phone é string, mesmo se opcional
-          emiratesId: idNumber, // Assumindo que ID mapeia para emiratesId por enquanto
-          schoolId: undefined, // Não explicitamente mapeado
+          email,
+          phone,
+          emiratesId: idNumber, // Assuming ID maps to emiratesId for now
+          schoolId: undefined, // Not explicitly mapped
           photoUrl: photoUrl || undefined,
           emiratesIdFrontUrl: emiratesIdFrontUrl || undefined,
           emiratesIdBackUrl: emiratesIdBackUrl || undefined,
-          consentAccepted: true, // Assumindo consentimento para importação em lote
+          consentAccepted: true, // Assuming consent for batch import
           consentDate: new Date(),
           consentVersion: '1.0',
           paymentProofUrl: paymentProofUrl || undefined,
@@ -324,17 +295,9 @@ const BatchAthleteImport: React.FC = () => {
 
     // Store successful athletes in localStorage for EventDetail to pick up
     if (successfulAthletes.length > 0) {
-      const existingEventData = localStorage.getItem(`event_${eventId}`);
-      let currentEvent = { athletes: [] };
-      if (existingEventData) {
-        try {
-          currentEvent = JSON.parse(existingEventData);
-        } catch (e) {
-          console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
-        }
-      }
-      const updatedAthletes = [...(currentEvent.athletes || []), ...successfulAthletes];
-      localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, athletes: updatedAthletes }));
+      const existingImportedAthletes = JSON.parse(localStorage.getItem(`importedAthletes_${eventId}`) || '[]') as Athlete[];
+      const updatedImportedAthletes = [...existingImportedAthletes, ...successfulAthletes];
+      localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(updatedImportedAthletes));
     }
 
     setImportResults({
@@ -372,7 +335,7 @@ const BatchAthleteImport: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Importar Atletas em Lote para Evento #{eventId}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar para o Evento</Button>
+        <Button onClick={() => navigate(`/events/${eventId}/registration-options`)} variant="outline">Voltar para Opções de Inscrição</Button>
       </div>
 
       <Card>
@@ -390,7 +353,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome Completo (pelo menos duas palavras), Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade. Campos opcionais: Telefone (E.164), Email, URL da Foto de Perfil, URL da Frente do EID, URL do Verso do EID, URL do Comprovante de Pagamento.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade. Campos opcionais: URL da Foto de Perfil, URL da Frente do EID, URL do Verso do EID, URL do Comprovante de Pagamento.
               </p>
             </div>
           )}
@@ -406,7 +369,7 @@ const BatchAthleteImport: React.FC = () => {
                   <div key={fieldKey} className="flex flex-col space-y-1.5">
                     <Label htmlFor={`map-${fieldKey}`}>
                       {fieldLabel}
-                      {(['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
+                      {(mandatoryFieldsConfig[fieldKey] || ['firstName', 'lastName', 'dateOfBirth', 'belt', 'weight', 'phone', 'email', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
                     </Label>
                     <Select
                       onValueChange={(value) => handleMappingChange(fieldKey as RequiredAthleteField, value)}
