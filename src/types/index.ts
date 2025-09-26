@@ -62,6 +62,8 @@ export interface Athlete {
   seed?: number; // NOVO: Propriedade para o seed do atleta
 }
 
+export type FightResultType = 'submission' | 'points' | 'decision' | 'disqualification' | 'walkover';
+
 export interface Match {
   id: string;
   round: number; // 1 para a primeira rodada, 2 para a segunda, etc.
@@ -72,6 +74,12 @@ export interface Match {
   loserId?: string; // ID do perdedor
   nextMatchId?: string; // ID da próxima luta para onde o vencedor avança
   prevMatchIds?: [string, string]; // IDs das lutas anteriores que alimentam esta luta
+  result?: { // NOVO: Detalhes do resultado da luta
+    type: FightResultType;
+    winnerId: string;
+    loserId: string;
+    details?: string; // Ex: "Pontos: 6-2", "Finalização: Armlock"
+  };
 }
 
 export interface Bracket {
@@ -81,6 +89,10 @@ export interface Bracket {
   thirdPlaceMatch?: Match; // Luta pelo terceiro lugar, se houver
   bracketSize: number; // Tamanho total do bracket (próxima potência de 2)
   participants: (Athlete | 'BYE')[]; // Lista final de participantes (incluindo BYEs) na ordem do bracket
+  finalists?: [string, string]; // IDs dos finalistas
+  winnerId?: string; // ID do campeão
+  runnerUpId?: string; // ID do vice-campeão
+  thirdPlaceWinnerId?: string; // ID do 3º lugar
 }
 
 export interface Event {

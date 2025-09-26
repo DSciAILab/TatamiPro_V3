@@ -12,7 +12,8 @@ import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
 import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
 import DivisionImport from "./pages/DivisionImport";
-import GenerateBrackets from "./pages/GenerateBrackets"; // Importar a nova página
+import GenerateBrackets from "./pages/GenerateBrackets";
+import ManageFights from "./pages/ManageFights"; // Importar a nova página
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -31,10 +32,11 @@ const App = () => (
             <Route path="/events" element={<Events />} />
             <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} /> {/* Updated: Removed props */}
+            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
             <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
             <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-            <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} /> {/* NOVA ROTA */}
+            <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
+            <Route path="/events/:id/manage-fights" element={<ManageFights />} /> {/* NOVA ROTA */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

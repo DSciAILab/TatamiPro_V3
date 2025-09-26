@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom'; // Importar useNavigate
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsCon
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
 import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react'; // Adicionar Swords
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,6 +43,7 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const navigate = useNavigate(); // Inicializar useNavigate
 
   const [event, setEvent] = useState<Event | null>(() => {
     const processAthleteData = (athleteData: any): Athlete => {
@@ -419,7 +420,11 @@ const EventDetail: React.FC = () => {
     return now >= checkInStartTime && now <= checkInEndTime;
   };
 
-  const isCheckInAllowed = userRole === 'admin' || (isCheckInTimeValid() && (!isAttendanceMandatory || (isAttendanceMandatory && processedApprovedAthletes.every(a => a.attendanceStatus === 'present'))));
+  // ATUALIZADO: Lógica de isCheckInAllowed
+  const isCheckInAllowed = userRole === 'admin' || (
+    isCheckInTimeValid() &&
+    (!isAttendanceMandatory || (isAttendanceMandatory && processedApprovedAthletes.every(a => a.attendanceStatus === 'present')))
+  );
 
   // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
@@ -476,8 +481,8 @@ const EventDetail: React.FC = () => {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          {/* Aba Pesagem removida */}
-          {(!isAttendanceMandatory || userRole === 'admin') && (
+          {/* A aba Attendance agora é sempre visível para admins, e para outros se não for obrigatória */}
+          {(userRole === 'admin' || !isAttendanceMandatory) && (
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
           )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
@@ -784,7 +789,7 @@ const EventDetail: React.FC = () => {
                         <CheckInForm
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
-                          isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'}
+                          isCheckInAllowed={isCheckInAllowed && (isAttendanceMandatory ? athlete.attendanceStatus === 'present' : true)} // ATUALIZADO: Lógica de permissão de check-in
                           divisionMaxWeight={athlete._division?.maxWeight}
                           isWeightCheckEnabled={isWeightCheckEnabled}
                           isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
@@ -800,7 +805,8 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {(!isAttendanceMandatory || userRole === 'admin') && (
+        {/* A aba Attendance agora é sempre visível para admins, e para outros se não for obrigatória */}
+        {(userRole === 'admin' || !isAttendanceMandatory) && (
           <TabsContent value="attendance" className="mt-6">
             <AttendanceManagement
               eventId={event.id}
@@ -817,10 +823,10 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
+              <div className="mb-4 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="w-full mb-2">Distribuição dos Mats</Button>
+                    <Button className="w-full">Distribuição dos Mats</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -838,6 +844,10 @@ const EventDetail: React.FC = () => {
                     <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
                   </Button>
                 </Link>
+                {/* NOVO BOTÃO: Gerenciar Lutas */}
+                <Button className="w-full" variant="outline" onClick={() => navigate(`/events/${event.id}/manage-fights`)}>
+                  <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
+                </Button>
               </div>
               {event.brackets && Object.keys(event.brackets).length > 0 ? (
                 <div className="space-y-4 mt-6">
