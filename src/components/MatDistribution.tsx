@@ -218,7 +218,12 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
                   {matAssignments[matName].map(categoryKey => {
                     const group = allCategoryGroups.find(g => g.key === categoryKey);
                     return (
-                      <li key={categoryKey} className="flex items-center justify-between p-2 border rounded-md bg-secondary/50">
+                      <li
+                        key={categoryKey}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, categoryKey)}
+                        className="flex items-center justify-between p-2 border rounded-md bg-secondary/50 cursor-grab"
+                      >
                         <span className="text-sm">{group?.display} ({group?.athleteCount || 0} atletas)</span>
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveFromMat(matName, categoryKey)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
