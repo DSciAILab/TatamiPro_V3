@@ -11,10 +11,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { UploadCloud, CheckCircle, XCircle } from 'lucide-react';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
-import { showSuccess, showError } from '@/utils/toast';
-import { Athlete, AthleteBelt, Gender } from '@/types/index'; // Usar AthleteBelt e Gender exportados
+import { showSuccess, showError, showWarning } from '@/utils/toast';
+import { Athlete, AthleteBelt, Gender } from '@/types/index';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { format } from 'date-fns';
+import ColumnMappingDialog from '@/components/ColumnMappingDialog'; // Importar o novo componente
+
+// Definir os campos esperados para atletas
+const EXPECTED_ATHLETE_FIELDS = [
+  { key: 'firstName', label: 'Nome', required: true },
+  { key: 'lastName', label: 'Sobrenome', required: true },
+  { key: 'dateOfBirth', label: 'Data de Nascimento (YYYY-MM-DD)', required: true },
+  { key: 'gender', label: 'Gênero (Masculino/Feminino)', required: true },
+  { key: 'nationality', label: 'Nacionalidade', required: true },
+  { key: 'belt', label: 'Faixa (Branca/Azul/etc.)', required: true },
+  { key: 'weight', label: 'Peso (kg)', required: true },
+  { key: 'club', label: 'Clube', required: true },
+  { key: 'email', label: 'Email', required: true },
+  { key: 'phone', label: 'Telefone', required: true },
+  { key: 'idNumber', label: 'Número de Identificação', required: true },
+  { key: 'emiratesId', label: 'Emirates ID', required: false },
+  { key: 'schoolId', label: 'School ID', required: false },
+  { key: 'photoUrl', label: 'URL da Foto', required: false },
+  { key: 'emiratesIdFrontUrl', label: 'URL Frente Emirates ID', required: false },
+  { key: 'emiratesIdBackUrl', label: 'URL Verso Emirates ID', required: false },
+  { key: 'paymentProofUrl', label: 'URL Comprovante de Pagamento', required: false },
+];
 
 const BatchAthleteImport: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -22,22 +44,49 @@ const BatchAthleteImport: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [fileHeaders, setFileHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-      setCsvFile(event.target.files[0]);
+      const file = event.target.files[0];
+      setCsvFile(file);
       setParsedData([]);
       setValidationErrors([]);
+      setFileHeaders([]);
+      setColumnMapping({});
+
+      // Parse apenas os cabeçalhos para o mapeamento
+      Papa.parse(file, {
+        header: true,
+        preview: 1, // Apenas a primeira linha para cabeçalhos
+        complete: (results) => {
+          if (results.meta.fields) {
+            setFileHeaders(results.meta.fields);
+            setShowMappingDialog(true); // Abre o diálogo de mapeamento
+          } else {
+            showError('Não foi possível extrair os cabeçalhos do arquivo CSV.');
+          }
+        },
+        error: (error) => {
+          showError(`Erro ao ler cabeçalhos do CSV: ${error.message}`);
+          console.error('CSV header parsing error:', error);
+        }
+      });
     }
   };
 
-  const handleParseCsv = () => {
-    if (!csvFile) {
-      showError('Por favor, selecione um arquivo CSV.');
-      return;
+  const handleMappingConfirm = (mapping: Record<string, string>) => {
+    setColumnMapping(mapping);
+    // Agora que temos o mapeamento, podemos processar o arquivo completo
+    if (csvFile) {
+      processFullCsv(csvFile, mapping);
     }
+  };
 
-    Papa.parse(csvFile, {
+  const processFullCsv = (file: File, mapping: Record<string, string>) => {
+    Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
@@ -46,17 +95,26 @@ const BatchAthleteImport: React.FC = () => {
           const rowNum = index + 2; // +1 for header, +1 for 0-indexed array
           const athlete: Partial<Athlete> = {};
 
+          // Helper para obter valor mapeado
+          const getMappedValue = (fieldKey: string) => {
+            const header = mapping[fieldKey];
+            return header ? row[header] : undefined;
+          };
+
           // Validate and assign firstName
-          if (!row.firstName) errors.push(`Linha ${rowNum}: Nome (firstName) é obrigatório.`);
-          athlete.firstName = row.firstName;
+          const firstName = getMappedValue('firstName');
+          if (!firstName) errors.push(`Linha ${rowNum}: Nome (firstName) é obrigatório.`);
+          athlete.firstName = firstName;
 
           // Validate and assign lastName
-          if (!row.lastName) errors.push(`Linha ${rowNum}: Sobrenome (lastName) é obrigatório.`);
-          athlete.lastName = row.lastName;
+          const lastName = getMappedValue('lastName');
+          if (!lastName) errors.push(`Linha ${rowNum}: Sobrenome (lastName) é obrigatório.`);
+          athlete.lastName = lastName;
 
           // Validate and assign dateOfBirth
+          const dateOfBirthStr = getMappedValue('dateOfBirth');
           try {
-            const dob = new Date(row.dateOfBirth);
+            const dob = new Date(dateOfBirthStr);
             if (isNaN(dob.getTime())) {
               errors.push(`Linha ${rowNum}: Data de Nascimento (dateOfBirth) inválida.`);
             } else {
@@ -69,25 +127,29 @@ const BatchAthleteImport: React.FC = () => {
           }
 
           // Validate and assign gender
+          const gender = getMappedValue('gender');
           const validGenders: Gender[] = ['Masculino', 'Feminino'];
-          if (!row.gender || !validGenders.includes(row.gender as Gender)) {
+          if (!gender || !validGenders.includes(gender as Gender)) {
             errors.push(`Linha ${rowNum}: Gênero (gender) inválido. Deve ser 'Masculino' ou 'Feminino'.`);
           }
-          athlete.gender = row.gender as Gender;
+          athlete.gender = gender as Gender;
 
           // Validate and assign nationality
-          if (!row.nationality) errors.push(`Linha ${rowNum}: Nacionalidade (nationality) é obrigatória.`);
-          athlete.nationality = row.nationality;
+          const nationality = getMappedValue('nationality');
+          if (!nationality) errors.push(`Linha ${rowNum}: Nacionalidade (nationality) é obrigatória.`);
+          athlete.nationality = nationality;
 
           // Validate and assign belt
+          const belt = getMappedValue('belt');
           const validBelts: AthleteBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
-          if (!row.belt || !validBelts.includes(row.belt as AthleteBelt)) {
+          if (!belt || !validBelts.includes(belt as AthleteBelt)) {
             errors.push(`Linha ${rowNum}: Faixa (belt) inválida.`);
           }
-          athlete.belt = row.belt as AthleteBelt;
+          athlete.belt = belt as AthleteBelt;
 
           // Validate and assign weight
-          const weight = parseFloat(row.weight);
+          const weightStr = getMappedValue('weight');
+          const weight = parseFloat(weightStr);
           if (isNaN(weight) || weight <= 0) {
             errors.push(`Linha ${rowNum}: Peso (weight) inválido. Deve ser um número maior que 0.`);
           } else {
@@ -96,31 +158,35 @@ const BatchAthleteImport: React.FC = () => {
           }
 
           // Validate and assign club
-          if (!row.club) errors.push(`Linha ${rowNum}: Clube (club) é obrigatório.`);
-          athlete.club = row.club;
+          const club = getMappedValue('club');
+          if (!club) errors.push(`Linha ${rowNum}: Clube (club) é obrigatório.`);
+          athlete.club = club;
 
           // Validate and assign email
+          const email = getMappedValue('email');
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!row.email || !emailRegex.test(row.email)) {
+          if (!email || !emailRegex.test(email)) {
             errors.push(`Linha ${rowNum}: Email (email) inválido.`);
           }
-          athlete.email = row.email;
+          athlete.email = email;
 
           // Validate and assign phone
-          if (!row.phone) errors.push(`Linha ${rowNum}: Telefone (phone) é obrigatório.`);
-          athlete.phone = row.phone;
+          const phone = getMappedValue('phone');
+          if (!phone) errors.push(`Linha ${rowNum}: Telefone (phone) é obrigatório.`);
+          athlete.phone = phone;
 
           // Validate and assign idNumber
-          if (!row.idNumber) errors.push(`Linha ${rowNum}: Número de Identificação (idNumber) é obrigatório.`);
-          athlete.idNumber = row.idNumber;
+          const idNumber = getMappedValue('idNumber');
+          if (!idNumber) errors.push(`Linha ${rowNum}: Número de Identificação (idNumber) é obrigatório.`);
+          athlete.idNumber = idNumber;
 
           // Optional fields
-          athlete.emiratesId = row.emiratesId || undefined;
-          athlete.schoolId = row.schoolId || undefined;
-          athlete.photoUrl = row.photoUrl || undefined;
-          athlete.emiratesIdFrontUrl = row.emiratesIdFrontUrl || undefined;
-          athlete.emiratesIdBackUrl = row.emiratesIdBackUrl || undefined;
-          athlete.paymentProofUrl = row.paymentProofUrl || undefined;
+          athlete.emiratesId = getMappedValue('emiratesId') || undefined;
+          athlete.schoolId = getMappedValue('schoolId') || undefined;
+          athlete.photoUrl = getMappedValue('photoUrl') || undefined;
+          athlete.emiratesIdFrontUrl = getMappedValue('emiratesIdFrontUrl') || undefined;
+          athlete.emiratesIdBackUrl = getMappedValue('emiratesIdBackUrl') || undefined;
+          athlete.paymentProofUrl = getMappedValue('paymentProofUrl') || undefined;
 
           athlete.id = uuidv4();
           athlete.consentDate = new Date();
@@ -157,10 +223,9 @@ const BatchAthleteImport: React.FC = () => {
       return;
     }
 
-    // Store imported athletes temporarily in localStorage
     localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(parsedData));
     showSuccess(`${parsedData.length} atletas importados com sucesso!`);
-    navigate(`/events/${eventId}`); // Redirect back to event detail page
+    navigate(`/events/${eventId}`);
   };
 
   return (
@@ -170,10 +235,7 @@ const BatchAthleteImport: React.FC = () => {
           <CardTitle>Importar Atletas em Lote para {eventId}</CardTitle>
           <CardDescription>
             Faça o upload de um arquivo CSV para importar múltiplos atletas de uma vez.
-            <p className="mt-2">O arquivo CSV deve conter as seguintes colunas (case-sensitive):</p>
-            <p className="font-mono text-sm bg-gray-100 p-2 rounded-md mt-1">
-              firstName,lastName,dateOfBirth (YYYY-MM-DD),gender (Masculino/Feminino),nationality,belt (Branca/Azul/etc.),weight (kg),club,email,phone,idNumber (Emirates ID/School ID),emiratesId (opcional),schoolId (opcional),photoUrl (opcional),emiratesIdFrontUrl (opcional),emiratesIdBackUrl (opcional),paymentProofUrl (opcional)
-            </p>
+            Após o upload, você poderá mapear as colunas do seu arquivo para os campos esperados.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,9 +247,6 @@ const BatchAthleteImport: React.FC = () => {
               <Input id="csvFile" type="file" accept=".csv" onChange={handleFileChange} />
               {csvFile && <p className="text-sm text-muted-foreground mt-1">Arquivo selecionado: {csvFile.name}</p>}
             </div>
-            <Button onClick={handleParseCsv} disabled={!csvFile} className="md:self-end">
-              Processar CSV
-            </Button>
           </div>
 
           {validationErrors.length > 0 && (
@@ -247,6 +306,14 @@ const BatchAthleteImport: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <ColumnMappingDialog
+        isOpen={showMappingDialog}
+        onClose={() => setShowMappingDialog(false)}
+        fileHeaders={fileHeaders}
+        expectedFields={EXPECTED_ATHLETE_FIELDS}
+        onConfirm={handleMappingConfirm}
+      />
     </Layout>
   );
 };

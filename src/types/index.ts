@@ -1,8 +1,29 @@
 export type Gender = 'Masculino' | 'Feminino';
+export type DivisionGender = Gender | 'Ambos'; // Novo tipo para gênero de divisão
 export type AthleteBelt = 'Branca' | 'Cinza' | 'Amarela' | 'Laranja' | 'Verde' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta';
-export type DivisionBelt = AthleteBelt | 'Todas';
-export type AgeCategory = 'Kids' | 'Juvenile' | 'Adult' | 'Master 1' | 'Master 2' | 'Master 3' | 'Master 4' | 'Master 5' | 'Master 6' | 'Master 7';
-export type DivisionGender = Gender | 'Ambos';
+export type DivisionBelt = AthleteBelt | 'Todas'; // Novo tipo para faixa de divisão
+export type AgeCategory = 'Kids I' | 'Kids II' | 'Kids III' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master 1' | 'Master 2' | 'Master 3' | 'Master 4' | 'Master 5' | 'Master 6' | 'Master 7'; // Novo tipo para categorias de idade
+
+export type RegistrationStatus = 'pending' | 'under_approval' | 'approved' | 'rejected';
+export type CheckInStatus = 'pending' | 'checked_in' | 'missed';
+export type AttendanceStatus = 'pending' | 'present' | 'absent' | 'private_transportation'; // Adicionado 'private_transportation'
+export type UserRole = 'admin' | 'coach' | 'staff' | 'athlete';
+
+export interface User {
+  id: string;
+  email: string;
+  password?: string; // Senha é opcional para evitar passar em todos os lugares
+  name: string;
+  role: UserRole;
+  club?: string;
+  isActive: boolean;
+}
+
+export interface WeightAttempt { // Nova interface para tentativas de pesagem
+  timestamp: Date;
+  weight: number;
+  success: boolean;
+}
 
 export interface Athlete {
   id: string;
@@ -10,70 +31,70 @@ export interface Athlete {
   lastName: string;
   dateOfBirth: Date;
   age: number;
-  gender: Gender; // Usar o tipo Gender exportado
+  ageDivision: string;
+  gender: Gender;
   nationality: string;
-  belt: AthleteBelt; // Usar o tipo AthleteBelt exportado
-  weight: number; // Peso declarado pelo atleta
+  belt: AthleteBelt;
+  weight: number;
+  weightDivision: string;
   club: string;
   email: string;
   phone: string;
-  idNumber: string; // Emirates ID ou School ID
+  idNumber: string; // RG, CPF, Passaporte, etc.
+  emiratesId?: string;
+  schoolId?: string;
   photoUrl?: string;
-  consentDate: Date;
-  ageDivision: string;
-  weightDivision: string;
-  registrationStatus: 'under_approval' | 'approved' | 'rejected';
-  checkInStatus: 'pending' | 'checked_in' | 'overweight';
-  registeredWeight?: number; // Peso registrado no check-in
-  weightAttempts: WeightAttempt[];
+  emiratesIdFrontUrl?: string;
+  emiratesIdBackUrl?: string;
   paymentProofUrl?: string;
-  attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo status de presença
-  _division?: Division; // Propriedade temporária para armazenar a divisão encontrada
-  emiratesId?: string; // Adicionado
-  schoolId?: string; // Adicionado
-  emiratesIdFrontUrl?: string; // Adicionado
-  emiratesIdBackUrl?: string; // Adicionado
-}
-
-export interface WeightAttempt {
-  weight: number;
-  timestamp: Date;
-  status: 'success' | 'fail'; // Status específico para a tentativa de peso
-}
-
-export interface Division {
-  id: string;
-  name: string;
-  minAge: number;
-  maxAge: number;
-  minWeight: number;
-  maxWeight: number;
-  gender: DivisionGender; // Usar o tipo DivisionGender exportado
-  belt: DivisionBelt; // Usar o tipo DivisionBelt exportado
-  isEnabled: boolean; // Adicionado
-  ageCategoryName: AgeCategory; // Adicionado
+  consentDate: Date;
+  registrationStatus: RegistrationStatus;
+  checkInStatus: CheckInStatus;
+  weightAttempts: WeightAttempt[]; // Usando nova interface WeightAttempt
+  attendanceStatus: AttendanceStatus;
+  eventId?: string; // Opcional, para associar a um evento específico
+  divisionId?: string; // Opcional, para associar a uma divisão específica
+  registeredWeight?: number; // Adicionado registeredWeight
+  _division?: Division; // Propriedade temporária para exibição
 }
 
 export interface Event {
   id: string;
   name: string;
-  description: string;
-  status: 'Aberto' | 'Fechado' | 'Concluído';
-  date: string;
-  athletes: Athlete[];
-  divisions: Division[];
-  checkInStartTime?: string;
-  checkInEndTime?: string;
+  date: Date;
+  location: string;
+  registrationOpenDate: Date;
+  registrationCloseDate: Date;
+  status: 'upcoming' | 'open' | 'closed' | 'completed';
+  description?: string;
+  posterUrl?: string;
+  rulesUrl?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  organizerInfo?: string;
+  maxAthletes?: number;
+  currentAthletesCount?: number;
+  pricePerAthlete?: number;
+  currency?: string;
+  athletes: Athlete[]; // Adicionado athletes
+  divisions: Division[]; // Adicionado divisions
+  checkInStartTime?: string; // Armazenado como string, analisado para Date no componente
+  checkInEndTime?: string; // Armazenado como string, analisado para Date no componente
   numFightAreas?: number;
   isAttendanceMandatoryBeforeCheckIn?: boolean;
 }
 
-export interface User {
+export interface Division {
   id: string;
-  email: string;
-  password?: string; // Apenas para mock, não em produção real
-  role: 'admin' | 'coach' | 'staff' | 'athlete';
-  club?: string;
-  isActive: boolean;
-  name: string; // Nome para exibição
+  eventId: string;
+  name: string;
+  gender: DivisionGender; // Alterado para DivisionGender
+  minAge: number;
+  maxAge: number;
+  ageCategoryName: AgeCategory; // Adicionado ageCategoryName
+  minWeight: number;
+  maxWeight: number;
+  belt: DivisionBelt; // Alterado para DivisionBelt
+  isNoGi: boolean;
+  isEnabled: boolean; // Adicionado isEnabled
 }

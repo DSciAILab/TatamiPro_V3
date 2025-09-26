@@ -4,116 +4,122 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Athlete, WeightAttempt } from '@/types/index';
+import { Athlete, WeightAttempt, CheckInStatus } from '@/types/index'; // Import WeightAttempt
 import { showSuccess, showError } from '@/utils/toast';
-import { Scale, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 interface CheckInFormProps {
   athlete: Athlete;
-  onCheckIn: (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => void;
+  onCheckIn: (athleteId: string, weight: number, status: CheckInStatus, weightAttempts: WeightAttempt[]) => void;
   isCheckInAllowed: boolean;
-  divisionMaxWeight?: number;
+  divisionMaxWeight: number;
 }
 
 const CheckInForm: React.FC<CheckInFormProps> = ({ athlete, onCheckIn, isCheckInAllowed, divisionMaxWeight }) => {
-  const [currentWeight, setCurrentWeight] = useState<number | ''>(athlete.registeredWeight || '');
+  const [currentWeight, setCurrentWeight] = useState<number | ''>(athlete.registeredWeight || ''); // Use registeredWeight
   const [isConfirming, setIsConfirming] = useState(false);
+  const [attempts, setAttempts] = useState<WeightAttempt[]>(athlete.weightAttempts || []);
 
-  const handleCheckIn = () => {
-    if (currentWeight === '' || currentWeight <= 0) {
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCurrentWeight(value === '' ? '' : parseFloat(value));
+  };
+
+  const handleConfirmWeight = () => {
+    if (typeof currentWeight !== 'number' || currentWeight <= 0) {
       showError('Por favor, insira um peso válido.');
       return;
     }
 
-    if (!isCheckInAllowed) {
-      showError('O check-in está fora do horário permitido ou você não tem permissão.');
-      return;
-    }
-
-    const newCheckInStatus: 'checked_in' | 'overweight' =
-      divisionMaxWeight && currentWeight > divisionMaxWeight ? 'overweight' : 'checked_in';
-
-    const attemptStatus: WeightAttempt['status'] = newCheckInStatus === 'checked_in' ? 'success' : 'fail';
-
     const newAttempt: WeightAttempt = {
-      weight: currentWeight,
       timestamp: new Date(),
-      status: attemptStatus, // Usar 'success' ou 'fail'
+      weight: currentWeight,
+      success: currentWeight <= divisionMaxWeight,
     };
 
-    const updatedAttempts = [...athlete.weightAttempts, newAttempt];
+    const updatedAttempts = [...attempts, newAttempt];
+    setAttempts(updatedAttempts);
 
-    onCheckIn(athlete.id, currentWeight, newCheckInStatus, updatedAttempts);
-    showSuccess(`Check-in de ${athlete.firstName} ${newCheckInStatus === 'checked_in' ? 'realizado com sucesso!' : 'com peso acima do limite.'}`);
-    setIsConfirming(false);
+    if (newAttempt.success) {
+      showSuccess(`Peso ${currentWeight}kg registrado com sucesso!`);
+      onCheckIn(athlete.id, currentWeight, 'checked_in', updatedAttempts);
+      setIsConfirming(false);
+    } else {
+      showError(`Peso ${currentWeight}kg excede o limite de ${divisionMaxWeight}kg.`);
+      // If it's the third attempt and it failed, mark as missed
+      if (updatedAttempts.filter(a => !a.success).length >= 3) {
+        onCheckIn(athlete.id, currentWeight, 'missed', updatedAttempts);
+        showError('Limite de tentativas excedido. Atleta desclassificado por peso.');
+      }
+    }
+    setCurrentWeight(''); // Clear input after attempt
   };
 
-  const isOverweight = divisionMaxWeight && currentWeight !== '' && currentWeight > divisionMaxWeight;
+  const lastAttempt = attempts[attempts.length - 1];
+  const hasPassedWeight = lastAttempt?.success;
+  const remainingAttempts = 3 - attempts.filter(a => !a.success).length;
+  const canAttempt = remainingAttempts > 0 && !hasPassedWeight;
 
   return (
-    <div className="flex flex-col items-end space-y-2">
-      <div className="flex items-center space-x-2">
-        <Input
-          type="number"
-          step="0.1"
-          placeholder="Peso (kg)"
-          value={currentWeight}
-          onChange={(e) => setCurrentWeight(Number(e.target.value))}
-          className="w-24 text-right"
-          disabled={!isCheckInAllowed}
-        />
-        <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
-          <AlertDialogTrigger asChild>
-            <Button
-              onClick={() => setIsConfirming(true)}
-              disabled={!isCheckInAllowed || currentWeight === '' || currentWeight <= 0}
-            >
-              <Scale className="mr-1 h-4 w-4" /> Pesar
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar Peso?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Você está prestes a registrar o peso de <span className="font-semibold">{athlete.firstName} {athlete.lastName}</span> como <span className="font-bold text-lg">{currentWeight}kg</span>.
-                {divisionMaxWeight && (
-                  <p className="mt-2">O limite de peso para a divisão é <span className="font-semibold">{divisionMaxWeight}kg</span>.</p>
-                )}
-                {isOverweight && (
-                  <p className="text-red-500 font-bold mt-2">ATENÇÃO: Este atleta está acima do peso para a divisão!</p>
-                )}
-                Tem certeza que deseja continuar?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCheckIn}>Confirmar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="weight-input" className="text-lg">Peso Atual (kg):</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="weight-input"
+            type="number"
+            step="0.1"
+            value={currentWeight}
+            onChange={handleWeightChange}
+            className="w-32 text-lg"
+            disabled={!isCheckInAllowed || !canAttempt || hasPassedWeight}
+          />
+          <Button
+            onClick={handleConfirmWeight}
+            disabled={!isCheckInAllowed || !canAttempt || hasPassedWeight || typeof currentWeight !== 'number' || currentWeight <= 0}
+          >
+            Registrar Peso
+          </Button>
+        </div>
       </div>
-      {athlete.weightAttempts.length > 0 && (
-        <div className="text-xs text-muted-foreground mt-2">
-          <p className="font-semibold">Tentativas de peso:</p>
-          <ul className="list-disc list-inside">
-            {athlete.weightAttempts.map((attempt, index) => (
-              <li key={index}>
-                {format(attempt.timestamp, 'HH:mm')} - {attempt.weight}kg ({attempt.status === 'success' ? 'OK' : 'Overweight'})
+
+      {attempts.length > 0 && (
+        <div className="border rounded-md p-3">
+          <h4 className="font-semibold mb-2">Tentativas de Pesagem:</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {attempts.map((attempt, index) => (
+              <li key={index} className="flex items-center">
+                {format(attempt.timestamp, 'HH:mm')} - {attempt.weight}kg
+                {attempt.success ? (
+                  <span className="ml-2 text-green-600 flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-1" /> OK
+                  </span>
+                ) : (
+                  <span className="ml-2 text-red-600 flex items-center">
+                    <XCircle className="h-4 w-4 mr-1" /> Acima do peso
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+          {!canAttempt && !hasPassedWeight && attempts.length >= 3 && (
+            <p className="text-sm text-red-500 mt-2">Atleta desclassificado por peso.</p>
+          )}
+          {!hasPassedWeight && canAttempt && (
+            <p className="text-sm text-muted-foreground mt-2">Tentativas restantes: {remainingAttempts}</p>
+          )}
+        </div>
+      )}
+
+      {athlete.checkInStatus === 'checked_in' && (
+        <div className="flex items-center text-green-600 font-semibold text-lg">
+          <CheckCircle className="h-5 w-5 mr-2" /> Atleta Pesado e Aprovado!
+        </div>
+      )}
+      {athlete.checkInStatus === 'missed' && (
+        <div className="flex items-center text-red-600 font-semibold text-lg">
+          <XCircle className="h-5 w-5 mr-2" /> Atleta Desclassificado por Peso!
         </div>
       )}
     </div>
