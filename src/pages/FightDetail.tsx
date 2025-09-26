@@ -288,6 +288,11 @@ const FightDetail: React.FC = () => {
     navigate(`/events/${eventId}/manage-fights`);
   };
 
+  const handleReturnToBracket = () => {
+    setShowRoundEndDialog(false);
+    navigate(`/events/${eventId}/generate-brackets`); // Navegar de volta para a página de brackets
+  };
+
   if (!event || !currentMatch || !currentBracket) {
     return (
       <Layout>
@@ -444,6 +449,9 @@ const FightDetail: React.FC = () => {
               <Button variant="outline" onClick={() => navigate(`/events/${eventId}/manage-fights`)} className="w-full">
                 <List className="mr-2 h-4 w-4" /> Voltar para o Gerenciamento de Lutas
               </Button>
+              <Button variant="outline" onClick={handleReturnToBracket} className="w-full"> {/* NOVO BOTÃO */}
+                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o Bracket
+              </Button>
             </div>
           )}
         </CardContent>
@@ -464,6 +472,9 @@ const FightDetail: React.FC = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleAdvanceToNextRound}>
               Avançar para a Próxima Luta no Mat
+            </AlertDialogAction>
+            <AlertDialogAction onClick={handleReturnToBracket}> {/* NOVO BOTÃO */}
+              Voltar para o Bracket
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

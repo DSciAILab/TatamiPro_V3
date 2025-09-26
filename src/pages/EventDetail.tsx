@@ -948,6 +948,7 @@ const EventDetail: React.FC = () => {
                         bracket={bracket}
                         allAthletes={event.athletes}
                         division={division}
+                        eventId={event.id} // Passar eventId
                       />
                     );
                   })}

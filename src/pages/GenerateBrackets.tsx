@@ -181,6 +181,7 @@ const GenerateBrackets: React.FC = () => {
                 bracket={bracket}
                 allAthletes={event.athletes}
                 division={division}
+                eventId={eventId} // Passar eventId
               />
             );
           })}

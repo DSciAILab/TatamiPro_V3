@@ -10,6 +10,7 @@ interface BracketViewProps {
   bracket: Bracket;
   allAthletes: Athlete[];
   division: Division;
+  eventId: string; // NOVO: ID do evento
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -23,7 +24,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division }) => {
+const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId }) => {
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
@@ -134,6 +135,8 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           bracketWinnerId={bracket.winnerId}
                           bracketRunnerUpId={bracket.runnerUpId}
                           bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
+                          eventId={eventId} // Passar eventId
+                          divisionId={bracket.divisionId} // Passar divisionId
                         />
                       </div>
                     ))}
@@ -154,6 +157,8 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
               bracketWinnerId={bracket.winnerId}
               bracketRunnerUpId={bracket.runnerUpId}
               bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
+              eventId={eventId} // Passar eventId
+              divisionId={bracket.divisionId} // Passar divisionId
             />
           </div>
         )}
