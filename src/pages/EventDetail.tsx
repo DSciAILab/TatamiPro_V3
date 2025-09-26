@@ -382,23 +382,23 @@ const EventDetail: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
-          <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="brackets">Brackets</TabsTrigger>
+        <TabsList className="w-full">
+          <TabsTrigger key="inscricoes" value="inscricoes">Inscrições</TabsTrigger>
+          <TabsTrigger key="checkin" value="checkin">Check-in</TabsTrigger>
+          <TabsTrigger key="attendance" value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger key="brackets" value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
-              <TabsTrigger value="admin">Admin</TabsTrigger>
-              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
-              <TabsTrigger value="divisions">Divisões ({eventDivisions.length})</TabsTrigger>
+              <TabsTrigger key="admin" value="admin">Admin</TabsTrigger>
+              <TabsTrigger key="approvals" value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
+              <TabsTrigger key="divisions" value="divisions">Divisões ({eventDivisions.length})</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="resultados">Resultados</TabsTrigger>
-          <TabsTrigger value="llm">LLM (Q&A)</TabsTrigger>
+          <TabsTrigger key="resultados" value="resultados">Resultados</TabsTrigger>
+          <TabsTrigger key="llm" value="llm">LLM (Q&A)</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inscricoes" className="mt-6">
+        <TabsContent key="inscricoes" value="inscricoes" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Gerenciar Inscrições</CardTitle>
@@ -477,7 +477,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="checkin" className="mt-6">
+        <TabsContent key="checkin" value="checkin" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -601,7 +601,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="attendance" className="mt-6">
+        <TabsContent key="attendance" value="attendance" className="mt-6">
           <AttendanceManagement
             eventId={eventId}
             eventDivisions={eventDivisions}
@@ -609,7 +609,7 @@ const EventDetail: React.FC = () => {
           />
         </TabsContent>
 
-        <TabsContent value="brackets" className="mt-6">
+        <TabsContent key="brackets" value="brackets" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Brackets</CardTitle>
@@ -623,7 +623,7 @@ const EventDetail: React.FC = () => {
 
         {userRole === 'admin' && (
           <>
-            <TabsContent value="admin" className="mt-6">
+            <TabsContent key="admin" value="admin" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Administração do Evento</CardTitle>
@@ -741,7 +741,7 @@ const EventDetail: React.FC = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="approvals" className="mt-6">
+            <TabsContent key="approvals" value="approvals" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Aprovações de Inscrição</CardTitle>
@@ -829,7 +829,7 @@ const EventDetail: React.FC = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="divisions" className="mt-6">
+            <TabsContent key="divisions" value="divisions" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Gerenciar Divisões do Evento</CardTitle>
@@ -846,7 +846,7 @@ const EventDetail: React.FC = () => {
           </>
         )}
 
-        <TabsContent value="resultados" className="mt-6">
+        <TabsContent key="resultados" value="resultados" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Resultados</CardTitle>
@@ -858,7 +858,7 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="llm" className="mt-6">
+        <TabsContent key="llm" value="llm" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Perguntas & Respostas (LLM)</CardTitle>
