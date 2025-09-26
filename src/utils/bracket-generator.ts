@@ -1,3 +1,5 @@
+"use client";
+
 import { Athlete, Division, Match, Bracket, DivisionGender, DivisionBelt, AgeCategory } from '@/types/index';
 
 // Helper para obter a próxima potência de 2
@@ -125,19 +127,20 @@ export const generateBracketForDivision = (
   const rounds: Match[][] = [];
   let currentRoundParticipants = initialRoundParticipants;
   let roundNumber = 1;
+  let globalMatchCounter = 0; // Global counter for match IDs
 
-  // 8. Construção da árvore do bracket
+  // 8. Construção da árvore do bracket (Primeira Passagem: Criar Matches)
   while (currentRoundParticipants.length > 1) {
     const matchesInRound: Match[] = [];
-    const nextRoundParticipants: (Athlete | 'BYE' | undefined)[] = []; // Pode ter undefined para vencedores a serem determinados
+    const nextRoundParticipants: (Athlete | 'BYE' | undefined)[] = [];
 
     for (let i = 0; i < currentRoundParticipants.length; i += 2) {
+      globalMatchCounter++; // Increment global counter for each new match
       const fighter1 = currentRoundParticipants[i];
       const fighter2 = currentRoundParticipants[i + 1];
 
-      const matchId = `${division.id}-R${roundNumber}-M${i / 2 + 1}`;
-      const nextMatchId = roundNumber < Math.log2(bracketSize) ? `${division.id}-R${roundNumber + 1}-M${Math.floor(i / 4) + 1}` : undefined;
-
+      const matchId = `${division.id}-M${globalMatchCounter}`; // Use global counter for ID
+      
       let winner: Athlete | 'BYE' | undefined;
       let fighter1Id: string | 'BYE' | undefined = fighter1 === 'BYE' ? 'BYE' : (fighter1 as Athlete)?.id;
       let fighter2Id: string | 'BYE' | undefined = fighter2 === 'BYE' ? 'BYE' : (fighter2 as Athlete)?.id;
@@ -152,20 +155,19 @@ export const generateBracketForDivision = (
         winner = 'BYE';
         nextRoundParticipants.push('BYE');
       } else {
-        // Luta real, vencedor indefinido por enquanto
         nextRoundParticipants.push(undefined); // Placeholder para o vencedor
       }
 
       matchesInRound.push({
         id: matchId,
         round: roundNumber,
-        matchNumber: i / 2 + 1,
+        matchNumber: i / 2 + 1, // This is still match number *within the round*
         fighter1Id: fighter1Id,
         fighter2Id: fighter2Id,
         winnerId: winner === 'BYE' ? 'BYE' : (winner as Athlete)?.id,
         loserId: (winner === fighter1) ? fighter2Id : (winner === fighter2 ? fighter1Id : undefined), // Define loser for BYE matches
-        nextMatchId: nextMatchId,
-        prevMatchIds: undefined, // Será preenchido no próximo loop se necessário
+        nextMatchId: undefined, // Will be filled in a later pass
+        prevMatchIds: undefined, // Will be filled in a later pass
       });
     }
     rounds.push(matchesInRound);
@@ -173,14 +175,30 @@ export const generateBracketForDivision = (
     roundNumber++;
   }
 
-  // Preencher prevMatchIds
-  for (let r = 1; r < rounds.length; r++) {
-    for (let m = 0; m < rounds[r].length; m++) {
-      const currentMatch = rounds[r][m];
-      const prevRound = rounds[r - 1];
-      const prevMatch1 = prevRound[m * 2];
-      const prevMatch2 = prevRound[m * 2 + 1];
-      currentMatch.prevMatchIds = [prevMatch1.id, prevMatch2.id];
+  // Segunda Passagem: Ligar Matches (definir nextMatchId e prevMatchIds)
+  for (let r = 0; r < rounds.length; r++) {
+    const currentRound = rounds[r];
+    const nextRound = rounds[r + 1];
+
+    if (nextRound) {
+      for (let m = 0; m < currentRound.length; m++) {
+        const currentMatch = currentRound[m];
+        const nextMatchIndex = Math.floor(m / 2); // A luta na próxima rodada que esta luta alimenta
+        if (nextMatchIndex < nextRound.length) {
+          const nextMatch = nextRound[nextMatchIndex];
+          currentMatch.nextMatchId = nextMatch.id;
+
+          // Definir prevMatchIds para a próxima luta
+          if (!nextMatch.prevMatchIds) {
+            nextMatch.prevMatchIds = [undefined, undefined];
+          }
+          if (m % 2 === 0) { // Primeira luta do par
+            nextMatch.prevMatchIds[0] = currentMatch.id;
+          } else { // Segunda luta do par
+            nextMatch.prevMatchIds[1] = currentMatch.id;
+          }
+        }
+      }
     }
   }
 
@@ -188,8 +206,9 @@ export const generateBracketForDivision = (
   if (options?.thirdPlace && rounds.length >= 2) {
     const semiFinals = rounds[rounds.length - 2];
     if (semiFinals.length === 2) {
+      globalMatchCounter++; // Increment for third place match
       thirdPlaceMatch = {
-        id: `${division.id}-3rdPlace`,
+        id: `${division.id}-M${globalMatchCounter}`, // Use global counter for ID
         round: -1, // Rodada especial
         matchNumber: 1,
         fighter1Id: undefined, // Perdedor da primeira semifinal
@@ -197,7 +216,7 @@ export const generateBracketForDivision = (
         winnerId: undefined,
         loserId: undefined,
         nextMatchId: undefined,
-        prevMatchIds: [semiFinals[0].id, semiFinals[1].id],
+        prevMatchIds: [semiFinals[0].id, semiFinals[1].id], // IDs das semifinais
       };
     }
   }

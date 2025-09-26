@@ -17,15 +17,11 @@ interface BracketMatchCardProps {
   bracketThirdPlaceWinnerId?: string;
 }
 
-// Helper para formatar o ID da luta anterior para exibição (ex: "1-1" de "divisionId-R1-M1")
+// Helper para formatar o ID da luta anterior para exibição (ex: "9" de "divisionId-M9")
 const getShortMatchIdentifier = (fullMatchId: string): string => {
-  const rMatch = fullMatchId.match(/-R(\d+)-M(\d+)$/); // Regex para encontrar -R{num}-M{num} no final
-  if (rMatch && rMatch[1] && rMatch[2]) {
-    return `${rMatch[1]}-${rMatch[2]}`; // Retorna "1-1"
-  }
-  // Luta pelo 3º lugar
-  if (fullMatchId.includes('-3rdPlace')) {
-    return '3º Lugar';
+  const mMatch = fullMatchId.match(/-M(\d+)$/); // Regex para encontrar -M{num} no final
+  if (mMatch && mMatch[1]) {
+    return mMatch[1]; // Retorna "9"
   }
   return fullMatchId; // Fallback para formatos inesperados
 };

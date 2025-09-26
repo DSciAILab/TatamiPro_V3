@@ -45,10 +45,10 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
 
   // Definindo constantes para o layout das linhas
   const cardHeight = 140; // Altura calculada de um BracketMatchCard (2 slots * 56px + padding/margin + bordas)
-  const baseVerticalGap = 30; // Espaçamento vertical entre as lutas na primeira rodada
+  const baseVerticalGap = 40; // Espaçamento vertical entre as lutas na primeira rodada (AUMENTADO)
   const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
   const cardWidth = 250; // Largura máxima de um BracketMatchCard
-  const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8')
+  // const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8') - REMOVIDO
 
   // Calcula as posições Y (top) e os margin-tops para cada luta
   const { matchYtops, matchMarginTops } = useMemo(() => {
@@ -139,63 +139,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                     ))}
                   </div>
                 </div>
-
-                {/* Desenha as linhas de conexão entre esta rodada e a próxima */}
-                {!isLastRound && (
-                  <>
-                    {round.map((match, matchIndex) => {
-                      // Desenha linhas apenas para lutas que alimentam a próxima rodada
-                      if (!match.nextMatchId) return null;
-
-                      const currentMatchYCenter = (matchYtops.get(match.id) || 0) + cardHeight / 2;
-                      const nextMatchYCenter = (matchYtops.get(match.nextMatchId!) || 0) + cardHeight / 2;
-
-                      // Calcula o offset horizontal para a coluna da rodada atual
-                      const currentRoundLeftOffset = roundIndex * (cardWidth + horizontalGap);
-
-                      return (
-                        <React.Fragment key={`lines-${match.id}`}>
-                          {/* Linha horizontal do card da luta atual até o conector vertical */}
-                          <div
-                            className="absolute bg-gray-400"
-                            style={{
-                              left: `${currentRoundLeftOffset + cardWidth}px`, // Borda direita do card atual
-                              top: `${currentMatchYCenter}px`,
-                              width: `${horizontalGap / 2}px`, // Metade do espaço entre as colunas
-                              height: '2px',
-                            }}
-                          ></div>
-
-                          {/* Segmento de linha vertical (apenas para a primeira luta de um par) */}
-                          {matchIndex % 2 === 0 && (
-                            <div
-                              className="absolute bg-gray-400"
-                              style={{
-                                left: `${currentRoundLeftOffset + cardWidth + horizontalGap / 2}px`, // No meio do espaço
-                                top: `${currentMatchYCenter}px`,
-                                height: `${nextMatchYCenter - currentMatchYCenter}px`,
-                                width: '2px',
-                              }}
-                            ></div>
-                          )}
-
-                          {/* Linha horizontal do conector vertical até o card da próxima luta (apenas para a primeira de um par) */}
-                          {matchIndex % 2 === 0 && (
-                            <div
-                              className="absolute bg-gray-400"
-                              style={{
-                                left: `${currentRoundLeftOffset + cardWidth + horizontalGap / 2}px`, // No meio do espaço
-                                top: `${nextMatchYCenter}px`,
-                                width: `${horizontalGap / 2}px`, // A outra metade do espaço
-                                height: '2px',
-                              }}
-                            ></div>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </>
-                )}
+                {/* As linhas de conexão foram removidas daqui */}
               </React.Fragment>
             );
           })}
