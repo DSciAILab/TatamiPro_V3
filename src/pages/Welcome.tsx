@@ -36,15 +36,15 @@ const Welcome: React.FC = () => {
           <Card className="flex flex-col items-center p-6">
             <CardHeader>
               <UserPlus className="h-16 w-16 text-primary mb-4" />
-              <CardTitle className="text-2xl">Login</CardTitle> {/* Título alterado */}
+              <CardTitle className="text-2xl">Fazer Cadastro</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <CardDescription className="mb-6 text-center">
-                Acesse sua conta para gerenciar eventos ou registrar atletas. {/* Descrição alterada */}
+                Registre-se como atleta ou importe inscrições em lote para um evento.
               </CardDescription>
-              <Link to="/auth"> {/* Link para /auth */}
+              <Link to="/auth"> {/* Temporariamente para /auth, será ajustado para RegistrationOptions */}
                 <Button size="lg" variant="secondary">
-                  Fazer Login {/* Texto do botão alterado */}
+                  Fazer Cadastro
                 </Button>
               </Link>
             </CardContent>

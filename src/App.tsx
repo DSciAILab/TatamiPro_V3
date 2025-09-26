@@ -1,73 +1,45 @@
-"use client";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
+import Welcome from "./pages/Welcome";
+import Auth from "./pages/Auth";
+import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
+import BatchAthleteImport from "./pages/BatchAthleteImport";
+import RegistrationOptions from "./pages/RegistrationOptions";
+import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
+import DivisionImport from "./pages/DivisionImport";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Auth from './pages/Auth';
-import Welcome from './pages/Welcome';
-import Events from './pages/Events';
-import EventDetail from './pages/EventDetail';
-import RegistrationOptions from './pages/RegistrationOptions';
-import RegisterAthletePage from './pages/RegisterAthletePage';
-import BatchAthleteImport from './pages/BatchAthleteImport';
-import DivisionImport from './pages/DivisionImport';
-import NotFound from './pages/NotFound'; // Importar NotFound
-import { ThemeProvider } from './components/theme-provider';
-import { User } from './types';
-import { v4 as uuidv4 } from 'uuid';
+const queryClient = new QueryClient();
 
-const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  // Inicializa usuários de demonstração no localStorage se não existirem
-  useEffect(() => {
-    const storedUsers = localStorage.getItem('users');
-    if (!storedUsers) {
-      const defaultUsers: User[] = [
-        { id: uuidv4(), email: 'admin@tatamipro.com', password: 'admin123', role: 'admin', club: 'Tatamipro HQ', isActive: true, name: 'Admin' },
-        { id: uuidv4(), email: 'coach@tatamipro.com', password: 'coach123', role: 'coach', club: 'Gracie Barra', isActive: true, name: 'Coach' },
-        { id: uuidv4(), email: 'staff@tatamipro.com', password: 'staff123', role: 'staff', club: 'Alliance', isActive: true, name: 'Staff' },
-        { id: uuidv4(), email: 'athlete@tatamipro.com', password: 'athlete123', role: 'athlete', club: 'Checkmat', isActive: true, name: 'Atleta' },
-      ];
-      localStorage.setItem('users', JSON.stringify(defaultUsers));
-    }
-  }, []);
-
-  // Efeito para verificar o status de autenticação e reagir a mudanças
-  useEffect(() => {
-    const checkAuthStatus = () => {
-      const currentUser = localStorage.getItem('currentUser');
-      setIsAuthenticated(currentUser !== null);
-    };
-
-    checkAuthStatus();
-    window.addEventListener('authChange', checkAuthStatus);
-
-    return () => {
-      window.removeEventListener('authChange', checkAuthStatus);
-    };
-  }, []);
-
-  return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <Router>
-        <Routes>
-          <Route path="/" element={<Welcome />} /> {/* Welcome é sempre acessível */}
-          <Route path="/auth" element={<Auth />} />
-
-          {/* Rotas Protegidas */}
-          <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/auth" />} />
-          <Route path="/events/:id" element={isAuthenticated ? <EventDetail /> : <Navigate to="/auth" />} />
-          <Route path="/events/:id/registration-options" element={isAuthenticated ? <RegistrationOptions /> : <Navigate to="/auth" />} />
-          <Route path="/events/:id/register-athlete" element={isAuthenticated ? <RegisterAthletePage /> : <Navigate to="/auth" />} />
-          <Route path="/events/:id/import-athletes" element={isAuthenticated ? <BatchAthleteImport /> : <Navigate to="/auth" />} />
-          <Route path="/events/:id/import-divisions" element={isAuthenticated ? <DivisionImport /> : <Navigate to="/auth" />} />
-
-          {/* Rota para páginas não encontradas */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Welcome />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/events/:id" element={<EventDetail />} />
+            <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} /> {/* Updated: Removed props */}
+            <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
+            <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </ThemeProvider>
-  );
-};
+  </QueryClientProvider>
+);
 
 export default App;

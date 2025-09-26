@@ -1,6 +1,4 @@
-"use client";
-
-import toast from 'react-hot-toast';
+import { toast } from "sonner";
 
 export const showSuccess = (message: string) => {
   toast.success(message);
@@ -8,16 +6,6 @@ export const showSuccess = (message: string) => {
 
 export const showError = (message: string) => {
   toast.error(message);
-};
-
-export const showWarning = (message: string) => {
-  toast(message, {
-    icon: '⚠️',
-    style: {
-      background: '#fff3cd',
-      color: '#664d03',
-    },
-  });
 };
 
 export const showLoading = (message: string) => {

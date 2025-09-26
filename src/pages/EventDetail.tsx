@@ -14,10 +14,9 @@ import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
-import AttendanceManagement from '@/components/AttendanceManagement';
-import UserManagementTable from '@/components/UserManagementTable';
-import { Athlete, Event, WeightAttempt, Division, CheckInStatus } from '../types/index';
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // Novo import
+import AttendanceManagement from '@/components/AttendanceManagement'; // Novo import
+import { Athlete, Event, WeightAttempt, Division } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
@@ -26,11 +25,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Switch } from '@/components/ui/switch';
+
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState('registrations');
+  const [activeTab, setActiveTab] = useState('inscricoes');
   const userRole = localStorage.getItem('userRole');
   const userClub = localStorage.getItem('userClub');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
@@ -56,7 +55,7 @@ const EventDetail: React.FC = () => {
         checkInStatus: athleteData.checkInStatus || 'pending',
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
-        attendanceStatus: athleteData.attendanceStatus || 'pending',
+        attendanceStatus: athleteData.attendanceStatus || 'pending', // Default attendance status
       };
     };
 
@@ -66,10 +65,10 @@ const EventDetail: React.FC = () => {
       try {
         initialImportedAthletes = JSON.parse(storedImportedAthletes).map(processAthleteData);
         localStorage.removeItem(`importedAthletes_${id}`);
-        showSuccess(`Athletes imported from CSV file loaded for event ${id}.`);
+        showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
       } catch (e) {
-        console.error("Failed to parse imported athletes from localStorage", e);
-        showError("Error loading imported athletes from local storage.");
+        console.error("Falha ao analisar atletas importados do localStorage", e);
+        showError("Erro ao carregar atletas importados do armazenamento local.");
       }
     }
 
@@ -77,7 +76,6 @@ const EventDetail: React.FC = () => {
     let existingAthletes: Athlete[] = [];
     let eventSettings = {};
     let existingDivisions: Division[] = [];
-    let isAttendanceMandatoryBeforeCheckIn = false; // Default value
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -88,24 +86,19 @@ const EventDetail: React.FC = () => {
           numFightAreas: parsedEvent.numFightAreas,
         };
         existingDivisions = parsedEvent.divisions || [];
-        isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
       } catch (e) {
-        console.error("Failed to parse stored event data from localStorage", e);
+        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
     }
 
     return {
       id: id || 'mock-event-id',
-      name: `Event #${id}`,
-      description: `Details for Jiu-Jitsu event ${id}.`,
-      status: 'open',
-      date: new Date('2024-12-01'),
-      location: 'Default Location',
-      registrationOpenDate: new Date('2024-11-01'),
-      registrationCloseDate: new Date('2024-11-30'),
+      name: `Evento #${id}`,
+      description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
+      status: 'Aberto',
+      date: '2024-12-01',
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
-      isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatoryBeforeCheckIn,
       ...eventSettings,
     };
   });
@@ -117,10 +110,8 @@ const EventDetail: React.FC = () => {
     event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
-  const [isAttendanceMandatoryBeforeCheckIn, setIsAttendanceMandatoryBeforeCheckIn] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
 
-
-  // Mandatory fields configuration for check-in
+  // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${id}`);
     return storedConfig ? JSON.parse(storedConfig) : {
@@ -130,7 +121,7 @@ const EventDetail: React.FC = () => {
       dateOfBirth: true,
       belt: true,
       weight: true,
-      idNumber: true,
+      idNumber: true, // Representa Emirates ID ou School ID
       gender: true,
       nationality: true,
       email: true,
@@ -144,15 +135,21 @@ const EventDetail: React.FC = () => {
 
   useEffect(() => {
     if (event) {
-      localStorage.setItem(`event_${id}`, JSON.stringify({
-        ...event,
+      localStorage.setItem(`event_${id}`, JSON.stringify(event));
+    }
+  }, [event, id]);
+
+  useEffect(() => {
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      return {
+        ...prevEvent,
         checkInStartTime: checkInStartTime?.toISOString(),
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas: numFightAreas,
-        isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatoryBeforeCheckIn,
-      }));
-    }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatoryBeforeCheckIn]);
+      };
+    });
+  }, [checkInStartTime, checkInEndTime, numFightAreas]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -172,7 +169,7 @@ const EventDetail: React.FC = () => {
           athletes: [...prevEvent.athletes, newAthlete],
         };
       });
-      showSuccess(`Athlete ${newAthlete.firstName} registered successfully and awaiting approval!`);
+      showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
     }
   };
 
@@ -196,11 +193,11 @@ const EventDetail: React.FC = () => {
         const updatedAthletes = prevEvent.athletes.filter(athlete => athlete.id !== athleteId);
         return { ...prevEvent, athletes: updatedAthletes };
       });
-      showSuccess('Athlete registration removed successfully!');
+      showSuccess('Inscrição do atleta removida com sucesso!');
     }
   };
 
-  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: CheckInStatus, weightAttempts: WeightAttempt[]) => {
+  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
     if (event) {
       setEvent(prevEvent => {
         if (!prevEvent) return null;
@@ -258,7 +255,7 @@ const EventDetail: React.FC = () => {
         );
         return { ...prevEvent, athletes: updatedAthletes };
       });
-      showSuccess(`${selectedAthletesForApproval.length} registrations approved successfully!`);
+      showSuccess(`${selectedAthletesForApproval.length} inscrições aprovadas com sucesso!`);
       setSelectedAthletesForApproval([]);
     }
   };
@@ -274,7 +271,7 @@ const EventDetail: React.FC = () => {
         );
         return { ...prevEvent, athletes: updatedAthletes };
       });
-      showSuccess(`${selectedAthletesForApproval.length} registrations rejected.`);
+      showSuccess(`${selectedAthletesForApproval.length} inscrições rejeitadas.`);
       setSelectedAthletesForApproval([]);
     }
   };
@@ -292,7 +289,7 @@ const EventDetail: React.FC = () => {
   if (!event) {
     return (
       <Layout>
-        <div className="text-center text-xl mt-8">Event not found.</div>
+        <div className="text-center text-xl mt-8">Evento não encontrado.</div>
       </Layout>
     );
   }
@@ -301,13 +298,13 @@ const EventDetail: React.FC = () => {
   const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
   const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
 
-  // Process approved athletes to include division information
+  // Processar atletas aprovados para incluir informações da divisão
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
       const division = findAthleteDivision(athlete, event.divisions);
       return {
         ...athlete,
-        _division: division, // Store the found division for later use
+        _division: division, // Armazenar a divisão encontrada para uso posterior
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [approvedAthletes, event.divisions]);
@@ -323,7 +320,7 @@ const EventDetail: React.FC = () => {
   }, [athletesUnderApproval, event.divisions]);
 
 
-  // Logic to check if check-in is allowed
+  // Lógica para verificar se o check-in é permitido
   const isCheckInTimeValid = () => {
     if (!checkInStartTime || !checkInEndTime) return false;
     const now = new Date();
@@ -332,14 +329,12 @@ const EventDetail: React.FC = () => {
 
   const isCheckInAllowed = userRole === 'admin' || isCheckInTimeValid();
 
-  // Filtering athletes for check-in
+  // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletesToFilter = processedApprovedAthletes;
 
-    // Filter by attendanceStatus: only 'present' IF attendance is mandatory
-    if (isAttendanceMandatoryBeforeCheckIn) {
-      athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
-    }
+    // Filtra por attendanceStatus: apenas 'present'
+    athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
 
     if (scannedAthleteId) {
       athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
@@ -361,7 +356,7 @@ const EventDetail: React.FC = () => {
       return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
     }
     return athletesToFilter; // 'all' filter
-  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter, isAttendanceMandatoryBeforeCheckIn]);
+  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter]);
 
   // Check-in Summary Calculations
   const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
@@ -372,7 +367,7 @@ const EventDetail: React.FC = () => {
   const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0
     ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
-    : 'Closed';
+    : 'Encerrado';
 
 
   return (
@@ -382,34 +377,34 @@ const EventDetail: React.FC = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="registrations">Registrations</TabsTrigger>
+          <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          {/* Aba Pesagem removida */}
+          <TabsTrigger value="attendance">Attendance</TabsTrigger> {/* Nova aba */}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
-              <TabsTrigger value="approvals">Approvals ({athletesUnderApproval.length})</TabsTrigger>
-              <TabsTrigger value="divisions">Divisions ({event.divisions.length})</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
+              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="resultados">Resultados</TabsTrigger>
           <TabsTrigger value="llm">LLM (Q&A)</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="registrations" className="mt-6">
+        <TabsContent value="inscricoes" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Manage Registrations</CardTitle>
-              <CardDescription>Register athletes in event divisions.</CardDescription>
+              <CardTitle>Gerenciar Inscrições</CardTitle>
+              <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
             </CardHeader>
             <CardContent>
               {!editingAthlete && (
                 <div className="mb-6">
                   <Link to={`/events/${event.id}/registration-options`}>
                     <Button className="w-full">
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Athlete
+                      <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
                     </Button>
                   </Link>
                 </div>
@@ -424,9 +419,9 @@ const EventDetail: React.FC = () => {
                 />
               )}
 
-              <h3 className="text-xl font-semibold mt-8 mb-4">Registered Athletes ({processedApprovedAthletes.length})</h3>
+              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({processedApprovedAthletes.length})</h3>
               {processedApprovedAthletes.length === 0 ? (
-                <p className="text-muted-foreground">No approved athletes yet.</p>
+                <p className="text-muted-foreground">Nenhum atleta aprovado ainda.</p>
               ) : (
                 <ul className="space-y-2">
                   {processedApprovedAthletes.map((athlete) => (
@@ -442,7 +437,7 @@ const EventDetail: React.FC = () => {
                         <div>
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                          <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Approved</span></p>
+                          <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Aprovado</span></p>
                         </div>
                       </div>
                       {userRole === 'admin' && (
@@ -458,14 +453,14 @@ const EventDetail: React.FC = () => {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently remove the registration of {athlete.firstName} {athlete.lastName}.
+                                  Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remove</AlertDialogAction>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -483,33 +478,30 @@ const EventDetail: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Athlete Check-in</span>
+                <span>Check-in de Atletas</span>
                 <div className="text-sm font-normal text-muted-foreground flex flex-col items-end">
-                  <span>Current Time: {format(currentTime, 'HH:mm:ss')}</span>
-                  <span>Time to close: {timeRemainingFormatted}</span>
+                  <span>Hora Atual: {format(currentTime, 'HH:mm:ss')}</span>
+                  <span>Tempo para fechar: {timeRemainingFormatted}</span>
                 </div>
               </CardTitle>
-            <CardDescription>
-                Confirm athlete presence and weight.
+              <CardDescription>
+                Confirme a presença e o peso dos atletas.
                 {!isCheckInTimeValid() && userRole !== 'admin' && (
-                  <span className="text-red-500 block mt-2">Check-in is outside the allowed time. Only administrators can check-in now.</span>
+                  <span className="text-red-500 block mt-2">O check-in está fora do horário permitido. Apenas administradores podem realizar o check-in agora.</span>
                 )}
                 {isCheckInTimeValid() && (
-                  <span className="text-green-600 block mt-2">Check-in open!</span>
+                  <span className="text-green-600 block mt-2">Check-in aberto!</span>
                 )}
                 {!checkInStartTime || !checkInEndTime ? (
-                  <span className="text-orange-500 block mt-2">Check-in time not configured.</span>
+                  <span className="text-orange-500 block mt-2">Horário de check-in não configurado.</span>
                 ) : (
-                  <span className="text-muted-foreground block mt-2">Time: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
-                )}
-                {isAttendanceMandatoryBeforeCheckIn && (
-                  <span className="text-blue-500 block mt-2">Attention: Attendance is mandatory before check-in.</span>
+                  <span className="text-muted-foreground block mt-2">Horário: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
                 )}
                 <div className="mt-4 text-sm">
-                  <p>Total Approved Athletes: <span className="font-semibold">{totalApprovedAthletes}</span></p>
+                  <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
                   <p>Check-in OK: <span className="font-semibold text-green-600">{totalCheckedInOk}</span></p>
-                  <p>Overweight: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
-                  <p>Pending: <span className="font-semibold text-orange-500">{totalPending}</span></p>
+                  <p>Acima do Peso: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
+                  <p>Faltam: <span className="font-semibold text-orange-500">{totalPending}</span></p>
                 </div>
               </CardDescription>
             </CardHeader>
@@ -519,13 +511,13 @@ const EventDetail: React.FC = () => {
                   <QrCodeScanner onScanSuccess={(id) => {
                     setScannedAthleteId(id);
                     setSearchTerm('');
-                    showSuccess(`Athlete ${id} scanned!`);
+                    showSuccess(`Atleta ${id} escaneado!`);
                   }} />
                 </div>
                 <div className="flex-1 relative">
                   <Input
                     type="text"
-                    placeholder="Search athlete (name, club, division...)"
+                    placeholder="Buscar atleta (nome, clube, divisão...)"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -539,20 +531,20 @@ const EventDetail: React.FC = () => {
 
               <div className="mb-4 flex justify-center">
                 <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'done' | 'all') => value && setCheckInFilter(value)}>
-                  <ToggleGroupItem value="pending" aria-label="Show pending">
-                    Pending
+                  <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
+                    Pendentes
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="done" aria-label="Show completed">
-                    Completed
+                  <ToggleGroupItem value="done" aria-label="Mostrar concluídos">
+                    Concluídos
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="all" aria-label="Show all">
-                    All
+                  <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                    Todos
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
 
               {filteredAthletesForCheckIn.length === 0 ? (
-                <p className="text-muted-foreground">No approved athletes for check-in found with current criteria.</p>
+                <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
               ) : (
                 <ul className="space-y-4">
                   {filteredAthletesForCheckIn.map((athlete) => (
@@ -569,7 +561,7 @@ const EventDetail: React.FC = () => {
                           <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
                           <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                           {athlete.registeredWeight && (
-                            <p className="text-xs text-gray-500">Last weight: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                            <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
                           )}
                         </div>
                       </div>
@@ -587,7 +579,7 @@ const EventDetail: React.FC = () => {
                           )}
                           {athlete.checkInStatus === 'pending' && (
                             <span className="flex items-center text-orange-500 font-semibold text-sm">
-                              <Scale className="h-4 w-4 mr-1" /> Pending
+                              <Scale className="h-4 w-4 mr-1" /> Pendente
                             </span>
                           )}
                         </div>
@@ -595,7 +587,7 @@ const EventDetail: React.FC = () => {
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
                           isCheckInAllowed={isCheckInAllowed}
-                          divisionMaxWeight={athlete._division?.maxWeight || 0}
+                          divisionMaxWeight={athlete._division?.maxWeight}
                         />
                       </div>
                     </li>
@@ -618,10 +610,10 @@ const EventDetail: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Brackets</CardTitle>
-              <CardDescription>Generate and view event brackets.</CardDescription>
+              <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Brackets tab content for event {event.name}.</p>
+              <p>Conteúdo da aba Brackets para o evento {event.name}.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -631,18 +623,18 @@ const EventDetail: React.FC = () => {
             <TabsContent value="admin" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Event Administration</CardTitle>
-                  <CardDescription>Manage users and event settings.</CardDescription>
+                  <CardTitle>Administração do Evento</CardTitle>
+                  <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Link to={`/events/${event.id}/import-athletes`}>
-                    <Button className="w-full">Batch Import Athletes</Button>
+                    <Button className="w-full">Importar Atletas em Lote</Button>
                   </Link>
 
                   <div className="mt-8 space-y-4">
-                    <h3 className="text-xl font-semibold">Check-in Settings</h3>
+                    <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
                     <div>
-                      <Label htmlFor="checkInStartTime">Check-in Start Time</Label>
+                      <Label htmlFor="checkInStartTime">Início do Check-in</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -650,7 +642,7 @@ const EventDetail: React.FC = () => {
                             className="w-full justify-start text-left font-normal"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Select date and time</span>}
+                            {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -692,7 +684,7 @@ const EventDetail: React.FC = () => {
                       </Popover>
                     </div>
                     <div>
-                      <Label htmlFor="checkInEndTime">Check-in End Time</Label>
+                      <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -700,7 +692,7 @@ const EventDetail: React.FC = () => {
                             className="w-full justify-start text-left font-normal"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Select date and time</span>}
+                            {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -742,7 +734,7 @@ const EventDetail: React.FC = () => {
                       </Popover>
                     </div>
                     <div>
-                      <Label htmlFor="numFightAreas">Number of Fight Areas</Label>
+                      <Label htmlFor="numFightAreas">Número de Áreas de Luta</Label>
                       <Input
                         id="numFightAreas"
                         type="number"
@@ -751,16 +743,8 @@ const EventDetail: React.FC = () => {
                         onChange={(e) => setNumFightAreas(Number(e.target.value))}
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="attendance-mandatory"
-                        checked={isAttendanceMandatoryBeforeCheckIn}
-                        onCheckedChange={setIsAttendanceMandatoryBeforeCheckIn}
-                      />
-                      <Label htmlFor="attendance-mandatory">Require attendance before Check-in</Label>
-                    </div>
                   </div>
-                  <CheckInMandatoryFieldsConfig eventId={event.id} />
+                  <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -768,12 +752,12 @@ const EventDetail: React.FC = () => {
             <TabsContent value="approvals" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Registration Approvals</CardTitle>
-                  <CardDescription>Review and approve or reject pending registrations.</CardDescription>
+                  <CardTitle>Aprovações de Inscrição</CardTitle>
+                  <CardDescription>Revise e aprove ou rejeite as inscrições pendentes.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {sortedAthletesUnderApproval.length === 0 ? (
-                    <p className="text-muted-foreground">No registrations awaiting approval.</p>
+                    <p className="text-muted-foreground">Nenhuma inscrição aguardando aprovação.</p>
                   ) : (
                     <>
                       <div className="flex items-center space-x-2 mb-4">
@@ -782,14 +766,14 @@ const EventDetail: React.FC = () => {
                           checked={selectedAthletesForApproval.length === sortedAthletesUnderApproval.length && sortedAthletesUnderApproval.length > 0}
                           onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean)}
                         />
-                        <Label htmlFor="selectAll">Select All</Label>
+                        <Label htmlFor="selectAll">Selecionar Todos</Label>
                       </div>
                       <div className="flex space-x-2 mb-4">
                         <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
-                          Approve Selected ({selectedAthletesForApproval.length})
+                          Aprovar Selecionados ({selectedAthletesForApproval.length})
                         </Button>
                         <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
-                          Reject Selected ({selectedAthletesForApproval.length})
+                          Rejeitar Selecionados ({selectedAthletesForApproval.length})
                         </Button>
                       </div>
                       <ul className="space-y-2">
@@ -812,13 +796,13 @@ const EventDetail: React.FC = () => {
                                 <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                                 {athlete.paymentProofUrl && (
                                   <p className="text-xs text-blue-500">
-                                    <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">View Payment Proof</a>
+                                    <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
                                   </p>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-sm text-orange-500 font-semibold">Awaiting Approval</span>
+                              <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
                               {userRole === 'admin' && (
                                 <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                                   <Edit className="h-4 w-4" />
@@ -832,14 +816,14 @@ const EventDetail: React.FC = () => {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently remove the registration of {athlete.firstName} {athlete.lastName}.
+                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remove</AlertDialogAction>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
@@ -856,40 +840,28 @@ const EventDetail: React.FC = () => {
             <TabsContent value="divisions" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Manage Event Divisions</CardTitle>
-                  <CardDescription>Configure age, weight, gender, and belt divisions for this event.</CardDescription>
+                  <CardTitle>Gerenciar Divisões do Evento</CardTitle>
+                  <CardDescription>Configure as divisões de idade, peso, gênero e faixa para este evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Link to={`/events/${event.id}/import-divisions`}>
-                    <Button className="w-full">Batch Import Divisions</Button>
+                    <Button className="w-full">Importar Divisões em Lote</Button>
                   </Link>
-                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} eventId={event.id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="users" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Add, edit, and manage system users.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <UserManagementTable />
+                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
                 </CardContent>
               </Card>
             </TabsContent>
           </>
         )}
 
-        <TabsContent value="results" className="mt-6">
+        <TabsContent value="resultados" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Results</CardTitle>
-              <CardDescription>Mark winners and export results.</CardDescription>
+              <CardTitle>Resultados</CardTitle>
+              <CardDescription>Marque vencedores e exporte resultados.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Results tab content for event {event.name}.</p>
+              <p>Conteúdo da aba Resultados para o evento {event.name}.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -897,11 +869,11 @@ const EventDetail: React.FC = () => {
         <TabsContent value="llm" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Q&A (LLM)</CardTitle>
-              <CardDescription>Ask questions about event data.</CardDescription>
+              <CardTitle>Perguntas & Respostas (LLM)</CardTitle>
+              <CardDescription>Faça perguntas sobre os dados do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>LLM (stub) tab content for event {event.name}.</p>
+              <p>Conteúdo da aba LLM (stub) para o evento {event.name}.</p>
             </CardContent>
           </Card>
         </TabsContent>

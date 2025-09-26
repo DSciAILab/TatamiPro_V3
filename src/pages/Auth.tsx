@@ -9,60 +9,62 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Layout from '@/components/Layout';
 import { showSuccess, showError } from '@/utils/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete'); // Mantido para o registro
+  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
   const [club, setClub] = useState('');
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const storedUsersString = localStorage.getItem('users');
-    const users: User[] = storedUsersString ? JSON.parse(storedUsersString) : [];
-
+    // Para MVP, uma verificação de usuário simplificada.
+    // Em um aplicativo real, isso envolveria uma chamada de backend.
     if (isLogin) {
-      // Encontra o usuário apenas por email e senha, e verifica se está ativo
-      const foundUser = users.find(u => u.email === email && u.password === password && u.isActive);
-
-      if (foundUser) {
-        localStorage.setItem('currentUser', JSON.stringify(foundUser));
-        localStorage.setItem('userName', foundUser.name);
-        localStorage.setItem('userRole', foundUser.role); // Usa o papel do usuário encontrado
-        localStorage.setItem('userClub', foundUser.club || '');
-        window.dispatchEvent(new Event('authChange'));
-        showSuccess(`Login de ${foundUser.name} (${foundUser.role}) realizado com sucesso!`);
-        navigate('/events'); // Redireciona para a página de eventos após o login
-      } else {
-        showError('Credenciais inválidas ou usuário inativo. Tente as credenciais de demonstração.');
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        showSuccess('Login de Admin realizado com sucesso!');
+        localStorage.setItem('userRole', 'admin');
+        localStorage.removeItem('userClub'); // Admins generally don't have a specific club context
+        navigate('/events');
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        showSuccess('Login de Coach realizado com sucesso!');
+        localStorage.setItem('userRole', 'coach');
+        localStorage.setItem('userClub', 'Gracie Barra'); // Mock club for coach
+        navigate('/events');
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        showSuccess('Login de Staff realizado com sucesso!');
+        localStorage.setItem('userRole', 'staff');
+        localStorage.setItem('userClub', 'Alliance'); // Mock club for staff
+        navigate('/events');
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        showSuccess('Login de Atleta realizado com sucesso!');
+        localStorage.setItem('userRole', 'athlete');
+        localStorage.setItem('userClub', 'Checkmat'); // Mock club for athlete
+        navigate('/events');
+      }
+      else {
+        showError('Credenciais ou papel inválidos. Tente as credenciais de demonstração.');
       }
     } else {
-      const existingUser = users.find(u => u.email === email);
-      if (existingUser) {
-        showError('Já existe um usuário com este email.');
-        return;
+      // Registro simplificado: apenas "cria" o usuário admin/coach/staff/athlete se não existir
+      if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
+        showSuccess('Registro de Admin realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
+        showSuccess('Registro de Coach realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
+        showSuccess('Registro de Staff realizado com sucesso! Faça login.');
+        setIsLogin(true);
+      } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
+        showSuccess('Registro de Atleta realizado com sucesso! Faça login.');
+        setIsLogin(true);
       }
-
-      const newUserName = email.split('@')[0].replace('.', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-      const newUser: User = {
-        id: uuidv4(),
-        email,
-        password,
-        role, // Usa o papel selecionado para o registro
-        club: club || (role === 'admin' ? 'Tatamipro HQ' : 'Novo Clube'),
-        isActive: true,
-        name: newUserName,
-      };
-
-      const updatedUsers = [...users, newUser];
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      showSuccess('Registro realizado com sucesso! Por favor, faça login.');
-      setIsLogin(true);
+      else {
+        showError('Para o MVP, apenas o registro de usuários de demonstração é suportado.');
+      }
     }
   };
 
@@ -101,22 +103,20 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
-                {!isLogin && ( // A seleção de papel aparece apenas para o registro
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="role">Papel</Label>
-                    <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Selecione seu papel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="athlete">Atleta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="role">Papel</Label>
+                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Selecione seu papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="athlete">Atleta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full mt-4">
                   {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
