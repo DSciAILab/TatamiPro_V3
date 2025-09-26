@@ -17,15 +17,17 @@ interface BracketMatchCardProps {
   bracketThirdPlaceWinnerId?: string;
 }
 
-// Helper para formatar o ID da luta anterior para exibição
+// Helper para formatar o ID da luta anterior para exibição (ex: "1-1" de "divisionId-R1-M1")
 const getShortMatchIdentifier = (fullMatchId: string): string => {
-  const parts = fullMatchId.split('-'); // Ex: divisionId-R1-M1
-  if (parts.length >= 3) {
-    const roundNum = parts[1].replace('R', ''); // Extract '1' from 'R1'
-    const matchNum = parts[2].replace('M', ''); // Extract '1' from 'M1'
-    return `${roundNum}-${matchNum}`; // e.g., "1-1"
+  const rMatch = fullMatchId.match(/-R(\d+)-M(\d+)$/); // Regex para encontrar -R{num}-M{num} no final
+  if (rMatch && rMatch[1] && rMatch[2]) {
+    return `${rMatch[1]}-${rMatch[2]}`; // Retorna "1-1"
   }
-  return fullMatchId; // Fallback
+  // Luta pelo 3º lugar
+  if (fullMatchId.includes('-3rdPlace')) {
+    return '3º Lugar';
+  }
+  return fullMatchId; // Fallback para formatos inesperados
 };
 
 const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
@@ -41,25 +43,31 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   const fighter2 = match.fighter2Id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2Id || '');
 
   const getFighterDisplay = (fighter: Athlete | 'BYE' | undefined, fighterSlot: 1 | 2) => {
-    if (fighter === 'BYE') return 'BYE';
+    const nameLine1 = (fighter !== 'BYE' && fighter) ? fighter.firstName : '';
+    const nameLine2 = (fighter !== 'BYE' && fighter) ? fighter.lastName : '';
+    const clubLine = (fighter !== 'BYE' && fighter) ? fighter.club : '';
+
+    let statusText = '';
     if (!fighter) {
-      // Se o lutador é undefined, significa que estamos esperando o vencedor de uma luta anterior
       const prevMatchId = fighterSlot === 1 ? match.prevMatchIds?.[0] : match.prevMatchIds?.[1];
-      return (
-        <div className="flex flex-col items-start">
-          <span className="font-medium text-sm text-muted-foreground">
-            Aguardando {prevMatchId ? getShortMatchIdentifier(prevMatchId) : 'Luta Anterior'}
-          </span>
-        </div>
-      );
+      statusText = `Aguardando ${prevMatchId ? getShortMatchIdentifier(prevMatchId) : 'Luta Anterior'}`;
+    } else if (fighter === 'BYE') {
+      statusText = 'BYE';
     }
+
     return (
-      <div className="flex flex-col items-start">
-        <span className="font-medium text-sm flex items-center">
-          {fighter.firstName} {fighter.lastName}
-          {match.winnerId === fighter.id && <CheckCircle className="ml-1 h-3 w-3 text-green-500" />}
-        </span>
-        <span className="text-xs text-muted-foreground">{fighter.club}</span>
+      <div className="flex flex-col items-start min-h-[56px] justify-center"> {/* Altura consistente para 3 linhas */}
+        {statusText ? (
+          <span className="font-medium text-sm text-muted-foreground">{statusText}</span>
+        ) : (
+          <>
+            <span className="font-medium text-sm flex items-center">
+              {nameLine1} {nameLine2}
+              {match.winnerId === (fighter as Athlete)?.id && <CheckCircle className="ml-1 h-3 w-3 text-green-500" />}
+            </span>
+            <span className="text-xs text-muted-foreground">{clubLine}</span>
+          </>
+        )}
       </div>
     );
   };
