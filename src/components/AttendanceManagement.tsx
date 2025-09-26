@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Athlete, Event } from '@/types/index';
-import { UserRound, CheckCircle, XCircle, Car, Search } from 'lucide-react';
+import { UserRound, CheckCircle, XCircle, Car, Search, Clock } from 'lucide-react'; // Adicionado Clock para 'Missing'
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'; // Importar ToggleGroup
 
 interface AttendanceManagementProps {
   eventId: string;
@@ -20,6 +21,7 @@ interface AttendanceManagementProps {
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, eventDivisions, onUpdateAthleteAttendance }) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all'); // NOVO: Estado para o filtro de presença
   const userClub = localStorage.getItem('userClub'); // Mock do clube do usuário logado
   const userRole = localStorage.getItem('userRole'); // Mock do papel do usuário logado
 
@@ -40,7 +42,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
         showError("Erro ao carregar atletas para gerenciamento de presença.");
       }
     }
-  }, [eventId, userClub, userRole, onUpdateAthleteAttendance]); // Adicionado userRole às dependências
+  }, [eventId, userClub, userRole, onUpdateAthleteAttendance]);
 
   const handleAttendanceChange = (athleteId: string, status: Athlete['attendanceStatus']) => {
     onUpdateAthleteAttendance(athleteId, status);
@@ -49,19 +51,36 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   };
 
   const filteredAthletes = useMemo(() => {
-    if (!searchTerm) {
-      return athletes;
+    let currentAthletes = athletes;
+
+    // Filtragem por termo de busca
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      currentAthletes = currentAthletes.filter(athlete =>
+        athlete.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.club.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.ageDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.weightDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
+        athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
+      );
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return athletes.filter(athlete =>
-      athlete.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
-      athlete.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
-      athlete.club.toLowerCase().includes(lowerCaseSearchTerm) ||
-      athlete.ageDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
-      athlete.weightDivision.toLowerCase().includes(lowerCaseSearchTerm) ||
-      athlete.belt.toLowerCase().includes(lowerCaseSearchTerm)
-    );
-  }, [athletes, searchTerm]);
+
+    // Filtragem por status de presença
+    if (attendanceFilter !== 'all') {
+      currentAthletes = currentAthletes.filter(athlete => athlete.attendanceStatus === attendanceFilter);
+    }
+
+    return currentAthletes;
+  }, [athletes, searchTerm, attendanceFilter]);
+
+  // Cálculos para o resumo de presença
+  const totalPresent = athletes.filter(a => a.attendanceStatus === 'present').length;
+  const totalAbsent = athletes.filter(a => a.attendanceStatus === 'absent').length;
+  const totalPrivateTransportation = athletes.filter(a => a.attendanceStatus === 'private_transportation').length;
+  const totalMissing = athletes.filter(a => a.attendanceStatus === 'pending').length;
+  const totalApprovedAthletes = athletes.length;
+
 
   // Permite acesso a admins, coaches e staff
   if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
@@ -100,6 +119,25 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
         <CardDescription>Marque a presença dos atletas {userRole !== 'admin' && userClub ? 'do seu clube' : ''} para o evento.</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+            <p className="text-2xl font-bold text-green-600">{totalPresent}</p>
+            <p className="text-sm text-muted-foreground">Presentes</p>
+          </div>
+          <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+            <p className="text-2xl font-bold text-red-600">{totalAbsent}</p>
+            <p className="text-sm text-muted-foreground">Ausentes</p>
+          </div>
+          <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+            <p className="text-2xl font-bold text-blue-600">{totalPrivateTransportation}</p>
+            <p className="text-sm text-muted-foreground">Transp. Privado</p>
+          </div>
+          <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+            <p className="text-2xl font-bold text-orange-600">{totalMissing}</p>
+            <p className="text-sm text-muted-foreground">Faltando</p>
+          </div>
+        </div>
+
         <div className="relative mb-6">
           <Input
             type="text"
@@ -111,8 +149,28 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
+        <div className="mb-4 flex justify-center">
+          <ToggleGroup type="single" value={attendanceFilter} onValueChange={(value: 'all' | 'present' | 'absent' | 'private_transportation' | 'pending') => value && setAttendanceFilter(value)}>
+            <ToggleGroupItem value="all" aria-label="Mostrar todos">
+              Todos ({totalApprovedAthletes})
+            </ToggleGroupItem>
+            <ToggleGroupItem value="present" aria-label="Mostrar presentes">
+              Presentes ({totalPresent})
+            </ToggleGroupItem>
+            <ToggleGroupItem value="absent" aria-label="Mostrar ausentes">
+              Ausentes ({totalAbsent})
+            </ToggleGroupItem>
+            <ToggleGroupItem value="private_transportation" aria-label="Mostrar transporte privado">
+              Transp. Privado ({totalPrivateTransportation})
+            </ToggleGroupItem>
+            <ToggleGroupItem value="pending" aria-label="Mostrar faltando">
+              Faltando ({totalMissing})
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         {filteredAthletes.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum atleta aprovado {userRole !== 'admin' && userClub ? 'do seu clube' : ''} encontrado.</p>
+          <p className="text-muted-foreground">Nenhum atleta aprovado {userRole !== 'admin' && userClub ? 'do seu clube' : ''} encontrado com os critérios atuais.</p>
         ) : (
           <ul className="space-y-4">
             {filteredAthletes.map((athlete) => {

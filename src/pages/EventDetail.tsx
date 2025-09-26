@@ -13,11 +13,12 @@ import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
+import QrCodeGenerator from '@/components/QrCodeGenerator'; // NOVO: Importar o gerador de QR Code
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // Novo import
-import AttendanceManagement from '@/components/AttendanceManagement'; // Novo import
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import AttendanceManagement from '@/components/AttendanceManagement';
 import { Athlete, Event, WeightAttempt, Division } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -25,7 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-
+import { Switch } from '@/components/ui/switch'; // NOVO: Importar Switch
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -76,6 +77,7 @@ const EventDetail: React.FC = () => {
     let existingAthletes: Athlete[] = [];
     let eventSettings = {};
     let existingDivisions: Division[] = [];
+    let isAttendanceMandatoryBeforeCheckIn = false; // Default value
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
@@ -86,6 +88,7 @@ const EventDetail: React.FC = () => {
           numFightAreas: parsedEvent.numFightAreas,
         };
         existingDivisions = parsedEvent.divisions || [];
+        isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -99,6 +102,7 @@ const EventDetail: React.FC = () => {
       date: '2024-12-01',
       athletes: [...existingAthletes, ...initialImportedAthletes],
       divisions: existingDivisions,
+      isAttendanceMandatoryBeforeCheckIn, // Initialize the new setting
       ...eventSettings,
     };
   });
@@ -110,6 +114,8 @@ const EventDetail: React.FC = () => {
     event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
   );
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
+  const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
+
 
   // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
@@ -135,21 +141,15 @@ const EventDetail: React.FC = () => {
 
   useEffect(() => {
     if (event) {
-      localStorage.setItem(`event_${id}`, JSON.stringify(event));
-    }
-  }, [event, id]);
-
-  useEffect(() => {
-    setEvent(prevEvent => {
-      if (!prevEvent) return null;
-      return {
-        ...prevEvent,
+      localStorage.setItem(`event_${id}`, JSON.stringify({
+        ...event,
         checkInStartTime: checkInStartTime?.toISOString(),
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas: numFightAreas,
-      };
-    });
-  }, [checkInStartTime, checkInEndTime, numFightAreas]);
+        isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
+      }));
+    }
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -220,7 +220,7 @@ const EventDetail: React.FC = () => {
             ? { ...athlete, attendanceStatus: status }
             : athlete
         );
-        return { ...prevEvent, athletes: updatedAthletes };
+        return { ...prevEvent, athletes: updatedAthrates };
       });
     }
   };
@@ -327,17 +327,20 @@ const EventDetail: React.FC = () => {
     return now >= checkInStartTime && now <= checkInEndTime;
   };
 
-  const isCheckInAllowed = userRole === 'admin' || isCheckInTimeValid();
+  const isCheckInAllowed = userRole === 'admin' || (isCheckInTimeValid() && (!isAttendanceMandatory || (isAttendanceMandatory && processedApprovedAthletes.every(a => a.attendanceStatus === 'present'))));
 
   // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletesToFilter = processedApprovedAthletes;
 
-    // Filtra por attendanceStatus: apenas 'present'
-    athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+    // Se a presença for obrigatória, filtrar apenas os presentes
+    if (isAttendanceMandatory) {
+      athletesToFilter = athletesToFilter.filter(a => a.attendanceStatus === 'present');
+    }
 
     if (scannedAthleteId) {
-      athletesToFilter = athletesToFilter.filter(athlete => athlete.id === scannedAthleteId);
+      // Se um QR code foi escaneado, procurar pelo registrationQrCodeId
+      athletesToFilter = athletesToFilter.filter(athlete => athlete.registrationQrCodeId === scannedAthleteId);
     } else if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       athletesToFilter = athletesToFilter.filter(athlete =>
@@ -356,12 +359,12 @@ const EventDetail: React.FC = () => {
       return athletesToFilter.filter(a => a.checkInStatus === 'checked_in' || a.checkInStatus === 'overweight');
     }
     return athletesToFilter; // 'all' filter
-  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter]);
+  }, [processedApprovedAthletes, searchTerm, scannedAthleteId, checkInFilter, isAttendanceMandatory]);
 
   // Check-in Summary Calculations
   const totalOverweights = processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length;
   const totalCheckedInOk = processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length;
-  const totalPending = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
+  const totalPendingCheckIn = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
   const totalApprovedAthletes = processedApprovedAthletes.length;
 
   const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
@@ -380,13 +383,15 @@ const EventDetail: React.FC = () => {
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
           {/* Aba Pesagem removida */}
-          <TabsTrigger value="attendance">Attendance</TabsTrigger> {/* Nova aba */}
+          {(!isAttendanceMandatory || userRole === 'admin') && ( // Ocultar aba de attendance se não for mandatório e não for admin
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
-              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</Divisions>
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
@@ -425,7 +430,7 @@ const EventDetail: React.FC = () => {
               ) : (
                 <ul className="space-y-2">
                   {processedApprovedAthletes.map((athlete) => (
-                    <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
+                    <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
                       <div className="flex items-center space-x-4">
                         {athlete.photoUrl ? (
                           <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
@@ -440,32 +445,47 @@ const EventDetail: React.FC = () => {
                           <p className="text-xs text-gray-500">Status: <span className="font-semibold text-green-600">Aprovado</span></p>
                         </div>
                       </div>
-                      {userRole === 'admin' && (
-                        <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
-                                <Trash2 className="h-4 w-4" />
+                      <div className="flex items-center space-x-2">
+                        {athlete.registrationQrCodeId && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <QrCodeIcon className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2">
+                              <QrCodeGenerator value={athlete.registrationQrCodeId} size={100} />
+                              <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registrationQrCodeId}</p>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                        {userRole === 'admin' && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -501,17 +521,27 @@ const EventDetail: React.FC = () => {
                   <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
                   <p>Check-in OK: <span className="font-semibold text-green-600">{totalCheckedInOk}</span></p>
                   <p>Acima do Peso: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
-                  <p>Faltam: <span className="font-semibold text-orange-500">{totalPending}</span></p>
+                  <p>Faltam: <span className="font-semibold text-orange-500">{totalPendingCheckIn}</span></p>
                 </div>
+                {isAttendanceMandatory && (
+                  <p className="text-orange-500 mt-2">Atenção: A presença é obrigatória antes do check-in. Apenas atletas marcados como 'Presente' aparecerão aqui.</p>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                  <QrCodeScanner onScanSuccess={(id) => {
-                    setScannedAthleteId(id);
-                    setSearchTerm('');
-                    showSuccess(`Atleta ${id} escaneado!`);
+                  <QrCodeScanner onScanSuccess={(qrCodeId) => {
+                    // Find athlete by registrationQrCodeId
+                    const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
+                    if (athlete) {
+                      setScannedAthleteId(qrCodeId); // Store the QR code ID
+                      setSearchTerm('');
+                      showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
+                    } else {
+                      showError('QR Code não reconhecido ou atleta não encontrado.');
+                      setScannedAthleteId(null);
+                    }
                   }} />
                 </div>
                 <div className="flex-1 relative">
@@ -586,7 +616,7 @@ const EventDetail: React.FC = () => {
                         <CheckInForm
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
-                          isCheckInAllowed={isCheckInAllowed}
+                          isCheckInAllowed={isCheckInAllowed && athlete.attendanceStatus === 'present'} // Check attendance status
                           divisionMaxWeight={athlete._division?.maxWeight}
                         />
                       </div>
@@ -598,13 +628,15 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="attendance" className="mt-6">
-          <AttendanceManagement
-            eventId={event.id}
-            eventDivisions={event.divisions}
-            onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
-          />
-        </TabsContent>
+        {(!isAttendanceMandatory || userRole === 'admin') && (
+          <TabsContent value="attendance" className="mt-6">
+            <AttendanceManagement
+              eventId={event.id}
+              eventDivisions={event.divisions}
+              onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="brackets" className="mt-6">
           <Card>
@@ -742,6 +774,14 @@ const EventDetail: React.FC = () => {
                         value={numFightAreas}
                         onChange={(e) => setNumFightAreas(Number(e.target.value))}
                       />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="attendance-mandatory"
+                        checked={isAttendanceMandatory}
+                        onCheckedChange={setIsAttendanceMandatory}
+                      />
+                      <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
                     </div>
                   </div>
                   <CheckInMandatoryFieldsConfig eventId={event.id} /> {/* Novo componente */}

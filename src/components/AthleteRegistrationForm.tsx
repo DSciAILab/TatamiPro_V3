@@ -159,9 +159,13 @@ const AthleteRegistrationForm: React.FC = () => {
         showSuccess(`Foto do verso do EID ${values.emiratesIdBack[0].name} anexada.`);
       }
 
+      const athleteId = `ath-${Date.now()}`; // Gerar um ID de atleta único
+      const registrationQrCodeId = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
+
       const newAthlete: Athlete = {
-        id: `athlete-${Date.now()}`,
+        id: athleteId,
         eventId,
+        registrationQrCodeId, // Adicionar o ID do QR Code
         firstName: values.firstName!,
         lastName: values.lastName!,
         dateOfBirth: values.dateOfBirth!,

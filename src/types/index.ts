@@ -14,6 +14,7 @@ export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' |
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
+  registrationQrCodeId?: string; // NOVO: ID único para o QR Code da inscrição
   photoUrl?: string; // Novo: URL da foto de perfil do atleta
   firstName: string;
   lastName: string;
@@ -44,19 +45,6 @@ export interface Athlete {
   attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo: Status de presença
 }
 
-export interface Division {
-  id: string;
-  name: string; // Nome completo da divisão, ex: "Adulto Masculino Faixa Azul Peso Pena"
-  minAge: number;
-  maxAge: number;
-  // minWeight removido, será inferido do maxWeight da divisão anterior
-  maxWeight: number;
-  gender: DivisionGender;
-  belt: DivisionBelt;
-  ageCategoryName: AgeCategory; // Nome público da categoria de idade, ex: "Adulto", "Juvenil"
-  isEnabled: boolean; // Para habilitar/desabilitar no evento
-}
-
 export interface Event {
   id: string;
   name: string;
@@ -68,4 +56,5 @@ export interface Event {
   checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
   numFightAreas?: number; // Novo: Número de áreas de luta
   divisions: Division[]; // Novo: Divisões configuradas para o evento
+  isAttendanceMandatoryBeforeCheckIn?: boolean; // NOVO: Se a presença é obrigatória antes do check-in
 }

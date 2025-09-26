@@ -286,9 +286,13 @@ const BatchAthleteImport: React.FC = () => {
         const ageDivision = getAgeDivision(age);
         const weightDivision = getWeightDivision(weight);
 
+        const athleteId = `ath-${Date.now()}-${index}`; // Gerar um ID de atleta único
+        const registrationQrCodeId = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
+
         const newAthlete: Athlete = {
-          id: `athlete-${Date.now()}-${index}`, // Unique ID
+          id: athleteId, // Unique ID
           eventId: eventId!,
+          registrationQrCodeId, // Adicionar o ID do QR Code
           firstName,
           lastName,
           dateOfBirth,
