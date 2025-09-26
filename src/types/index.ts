@@ -14,6 +14,7 @@ export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' |
 export interface Athlete {
   id: string;
   eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
+  registrationQrCodeId?: string; // Adicionado: ID único para o QR Code de inscrição
   photoUrl?: string; // Novo: URL da foto de perfil do atleta
   firstName: string;
   lastName: string;
