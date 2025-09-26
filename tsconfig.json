@@ -20,6 +20,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "supabase/functions"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
