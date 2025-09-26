@@ -44,8 +44,8 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   const totalRounds = bracket.rounds.length;
 
   // Definindo constantes para o layout das linhas
-  const cardHeight = 136; // Altura aproximada de um BracketMatchCard (2 slots * 56px + padding/margin)
-  const baseVerticalGap = 20; // Espaçamento vertical entre as lutas na primeira rodada
+  const cardHeight = 140; // Altura calculada de um BracketMatchCard (2 slots * 56px + padding/margin + bordas)
+  const baseVerticalGap = 30; // Espaçamento vertical entre as lutas na primeira rodada
   const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
   const cardWidth = 250; // Largura máxima de um BracketMatchCard
   const horizontalGap = 32; // Espaçamento horizontal entre as colunas de rodadas (de 'space-x-8')
