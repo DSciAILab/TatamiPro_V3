@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from 'react'; // Importar useState
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Auth from './pages/Auth';
-import Welcome from './pages/Welcome'; // Importar Welcome
-import Events from './pages/Events'; // Importar Events
+import Welcome from './pages/Welcome';
+import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
 import RegistrationOptions from './pages/RegistrationOptions';
 import RegisterAthletePage from './pages/RegisterAthletePage';
 import BatchAthleteImport from './pages/BatchAthleteImport';
 import DivisionImport from './pages/DivisionImport';
+import NotFound from './pages/NotFound'; // Importar NotFound
 import { ThemeProvider } from './components/theme-provider';
-import { User } from './types'; // Importar o tipo User
+import { User } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const App: React.FC = () => {
@@ -38,41 +39,31 @@ const App: React.FC = () => {
       setIsAuthenticated(currentUser !== null);
     };
 
-    // Verifica o status na montagem inicial
     checkAuthStatus();
-
-    // Adiciona um listener para um evento personalizado 'authChange'
-    // Isso permite que outros componentes (como Auth.tsx) notifiquem App.tsx sobre mudanças de autenticação
     window.addEventListener('authChange', checkAuthStatus);
 
-    // Limpa o listener quando o componente é desmontado
     return () => {
       window.removeEventListener('authChange', checkAuthStatus);
     };
-  }, []); // Array de dependências vazio para rodar apenas na montagem e desmontagem
+  }, []);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Router>
         <Routes>
+          <Route path="/" element={<Welcome />} /> {/* Welcome é sempre acessível */}
           <Route path="/auth" element={<Auth />} />
-          {isAuthenticated ? (
-            <>
-              <Route path="/" element={<Welcome />} /> {/* Rota raiz para Welcome se autenticado */}
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/events" element={<Events />} /> {/* Página de listagem de eventos */}
-              <Route path="/events/:id" element={<EventDetail />} />
-              <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-              <Route path="/events/:id/register-athlete" element={<RegisterAthletePage />} />
-              <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-              <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-              {/* Catch-all para rotas não encontradas após login */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          ) : (
-            // Redireciona qualquer rota para /auth se não autenticado
-            <Route path="*" element={<Navigate to="/auth" />} />
-          )}
+
+          {/* Rotas Protegidas */}
+          <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/auth" />} />
+          <Route path="/events/:id" element={isAuthenticated ? <EventDetail /> : <Navigate to="/auth" />} />
+          <Route path="/events/:id/registration-options" element={isAuthenticated ? <RegistrationOptions /> : <Navigate to="/auth" />} />
+          <Route path="/events/:id/register-athlete" element={isAuthenticated ? <RegisterAthletePage /> : <Navigate to="/auth" />} />
+          <Route path="/events/:id/import-athletes" element={isAuthenticated ? <BatchAthleteImport /> : <Navigate to="/auth" />} />
+          <Route path="/events/:id/import-divisions" element={isAuthenticated ? <DivisionImport /> : <Navigate to="/auth" />} />
+
+          {/* Rota para páginas não encontradas */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </ThemeProvider>

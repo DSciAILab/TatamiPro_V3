@@ -16,7 +16,7 @@ const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete'); // Default role
+  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete'); // Mantido para o registro
   const [club, setClub] = useState('');
   const navigate = useNavigate();
 
@@ -26,18 +26,19 @@ const Auth: React.FC = () => {
     const users: User[] = storedUsersString ? JSON.parse(storedUsersString) : [];
 
     if (isLogin) {
-      const foundUser = users.find(u => u.email === email && u.password === password && u.role === role && u.isActive);
+      // Encontra o usuário apenas por email e senha, e verifica se está ativo
+      const foundUser = users.find(u => u.email === email && u.password === password && u.isActive);
 
       if (foundUser) {
         localStorage.setItem('currentUser', JSON.stringify(foundUser));
         localStorage.setItem('userName', foundUser.name);
-        localStorage.setItem('userRole', foundUser.role);
+        localStorage.setItem('userRole', foundUser.role); // Usa o papel do usuário encontrado
         localStorage.setItem('userClub', foundUser.club || '');
-        window.dispatchEvent(new Event('authChange')); // Dispara o evento personalizado
+        window.dispatchEvent(new Event('authChange'));
         showSuccess(`Login de ${foundUser.name} (${foundUser.role}) realizado com sucesso!`);
-        navigate('/welcome');
+        navigate('/events'); // Redireciona para a página de eventos após o login
       } else {
-        showError('Credenciais, papel ou status de usuário inválidos. Tente as credenciais de demonstração.');
+        showError('Credenciais inválidas ou usuário inativo. Tente as credenciais de demonstração.');
       }
     } else {
       const existingUser = users.find(u => u.email === email);
@@ -52,7 +53,7 @@ const Auth: React.FC = () => {
         id: uuidv4(),
         email,
         password,
-        role,
+        role, // Usa o papel selecionado para o registro
         club: club || (role === 'admin' ? 'Tatamipro HQ' : 'Novo Clube'),
         isActive: true,
         name: newUserName,
@@ -100,21 +101,22 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
-                {/* A seleção de papel agora aparece para login e registro */}
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="role">Papel</Label>
-                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Selecione seu papel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="coach">Coach</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="athlete">Atleta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!isLogin && ( // A seleção de papel aparece apenas para o registro
+                  <div className="flex flex-col space-y-1.5">
+                    <Label htmlFor="role">Papel</Label>
+                    <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Selecione seu papel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="athlete">Atleta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <Button type="submit" className="w-full mt-4">
                   {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
