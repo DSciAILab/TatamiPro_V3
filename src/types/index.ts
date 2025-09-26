@@ -116,4 +116,5 @@ export interface Event {
   isOverweightAutoMoveEnabled?: boolean; // NOVO: Se a movimentação automática por excesso de peso está habilitada
   brackets?: Record<string, Bracket>; // NOVO: Brackets gerados para cada divisão
   matFightOrder?: Record<string, string[]>; // NOVO: Ordem sequencial das lutas por mat
+  includeThirdPlace?: boolean; // NOVO: Se a luta pelo 3º lugar está habilitada
 }

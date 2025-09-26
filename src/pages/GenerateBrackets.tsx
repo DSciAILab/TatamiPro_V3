@@ -20,7 +20,7 @@ const GenerateBrackets: React.FC = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | 'all'>('all');
-  const [includeThirdPlace, setIncludeThirdPlace] = useState(false);
+  // const [includeThirdPlace, setIncludeThirdPlace] = useState(false); // REMOVIDO
   const [generatedBrackets, setGeneratedBrackets] = useState<Record<string, Bracket>>({});
 
   useEffect(() => {
@@ -88,8 +88,11 @@ const GenerateBrackets: React.FC = () => {
     }
 
     try {
+      // Retrieve includeThirdPlace from event settings
+      const includeThirdPlaceFromEvent = event.includeThirdPlace || false; // Assuming it's stored in event
+
       divisionsToProcess.forEach(div => {
-        const bracket = generateBracketForDivision(div, event.athletes, { thirdPlace: includeThirdPlace });
+        const bracket = generateBracketForDivision(div, event.athletes, { thirdPlace: includeThirdPlaceFromEvent });
         newBrackets[div.id] = bracket;
       });
 
@@ -153,14 +156,7 @@ const GenerateBrackets: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="include-third-place"
-              checked={includeThirdPlace}
-              onCheckedChange={setIncludeThirdPlace}
-            />
-            <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
-          </div>
+          {/* REMOVIDO: Switch para 'Incluir Luta pelo 3º Lugar' */}
           <Button onClick={handleGenerateBrackets} className="w-full">
             <PlayCircle className="mr-2 h-4 w-4" /> Gerar Bracket(s)
           </Button>

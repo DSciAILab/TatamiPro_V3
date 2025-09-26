@@ -115,6 +115,7 @@ const EventDetail: React.FC = () => {
     let isOverweightAutoMoveEnabled = false; // Initialize isOverweightAutoMoveEnabled
     let existingBrackets: Record<string, Bracket> = {}; // Initialize existingBrackets
     let matFightOrder: Record<string, string[]> = {}; // Initialize matFightOrder
+    let includeThirdPlace = false; // Initialize new state
 
     if (existingEventData) {
       try {
@@ -133,6 +134,7 @@ const EventDetail: React.FC = () => {
         isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false; // Load new state
         existingBrackets = parsedEvent.brackets || {}; // Load existing brackets
         matFightOrder = parsedEvent.matFightOrder || {}; // Load matFightOrder
+        includeThirdPlace = parsedEvent.includeThirdPlace !== undefined ? parsedEvent.includeThirdPlace : false; // Load new state
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -153,6 +155,7 @@ const EventDetail: React.FC = () => {
       isOverweightAutoMoveEnabled, // Set new state
       brackets: existingBrackets, // Set existing brackets
       matFightOrder, // Set matFightOrder
+      includeThirdPlace, // Set new state
       ...eventSettings,
     };
   });
@@ -168,9 +171,12 @@ const EventDetail: React.FC = () => {
   const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true);
   const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true); // New state for belt grouping toggle
   const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false); // New state for auto-move toggle
+  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false); // New state for third place toggle
 
   // State for inner tabs within 'Config'
   const [configSubTab, setConfigSubTab] = useState('event-settings');
+  // State for inner tabs within 'Inscrições'
+  const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
 
 
   // Configuração de campos obrigatórios para check-in
@@ -206,9 +212,10 @@ const EventDetail: React.FC = () => {
         isWeightCheckEnabled: isWeightCheckEnabled,
         isBeltGroupingEnabled: isBeltGroupingEnabled, // Save new state
         isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled, // Save new state
+        includeThirdPlace: includeThirdPlace, // Save new state
       }));
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -575,7 +582,7 @@ const EventDetail: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7"> {/* Ajustado para 7 colunas */}
+        <TabsList className="grid w-full grid-cols-6"> {/* Ajustado para 6 colunas */}
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           {userRole && <TabsTrigger value="checkin">Check-in</TabsTrigger>}
           {/* A aba Attendance agora é sempre visível para admins, e para outros se não for obrigatória */}
@@ -583,12 +590,8 @@ const EventDetail: React.FC = () => {
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
           )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
-          {userRole && userRole === 'admin' && (
-            <>
-              <TabsTrigger value="config">Config</TabsTrigger> {/* Renomeado de 'Admin' para 'Config' */}
-              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
-              {/* Removida a aba Divisões daqui */}
-            </>
+          {userRole === 'admin' && ( // Apenas a aba 'Config' aqui para admins
+            <TabsTrigger value="config">Config</TabsTrigger>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
           <TabsTrigger value="llm">LLM (Q&A)</TabsTrigger>
@@ -601,148 +604,248 @@ const EventDetail: React.FC = () => {
               <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {userRole && !editingAthlete && (
-                <div className="mb-6 space-y-2"> {/* Adicionado space-y-2 para espaçamento entre botões */}
-                  <Link to={`/events/${event.id}/registration-options`}>
-                    <Button className="w-full">
-                      <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
-                    </Button>
-                  </Link>
-                  {/* Botão de Importar Atletas em Lote movido para cá */}
-                  <Link to={`/events/${event.id}/import-athletes`}>
-                    <Button className="w-full" variant="secondary">Importar Atletas em Lote</Button>
-                  </Link>
-                </div>
-              )}
+              <Tabs value={inscricoesSubTab} onValueChange={setInscricoesSubTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="registered-athletes">Atletas Inscritos</TabsTrigger>
+                  {userRole && userRole === 'admin' && (
+                    <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
+                  )}
+                </TabsList>
 
-              {userRole === 'coach' && userClub && (
-                <div className="mb-6 space-y-4">
-                  <h3 className="text-xl font-semibold">Minhas Inscrições ({userClub})</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
-                      <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
-                      <p className="text-sm text-muted-foreground">Total</p>
-                    </div>
-                    <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
-                      <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
-                      <p className="text-sm text-muted-foreground">Aprovadas</p>
-                    </div>
-                    <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
-                      <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
-                      <p className="text-sm text-muted-foreground">Pendentes</p>
-                    </div>
-                    <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
-                      <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
-                      <p className="text-sm text-muted-foreground">Recusadas</p>
-                    </div>
-                  </div>
-
-                  {userRole && ( // Only show filter if logged in
-                    <div className="mb-4 flex justify-center">
-                      <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
-                        <ToggleGroupItem value="all" aria-label="Mostrar todos">
-                          Todos ({coachTotalRegistrations})
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
-                          Aprovados ({coachTotalApproved})
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
-                          Pendentes ({coachTotalPending})
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
-                          Recusados ({coachTotalRejected})
-                        </ToggleGroupItem>
-                      </ToggleGroup>
+                <TabsContent value="registered-athletes" className="mt-6">
+                  {userRole && !editingAthlete && (
+                    <div className="mb-6 space-y-2">
+                      <Link to={`/events/${event.id}/registration-options`}>
+                        <Button className="w-full">
+                          <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
+                        </Button>
+                      </Link>
+                      <Link to={`/events/${event.id}/import-athletes`}>
+                        <Button className="w-full" variant="secondary">Importar Atletas em Lote</Button>
+                      </Link>
                     </div>
                   )}
-                </div>
-              )}
 
-              {userRole && editingAthlete && (
-                <AthleteProfileEditForm
-                  athlete={editingAthlete}
-                  onSave={handleAthleteUpdate}
-                  onCancel={() => setEditingAthlete(null)}
-                  mandatoryFieldsConfig={mandatoryFieldsConfig}
-                />
-              )}
-
-              <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({filteredAthletesForDisplayInscricoes.length})</h3>
-              {filteredAthletesForDisplayInscricoes.length === 0 ? (
-                <p className="text-muted-foreground">Nenhum atleta encontrado com os critérios atuais.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredAthletesForDisplayInscricoes.map((athlete) => (
-                    <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
-                      <div className="flex items-center space-x-4">
-                        {userRole && <Checkbox // Only show checkbox if logged in
-                          checked={selectedAthletesForApproval.includes(athlete.id)}
-                          onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                          className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
-                        />}
-                        {athlete.photoUrl ? (
-                          <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <UserRound className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
-                          <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                          <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registrationStatus === 'approved' ? 'text-green-600' : athlete.registrationStatus === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registrationStatus === 'under_approval' ? 'Aguardando Aprovação' : athlete.registrationStatus === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
-                          {athlete.moveReason && (
-                            <p className="text-xs text-blue-500">
-                              <span className="font-semibold">Movido:</span> {athlete.moveReason}
-                            </p>
-                          )}
+                  {userRole === 'coach' && userClub && (
+                    <div className="mb-6 space-y-4">
+                      <h3 className="text-xl font-semibold">Minhas Inscrições ({userClub})</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+                          <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
+                          <p className="text-sm text-muted-foreground">Total</p>
+                        </div>
+                        <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                          <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
+                          <p className="text-sm text-muted-foreground">Aprovadas</p>
+                        </div>
+                        <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+                          <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
+                          <p className="text-sm text-muted-foreground">Pendentes</p>
+                        </div>
+                        <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+                          <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
+                          <p className="text-sm text-muted-foreground">Recusadas</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {athlete.registrationQrCodeId && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" size="icon">
-                                <QrCodeIcon className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-2">
-                              <QrCodeGenerator value={athlete.registrationQrCodeId} size={100} />
-                              <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registrationQrCodeId}</p>
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                        {userRole && ( // Only show edit/delete if logged in
-                          <>
-                            <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
-                                    <Trash2 className="h-4 w-4" />
+
+                      {userRole && ( // Only show filter if logged in
+                        <div className="mb-4 flex justify-center">
+                          <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
+                            <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                              Todos ({coachTotalRegistrations})
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
+                              Aprovados ({coachTotalApproved})
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
+                              Pendentes ({coachTotalPending})
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
+                              Recusados ({coachTotalRejected})
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {userRole && editingAthlete && (
+                    <AthleteProfileEditForm
+                      athlete={editingAthlete}
+                      onSave={handleAthleteUpdate}
+                      onCancel={() => setEditingAthlete(null)}
+                      mandatoryFieldsConfig={mandatoryFieldsConfig}
+                    />
+                  )}
+
+                  <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({filteredAthletesForDisplayInscricoes.length})</h3>
+                  {filteredAthletesForDisplayInscricoes.length === 0 ? (
+                    <p className="text-muted-foreground">Nenhum atleta encontrado com os critérios atuais.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {filteredAthletesForDisplayInscricoes.map((athlete) => (
+                        <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-2 border rounded-md">
+                          <div className="flex items-center space-x-4">
+                            {userRole && <Checkbox // Only show checkbox if logged in
+                              checked={selectedAthletesForApproval.includes(athlete.id)}
+                              onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
+                              className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''} // Hide checkbox if not pending approval
+                            />}
+                            {athlete.photoUrl ? (
+                              <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                <UserRound className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                              <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                              <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registrationStatus === 'approved' ? 'text-green-600' : athlete.registrationStatus === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registrationStatus === 'under_approval' ? 'Aguardando Aprovação' : athlete.registrationStatus === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
+                              {athlete.moveReason && (
+                                <p className="text-xs text-blue-500">
+                                  <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {athlete.registrationQrCodeId && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" size="icon">
+                                    <QrCodeIcon className="h-4 w-4" />
                                   </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2">
+                                  <QrCodeGenerator value={athlete.registrationQrCodeId} size={100} />
+                                  <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registrationQrCodeId}</p>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                            {userRole && ( // Only show edit/delete if logged in
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </TabsContent>
+
+                {userRole === 'admin' && (
+                  <TabsContent value="approvals" className="mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Aprovações de Inscrição</CardTitle>
+                        <CardDescription>Revise e aprove ou rejeite as inscrições pendentes.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {sortedAthletesUnderApproval.length === 0 ? (
+                          <p className="text-muted-foreground">Nenhuma inscrição aguardando aprovação.</p>
+                        ) : (
+                          <>
+                            <div className="flex items-center space-x-2 mb-4">
+                              <Checkbox
+                                id="selectAll"
+                                checked={selectedAthletesForApproval.length === sortedAthletesUnderApproval.length && sortedAthletesUnderApproval.length > 0}
+                                onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean)}
+                              />
+                              <Label htmlFor="selectAll">Selecionar Todos</Label>
+                            </div>
+                            <div className="flex space-x-2 mb-4">
+                              <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
+                                Aprovar Selecionados ({selectedAthletesForApproval.length})
+                              </Button>
+                              <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
+                                Rejeitar Selecionados ({selectedAthletesForApproval.length})
+                              </Button>
+                            </div>
+                            <ul className="space-y-2">
+                              {sortedAthletesUnderApproval.map((athlete) => (
+                                <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
+                                  <div className="flex items-center space-x-4">
+                                    <Checkbox
+                                      checked={selectedAthletesForApproval.includes(athlete.id)}
+                                      onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
+                                    />
+                                    {athlete.photoUrl ? (
+                                      <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                        <UserRound className="h-5 w-5 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="flex-grow">
+                                      <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                                      <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                                      {athlete.paymentProofUrl && (
+                                        <p className="text-xs text-blue-500">
+                                          <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
+                                    {userRole === 'admin' && (
+                                      <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
                           </>
                         )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
@@ -854,8 +957,6 @@ const EventDetail: React.FC = () => {
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
-
-              {/* REMOVIDO: O ToggleGroup de filtro segmentado */}
 
               {filteredAthletesForCheckIn.length === 0 ? (
                 <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
@@ -990,277 +1091,195 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         {userRole === 'admin' && (
-          <>
-            <TabsContent value="config" className="mt-6"> {/* Renomeado de 'admin' para 'config' */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configurações do Evento</CardTitle> {/* Título atualizado */}
-                  <CardDescription>Gerencie as configurações gerais, divisões e tempos de luta do evento.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Tabs value={configSubTab} onValueChange={setConfigSubTab}>
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
-                      <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
-                      <TabsTrigger value="fight-time">Tempo de Luta</TabsTrigger>
-                    </TabsList>
+          <TabsContent value="config" className="mt-6"> {/* Renomeado de 'admin' para 'config' */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações do Evento</CardTitle> {/* Título atualizado */}
+                <CardDescription>Gerencie as configurações gerais, divisões e tempos de luta do evento.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Tabs value={configSubTab} onValueChange={setConfigSubTab}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
+                    <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+                    <TabsTrigger value="fight-time">Tempo de Luta</TabsTrigger>
+                  </TabsList>
 
-                    <TabsContent value="event-settings" className="mt-6">
-                      <div className="space-y-4">
-                        <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
-                        <div>
-                          <Label htmlFor="checkInStartTime">Início do Check-in</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className="w-full justify-start text-left font-normal"
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={checkInStartTime}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    const newDate = new Date(date);
-                                    if (checkInStartTime) {
-                                      newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
-                                    } else {
-                                      newDate.setHours(9, 0); // Default to 9 AM
-                                    }
+                  <TabsContent value="event-settings" className="mt-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
+                      <div>
+                        <Label htmlFor="checkInStartTime">Início do Check-in</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={checkInStartTime}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const newDate = new Date(date);
+                                  if (checkInStartTime) {
+                                    newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
+                                  } else {
+                                    newDate.setHours(9, 0); // Default to 9 AM
+                                  }
+                                  setCheckInStartTime(newDate);
+                                }
+                              }}
+                              initialFocus
+                            />
+                            <div className="p-3 border-t border-border">
+                              <Input
+                                type="time"
+                                value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
+                                onChange={(e) => {
+                                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                                  if (checkInStartTime) {
+                                    const newDate = new Date(checkInStartTime);
+                                    newDate.setHours(hours, minutes);
+                                    setCheckInStartTime(newDate);
+                                  } else {
+                                    const newDate = new Date();
+                                    newDate.setHours(hours, minutes);
                                     setCheckInStartTime(newDate);
                                   }
                                 }}
-                                initialFocus
                               />
-                              <div className="p-3 border-t border-border">
-                                <Input
-                                  type="time"
-                                  value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
-                                  onChange={(e) => {
-                                    const [hours, minutes] = e.target.value.split(':').map(Number);
-                                    if (checkInStartTime) {
-                                      const newDate = new Date(checkInStartTime);
-                                      newDate.setHours(hours, minutes);
-                                      setCheckInStartTime(newDate);
-                                    } else {
-                                      const newDate = new Date();
-                                      newDate.setHours(hours, minutes);
-                                      setCheckInStartTime(newDate);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div>
-                          <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className="w-full justify-start text-left font-normal"
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={checkInEndTime}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    const newDate = new Date(date);
-                                    if (checkInEndTime) {
-                                      newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
-                                    } else {
-                                      newDate.setHours(17, 0); // Default to 5 PM
-                                    }
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div>
+                        <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={checkInEndTime}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const newDate = new Date(date);
+                                  if (checkInEndTime) {
+                                    newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
+                                  } else {
+                                    newDate.setHours(17, 0); // Default to 5 PM
+                                  }
+                                  setCheckInEndTime(newDate);
+                                }
+                              }}
+                              initialFocus
+                            />
+                            <div className="p-3 border-t border-border">
+                              <Input
+                                type="time"
+                                value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
+                                onChange={(e) => {
+                                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                                  if (checkInEndTime) {
+                                    const newDate = new Date(checkInEndTime);
+                                    newDate.setHours(hours, minutes);
+                                    setCheckInEndTime(newDate);
+                                  } else {
+                                    const newDate = new Date();
+                                    newDate.setHours(hours, minutes);
                                     setCheckInEndTime(newDate);
                                   }
                                 }}
-                                initialFocus
                               />
-                              <div className="p-3 border-t border-border">
-                                <Input
-                                  type="time"
-                                  value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
-                                  onChange={(e) => {
-                                    const [hours, minutes] = e.target.value.split(':').map(Number);
-                                    if (checkInEndTime) {
-                                      const newDate = new Date(checkInEndTime);
-                                      newDate.setHours(hours, minutes);
-                                      setCheckInEndTime(newDate);
-                                    } else {
-                                      const newDate = new Date();
-                                      newDate.setHours(hours, minutes);
-                                      setCheckInEndTime(newDate);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div>
-                          <Label htmlFor="numFightAreas">Número de Áreas de Luta</Label>
-                          <Input
-                            id="numFightAreas"
-                            type="number"
-                            min="1"
-                            value={numFightAreas}
-                            onChange={(e) => setNumFightAreas(Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="attendance-mandatory"
-                            checked={isAttendanceMandatory}
-                            onCheckedChange={setIsAttendanceMandatory}
-                          />
-                          <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="weight-check-enabled"
-                            checked={isWeightCheckEnabled}
-                            onCheckedChange={setIsWeightCheckEnabled}
-                          />
-                          <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso no Check-in</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="belt-grouping-enabled"
-                            checked={isBeltGroupingEnabled}
-                            onCheckedChange={setIsBeltGroupingEnabled}
-                          />
-                          <Label htmlFor="belt-grouping-enabled">Habilitar Faixa no Agrupamento de Divisões</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="overweight-auto-move-enabled"
-                            checked={isOverweightAutoMoveEnabled}
-                            onCheckedChange={setIsOverweightAutoMoveEnabled}
-                          />
-                          <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso para próxima categoria</Label>
-                        </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                      <CheckInMandatoryFieldsConfig eventId={event.id} />
-                    </TabsContent>
-
-                    <TabsContent value="divisions" className="mt-6">
-                      <Link to={`/events/${event.id}/import-divisions`}>
-                        <Button className="w-full mb-4">Importar Divisões em Lote</Button>
-                      </Link>
-                      <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
-                    </TabsContent>
-
-                    <TabsContent value="fight-time" className="mt-6">
-                      <h3 className="text-xl font-semibold mb-4">Configuração de Tempo de Luta</h3>
-                      <p className="text-muted-foreground">
-                        Aqui você poderá configurar os tempos de luta para diferentes faixas e categorias de idade.
-                        (Funcionalidade em desenvolvimento)
-                      </p>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="approvals" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Aprovações de Inscrição</CardTitle>
-                  <CardDescription>Revise e aprove ou rejeite as inscrições pendentes.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {sortedAthletesUnderApproval.length === 0 ? (
-                    <p className="text-muted-foreground">Nenhuma inscrição aguardando aprovação.</p>
-                  ) : (
-                    <>
-                      <div className="flex items-center space-x-2 mb-4">
-                        <Checkbox
-                          id="selectAll"
-                          checked={selectedAthletesForApproval.length === sortedAthletesUnderApproval.length && sortedAthletesUnderApproval.length > 0}
-                          onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean)}
+                      <div>
+                        <Label htmlFor="numFightAreas">Número de Áreas de Luta</Label>
+                        <Input
+                          id="numFightAreas"
+                          type="number"
+                          min="1"
+                          value={numFightAreas}
+                          onChange={(e) => setNumFightAreas(Number(e.target.value))}
                         />
-                        <Label htmlFor="selectAll">Selecionar Todos</Label>
                       </div>
-                      <div className="flex space-x-2 mb-4">
-                        <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
-                          Aprovar Selecionados ({selectedAthletesForApproval.length})
-                        </Button>
-                        <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
-                          Rejeitar Selecionados ({selectedAthletesForApproval.length})
-                        </Button>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="attendance-mandatory"
+                          checked={isAttendanceMandatory}
+                          onCheckedChange={setIsAttendanceMandatory}
+                        />
+                        <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
                       </div>
-                      <ul className="space-y-2">
-                        {sortedAthletesUnderApproval.map((athlete) => (
-                          <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
-                            <div className="flex items-center space-x-4">
-                              <Checkbox
-                                checked={selectedAthletesForApproval.includes(athlete.id)}
-                                onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                              />
-                              {athlete.photoUrl ? (
-                                <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                  <UserRound className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
-                              <div className="flex-grow">
-                                <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
-                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                                {athlete.paymentProofUrl && (
-                                  <p className="text-xs text-blue-500">
-                                    <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
-                              {userRole === 'admin' && (
-                                <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="weight-check-enabled"
+                          checked={isWeightCheckEnabled}
+                          onCheckedChange={setIsWeightCheckEnabled}
+                        />
+                        <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso no Check-in</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="belt-grouping-enabled"
+                          checked={isBeltGroupingEnabled}
+                          onCheckedChange={setIsBeltGroupingEnabled}
+                        />
+                        <Label htmlFor="belt-grouping-enabled">Habilitar Faixa no Agrupamento de Divisões</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="overweight-auto-move-enabled"
+                          checked={isOverweightAutoMoveEnabled}
+                          onCheckedChange={setIsOverweightAutoMoveEnabled}
+                        />
+                        <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso para próxima categoria</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="include-third-place"
+                          checked={includeThirdPlace}
+                          onCheckedChange={setIncludeThirdPlace}
+                        />
+                        <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
+                      </div>
+                    </div>
+                    <CheckInMandatoryFieldsConfig eventId={event.id} />
+                  </TabsContent>
+
+                  <TabsContent value="divisions" className="mt-6">
+                    <Link to={`/events/${event.id}/import-divisions`}>
+                      <Button className="w-full mb-4">Importar Divisões em Lote</Button>
+                    </Link>
+                    <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+                  </TabsContent>
+
+                  <TabsContent value="fight-time" className="mt-6">
+                    <h3 className="text-xl font-semibold mb-4">Configuração de Tempo de Luta</h3>
+                    <p className="text-muted-foreground">
+                      Aqui você poderá configurar os tempos de luta para diferentes faixas e categorias de idade.
+                      (Funcionalidade em desenvolvimento)
+                    </p>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
         )}
 
         <TabsContent value="resultados" className="mt-6">
