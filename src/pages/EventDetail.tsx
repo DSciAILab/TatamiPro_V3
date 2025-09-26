@@ -220,7 +220,7 @@ const EventDetail: React.FC = () => {
             ? { ...athlete, attendanceStatus: status }
             : athlete
         );
-        return { ...prevEvent, athletes: updatedAthrates };
+        return { ...prevEvent, athletes: updatedAthletes };
       });
     }
   };
@@ -391,7 +391,7 @@ const EventDetail: React.FC = () => {
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
-              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</Divisions>
+              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>

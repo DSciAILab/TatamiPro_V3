@@ -10,6 +10,18 @@ export type DivisionGender = 'Masculino' | 'Feminino' | 'Ambos';
 export type DivisionBelt = Belt | 'Todas';
 export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master' | 'Indefinido';
 
+// NOVO: Interface para Divisão
+export interface Division {
+  id: string;
+  name: string;
+  minAge: number;
+  maxAge: number;
+  maxWeight: number;
+  gender: DivisionGender;
+  belt: DivisionBelt;
+  ageCategoryName: AgeCategory;
+  isEnabled: boolean;
+}
 
 export interface Athlete {
   id: string;
