@@ -18,21 +18,23 @@ const Events: React.FC = () => {
   const [events, setEvents] = useState(baseEvents);
 
   useEffect(() => {
-    const updatedEvents = baseEvents.map(baseEvent => {
-      const storedEventData = localStorage.getItem(`event_${baseEvent.id}`);
-      if (storedEventData) {
-        try {
-          const storedEvent = JSON.parse(storedEventData);
-          // Return a new object with merged properties, giving precedence to stored data
-          return { ...baseEvent, ...storedEvent };
-        } catch (e) {
-          console.error(`Failed to parse event data for event ${baseEvent.id}`, e);
-          return baseEvent; // Fallback to base event on parsing error
-        }
+    // Load events from localStorage, merging with base events
+    const storedEventsListRaw = localStorage.getItem('events');
+    let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
+    if (storedEventsListRaw) {
+      try {
+        storedEventsList = JSON.parse(storedEventsListRaw);
+      } catch (e) {
+        console.error("Failed to parse events list from localStorage", e);
       }
-      return baseEvent;
-    });
-    setEvents(updatedEvents);
+    }
+
+    // Combine base events with stored events, prioritizing stored data
+    const combinedEventsMap = new Map<string, typeof baseEvents[0]>();
+    baseEvents.forEach(event => combinedEventsMap.set(event.id, event));
+    storedEventsList.forEach(event => combinedEventsMap.set(event.id, event));
+
+    setEvents(Array.from(combinedEventsMap.values()));
   }, []); // Empty dependency array means this runs once on mount
 
   return (
@@ -40,7 +42,9 @@ const Events: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Eventos</h1>
         {localStorage.getItem('userRole') === 'admin' && (
-          <Button>Criar Novo Evento</Button>
+          <Link to="/events/create"> {/* Adicionado Link para a página de criação */}
+            <Button>Criar Novo Evento</Button>
+          </Link>
         )}
       </div>
 
