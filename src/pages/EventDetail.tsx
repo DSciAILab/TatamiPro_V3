@@ -521,11 +521,8 @@ const EventDetail: React.FC = () => {
     return now >= checkInStartTime && now <= checkInEndTime;
   };
 
-  // ATUALIZADO: Lógica de isCheckInAllowed
-  const isCheckInAllowed = userRole === 'admin' || (
-    isCheckInTimeValid() &&
-    (!isAttendanceMandatory || (isAttendanceMandatory && processedApprovedAthletes.every(a => a.attendanceStatus === 'present')))
-  );
+  // ATUALIZADO: Lógica de isCheckInAllowed (global)
+  const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
 
   // Filtragem de atletas para o check-in
   const filteredAthletesForCheckIn = useMemo(() => {
@@ -1207,7 +1204,7 @@ const EventDetail: React.FC = () => {
                         <CheckInForm
                           athlete={athlete}
                           onCheckIn={handleCheckInAthlete}
-                          isCheckInAllowed={isCheckInAllowed && (isAttendanceMandatory ? athlete.attendanceStatus === 'present' : true)} // ATUALIZADO: Lógica de permissão de check-in
+                          isCheckInAllowed={isCheckInAllowedGlobally && (isAttendanceMandatory ? athlete.attendanceStatus === 'present' : true)} // ATUALIZADO: Lógica de permissão de check-in
                           divisionMaxWeight={athlete._division?.maxWeight}
                           isWeightCheckEnabled={isWeightCheckEnabled}
                           isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
