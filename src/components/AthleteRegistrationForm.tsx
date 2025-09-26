@@ -227,7 +227,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
       <div>
         <Label htmlFor="paymentProof">Comprovante de Pagamento (PDF, Imagem)</Label>
         <Input id="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('paymentProof')} />
-        {errors.paymentProof && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message}</p>}
+        {errors.paymentProof?.message && <p className="text-red-500 text-sm mt-1">{errors.paymentProof.message as string}</p>} {/* Corrigido: acesso seguro e cast */}
       </div>
 
       <div className="flex items-center space-x-2">

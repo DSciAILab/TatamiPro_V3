@@ -26,6 +26,7 @@ const requiredAthleteFields = {
   email: 'Email',
   idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
   club: 'Clube',
+  gender: 'Gênero', // Adicionado o campo Gênero
 };
 
 type RequiredAthleteField = keyof typeof requiredAthleteFields;
@@ -54,6 +55,16 @@ const importSchema = z.object({
   email: z.string().email({ message: 'Email inválido.' }),
   idNumber: z.string().optional(), // Pode ser Emirates ID ou School ID
   club: z.string().min(1, { message: 'Clube é obrigatório.' }),
+  gender: z.string().transform((str, ctx) => { // Adicionado o campo Gênero
+    const lowerStr = str.toLowerCase();
+    if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
+    if (lowerStr === 'feminino' || lowerStr === 'female') return 'Feminino';
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Gênero inválido. Use "Masculino", "Feminino", "Male" ou "Female".',
+    });
+    return z.NEVER;
+  }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>, // Cast para o tipo correto
 });
 
 interface ImportResult {
@@ -65,7 +76,7 @@ interface ImportResult {
 const BatchAthleteImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null); // Corrigido: inicialização do useState
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => {
@@ -162,7 +173,7 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club } = parsed.data;
+        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender } = parsed.data; // Adicionado gender
 
         // Split fullName into firstName and lastName
         const nameParts = fullName.split(' ');
@@ -179,7 +190,7 @@ const BatchAthleteImport: React.FC = () => {
           dateOfBirth,
           age,
           club,
-          gender: 'Outro', // Default, as gender is not in required fields for import
+          gender, // Usar o gênero parseado
           belt,
           weight,
           email,
@@ -189,6 +200,7 @@ const BatchAthleteImport: React.FC = () => {
           consentAccepted: true, // Assuming consent for batch import
           consentDate: new Date(),
           consentVersion: '1.0',
+          registrationStatus: 'under_approval', // Default status for new registrations
         };
         successfulAthletes.push(newAthlete);
       } catch (error: any) {
@@ -257,7 +269,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Azul, Roxa, Marrom, Preta), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Male/Female).
               </p>
             </div>
           )}

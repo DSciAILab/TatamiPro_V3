@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label'; // Corrigido: Importando Label
 import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
 import { Athlete, Event } from '../types/index';
 import { UserRound } from 'lucide-react';
@@ -28,6 +29,7 @@ const EventDetail: React.FC = () => {
           ...athlete,
           dateOfBirth: new Date(athlete.dateOfBirth),
           consentDate: new Date(athlete.consentDate),
+          registrationStatus: athlete.registrationStatus as 'under_approval' | 'approved' | 'rejected', // Corrigido: Cast explícito
         }));
         localStorage.removeItem(`importedAthletes_${id}`);
         showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
@@ -47,6 +49,7 @@ const EventDetail: React.FC = () => {
           ...athlete,
           dateOfBirth: new Date(athlete.dateOfBirth),
           consentDate: new Date(athlete.consentDate),
+          registrationStatus: athlete.registrationStatus as 'under_approval' | 'approved' | 'rejected', // Corrigido: Cast explícito
         }));
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
@@ -108,7 +111,7 @@ const EventDetail: React.FC = () => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'approved' }
+            ? { ...athlete, registrationStatus: 'approved' as const } // Corrigido: Cast explícito
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
@@ -124,7 +127,7 @@ const EventDetail: React.FC = () => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes.map(athlete =>
           selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'rejected' }
+            ? { ...athlete, registrationStatus: 'rejected' as const } // Corrigido: Cast explícito
             : athlete
         );
         return { ...prevEvent, athletes: updatedAthletes };
