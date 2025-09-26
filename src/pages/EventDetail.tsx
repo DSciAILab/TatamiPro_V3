@@ -21,7 +21,7 @@ import MatDistribution from '@/components/MatDistribution'; // Importar o novo c
 import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
 import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react'; // Adicionar Swords
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
+import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils'; // Importar processAthleteData
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
@@ -60,36 +60,6 @@ const EventDetail: React.FC = () => {
         console.error("Falha ao analisar dados do evento armazenados do localStorage para divisões temporárias", e);
       }
     }
-
-    const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
-      const dateOfBirth = new Date(athleteData.dateOfBirth);
-      const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-      const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(athleteData.weight);
-
-      // Find the athlete's division based on their attributes
-      const athleteWithCalculatedProps: Athlete = {
-        ...athleteData,
-        dateOfBirth,
-        consentDate: new Date(athleteData.consentDate),
-        age,
-        ageDivision,
-        weightDivision,
-        registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
-        checkInStatus: athleteData.checkInStatus || 'pending',
-        registeredWeight: athleteData.registeredWeight || undefined,
-        weightAttempts: athleteData.weightAttempts || [],
-        attendanceStatus: athleteData.attendanceStatus || 'pending',
-        movedToDivisionId: athleteData.movedToDivisionId || undefined,
-        moveReason: athleteData.moveReason || undefined,
-        seed: athleteData.seed || undefined,
-      };
-      
-      // Assign the _division property
-      athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
-
-      return athleteWithCalculatedProps;
-    };
 
     const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
     let initialImportedAthletes: Athlete[] = [];
@@ -221,7 +191,7 @@ const EventDetail: React.FC = () => {
       dateOfBirth: true,
       belt: true,
       weight: true,
-      idNumber: true,
+      idNumber: true, // Representa Emirates ID ou School ID
       gender: true,
       nationality: true,
       email: true,
@@ -464,7 +434,7 @@ const EventDetail: React.FC = () => {
   if (!event) {
     return (
       <Layout>
-        <div className="text-center text-xl mt-8">Evento não encontrado.</div>
+        <div className="text-center text-xl mt-8">Carregando evento...</div>
       </Layout>
     );
   }

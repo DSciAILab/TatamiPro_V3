@@ -8,12 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { Event, Division, Athlete, Bracket } from '@/types/index'; // Adicionado Athlete
+import { Event, Division, Athlete, Bracket } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import PrintableBracket from '@/components/PrintableBracket'; // Importar o novo componente
-import { getAgeDivision, getWeightDivision, findAthleteDivision } from '@/utils/athlete-utils'; // Importar utilitários
+import PrintableBracket from '@/components/PrintableBracket';
+import { processAthleteData } from '@/utils/athlete-utils'; // Importar processAthleteData
 
 const PrintBrackets: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -22,59 +22,48 @@ const PrintBrackets: React.FC = () => {
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const printableRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Função para processar dados do atleta (copiada de EventDetail para consistência)
-  const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
-    const dateOfBirth = new Date(athleteData.dateOfBirth);
-    const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-    const ageDivision = getAgeDivision(age);
-    const weightDivision = getWeightDivision(athleteData.weight);
-
-    const athleteWithCalculatedProps: Athlete = {
-      ...athleteData,
-      dateOfBirth,
-      consentDate: new Date(athleteData.consentDate),
-      age,
-      ageDivision,
-      weightDivision,
-      registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
-      checkInStatus: athleteData.checkInStatus || 'pending',
-      registeredWeight: athleteData.registeredWeight || undefined,
-      weightAttempts: athleteData.weightAttempts || [],
-      attendanceStatus: athleteData.attendanceStatus || 'pending',
-      movedToDivisionId: athleteData.movedToDivisionId || undefined,
-      moveReason: athleteData.moveReason || undefined,
-      seed: athleteData.seed || undefined,
-    };
-    
-    // Atribuir a propriedade _division
-    athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
-
-    return athleteWithCalculatedProps;
-  };
-
   useEffect(() => {
+    console.log("PrintBrackets: useEffect triggered for eventId:", eventId);
     if (eventId) {
       const existingEventData = localStorage.getItem(`event_${eventId}`);
       if (existingEventData) {
         try {
           const parsedEvent: Event = JSON.parse(existingEventData);
+          console.log("PrintBrackets: Parsed event data:", parsedEvent);
+
           // Re-parse dates and assign _division for Athlete objects
           const processedAthletes = parsedEvent.athletes.map(athlete =>
             processAthleteData(athlete, parsedEvent.divisions || [])
           );
+          console.log("PrintBrackets: Processed athletes:", processedAthletes);
+
           setEvent({ ...parsedEvent, athletes: processedAthletes });
+          console.log("PrintBrackets: Event state updated.");
         } catch (e) {
-          console.error("Failed to parse event data from localStorage", e);
+          console.error("PrintBrackets: Failed to parse event data from localStorage", e);
           showError("Erro ao carregar dados do evento.");
+          setEvent(null); // Ensure event is null if parsing fails
         }
+      } else {
+        console.log("PrintBrackets: No event data found in localStorage for eventId:", eventId);
+        showError("Evento não encontrado.");
+        setEvent(null); // Ensure event is null if not found
       }
+    } else {
+      console.log("PrintBrackets: eventId is undefined.");
+      setEvent(null); // Ensure event is null if eventId is missing
     }
   }, [eventId]);
 
   const availableDivisions = useMemo(() => {
-    if (!event || !event.brackets) return [];
+    if (!event || !event.brackets) {
+      console.log("PrintBrackets: No event or brackets available for divisions.");
+      return [];
+    }
     // Filter divisions that have generated brackets
-    return event.divisions.filter(div => event.brackets?.[div.id]);
+    const divisionsWithBrackets = event.divisions.filter(div => event.brackets?.[div.id]);
+    console.log("PrintBrackets: Available divisions with brackets:", divisionsWithBrackets);
+    return divisionsWithBrackets;
   }, [event]);
 
   const handleToggleDivision = (divisionId: string, checked: boolean) => {

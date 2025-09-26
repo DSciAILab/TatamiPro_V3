@@ -1,3 +1,5 @@
+"use client";
+
 import { Athlete, Division, AgeCategory, Belt, DivisionBelt, Gender, DivisionGender } from '@/types/index';
 
 export const getAgeDivision = (age: number): AgeCategory => {
@@ -135,4 +137,34 @@ export const getAthleteDisplayString = (athlete: Athlete, division?: Division): 
   }
   // Fallback se a divisão não for encontrada ou passada
   return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / Divisão não encontrada`;
+};
+
+// NOVO: Função para processar dados do atleta
+export const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
+  const dateOfBirth = new Date(athleteData.dateOfBirth);
+  const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+  const ageDivision = getAgeDivision(age);
+  const weightDivision = getWeightDivision(athleteData.weight);
+
+  const athleteWithCalculatedProps: Athlete = {
+    ...athleteData,
+    dateOfBirth,
+    consentDate: new Date(athleteData.consentDate),
+    age,
+    ageDivision,
+    weightDivision,
+    registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
+    checkInStatus: athleteData.checkInStatus || 'pending',
+    registeredWeight: athleteData.registeredWeight || undefined,
+    weightAttempts: athleteData.weightAttempts || [],
+    attendanceStatus: athleteData.attendanceStatus || 'pending',
+    movedToDivisionId: athleteData.movedToDivisionId || undefined,
+    moveReason: athleteData.moveReason || undefined,
+    seed: athleteData.seed || undefined,
+  };
+  
+  // Atribuir a propriedade _division
+  athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
+
+  return athleteWithCalculatedProps;
 };
