@@ -14,11 +14,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { showSuccess, showError } from '@/utils/toast';
 import { Division } from '@/types/index';
 
+// Mapeamento de categoria de idade para minAge/maxAge
+const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
+  'kids': { min: 0, max: 15 },
+  'juvenile': { min: 16, max: 17 },
+  'adulto': { min: 18, max: 29 },
+  'adult': { min: 18, max: 29 },
+  'master': { min: 30, max: 99 },
+};
+
 // Define os campos mínimos esperados no arquivo de importação para divisões
 const requiredDivisionFields = {
-  name: 'Nome da Divisão',
-  minAge: 'Idade Mínima',
-  maxAge: 'Idade Máxima',
+  name: 'Nome da Divisão', // Corresponde a Division.name
+  ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
   minWeight: 'Peso Mínimo',
   maxWeight: 'Peso Máximo',
   gender: 'Gênero',
@@ -30,8 +38,17 @@ type RequiredDivisionField = keyof typeof requiredDivisionFields;
 // Esquema de validação para os dados de entrada do CSV
 const importSchema = z.object({
   name: z.string().min(1, { message: 'Nome da divisão é obrigatório.' }),
-  minAge: z.coerce.number().min(0, { message: 'Idade mínima deve ser >= 0.' }),
-  maxAge: z.coerce.number().min(0, { message: 'Idade máxima deve ser >= 0.' }),
+  ageCategory: z.string().transform((str, ctx) => {
+    const lowerStr = str.toLowerCase();
+    if (ageCategoryMap[lowerStr]) {
+      return str; // Retorna a string original se for uma categoria válida
+    }
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Categoria de idade inválida. Use: ${Object.keys(ageCategoryMap).join(', ')}.`,
+    });
+    return z.NEVER;
+  }),
   minWeight: z.coerce.number().min(0, { message: 'Peso mínimo deve ser >= 0.' }),
   maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }),
   gender: z.string().transform((str, ctx) => {
@@ -59,9 +76,6 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas'>,
-}).refine(data => data.minAge <= data.maxAge, {
-  message: 'Idade mínima não pode ser maior que a idade máxima.',
-  path: ['minAge'],
 }).refine(data => data.minWeight <= data.maxWeight, {
   message: 'Peso mínimo não pode ser maior que o peso máximo.',
   path: ['minWeight'],
@@ -172,9 +186,24 @@ const DivisionImport: React.FC = () => {
           return;
         }
 
+        const { name, ageCategory, minWeight, maxWeight, gender, belt } = parsed.data;
+
+        const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
+        if (!ageBounds) {
+          failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${ageCategory}" não reconhecida.` });
+          return;
+        }
+
         const newDivision: Division = {
           id: `division-${Date.now()}-${index}`,
-          ...parsed.data,
+          name,
+          minAge: ageBounds.min,
+          maxAge: ageBounds.max,
+          minWeight,
+          maxWeight,
+          gender,
+          belt,
+          ageCategoryName: ageCategory,
           isEnabled: true, // Default to enabled
         };
         successfulDivisions.push(newDivision);
@@ -251,7 +280,7 @@ const DivisionImport: React.FC = () => {
               <Label htmlFor="division-file">Arquivo CSV</Label>
               <Input id="division-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Idade Mínima, Idade Máxima, Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas).
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome da Divisão, Categoria de Idade (Kids, Juvenile, Adulto, Master), Peso Mínimo (kg), Peso Máximo (kg), Gênero (Masculino/Feminino/Ambos), Faixa (Branca/Azul/Roxa/Marrom/Preta/Todas).
               </p>
             </div>
           )}

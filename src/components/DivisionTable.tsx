@@ -26,11 +26,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     maxWeight: 999,
     gender: 'Ambos',
     belt: 'Todas',
+    ageCategoryName: '', // Novo campo
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
 
   const handleAddDivision = () => {
-    if (!newDivision.name || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
+    if (!newDivision.name || !newDivision.ageCategoryName || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
         newDivision.minWeight === undefined || newDivision.maxWeight === undefined) {
       showError('Por favor, preencha todos os campos da nova divisão.');
       return;
@@ -44,7 +45,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     const updatedDivisions = [...divisions, { ...newDivision, id, isEnabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', minAge: 0, maxAge: 99, minWeight: 0, maxWeight: 999, gender: 'Ambos', belt: 'Todas' });
+    setNewDivision({ name: '', minAge: 0, maxAge: 99, minWeight: 0, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: '' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -54,7 +55,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
   const handleSaveEdit = () => {
     if (currentEdit) {
-      if (!currentEdit.name || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
+      if (!currentEdit.name || !currentEdit.ageCategoryName || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
           currentEdit.minWeight === undefined || currentEdit.maxWeight === undefined) {
         showError('Por favor, preencha todos os campos da divisão.');
         return;
@@ -103,8 +104,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
         <div className="col-span-full text-lg font-medium mb-2">Adicionar Nova Divisão</div>
         <div>
-          <Label htmlFor="newName">Nome</Label>
+          <Label htmlFor="newName">Nome da Divisão</Label>
           <Input id="newName" value={newDivision.name} onChange={(e) => setNewDivision(prev => ({ ...prev, name: e.target.value }))} />
+        </div>
+        <div>
+          <Label htmlFor="newAgeCategoryName">Categoria de Idade (Ex: Adulto)</Label>
+          <Input id="newAgeCategoryName" value={newDivision.ageCategoryName} onChange={(e) => setNewDivision(prev => ({ ...prev, ageCategoryName: e.target.value }))} />
         </div>
         <div>
           <Label htmlFor="newMinAge">Idade Mínima</Label>
@@ -158,7 +163,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>Nome da Divisão</TableHead>
               <TableHead>Idade</TableHead>
               <TableHead>Peso (kg)</TableHead>
               <TableHead>Gênero</TableHead>
@@ -173,9 +178,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                 {editingDivisionId === division.id && currentEdit ? (
                   <>
                     <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
-                    <TableCell className="flex space-x-1">
-                      <Input type="number" value={currentEdit.minAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minAge: Number(e.target.value) } : null)} className="w-1/2" />
-                      <Input type="number" value={currentEdit.maxAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxAge: Number(e.target.value) } : null)} className="w-1/2" />
+                    <TableCell>
+                      <Input value={currentEdit.ageCategoryName} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, ageCategoryName: e.target.value } : null)} />
+                      <div className="flex space-x-1 mt-1">
+                        <Input type="number" value={currentEdit.minAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Min Age" />
+                        <Input type="number" value={currentEdit.maxAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
+                      </div>
                     </TableCell>
                     <TableCell className="flex space-x-1">
                       <Input type="number" step="0.1" value={currentEdit.minWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minWeight: Number(e.target.value) } : null)} className="w-1/2" />
@@ -218,7 +226,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                 ) : (
                   <>
                     <TableCell className="font-medium">{division.name}</TableCell>
-                    <TableCell>{division.minAge}-{division.maxAge}</TableCell>
+                    <TableCell>{division.ageCategoryName} ({division.minAge}-{division.maxAge})</TableCell>
                     <TableCell>{division.minWeight}-{division.maxWeight}kg</TableCell>
                     <TableCell>{division.gender}</TableCell>
                     <TableCell>{division.belt}</TableCell>

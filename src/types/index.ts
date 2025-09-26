@@ -36,13 +36,14 @@ export interface Athlete {
 
 export interface Division {
   id: string;
-  name: string;
+  name: string; // Nome completo da divisão, ex: "Adulto Masculino Faixa Azul Peso Pena"
   minAge: number;
   maxAge: number;
   minWeight: number;
   maxWeight: number;
   gender: 'Masculino' | 'Feminino' | 'Ambos';
   belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta' | 'Todas';
+  ageCategoryName: string; // Nome público da categoria de idade, ex: "Adulto", "Juvenil"
   isEnabled: boolean; // Para habilitar/desabilitar no evento
 }
 
