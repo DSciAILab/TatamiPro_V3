@@ -11,19 +11,27 @@ import { cn } from '@/lib/utils'; // Importar cn
 
 interface FightListProps {
   event: Event;
+  selectedMat: string; // NOVO: Mat selecionado
   selectedCategoryKey: string; // e.g., "Masculino/Adult/Preta"
-  selectedDivisionId: string; // NOVO: ID da divisão
+  selectedDivisionId: string; // ID da divisão
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
 }
 
-const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
-  const { divisions, athletes, brackets, isBeltGroupingEnabled } = event;
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
+  const { athletes, brackets, matFightOrder } = event;
 
-  const currentBracket = useMemo(() => {
-    if (!brackets || !selectedDivisionId) return null;
-    const bracket = brackets[selectedDivisionId];
-    return bracket;
-  }, [brackets, selectedDivisionId]);
+  const allMatchesMap = useMemo(() => {
+    const map = new Map<string, Match>();
+    if (brackets) {
+      Object.values(brackets).forEach(bracket => {
+        bracket.rounds.flat().forEach(match => map.set(match.id, match));
+        if (bracket.thirdPlaceMatch) {
+          map.set(bracket.thirdPlaceMatch.id, bracket.thirdPlaceMatch);
+        }
+      });
+    }
+    return map;
+  }, [brackets]);
 
   const athletesMap = useMemo(() => {
     return new Map(athletes.map(athlete => [athlete.id, athlete]));
@@ -54,8 +62,24 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
     );
   };
 
-  if (!currentBracket || !currentBracket.rounds || currentBracket.rounds.length === 0) {
-    return <p className="text-muted-foreground">Nenhum bracket gerado para esta categoria.</p>;
+  const fightsForSelectedMatAndCategory = useMemo(() => {
+    if (!matFightOrder || !selectedMat || !brackets) return [];
+
+    const matMatchesIds = matFightOrder[selectedMat] || [];
+    const fights: Match[] = [];
+
+    matMatchesIds.forEach(matchId => {
+      const match = allMatchesMap.get(matchId);
+      if (match && match._divisionId === selectedDivisionId) { // Filter by selected division
+        fights.push(match);
+      }
+    });
+    return fights;
+  }, [matFightOrder, selectedMat, selectedDivisionId, allMatchesMap, brackets]);
+
+
+  if (fightsForSelectedMatAndCategory.length === 0) {
+    return <p className="text-muted-foreground">Nenhuma luta encontrada para esta categoria no {selectedMat}.</p>;
   }
 
   const renderMatchCard = (match: Match) => {
@@ -65,8 +89,11 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
 
     const cardContent = (
       <Card className="h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-md">Luta {match.matchNumber} (Rodada {match.round})</CardTitle>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl font-bold text-primary">{match.matFightNumber}</span> {/* NOVO: Número sequencial */}
+            <CardTitle className="text-md">Luta (Rodada {match.round})</CardTitle> {/* Manter rodada para contexto */}
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className={`flex items-center space-x-2 p-1 rounded-md ${match.winnerId === match.fighter1Id ? 'bg-green-100 dark:bg-green-900' : match.loserId === match.fighter1Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
@@ -126,41 +153,9 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
 
   return (
     <div className="space-y-6">
-      {currentBracket.rounds.map((round, roundIndex) => (
-        <div key={roundIndex} className="space-y-4">
-          <h4 className="text-lg font-semibold">Rodada {roundIndex + 1}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {round.map(match => renderMatchCard(match))}
-          </div>
-        </div>
-      ))}
-
-      {currentBracket.thirdPlaceMatch && (
-        <div className="space-y-4 mt-6">
-          <h4 className="text-lg font-semibold">Luta pelo 3º Lugar</h4>
-          {renderMatchCard(currentBracket.thirdPlaceMatch)}
-        </div>
-      )}
-
-      {currentBracket.winnerId && (
-        <Card className="mt-6 bg-yellow-100 dark:bg-yellow-900 border-yellow-500">
-          <CardHeader>
-            <CardTitle className="flex items-center text-yellow-700 dark:text-yellow-300">
-              <Trophy className="mr-2 h-6 w-6" /> Campeão: {getFighterDisplay(currentBracket.winnerId)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              Vice-Campeão: {getFighterDisplay(currentBracket.runnerUpId)}
-            </p>
-            {currentBracket.thirdPlaceWinnerId && (
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                3º Lugar: {getFighterDisplay(currentBracket.thirdPlaceWinnerId)}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {fightsForSelectedMatAndCategory.map(match => renderMatchCard(match))}
+      </div>
     </div>
   );
 };

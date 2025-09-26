@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Swords } from 'lucide-react';
-import { Event, Division, Bracket } from '@/types/index';
+import { Event, Division, Bracket, Match } from '@/types/index';
 import { showError } from '@/utils/toast';
 import MatCategoryList from '@/components/MatCategoryList'; // Novo componente
 import FightList from '@/components/FightList'; // Novo componente
+import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
 const ManageFights: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -78,7 +79,13 @@ const ManageFights: React.FC = () => {
         ...prevEvent.brackets,
         [divisionId]: updatedBracket,
       };
-      const updatedEvent = { ...prevEvent, brackets: updatedBrackets };
+      // Recalculate mat fight order after a bracket is updated
+      const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
+        ...prevEvent,
+        brackets: updatedBrackets,
+      });
+
+      const updatedEvent = { ...prevEvent, brackets: finalBrackets, matFightOrder: newMatFightOrder };
       localStorage.setItem(`event_${eventId}`, JSON.stringify(updatedEvent));
       return updatedEvent;
     });
@@ -148,6 +155,7 @@ const ManageFights: React.FC = () => {
           <CardContent>
             <FightList
               event={event}
+              selectedMat={selectedMat} // Passar o mat selecionado
               selectedCategoryKey={selectedCategoryKey}
               selectedDivisionId={selectedDivisionId} // Passa o ID da divisão
               onUpdateBracket={handleUpdateBracket}

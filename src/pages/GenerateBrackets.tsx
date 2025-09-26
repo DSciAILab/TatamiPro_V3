@@ -13,6 +13,7 @@ import { Athlete, Division, Event, Bracket } from '@/types/index';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
 import BracketView from '@/components/BracketView';
 import { ArrowLeft, PlayCircle } from 'lucide-react';
+import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
 const GenerateBrackets: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -92,10 +93,19 @@ const GenerateBrackets: React.FC = () => {
         newBrackets[div.id] = bracket;
       });
 
-      setGeneratedBrackets(prev => ({ ...prev, ...newBrackets }));
+      // Merge new brackets with existing ones
+      const mergedBrackets = { ...event.brackets, ...newBrackets };
+
+      // Recalculate mat fight order after brackets are generated
+      const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
+        ...event,
+        brackets: mergedBrackets,
+      });
+
+      setGeneratedBrackets(finalBrackets); // Update state with brackets including matFightNumber
       setEvent(prevEvent => {
         if (!prevEvent) return null;
-        const updatedEvent = { ...prevEvent, brackets: { ...prevEvent.brackets, ...newBrackets } };
+        const updatedEvent = { ...prevEvent, brackets: finalBrackets, matFightOrder: newMatFightOrder };
         localStorage.setItem(`event_${eventId}`, JSON.stringify(updatedEvent));
         return updatedEvent;
       });

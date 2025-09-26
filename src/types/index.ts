@@ -67,7 +67,8 @@ export type FightResultType = 'submission' | 'points' | 'decision' | 'disqualifi
 export interface Match {
   id: string;
   round: number; // 1 para a primeira rodada, 2 para a segunda, etc.
-  matchNumber: number; // Número da luta dentro da rodada
+  matchNumber: number; // Número da luta dentro da rodada (por rodada)
+  matFightNumber?: number; // NOVO: Número sequencial da luta dentro de um mat específico
   fighter1Id: string | 'BYE' | undefined; // ID do atleta 1 ou 'BYE'
   fighter2Id: string | 'BYE' | undefined; // ID do atleta 2 ou 'BYE'
   winnerId?: string; // ID do vencedor
@@ -80,6 +81,8 @@ export interface Match {
     loserId: string;
     details?: string; // Ex: "Pontos: 6-2", "Finalização: Armlock"
   };
+  _divisionId?: string; // NOVO: Para facilitar o acesso à divisão da luta
+  _matName?: string; // NOVO: Para facilitar o acesso ao mat da luta
 }
 
 export interface Bracket {
@@ -112,4 +115,5 @@ export interface Event {
   isBeltGroupingEnabled?: boolean; // NOVO: Se o agrupamento de categorias considera a faixa
   isOverweightAutoMoveEnabled?: boolean; // NOVO: Se a movimentação automática por excesso de peso está habilitada
   brackets?: Record<string, Bracket>; // NOVO: Brackets gerados para cada divisão
+  matFightOrder?: Record<string, string[]>; // NOVO: Ordem sequencial das lutas por mat
 }

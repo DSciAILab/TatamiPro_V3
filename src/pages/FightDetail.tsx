@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
@@ -54,6 +55,7 @@ const FightDetail: React.FC = () => {
           const bracket = eventWithProcessedAthletes.brackets?.[divisionId];
           if (bracket) {
             setCurrentBracket(bracket);
+            // Find match in rounds or third place match
             const match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.thirdPlaceMatch?.id === matchId ? bracket.thirdPlaceMatch : null);
             if (match) {
               setCurrentMatch(match);
@@ -115,10 +117,17 @@ const FightDetail: React.FC = () => {
       ...event.brackets,
       [divisionId!]: updatedBracket,
     };
-    const updatedEvent = { ...event, brackets: updatedBrackets };
+    
+    // Recalculate mat fight order after a bracket is updated
+    const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
+      ...event,
+      brackets: updatedBrackets,
+    });
+
+    const updatedEvent = { ...event, brackets: finalBrackets, matFightOrder: newMatFightOrder };
     localStorage.setItem(`event_${eventId}`, JSON.stringify(updatedEvent));
     setEvent(updatedEvent);
-    setCurrentBracket(updatedBracket);
+    setCurrentBracket(finalBrackets[divisionId!]); // Ensure currentBracket is updated with the new matFightNumber
   };
 
   const handleRecordResult = () => {
@@ -204,7 +213,7 @@ const FightDetail: React.FC = () => {
 
       setCurrentMatch(updatedMatch); // Explicitly update currentMatch state to trigger re-render
       handleUpdateBracket(updatedBracket);
-      showSuccess(`Resultado da luta ${currentMatch.matchNumber} registrado!`);
+      showSuccess(`Resultado da luta ${currentMatch.matFightNumber} registrado!`); // Usar matFightNumber
       setShowPostFightOptions(true);
 
       // Check if this is the last fight of the round (excluding third-place match for this check)
@@ -221,41 +230,32 @@ const FightDetail: React.FC = () => {
   };
 
   const findNextFight = (): Match | undefined => {
-    if (!currentBracket || !currentMatch) return undefined;
+    if (!event || !currentMatch || !currentMatch._matName || !event.matFightOrder) return undefined;
 
-    const currentRoundIndex = currentBracket.rounds.findIndex(r => r.some(m => m.id === currentMatch.id));
-    
-    // If current match is a third-place match, there's no "next" in the main bracket flow
-    if (currentMatch.round === -1) {
-      return undefined;
+    const matMatchesIds = event.matFightOrder[currentMatch._matName];
+    if (!matMatchesIds) return undefined;
+
+    const currentMatchIndex = matMatchesIds.indexOf(currentMatch.id);
+    if (currentMatchIndex === -1 || currentMatchIndex >= matMatchesIds.length - 1) {
+      return undefined; // No more fights on this mat
     }
 
-    const currentMatchIndex = currentBracket.rounds[currentRoundIndex].findIndex(m => m.id === currentMatch.id);
-
-    // Try next match in current round
-    if (currentMatchIndex < currentBracket.rounds[currentRoundIndex].length - 1) {
-      return currentBracket.rounds[currentRoundIndex][currentMatchIndex + 1];
+    const nextMatchId = matMatchesIds[currentMatchIndex + 1];
+    // Find the next match in the brackets
+    for (const bracket of Object.values(event.brackets || {})) {
+      const matchInRounds = bracket.rounds.flat().find(m => m.id === nextMatchId);
+      if (matchInRounds) return matchInRounds;
+      if (bracket.thirdPlaceMatch?.id === nextMatchId) return bracket.thirdPlaceMatch;
     }
-
-    // Try first match in next round
-    if (currentRoundIndex < currentBracket.rounds.length - 1) {
-      return currentBracket.rounds[currentRoundIndex + 1][0];
-    }
-
-    // If it's the final match of the main bracket, check for third place match if not played
-    if (currentRoundIndex === currentBracket.rounds.length - 1 && currentBracket.thirdPlaceMatch && !currentBracket.thirdPlaceMatch.winnerId) {
-      return currentBracket.thirdPlaceMatch;
-    }
-
     return undefined;
   };
 
   const handleNextFight = () => {
     const nextFight = findNextFight();
-    if (nextFight) {
-      navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
+    if (nextFight && nextFight._divisionId && nextFight._matName) {
+      navigate(`/events/${eventId}/fights/${nextFight._divisionId}/${nextFight.id}`);
     } else {
-      showError("Não há próxima luta disponível.");
+      showError("Não há próxima luta disponível neste mat.");
       navigate(`/events/${eventId}/manage-fights`);
     }
   };
@@ -263,8 +263,8 @@ const FightDetail: React.FC = () => {
   const handleAdvanceToNextRound = () => {
     setShowRoundEndDialog(false);
     const nextFight = findNextFight(); // This logic already handles moving to next round or 3rd place
-    if (nextFight) {
-      navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
+    if (nextFight && nextFight._divisionId && nextFight._matName) {
+      navigate(`/events/${eventId}/fights/${nextFight._divisionId}/${nextFight.id}`);
     } else {
       showSuccess("Todas as lutas desta divisão foram concluídas!");
       navigate(`/events/${eventId}/manage-fights`);
@@ -311,7 +311,7 @@ const FightDetail: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">
-          {currentMatch.round === -1 ? 'Luta pelo 3º Lugar' : `Luta ${currentMatch.matchNumber} (Rodada ${currentMatch.round})`}
+          {currentMatch._matName} - Luta {currentMatch.matFightNumber} {/* NOVO: Título com matFightNumber */}
         </h1>
         <Button onClick={() => navigate(`/events/${eventId}/manage-fights`)} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerenciar Lutas
@@ -446,7 +446,7 @@ const FightDetail: React.FC = () => {
               Retornar ao Gerenciamento de Lutas
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleAdvanceToNextRound}>
-              Avançar para a Próxima Rodada
+              Avançar para a Próxima Luta no Mat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

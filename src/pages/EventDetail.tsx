@@ -15,7 +15,7 @@ import CheckInForm from '@/components/CheckInForm';
 import QrCodeScanner from '@/components/QrCodeScanner';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig'; // <-- Erro corrigido aqui
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
 import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
@@ -30,6 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Importar Dialog
 import BracketView from '@/components/BracketView'; // Importar BracketView
+import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -112,6 +113,7 @@ const EventDetail: React.FC = () => {
     let isBeltGroupingEnabled = true; // Initialize isBeltGroupingEnabled
     let isOverweightAutoMoveEnabled = false; // Initialize isOverweightAutoMoveEnabled
     let existingBrackets: Record<string, Bracket> = {}; // Initialize existingBrackets
+    let matFightOrder: Record<string, string[]> = {}; // Initialize matFightOrder
 
     if (existingEventData) {
       try {
@@ -129,6 +131,7 @@ const EventDetail: React.FC = () => {
         isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true; // Load isBeltGroupingEnabled
         isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false; // Load new state
         existingBrackets = parsedEvent.brackets || {}; // Load existing brackets
+        matFightOrder = parsedEvent.matFightOrder || {}; // Load matFightOrder
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -148,6 +151,7 @@ const EventDetail: React.FC = () => {
       isBeltGroupingEnabled, // Set isBeltGroupingEnabled
       isOverweightAutoMoveEnabled, // Set new state
       brackets: existingBrackets, // Set existing brackets
+      matFightOrder, // Set matFightOrder
       ...eventSettings,
     };
   });
@@ -336,10 +340,25 @@ const EventDetail: React.FC = () => {
         updatedAthlete._division = findAthleteDivision(updatedAthlete, updatedDivisions);
         return updatedAthlete;
       });
+      // Recalculate mat fight order if brackets and mat assignments exist
+      let newBrackets = prevEvent.brackets;
+      let newMatFightOrder = prevEvent.matFightOrder;
+      if (prevEvent.brackets && prevEvent.matAssignments && prevEvent.numFightAreas) {
+        const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder({
+          ...prevEvent,
+          divisions: updatedDivisions,
+          athletes: updatedAthletes,
+        });
+        newBrackets = recalculatedBrackets;
+        newMatFightOrder = recalculatedMatFightOrder;
+      }
+
       return {
         ...prevEvent,
         divisions: updatedDivisions,
         athletes: updatedAthletes,
+        brackets: newBrackets,
+        matFightOrder: newMatFightOrder,
       };
     });
   };
@@ -347,12 +366,51 @@ const EventDetail: React.FC = () => {
   const handleUpdateMatAssignments = (assignments: Record<string, string[]>) => {
     setEvent(prevEvent => {
       if (!prevEvent) return null;
+      // Recalculate mat fight order when mat assignments change
+      let newBrackets = prevEvent.brackets;
+      let newMatFightOrder = prevEvent.matFightOrder;
+      if (prevEvent.brackets && prevEvent.numFightAreas) {
+        const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder({
+          ...prevEvent,
+          matAssignments: assignments,
+        });
+        newBrackets = recalculatedBrackets;
+        newMatFightOrder = recalculatedMatFightOrder;
+      }
+
       return {
         ...prevEvent,
         matAssignments: assignments,
+        brackets: newBrackets,
+        matFightOrder: newMatFightOrder,
       };
     });
   };
+
+  // Function to update brackets and matFightOrder after bracket generation
+  const handleUpdateBracketsAndFightOrder = (newBrackets: Record<string, Bracket>) => {
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      const eventWithNewBrackets = { ...prevEvent, brackets: newBrackets };
+      
+      let newMatFightOrder = prevEvent.matFightOrder;
+      let finalBrackets = newBrackets;
+
+      // Only recalculate if mat assignments exist
+      if (eventWithNewBrackets.matAssignments && eventWithNewBrackets.numFightAreas) {
+        const { updatedBrackets: recalculatedBrackets, matFightOrder: recalculatedMatFightOrder } = generateMatFightOrder(eventWithNewBrackets);
+        finalBrackets = recalculatedBrackets;
+        newMatFightOrder = recalculatedMatFightOrder;
+      }
+
+      return {
+        ...eventWithNewBrackets,
+        brackets: finalBrackets,
+        matFightOrder: newMatFightOrder,
+      };
+    });
+  };
+
 
   if (!event) {
     return (
