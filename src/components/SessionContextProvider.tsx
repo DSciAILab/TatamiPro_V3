@@ -3,14 +3,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { showError } from '@/utils/toast';
 
 interface SessionContextType {
   session: Session | null;
   user: User | null;
-  userRole: string | null; // Adicionado: papel do usuário
-  userClub: string | null; // Adicionado: clube do usuário
+  userRole: string | null;
+  userClub: string | null;
   isLoading: boolean;
 }
 
@@ -22,10 +21,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userClub, setUserClub] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
 
   const fetchUserProfile = async (userId: string) => {
-    console.log('Fetching user profile for userId:', userId); // Log 1
     const { data, error } = await supabase
       .from('profiles')
       .select('role, club')
@@ -40,80 +37,49 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       localStorage.removeItem('userRole');
       localStorage.removeItem('userClub');
     } else if (data) {
-      console.log('User profile data fetched:', data); // Log 2
       setUserRole(data.role);
       setUserClub(data.club);
       localStorage.setItem('userRole', data.role);
-      console.log('userRole set in localStorage:', data.role); // Log 3
       if (data.club) {
         localStorage.setItem('userClub', data.club);
-        console.log('userClub set in localStorage:', data.club); // Log 4
       } else {
         localStorage.removeItem('userClub');
-        console.log('userClub removed from localStorage'); // Log 5
       }
     }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('Auth state change event:', event, 'Session:', currentSession); // Log 6
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        if (currentSession?.user) {
-          await fetchUserProfile(currentSession.user.id);
-        }
-        // Redirect authenticated users away from login page
-        if (window.location.pathname === '/auth') {
-          navigate('/events');
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setSession(null);
-        setUser(null);
+    const getSessionAndProfile = async () => {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+      setIsLoading(false);
+    };
+
+    getSessionAndProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        // Clear profile info on sign out
         setUserRole(null);
         setUserClub(null);
         localStorage.removeItem('userRole');
         localStorage.removeItem('userClub');
-        console.log('User signed out, userRole and userClub removed from localStorage'); // Log 7
-        // Redirect unauthenticated users to login page
-        if (window.location.pathname !== '/auth') {
-          navigate('/auth');
-        }
-      } else if (event === 'INITIAL_SESSION') {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        if (currentSession?.user) {
-          await fetchUserProfile(currentSession.user.id);
-        }
-      } else if ((event as any) === 'AUTH_ERROR') {
-        showError('Erro de autenticação: ' + (currentSession as any)?.error?.message || 'Erro desconhecido');
-      }
-      setIsLoading(false);
-    });
-
-    // Fetch initial session and profile
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-      console.log('Initial session fetch:', initialSession); // Log 8
-      setSession(initialSession);
-      setUser(initialSession?.user || null);
-      if (initialSession?.user) {
-        await fetchUserProfile(initialSession.user.id);
-      }
-      setIsLoading(false);
-      if (!initialSession && window.location.pathname !== '/auth') {
-        navigate('/auth');
-      } else if (initialSession && window.location.pathname === '/auth') {
-        navigate('/events');
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  useEffect(() => {
-    console.log('SessionContext - Current userRole state:', userRole); // Log 9
-  }, [userRole]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <SessionContext.Provider value={{ session, user, userRole, userClub, isLoading }}>

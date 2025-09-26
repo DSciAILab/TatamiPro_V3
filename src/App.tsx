@@ -18,6 +18,7 @@ import ManageFights from "./pages/ManageFights";
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -30,19 +31,25 @@ const App = () => (
         <BrowserRouter>
           <SessionContextProvider>
             <Routes>
-              <Route path="/" element={<Welcome />} />
+              {/* Public Routes */}
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/:id" element={<EventDetail />} />
-              <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationPage />} />
-              <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-              <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-              <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
-              <Route path="/events/:id/manage-fights" element={<ManageFights />} />
-              <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
-              <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
+
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Events />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/events/:id" element={<EventDetail />} />
+                <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+                <Route path="/events/:id/register-athlete" element={<AthleteRegistrationPage />} />
+                <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
+                <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+                <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
+                <Route path="/events/:id/manage-fights" element={<ManageFights />} />
+                <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
+                <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
+              </Route>
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
