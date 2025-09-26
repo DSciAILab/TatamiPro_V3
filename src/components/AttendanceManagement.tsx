@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Athlete, Event } from '@/types/index';
+import { Athlete, Division } from '@/types/index'; // Importar Division
 import { UserRound, CheckCircle, XCircle, Car, Search } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
+import { supabase } from '@/integrations/supabase/client';
+import { parseISO } from 'date-fns';
 
 interface AttendanceManagementProps {
   eventId: string;
-  eventDivisions: Event['divisions'];
+  eventDivisions: Division[]; // Tipo corrigido para Division[]
   onUpdateAthleteAttendance: (athleteId: string, status: Athlete['attendanceStatus']) => void;
 }
 
@@ -24,24 +26,36 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   const userRole = localStorage.getItem('userRole'); // Mock do papel do usuário logado
 
   useEffect(() => {
-    const existingEventData = localStorage.getItem(`event_${eventId}`);
-    if (existingEventData) {
-      try {
-        const parsedEvent: Event = JSON.parse(existingEventData);
-        // Filtrar atletas para mostrar apenas os do clube do usuário e aprovados
-        const clubAthletes = parsedEvent.athletes.filter(
-          a => a.club === userClub && a.registrationStatus === 'approved'
-        );
-        setAthletes(clubAthletes);
-      } catch (e) {
-        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
+    const fetchAthletesForAttendance = async () => {
+      if (!eventId || !userClub) return;
+
+      const { data, error } = await supabase
+        .from('athletes')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('club', userClub)
+        .eq('registration_status', 'approved');
+
+      if (error) {
+        console.error("Erro ao buscar atletas para gerenciamento de presença:", error);
         showError("Erro ao carregar atletas para gerenciamento de presença.");
+        setAthletes([]);
+      } else {
+        const processedAthletes = (data || []).map(a => ({
+          ...a,
+          dateOfBirth: parseISO(a.date_of_birth),
+          consentDate: parseISO(a.consent_date),
+          weightAttempts: a.weight_attempts || [],
+        }));
+        setAthletes(processedAthletes);
       }
-    }
+    };
+
+    fetchAthletesForAttendance();
   }, [eventId, userClub, onUpdateAthleteAttendance]);
 
   const handleAttendanceChange = (athleteId: string, status: Athlete['attendanceStatus']) => {
-    onUpdateAthleteAttendance(athleteId, status);
+    onUpdateAthleteAttendance(athleteId, status); // Delega a atualização para o pai (EventDetail) que irá persistir no Supabase
     setAthletes(prev => prev.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a));
     showSuccess(`Status de presença atualizado para ${status}.`);
   };
@@ -61,7 +75,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     );
   }, [athletes, searchTerm]);
 
-  if (userRole !== 'coach' && userRole !== 'staff') {
+  if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') { // Admin também pode gerenciar
     return (
       <Card className="mt-6">
         <CardHeader>
@@ -69,7 +83,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
           <CardDescription>Você não tem permissão para acessar esta seção.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Apenas coaches e staff podem gerenciar a presença dos atletas.</p>
+          <p className="text-muted-foreground">Apenas administradores, coaches e staff podem gerenciar a presença dos atletas.</p>
         </CardContent>
       </Card>
     );

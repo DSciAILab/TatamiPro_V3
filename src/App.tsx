@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SessionContextProvider } from "@/components/SessionContextProvider"; // Import SessionContextProvider
+import { SessionContextProvider } from "@/components/SessionContextProvider";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
@@ -25,13 +25,14 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
+          <SessionContextProvider>
             <Routes>
               <Route path="/" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/events" element={<Events />} />
               <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+              {/* Pass eventId to AthleteRegistrationForm */}
               <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm eventId={""} onRegister={() => {}} />} />
               <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
               <Route path="/events/:id/import-divisions" element={<DivisionImport />} />

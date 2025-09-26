@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { showSuccess, showError } from '@/utils/toast';
 import { Athlete, Belt, Gender } from '@/types/index';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
@@ -224,7 +225,7 @@ const BatchAthleteImport: React.FC = () => {
     return true;
   };
 
-  const handleProcessImport = () => {
+  const handleProcessImport = async () => {
     if (!validateMapping()) {
       return;
     }
@@ -232,7 +233,7 @@ const BatchAthleteImport: React.FC = () => {
     const successfulAthletes: Athlete[] = [];
     const failedImports: ImportResult[] = [];
 
-    csvData.forEach((row, index) => {
+    for (const [index, row] of csvData.entries()) {
       const rowNumber = index + 2; // +1 for 0-index, +1 for header row
       try {
         const mappedData: Record<string, any> = {};
@@ -247,7 +248,7 @@ const BatchAthleteImport: React.FC = () => {
         if (!parsed.success) {
           const errors = parsed.error.errors.map(err => err.message).join('; ');
           failedImports.push({ row: rowNumber, data: row, reason: errors });
-          return;
+          continue; // Continue to next row
         }
 
         const { firstName, lastName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
@@ -257,7 +258,7 @@ const BatchAthleteImport: React.FC = () => {
         const weightDivision = getWeightDivision(weight);
 
         const newAthlete: Athlete = {
-          id: `athlete-${Date.now()}-${index}`, // Unique ID
+          id: `athlete-${Date.now()}-${index}`, // Unique ID (will be replaced by Supabase UUID)
           eventId: eventId!,
           firstName,
           lastName,
@@ -291,13 +292,28 @@ const BatchAthleteImport: React.FC = () => {
       } catch (error: any) {
         failedImports.push({ row: rowNumber, data: row, reason: error.message || 'Erro desconhecido' });
       }
-    });
+    }
 
-    // Store successful athletes in localStorage for EventDetail to pick up
+    // Insert successful athletes into Supabase
     if (successfulAthletes.length > 0) {
-      const existingImportedAthletes = JSON.parse(localStorage.getItem(`importedAthletes_${eventId}`) || '[]') as Athlete[];
-      const updatedImportedAthletes = [...existingImportedAthletes, ...successfulAthletes];
-      localStorage.setItem(`importedAthletes_${eventId}`, JSON.stringify(updatedImportedAthletes));
+      const { error } = await supabase.from('athletes').insert(successfulAthletes.map(a => ({
+        ...a,
+        event_id: a.eventId,
+        date_of_birth: format(a.dateOfBirth, 'yyyy-MM-dd'),
+        consent_date: a.consentDate.toISOString(),
+        weight_attempts: JSON.stringify(a.weightAttempts),
+      })));
+
+      if (error) {
+        showError('Erro ao salvar atletas no banco de dados: ' + error.message);
+        setImportResults({
+          success: 0,
+          failed: csvData.length,
+          errors: failedImports.concat(csvData.map((row, idx) => ({ row: idx + 2, data: row, reason: 'Erro ao salvar no banco de dados.' }))),
+        });
+        setStep('results');
+        return;
+      }
     }
 
     setImportResults({

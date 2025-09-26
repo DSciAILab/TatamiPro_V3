@@ -8,30 +8,32 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
-import { Division, Belt, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index'; // Importar tipos
+import { Division, Belt, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface DivisionTableProps {
+  eventId: string; // Adicionado eventId como prop
   divisions: Division[];
   onUpdateDivisions: (updatedDivisions: Division[]) => void;
 }
 
-const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions }) => {
+const DivisionTable: React.FC<DivisionTableProps> = ({ eventId, divisions, onUpdateDivisions }) => {
   const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
   const [newDivision, setNewDivision] = useState<Omit<Division, 'id' | 'isEnabled'>>({
+    eventId: eventId, // Agora eventId é obrigatório
     name: '',
     minAge: 0,
     maxAge: 99,
-    maxWeight: 999, // minWeight removido
+    maxWeight: 999,
     gender: 'Ambos',
     belt: 'Todas',
-    ageCategoryName: 'Adult', // Default para uma das novas categorias
+    ageCategoryName: 'Adult',
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
 
   const handleAddDivision = () => {
     if (!newDivision.name || !newDivision.ageCategoryName || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
-        newDivision.maxWeight === undefined) { // minWeight removido da validação
+        newDivision.maxWeight === undefined) {
       showError('Por favor, preencha todos os campos da nova divisão.');
       return;
     }
@@ -40,11 +42,11 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       return;
     }
 
-    const id = `division-${Date.now()}`;
+    const id = `division-${Date.now()}`; // ID temporário, será substituído pelo Supabase
     const updatedDivisions = [...divisions, { ...newDivision, id, isEnabled: true }];
-    onUpdateDivisions(updatedDivisions);
+    onUpdateDivisions(updatedDivisions); // onUpdateDivisions agora lida com a persistência no Supabase
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', minAge: 0, maxAge: 99, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
+    setNewDivision({ eventId: eventId, name: '', minAge: 0, maxAge: 99, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -55,7 +57,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
   const handleSaveEdit = () => {
     if (currentEdit) {
       if (!currentEdit.name || !currentEdit.ageCategoryName || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
-          currentEdit.maxWeight === undefined) { // minWeight removido da validação
+          currentEdit.maxWeight === undefined) {
         showError('Por favor, preencha todos os campos da divisão.');
         return;
       }
@@ -128,7 +130,6 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           <Label htmlFor="newMaxAge">Idade Máxima</Label>
           <Input id="newMaxAge" type="number" value={newDivision.maxAge} onChange={(e) => setNewDivision(prev => ({ ...prev, maxAge: Number(e.target.value) }))} />
         </div>
-        {/* minWeight removido */}
         <div>
           <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
           <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.maxWeight} onChange={(e) => setNewDivision(prev => ({ ...prev, maxWeight: Number(e.target.value) }))} />
@@ -190,7 +191,6 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       </div>
                     </TableCell>
                     <TableCell>
-                      {/* minWeight removido */}
                       <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-full" />
                     </TableCell>
                     <TableCell>
@@ -224,7 +224,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                   <>
                     <TableCell className="font-medium">{division.name}</TableCell>
                     <TableCell>{division.ageCategoryName} ({division.minAge}-{division.maxAge})</TableCell>
-                    <TableCell>Até {division.maxWeight}kg</TableCell> {/* Exibir apenas maxWeight */}
+                    <TableCell>Até {division.maxWeight}kg</TableCell>
                     <TableCell>{division.gender}</TableCell>
                     <TableCell>{division.belt}</TableCell>
                     <TableCell className="text-center">

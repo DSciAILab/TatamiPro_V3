@@ -22,14 +22,15 @@ import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
+import { format, parseISO, isValid, differenceInSeconds } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { useSession } from '@/components/SessionContextProvider';
+import { supabase } from '@/integrations/supabase/client';
 
 const EventDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const { userRole, userClub } = useSession(); // Get userRole and userClub from session context
+  const { id: eventId } = useParams<{ id: string }>();
+  const { userRole, userClub } = useSession();
   const [activeTab, setActiveTab] = useState('inscricoes');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
@@ -38,117 +39,111 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'done' | 'all'>('pending');
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const [event, setEvent] = useState<Event | null>(() => {
-    const processAthleteData = (athleteData: any): Athlete => {
-      const age = new Date().getFullYear() - new Date(athleteData.dateOfBirth).getFullYear();
-      const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(athleteData.weight);
-      return {
-        ...athleteData,
-        dateOfBirth: new Date(athleteData.dateOfBirth),
-        consentDate: new Date(athleteData.consentDate),
-        age,
-        ageDivision,
-        weightDivision,
-        registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
-        checkInStatus: athleteData.checkInStatus || 'pending',
-        registeredWeight: athleteData.registeredWeight || undefined,
-        weightAttempts: athleteData.weightAttempts || [],
-        attendanceStatus: athleteData.attendanceStatus || 'pending', // Default attendance status
-      };
+  const [event, setEvent] = useState<Event | null>(null);
+  const [eventAthletes, setEventAthletes] = useState<Athlete[]>([]);
+  const [eventDivisions, setEventDivisions] = useState<Division[]>([]);
+  const [loadingEventData, setLoadingEventData] = useState(true);
+
+  // Configuração de campos obrigatórios para check-in
+  const mandatoryFieldsConfig = useMemo(() => {
+    const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
+    return storedConfig ? JSON.parse(storedConfig) : {
+      club: true, firstName: true, lastName: true, dateOfBirth: true, belt: true, weight: true,
+      idNumber: true, gender: true, nationality: true, email: true, phone: true,
+      photo: false, emiratesIdFront: false, emiratesIdBack: false, paymentProof: false,
+    };
+  }, [eventId]);
+
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!eventId) return;
+      setLoadingEventData(true);
+
+      // Fetch Event
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (eventError) {
+        showError('Erro ao carregar detalhes do evento: ' + eventError.message);
+        setEvent(null);
+      } else {
+        setEvent(eventData);
+      }
+
+      // Fetch Athletes
+      const { data: athletesData, error: athletesError } = await supabase
+        .from('athletes')
+        .select('*')
+        .eq('event_id', eventId);
+
+      if (athletesError) {
+        showError('Erro ao carregar atletas: ' + athletesError.message);
+        setEventAthletes([]);
+      } else {
+        // Convert date strings to Date objects
+        const processedAthletes = (athletesData || []).map(a => ({
+          ...a,
+          dateOfBirth: parseISO(a.date_of_birth),
+          consentDate: parseISO(a.consent_date),
+          weightAttempts: a.weight_attempts || [],
+        }));
+        setEventAthletes(processedAthletes);
+      }
+
+      // Fetch Divisions
+      const { data: divisionsData, error: divisionsError } = await supabase
+        .from('divisions')
+        .select('*')
+        .eq('event_id', eventId);
+
+      if (divisionsError) {
+        showError('Erro ao carregar divisões: ' + divisionsError.message);
+        setEventDivisions([]);
+      } else {
+        setEventDivisions(divisionsData || []);
+      }
+
+      setLoadingEventData(false);
     };
 
-    const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
-    let initialImportedAthletes: Athlete[] = [];
+    fetchEventData();
+
+    // Handle imported athletes from localStorage (one-time transfer)
+    const storedImportedAthletes = localStorage.getItem(`importedAthletes_${eventId}`);
     if (storedImportedAthletes) {
       try {
-        initialImportedAthletes = JSON.parse(storedImportedAthletes).map(processAthleteData);
-        localStorage.removeItem(`importedAthletes_${id}`);
-        showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
+        const initialImportedAthletes: Athlete[] = JSON.parse(storedImportedAthletes).map((a: any) => ({
+          ...a,
+          dateOfBirth: new Date(a.dateOfBirth),
+          consentDate: new Date(a.consentDate),
+        }));
+        if (initialImportedAthletes.length > 0) {
+          // Insert into Supabase
+          supabase.from('athletes').insert(initialImportedAthletes.map(a => ({
+            ...a,
+            date_of_birth: format(a.dateOfBirth, 'yyyy-MM-dd'),
+            consent_date: a.consentDate.toISOString(),
+            weight_attempts: JSON.stringify(a.weightAttempts),
+            // Ensure other date/time fields are ISO strings if they exist
+          }))).then(({ error }) => {
+            if (error) {
+              showError('Erro ao importar atletas do CSV para o Supabase: ' + error.message);
+            } else {
+              showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${eventId}.`);
+              setEventAthletes(prev => [...prev, ...initialImportedAthletes]);
+              localStorage.removeItem(`importedAthletes_${eventId}`);
+            }
+          });
+        }
       } catch (e) {
         console.error("Falha ao analisar atletas importados do localStorage", e);
         showError("Erro ao carregar atletas importados do armazenamento local.");
       }
     }
-
-    const existingEventData = localStorage.getItem(`event_${id}`);
-    let existingAthletes: Athlete[] = [];
-    let eventSettings = {};
-    let existingDivisions: Division[] = [];
-    if (existingEventData) {
-      try {
-        const parsedEvent = JSON.parse(existingEventData);
-        existingAthletes = parsedEvent.athletes.map(processAthleteData);
-        eventSettings = {
-          checkInStartTime: parsedEvent.checkInStartTime,
-          checkInEndTime: parsedEvent.checkInEndTime,
-          numFightAreas: parsedEvent.numFightAreas,
-        };
-        existingDivisions = parsedEvent.divisions || [];
-      } catch (e) {
-        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
-      }
-    }
-
-    return {
-      id: id || 'mock-event-id',
-      name: `Evento #${id}`,
-      description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
-      status: 'Aberto',
-      date: '2024-12-01',
-      athletes: [...existingAthletes, ...initialImportedAthletes],
-      divisions: existingDivisions,
-      ...eventSettings,
-    };
-  });
-
-  const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>(
-    event?.checkInStartTime ? parseISO(event.checkInStartTime) : undefined
-  );
-  const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>(
-    event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
-  );
-  const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
-
-  // Configuração de campos obrigatórios para check-in
-  const mandatoryFieldsConfig = useMemo(() => {
-    const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${id}`);
-    return storedConfig ? JSON.parse(storedConfig) : {
-      club: true,
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
-      belt: true,
-      weight: true,
-      idNumber: true, // Representa Emirates ID ou School ID
-      gender: true,
-      nationality: true,
-      email: true,
-      phone: true,
-      photo: false,
-      emiratesIdFront: false,
-      emiratesIdBack: false,
-      paymentProof: false,
-    };
-  }, [id]);
-
-  useEffect(() => {
-    if (event) {
-      localStorage.setItem(`event_${id}`, JSON.stringify(event));
-    }
-  }, [event, id]);
-
-  useEffect(() => {
-    setEvent(prevEvent => {
-      if (!prevEvent) return null;
-      return {
-        ...prevEvent,
-        checkInStartTime: checkInStartTime?.toISOString(),
-        checkInEndTime: checkInEndTime?.toISOString(),
-        numFightAreas: numFightAreas,
-      };
-    });
-  }, [checkInStartTime, checkInEndTime, numFightAreas]);
+  }, [eventId]);
 
   // Timer for current time and time remaining
   useEffect(() => {
@@ -158,69 +153,113 @@ const EventDetail: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handleAthleteRegistration = async (newAthlete: Athlete) => {
+    if (!eventId) return;
 
-  const handleAthleteRegistration = (newAthlete: Athlete) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        return {
-          ...prevEvent,
-          athletes: [...prevEvent.athletes, newAthlete],
-        };
-      });
+    const { data, error } = await supabase
+      .from('athletes')
+      .insert({
+        ...newAthlete,
+        event_id: eventId,
+        date_of_birth: format(newAthlete.dateOfBirth, 'yyyy-MM-dd'),
+        consent_date: newAthlete.consentDate.toISOString(),
+        weight_attempts: JSON.stringify(newAthlete.weightAttempts),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      showError('Erro ao registrar atleta: ' + error.message);
+    } else if (data) {
+      setEventAthletes(prev => [...prev, {
+        ...data,
+        dateOfBirth: parseISO(data.date_of_birth),
+        consentDate: parseISO(data.consent_date),
+        weightAttempts: data.weight_attempts || [],
+      }]);
       showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso e aguardando aprovação!`);
     }
   };
 
-  const handleAthleteUpdate = (updatedAthlete: Athlete) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.map(athlete =>
-          athlete.id === updatedAthlete.id ? updatedAthlete : athlete
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
+    if (!eventId) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .update({
+        ...updatedAthlete,
+        date_of_birth: format(updatedAthlete.dateOfBirth, 'yyyy-MM-dd'),
+        consent_date: updatedAthlete.consentDate.toISOString(),
+        weight_attempts: JSON.stringify(updatedAthlete.weightAttempts),
+      })
+      .eq('id', updatedAthlete.id);
+
+    if (error) {
+      showError('Erro ao atualizar atleta: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.map(athlete =>
+        athlete.id === updatedAthlete.id ? updatedAthlete : athlete
+      ));
       setEditingAthlete(null);
+      showSuccess('Perfil do atleta atualizado com sucesso!');
     }
   };
 
-  const handleDeleteAthlete = (athleteId: string) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.filter(athlete => athlete.id !== athleteId);
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleDeleteAthlete = async (athleteId: string) => {
+    if (!eventId) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .delete()
+      .eq('id', athleteId);
+
+    if (error) {
+      showError('Erro ao remover atleta: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.filter(athlete => athlete.id !== athleteId));
       showSuccess('Inscrição do atleta removida com sucesso!');
     }
   };
 
-  const handleCheckInAthlete = (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.map(athlete =>
-          athlete.id === athleteId
-            ? { ...athlete, registeredWeight, checkInStatus: status, weightAttempts }
-            : athlete
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleCheckInAthlete = async (athleteId: string, registeredWeight: number, status: 'checked_in' | 'overweight', weightAttempts: WeightAttempt[]) => {
+    if (!eventId) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .update({
+        registered_weight: registeredWeight,
+        check_in_status: status,
+        weight_attempts: JSON.stringify(weightAttempts),
+      })
+      .eq('id', athleteId);
+
+    if (error) {
+      showError('Erro ao atualizar check-in do atleta: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.map(athlete =>
+        athlete.id === athleteId
+          ? { ...athlete, registeredWeight, checkInStatus: status, weightAttempts }
+          : athlete
+      ));
     }
   };
 
-  const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendanceStatus']) => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.map(athlete =>
-          athlete.id === athleteId
-            ? { ...athlete, attendanceStatus: status }
-            : athlete
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendanceStatus']) => {
+    if (!eventId) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .update({ attendance_status: status })
+      .eq('id', athleteId);
+
+    if (error) {
+      showError('Erro ao atualizar status de presença: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.map(athlete =>
+        athlete.id === athleteId
+          ? { ...athlete, attendanceStatus: status }
+          : athlete
+      ));
     }
   };
 
@@ -233,97 +272,171 @@ const EventDetail: React.FC = () => {
   };
 
   const handleSelectAllAthletes = (checked: boolean) => {
-    if (event) {
-      const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
-      if (checked) {
-        setSelectedAthletesForApproval(athletesUnderApproval.map(a => a.id));
-      } else {
-        setSelectedAthletesForApproval([]);
-      }
+    const athletesUnderApproval = eventAthletes.filter(a => a.registrationStatus === 'under_approval');
+    if (checked) {
+      setSelectedAthletesForApproval(athletesUnderApproval.map(a => a.id));
+    } else {
+      setSelectedAthletesForApproval([]);
     }
   };
 
-  const handleApproveSelected = () => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.map(athlete =>
-          selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'approved' as const }
-            : athlete
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleApproveSelected = async () => {
+    if (!eventId || selectedAthletesForApproval.length === 0) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .update({ registration_status: 'approved' })
+      .in('id', selectedAthletesForApproval);
+
+    if (error) {
+      showError('Erro ao aprovar inscrições: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.map(athlete =>
+        selectedAthletesForApproval.includes(athlete.id)
+          ? { ...athlete, registrationStatus: 'approved' as const }
+          : athlete
+      ));
       showSuccess(`${selectedAthletesForApproval.length} inscrições aprovadas com sucesso!`);
       setSelectedAthletesForApproval([]);
     }
   };
 
-  const handleRejectSelected = () => {
-    if (event) {
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes.map(athlete =>
-          selectedAthletesForApproval.includes(athlete.id)
-            ? { ...athlete, registrationStatus: 'rejected' as const }
-            : athlete
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+  const handleRejectSelected = async () => {
+    if (!eventId || selectedAthletesForApproval.length === 0) return;
+
+    const { error } = await supabase
+      .from('athletes')
+      .update({ registration_status: 'rejected' })
+      .in('id', selectedAthletesForApproval);
+
+    if (error) {
+      showError('Erro ao rejeitar inscrições: ' + error.message);
+    } else {
+      setEventAthletes(prev => prev.map(athlete =>
+        selectedAthletesForApproval.includes(athlete.id)
+          ? { ...athlete, registrationStatus: 'rejected' as const }
+          : athlete
+      ));
       showSuccess(`${selectedAthletesForApproval.length} inscrições rejeitadas.`);
       setSelectedAthletesForApproval([]);
     }
   };
 
-  const handleUpdateDivisions = (updatedDivisions: Division[]) => {
-    setEvent(prevEvent => {
-      if (!prevEvent) return null;
-      return {
-        ...prevEvent,
-        divisions: updatedDivisions,
-      };
-    });
+  const handleUpdateDivisions = async (updatedDivisions: Division[]) => {
+    if (!eventId) return;
+
+    // Separate inserts/updates/deletes
+    const existingDivisionIds = new Set(eventDivisions.map(d => d.id));
+    const updatedDivisionIds = new Set(updatedDivisions.map(d => d.id));
+
+    const divisionsToInsert = updatedDivisions.filter(d => !existingDivisionIds.has(d.id));
+    const divisionsToUpdate = updatedDivisions.filter(d => existingDivisionIds.has(d.id));
+    const divisionsToDelete = eventDivisions.filter(d => !updatedDivisionIds.has(d.id));
+
+    let hasError = false;
+
+    // Inserts
+    if (divisionsToInsert.length > 0) {
+      const { error } = await supabase.from('divisions').insert(divisionsToInsert.map(d => ({
+        ...d,
+        event_id: eventId,
+      })));
+      if (error) {
+        showError('Erro ao adicionar divisões: ' + error.message);
+        hasError = true;
+      }
+    }
+
+    // Updates
+    for (const division of divisionsToUpdate) {
+      const { error } = await supabase.from('divisions').update(division).eq('id', division.id);
+      if (error) {
+        showError(`Erro ao atualizar divisão ${division.name}: ` + error.message);
+        hasError = true;
+      }
+    }
+
+    // Deletes
+    if (divisionsToDelete.length > 0) {
+      const { error } = await supabase.from('divisions').delete().in('id', divisionsToDelete.map(d => d.id));
+      if (error) {
+        showError('Erro ao remover divisões: ' + error.message);
+        hasError = true;
+      }
+    }
+
+    if (!hasError) {
+      setEventDivisions(updatedDivisions);
+      showSuccess('Divisões atualizadas com sucesso!');
+    }
   };
 
-  if (!event) {
+  const handleUpdateEventSettings = async () => {
+    if (!eventId || !event) return;
+
+    const { error } = await supabase
+      .from('events')
+      .update({
+        check_in_start_time: checkInStartTime?.toISOString() || null,
+        check_in_end_time: checkInEndTime?.toISOString() || null,
+        num_fight_areas: numFightAreas,
+      })
+      .eq('id', eventId);
+
+    if (error) {
+      showError('Erro ao atualizar configurações do evento: ' + error.message);
+    } else {
+      setEvent(prev => prev ? {
+        ...prev,
+        checkInStartTime: checkInStartTime?.toISOString(),
+        checkInEndTime: checkInEndTime?.toISOString(),
+        numFightAreas: numFightAreas,
+      } : null);
+      showSuccess('Configurações do evento atualizadas!');
+    }
+  };
+
+  if (loadingEventData || !event) {
     return (
       <Layout>
-        <div className="text-center text-xl mt-8">Evento não encontrado.</div>
+        <div className="text-center text-xl mt-8">Carregando detalhes do evento...</div>
       </Layout>
     );
   }
 
-  const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
-  const approvedAthletes = event.athletes.filter(a => a.registrationStatus === 'approved');
-  const rejectedAthletes = event.athletes.filter(a => a.registrationStatus === 'rejected');
+  const athletesUnderApproval = eventAthletes.filter(a => a.registrationStatus === 'under_approval');
+  const approvedAthletes = eventAthletes.filter(a => a.registrationStatus === 'approved');
+  const rejectedAthletes = eventAthletes.filter(a => a.registrationStatus === 'rejected');
 
   // Processar atletas aprovados para incluir informações da divisão
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
+      const division = findAthleteDivision(athlete, eventDivisions);
       return {
         ...athlete,
         _division: division, // Armazenar a divisão encontrada para uso posterior
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
-  }, [approvedAthletes, event.divisions]);
+  }, [approvedAthletes, eventDivisions]);
 
   const sortedAthletesUnderApproval = useMemo(() => {
     return athletesUnderApproval.map(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
+      const division = findAthleteDivision(athlete, eventDivisions);
       return {
         ...athlete,
         _division: division,
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
-  }, [athletesUnderApproval, event.divisions]);
+  }, [athletesUnderApproval, eventDivisions]);
 
 
   // Lógica para verificar se o check-in é permitido
   const isCheckInTimeValid = () => {
-    if (!checkInStartTime || !checkInEndTime) return false;
+    if (!event.checkInStartTime || !event.checkInEndTime) return false;
+    const start = parseISO(event.checkInStartTime);
+    const end = parseISO(event.checkInEndTime);
     const now = new Date();
-    return now >= checkInStartTime && now <= checkInEndTime;
+    return now >= start && now <= end;
   };
 
   const isCheckInAllowed = userRole === 'admin' || isCheckInTimeValid();
@@ -363,7 +476,7 @@ const EventDetail: React.FC = () => {
   const totalPending = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
   const totalApprovedAthletes = processedApprovedAthletes.length;
 
-  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
+  const timeRemainingInSeconds = event.checkInEndTime ? differenceInSeconds(parseISO(event.checkInEndTime), currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0
     ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
     : 'Encerrado';
@@ -378,14 +491,13 @@ const EventDetail: React.FC = () => {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
           <TabsTrigger value="checkin">Check-in</TabsTrigger>
-          {/* Aba Pesagem removida */}
-          <TabsTrigger value="attendance">Attendance</TabsTrigger> {/* Nova aba */}
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           {userRole === 'admin' && (
             <>
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
-              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+              <TabsTrigger value="divisions">Divisões ({eventDivisions.length})</TabsTrigger>
             </>
           )}
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
@@ -401,7 +513,7 @@ const EventDetail: React.FC = () => {
             <CardContent>
               {!editingAthlete && (
                 <div className="mb-6">
-                  <Link to={`/events/${event.id}/registration-options`}>
+                  <Link to={`/events/${eventId}/registration-options`}>
                     <Button className="w-full">
                       <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
                     </Button>
@@ -491,10 +603,10 @@ const EventDetail: React.FC = () => {
                 {isCheckInTimeValid() && (
                   <span className="text-green-600 block mt-2">Check-in aberto!</span>
                 )}
-                {!checkInStartTime || !checkInEndTime ? (
+                {!event.checkInStartTime || !event.checkInEndTime ? (
                   <span className="text-orange-500 block mt-2">Horário de check-in não configurado.</span>
                 ) : (
-                  <span className="text-muted-foreground block mt-2">Horário: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
+                  <span className="text-muted-foreground block mt-2">Horário: {format(parseISO(event.checkInStartTime), 'dd/MM HH:mm')} - {format(parseISO(event.checkInEndTime), 'dd/MM HH:mm')}</span>
                 )}
                 <div className="mt-4 text-sm">
                   <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
@@ -599,8 +711,8 @@ const EventDetail: React.FC = () => {
 
         <TabsContent value="attendance" className="mt-6">
           <AttendanceManagement
-            eventId={event.id}
-            eventDivisions={event.divisions}
+            eventId={eventId}
+            eventDivisions={eventDivisions}
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
           />
         </TabsContent>
@@ -626,7 +738,7 @@ const EventDetail: React.FC = () => {
                   <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Link to={`/events/${event.id}/import-athletes`}>
+                  <Link to={`/events/${eventId}/import-athletes`}>
                     <Button className="w-full">Importar Atletas em Lote</Button>
                   </Link>
 
@@ -742,8 +854,9 @@ const EventDetail: React.FC = () => {
                         onChange={(e) => setNumFightAreas(Number(e.target.value))}
                       />
                     </div>
+                    <Button onClick={handleUpdateEventSettings}>Salvar Configurações do Evento</Button>
                   </div>
-                  <CheckInMandatoryFieldsConfig eventId={event.id} />
+                  <CheckInMandatoryFieldsConfig eventId={eventId} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -843,10 +956,10 @@ const EventDetail: React.FC = () => {
                   <CardDescription>Configure as divisões de idade, peso, gênero e faixa para este evento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Link to={`/events/${event.id}/import-divisions`}>
+                  <Link to={`/events/${eventId}/import-divisions`}>
                     <Button className="w-full">Importar Divisões em Lote</Button>
                   </Link>
-                  <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+                  <DivisionTable eventId={eventId} divisions={eventDivisions} onUpdateDivisions={handleUpdateDivisions} />
                 </CardContent>
               </Card>
             </TabsContent>

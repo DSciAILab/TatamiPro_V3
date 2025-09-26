@@ -42,14 +42,15 @@ export interface Athlete {
   registeredWeight?: number; // Novo: Último peso registrado no check-in
   weightAttempts: WeightAttempt[]; // Novo: Log de tentativas de pesagem
   attendanceStatus: 'pending' | 'present' | 'absent' | 'private_transportation'; // Novo: Status de presença
+  userId?: string; // Adicionado: ID do usuário Supabase, se o atleta for um usuário logado
 }
 
 export interface Division {
   id: string;
+  eventId: string; // Adicionado: ID do evento ao qual a divisão pertence
   name: string; // Nome completo da divisão, ex: "Adulto Masculino Faixa Azul Peso Pena"
   minAge: number;
   maxAge: number;
-  // minWeight removido, será inferido do maxWeight da divisão anterior
   maxWeight: number;
   gender: DivisionGender;
   belt: DivisionBelt;
@@ -62,10 +63,8 @@ export interface Event {
   name: string;
   description: string;
   status: 'Aberto' | 'Fechado';
-  date: string;
-  athletes: Athlete[];
+  date: string; // Usar string para datas do Supabase (ISO format)
   checkInStartTime?: string; // Novo: Horário de início do check-in (ISO string)
   checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
   numFightAreas?: number; // Novo: Número de áreas de luta
-  divisions: Division[]; // Novo: Divisões configuradas para o evento
 }

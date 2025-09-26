@@ -12,7 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
+import { Division, AgeCategory, Belt, DivisionBelt, DivisionGender } from '@/types/index';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mapeamento de categoria de idade para minAge/maxAge
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
@@ -30,9 +31,9 @@ const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
 
 // Define os campos mínimos esperados no arquivo de importação para divisões
 const requiredDivisionFields = {
-  name: 'Nome da Divisão', // Corresponde a Division.name
-  ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
-  maxWeight: 'Peso Máximo', // minWeight removido
+  name: 'Nome da Divisão',
+  ageCategory: 'Categoria de Idade',
+  maxWeight: 'Peso Máximo',
   gender: 'Gênero',
   belt: 'Faixa',
 };
@@ -45,7 +46,7 @@ const importSchema = z.object({
   ageCategory: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (ageCategoryMap[lowerStr]) {
-      return str as AgeCategory; // Retorna a string original se for uma categoria válida
+      return str as AgeCategory;
     }
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -53,7 +54,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }),
-  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // minWeight removido
+  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }),
   gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
@@ -83,7 +84,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<DivisionBelt>,
-}).refine(data => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
+}).refine(data => true, {
   message: 'A validação de peso será feita na lógica de encaixe.',
   path: ['maxWeight'],
 });
@@ -167,7 +168,7 @@ const DivisionImport: React.FC = () => {
     return true;
   };
 
-  const handleProcessImport = () => {
+  const handleProcessImport = async () => {
     if (!validateMapping()) {
       return;
     }
@@ -175,7 +176,7 @@ const DivisionImport: React.FC = () => {
     const successfulDivisions: Division[] = [];
     const failedImports: ImportResult[] = [];
 
-    csvData.forEach((row, index) => {
+    for (const [index, row] of csvData.entries()) {
       const rowNumber = index + 2;
       try {
         const mappedData: Record<string, any> = {};
@@ -190,23 +191,24 @@ const DivisionImport: React.FC = () => {
         if (!parsed.success) {
           const errors = parsed.error.errors.map(err => err.message).join('; ');
           failedImports.push({ row: rowNumber, data: row, reason: errors });
-          return;
+          continue;
         }
 
-        const { name, ageCategory, maxWeight, gender, belt } = parsed.data; // minWeight removido
+        const { name, ageCategory, maxWeight, gender, belt } = parsed.data;
 
         const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
         if (!ageBounds) {
           failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${ageCategory}" não reconhecida.` });
-          return;
+          continue;
         }
 
         const newDivision: Division = {
-          id: `division-${Date.now()}-${index}`,
+          id: `division-${Date.now()}-${index}`, // Temporary ID, will be replaced by Supabase UUID
+          eventId: eventId!, // eventId é agora obrigatório
           name,
           minAge: ageBounds.min,
           maxAge: ageBounds.max,
-          maxWeight, // minWeight removido
+          maxWeight,
           gender,
           belt,
           ageCategoryName: ageCategory,
@@ -216,21 +218,26 @@ const DivisionImport: React.FC = () => {
       } catch (error: any) {
         failedImports.push({ row: rowNumber, data: row, reason: error.message || 'Erro desconhecido' });
       }
-    });
-
-    // Load existing event data to merge divisions
-    const existingEventData = localStorage.getItem(`event_${eventId}`);
-    let currentEvent = { divisions: [] };
-    if (existingEventData) {
-      try {
-        currentEvent = JSON.parse(existingEventData);
-      } catch (e) {
-        console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
-      }
     }
 
-    const updatedDivisions = [...(currentEvent.divisions || []), ...successfulDivisions];
-    localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, divisions: updatedDivisions }));
+    // Insert successful divisions into Supabase
+    if (successfulDivisions.length > 0) {
+      const { error } = await supabase.from('divisions').insert(successfulDivisions.map(d => ({
+        ...d,
+        event_id: d.eventId,
+      })));
+
+      if (error) {
+        showError('Erro ao salvar divisões no banco de dados: ' + error.message);
+        setImportResults({
+          success: 0,
+          failed: csvData.length,
+          errors: failedImports.concat(csvData.map((row, idx) => ({ row: idx + 2, data: row, reason: 'Erro ao salvar no banco de dados.' }))),
+        });
+        setStep('results');
+        return;
+      }
+    }
 
     setImportResults({
       success: successfulDivisions.length,
