@@ -287,7 +287,7 @@ const FightDetail: React.FC = () => {
                     ? 'border-green-500 bg-green-50 dark:bg-green-950'
                     : 'border-red-500 bg-red-50 dark:bg-red-950'
                   : selectedWinnerId === currentMatch.fighter1Id
-                    ? 'border-primary bg-accent'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' // Azul para seleção
                     : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
               )}
               onClick={() => !isFightCompleted && currentMatch.fighter1Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter1Id)}
@@ -303,7 +303,7 @@ const FightDetail: React.FC = () => {
                     ? 'border-green-500 bg-green-50 dark:bg-green-950'
                     : 'border-red-500 bg-red-50 dark:bg-red-950'
                   : selectedWinnerId === currentMatch.fighter2Id
-                    ? 'border-primary bg-accent'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' // Azul para seleção
                     : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
               )}
               onClick={() => !isFightCompleted && currentMatch.fighter2Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter2Id)}
@@ -336,7 +336,15 @@ const FightDetail: React.FC = () => {
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"
                 >
                   {fightResultTypes.map(type => (
-                    <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label} variant={selectedResultType === type.value ? 'default' : 'outline'}>
+                    <ToggleGroupItem
+                      key={type.value}
+                      value={type.value}
+                      aria-label={type.label}
+                      variant="outline" // Usar outline como base
+                      className={cn(
+                        selectedResultType === type.value && 'bg-blue-600 text-white hover:bg-blue-700' // Azul para seleção
+                      )}
+                    >
                       {type.label}
                     </ToggleGroupItem>
                   ))}
