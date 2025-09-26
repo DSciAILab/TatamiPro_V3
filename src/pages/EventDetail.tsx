@@ -1,29 +1,28 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom'; // Importar Link
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // Importar Button
 import AthleteRegistrationForm from '@/components/AthleteRegistrationForm';
-import { Athlete, Event, Bracket, Match } from '../types/index';
+import { Athlete, Event } from '../types/index';
 import { UserRound } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('inscricoes');
-  const userRole = localStorage.getItem('userRole');
+  const userRole = localStorage.getItem('userRole'); // For basic RBAC
 
+  // Mock event data - In a real app, this would come from a global state or API
   const [event, setEvent] = useState<Event | null>({
     id: id || 'mock-event-id',
     name: `Evento #${id}`,
     description: `Detalhes do evento ${id} de Jiu-Jitsu.`,
     status: 'Aberto',
     date: '2024-12-01',
-    athletes: [],
-    brackets: [], // Inicializado com array vazio para brackets
+    athletes: [], // Initialize with an empty array for athletes
   });
 
   const handleAthleteRegistration = (newAthlete: Athlete) => {
@@ -35,58 +34,9 @@ const EventDetail: React.FC = () => {
           athletes: [...prevEvent.athletes, newAthlete],
         };
       });
-      showSuccess(`Atleta ${newAthlete.firstName} registrado com sucesso!`);
+      console.log('Atleta registrado:', newAthlete);
+      // Here you would typically send newAthlete to a backend API
     }
-  };
-
-  const handleGenerateBrackets = async () => {
-    if (!event || event.athletes.length < 2) {
-      showError('É necessário pelo menos 2 atletas para gerar um bracket.');
-      return;
-    }
-
-    try {
-      // Para o MVP, usaremos um divisionId e opções fixas
-      const divisionId = 'faixa-branca-masculino-leve'; // Exemplo de divisão
-      const options = { thirdPlace: true };
-
-      const response = await fetch('/.netlify/functions/generate-brackets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          athletes: event.athletes,
-          divisionId,
-          options,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha ao gerar brackets.');
-      }
-
-      const generatedBracket: Bracket = await response.json();
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        return {
-          ...prevEvent,
-          brackets: [...(prevEvent.brackets || []), generatedBracket],
-        };
-      });
-      showSuccess('Brackets gerados com sucesso!');
-      setActiveTab('brackets'); // Mudar para a aba de brackets
-    } catch (error: any) {
-      showError(`Erro ao gerar brackets: ${error.message}`);
-      console.error('Erro ao gerar brackets:', error);
-    }
-  };
-
-  const getAthleteName = (participant: Athlete | 'BYE' | undefined) => {
-    if (!participant) return 'Aguardando';
-    if (participant === 'BYE') return 'BYE';
-    return `${participant.firstName} ${participant.lastName}`;
   };
 
   if (!event) {
@@ -180,51 +130,27 @@ const EventDetail: React.FC = () => {
               <CardDescription>Gere e visualize os brackets do evento.</CardDescription>
             </CardHeader>
             <CardContent>
-              {userRole === 'admin' && (
-                <Button onClick={handleGenerateBrackets} className="mb-4">Gerar Brackets</Button>
-              )}
-
-              {event.brackets && event.brackets.length > 0 ? (
-                event.brackets.map((bracket, index) => (
-                  <div key={index} className="mb-6 p-4 border rounded-md">
-                    <h4 className="text-lg font-semibold mb-2">Divisão: {bracket.divisionId}</h4>
-                    <h5 className="font-medium mb-2">Primeira Rodada:</h5>
-                    <ul className="space-y-2">
-                      {bracket.matches.map((match) => (
-                        <li key={match.id} className="p-2 border rounded-md bg-muted/50">
-                          Match {match.matchNumber}: {getAthleteName(match.fighter1)} vs {getAthleteName(match.fighter2)}
-                          {match.winnerId && match.winnerId !== 'BYE' && (
-                            <span className="ml-2 text-green-600">(Vencedor: {getAthleteName(event.athletes.find(a => a.id === match.winnerId))})</span>
-                          )}
-                          {match.winnerId === 'BYE' && (
-                            <span className="ml-2 text-gray-500">(Ambos BYE)</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    {bracket.thirdPlaceMatch && (
-                      <p className="mt-4 text-sm text-muted-foreground">Luta pelo 3º lugar será gerada após as semifinais.</p>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">Nenhum bracket gerado ainda para este evento.</p>
-              )}
+              <p>Conteúdo da aba Brackets para o evento {event.name}.</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="admin" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Administração do Evento</CardTitle>
-              <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Conteúdo da aba Admin para o evento {event.name}.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {userRole === 'admin' && (
+          <TabsContent value="admin" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Administração do Evento</CardTitle>
+                <CardDescription>Gerencie usuários e configurações do evento.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Conteúdo da aba Admin para o evento {event.name}.</p>
+                <Link to={`/events/${event.id}/import-athletes`}>
+                  <Button className="w-full">Importar Atletas em Lote</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="resultados" className="mt-6">
           <Card>
