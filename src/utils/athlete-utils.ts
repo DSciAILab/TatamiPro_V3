@@ -30,7 +30,7 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
     (div.gender === 'Ambos' || div.gender === athlete.gender) &&
     (div.belt === 'Todas' || div.belt === athlete.belt) &&
     athlete.age >= div.minAge && athlete.age <= div.maxAge &&
-    athlete.weight > div.minWeight && athlete.weight <= div.maxWeight // Peso de inscrição deve estar dentro da faixa
+    athlete.weight >= div.minWeight && athlete.weight <= div.maxWeight // Corrigido para incluir minWeight
   );
 };
 
@@ -40,5 +40,6 @@ export const getAthleteDisplayString = (athlete: Athlete, division?: Division): 
     return `${division.gender} / ${division.ageCategoryName} / ${division.belt} / ${division.maxWeight}kg`;
   }
   // Fallback se a divisão não for encontrada ou passada
-  return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / ${athlete.weightDivision}`;
+  // Em vez de usar weightDivision, indicamos que a divisão não foi encontrada
+  return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / Divisão não encontrada`;
 };
