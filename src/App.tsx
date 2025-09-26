@@ -9,9 +9,9 @@ import Auth from "./pages/Auth";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import BatchAthleteImport from "./pages/BatchAthleteImport";
-import RegistrationOptions from "./pages/RegistrationOptions"; // Novo import
-import AthleteRegistrationForm from "./components/AthleteRegistrationForm"; // Importar o formulário diretamente para a rota
-import DivisionImport from "./pages/DivisionImport"; // Novo import para importação de divisões
+import RegistrationOptions from "./pages/RegistrationOptions";
+import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
+import DivisionImport from "./pages/DivisionImport";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -29,10 +29,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/events" element={<Events />} />
             <Route path="/events/:id" element={<EventDetail />} />
-            <Route path="/events/:id/registration-options" element={<RegistrationOptions />} /> {/* Nova rota para opções de registro */}
-            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm eventId={""} onRegister={() => {}} />} /> {/* Rota para registro individual */}
+            <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} /> {/* Updated: Removed props */}
             <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-            <Route path="/events/:id/import-divisions" element={<DivisionImport />} /> {/* Nova rota para importação de divisões */}
+            <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

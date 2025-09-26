@@ -15,15 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Athlete, Belt, Gender } from '@/types/index';
+import { Athlete, Belt, Gender, Event } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
-
-interface AthleteRegistrationFormProps {
-  eventId: string;
-  onRegister: (athlete: Athlete) => void;
-  mandatoryFieldsConfig?: Record<string, boolean>; // Nova prop para configuração de campos obrigatórios
-}
+import { useParams, useNavigate } from 'react-router-dom';
 
 // Define os esquemas base para campos comuns
 const firstNameSchema = z.string().min(2, { message: 'Nome é obrigatório.' });
@@ -43,9 +38,34 @@ const schoolIdOptionalSchema = z.string().optional();
 
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
-const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ eventId, onRegister, mandatoryFieldsConfig }) => {
+const AthleteRegistrationForm: React.FC = () => {
+  const { id: eventId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // Configuração de campos obrigatórios para check-in
+  const mandatoryFieldsConfig = useMemo(() => {
+    const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
+    return storedConfig ? JSON.parse(storedConfig) : {
+      club: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      belt: true,
+      weight: true,
+      idNumber: true, // Representa Emirates ID ou School ID
+      gender: true,
+      nationality: true,
+      email: true,
+      phone: true,
+      photo: false,
+      emiratesIdFront: false,
+      emiratesIdBack: false,
+      paymentProof: false,
+    };
+  }, [eventId]);
+
   // Função para criar o esquema dinamicamente
-  const createDynamicSchema = (config?: Record<string, boolean>) => {
+  const createDynamicSchema = (config: Record<string, boolean>) => {
     const schemaDefinition = {
       firstName: firstNameSchema,
       lastName: lastNameSchema,
@@ -105,6 +125,11 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
   const emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
+    if (!eventId) {
+      showError('ID do evento não encontrado.');
+      return;
+    }
+
     try {
       const age = new Date().getFullYear() - values.dateOfBirth!.getFullYear(); // dateOfBirth é obrigatório
       const ageDivision = getAgeDivision(age);
@@ -166,8 +191,30 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         attendanceStatus: 'pending', // Default attendance status
       };
 
-      onRegister(newAthlete);
+      // Load existing event data to add the new athlete
+      const existingEventData = localStorage.getItem(`event_${eventId}`);
+      let currentEvent: Event = {
+        id: eventId,
+        name: `Evento #${eventId}`,
+        description: '',
+        status: 'Aberto',
+        date: new Date().toISOString().split('T')[0],
+        athletes: [],
+        divisions: [],
+      };
+      if (existingEventData) {
+        try {
+          currentEvent = JSON.parse(existingEventData);
+        } catch (e) {
+          console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
+        }
+      }
+
+      const updatedAthletes = [...(currentEvent.athletes || []), newAthlete];
+      localStorage.setItem(`event_${eventId}`, JSON.stringify({ ...currentEvent, athletes: updatedAthletes }));
+
       showSuccess('Inscrição enviada para aprovação!');
+      navigate(`/events/${eventId}`); // Redirect back to event details
     } catch (error: any) {
       showError('Erro ao registrar atleta: ' + error.message);
     }
