@@ -163,45 +163,55 @@ const FightDetail: React.FC = () => {
     let matchFound = false;
     let updatedMatch: Match | null = null;
 
-    // Update the current match
-    for (const round of updatedBracket.rounds) {
-      const targetMatch = round.find(m => m.id === currentMatch.id);
-      if (targetMatch) {
-        targetMatch.winnerId = selectedWinnerId;
-        targetMatch.loserId = loserId;
-        targetMatch.result = { type: selectedResultType, winnerId: selectedWinnerId, loserId: loserId, details: resultDetails };
-        matchFound = true;
-        updatedMatch = targetMatch; // Store the updated match
+    // Check if it's the third-place match
+    if (currentMatch.round === -1 && updatedBracket.thirdPlaceMatch && updatedBracket.thirdPlaceMatch.id === currentMatch.id) {
+      updatedBracket.thirdPlaceMatch.winnerId = selectedWinnerId;
+      updatedBracket.thirdPlaceMatch.loserId = loserId;
+      updatedBracket.thirdPlaceMatch.result = { type: selectedResultType, winnerId: selectedWinnerId, loserId: loserId, details: resultDetails };
+      matchFound = true;
+      updatedMatch = updatedBracket.thirdPlaceMatch;
+      updatedBracket.thirdPlaceWinnerId = selectedWinnerId; // Set the third place winner
+    } else {
+      // Iterate through rounds for regular matches
+      for (const round of updatedBracket.rounds) {
+        const targetMatch = round.find(m => m.id === currentMatch.id);
+        if (targetMatch) {
+          targetMatch.winnerId = selectedWinnerId;
+          targetMatch.loserId = loserId;
+          targetMatch.result = { type: selectedResultType, winnerId: selectedWinnerId, loserId: loserId, details: resultDetails };
+          matchFound = true;
+          updatedMatch = targetMatch; // Store the updated match
 
-        // Advance winner to next match
-        if (targetMatch.nextMatchId) {
-          for (const nextRound of updatedBracket.rounds) {
-            const nextMatch = nextRound.find(m => m.id === targetMatch.nextMatchId);
-            if (nextMatch) {
-              if (nextMatch.prevMatchIds?.[0] === targetMatch.id) {
-                nextMatch.fighter1Id = selectedWinnerId;
-              } else if (nextMatch.prevMatchIds?.[1] === targetMatch.id) {
-                nextMatch.fighter2Id = selectedWinnerId;
-              }
-              // If both prev matches are done, and nextMatch has both fighters,
-              // its winnerId might be set if one of them was a BYE.
-              // Otherwise, it remains undefined until that match is played.
-              if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id && nextMatch.fighter2Id !== 'BYE') {
-                nextMatch.winnerId = nextMatch.fighter2Id;
-              } else if (nextMatch.fighter2Id === 'BYE' && nextMatch.fighter1Id && nextMatch.fighter1Id !== 'BYE') {
-                nextMatch.winnerId = nextMatch.fighter1Id;
-              } else if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id === 'BYE') {
-                nextMatch.winnerId = 'BYE';
+          // Advance winner to next match
+          if (targetMatch.nextMatchId) {
+            for (const nextRound of updatedBracket.rounds) {
+              const nextMatch = nextRound.find(m => m.id === targetMatch.nextMatchId);
+              if (nextMatch) {
+                if (nextMatch.prevMatchIds?.[0] === targetMatch.id) {
+                  nextMatch.fighter1Id = selectedWinnerId;
+                } else if (nextMatch.prevMatchIds?.[1] === targetMatch.id) {
+                  nextMatch.fighter2Id = selectedWinnerId;
+                }
+                // If both prev matches are done, and nextMatch has both fighters,
+                // its winnerId might be set if one of them was a BYE.
+                // Otherwise, it remains undefined until that match is played.
+                if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id && nextMatch.fighter2Id !== 'BYE') {
+                  nextMatch.winnerId = nextMatch.fighter2Id;
+                } else if (nextMatch.fighter2Id === 'BYE' && nextMatch.fighter1Id && nextMatch.fighter1Id !== 'BYE') {
+                  nextMatch.winnerId = nextMatch.fighter1Id;
+                } else if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id === 'BYE') {
+                  nextMatch.winnerId = 'BYE';
+                }
               }
             }
           }
+          break;
         }
-        break;
       }
     }
 
-    // Handle third place match losers
-    if (updatedBracket.thirdPlaceMatch && currentMatch.round === updatedBracket.rounds.length - 1) { // If it's a semi-final
+    // Handle third place match losers (if current match was a semi-final)
+    if (updatedBracket.thirdPlaceMatch && currentMatch.round > 0 && currentMatch.round === updatedBracket.rounds.length - 1) { // If it's a semi-final
       if (currentMatch.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[0]) {
         updatedBracket.thirdPlaceMatch.fighter1Id = loserId;
       } else if (currentMatch.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[1]) {
@@ -217,10 +227,6 @@ const FightDetail: React.FC = () => {
         const finalMatch = finalRound[0];
         updatedBracket.finalists = [finalMatch.fighter1Id as string, finalMatch.fighter2Id as string];
         updatedBracket.runnerUpId = (finalMatch.fighter1Id === updatedBracket.winnerId) ? finalMatch.fighter2Id as string : finalMatch.fighter1Id as string;
-      }
-
-      if (updatedBracket.thirdPlaceMatch?.winnerId) {
-        updatedBracket.thirdPlaceWinnerId = updatedBracket.thirdPlaceMatch.winnerId;
       }
 
       setCurrentMatch(updatedMatch); // Explicitly update currentMatch state to trigger re-render
@@ -326,7 +332,7 @@ const FightDetail: React.FC = () => {
 
   const matNumber = currentMatch._matName?.replace('Mat ', '') || 'N/A';
   const fightNumberDisplay = `${matNumber}-${currentMatch.matFightNumber}`;
-  const currentRoundName = currentMatch.round === -1 ? 'Luta pelo 3º Lugar' : getRoundName(currentMatch.round - 1, currentBracket.rounds.length);
+  const currentRoundName = getRoundName(currentMatch.round - 1, currentBracket.rounds.length, currentMatch.round === -1);
 
 
   return (
