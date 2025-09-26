@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import QRCode from 'qrcode.react'; // Corrigido: importação padrão
+import * as QRCode from 'qrcode.react'; // Importação de namespace
 
 interface QrCodeGeneratorProps {
   value: string;
@@ -17,7 +17,7 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({
   includeMargin = false,
 }) => {
   return (
-    <QRCode
+    <QRCode.default
       value={value}
       size={size}
       level={level}
