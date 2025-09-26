@@ -4,14 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SessionContextProvider } from "@/components/SessionContextProvider"; // Import SessionContextProvider
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import BatchAthleteImport from "./pages/BatchAthleteImport";
-import RegistrationOptions from "./pages/RegistrationOptions"; // Novo import
-import AthleteRegistrationForm from "./components/AthleteRegistrationForm"; // Importar o formulário diretamente para a rota
-import DivisionImport from "./pages/DivisionImport"; // Novo import para importação de divisões
+import RegistrationOptions from "./pages/RegistrationOptions";
+import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
+import DivisionImport from "./pages/DivisionImport";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -24,18 +25,20 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/events/:id" element={<EventDetail />} />
-            <Route path="/events/:id/registration-options" element={<RegistrationOptions />} /> {/* Nova rota para opções de registro */}
-            <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm eventId={""} onRegister={() => {}} />} /> {/* Rota para registro individual */}
-            <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-            <Route path="/events/:id/import-divisions" element={<DivisionImport />} /> {/* Nova rota para importação de divisões */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
+            <Routes>
+              <Route path="/" element={<Welcome />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventDetail />} />
+              <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm eventId={""} onRegister={() => {}} />} />
+              <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
+              <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
