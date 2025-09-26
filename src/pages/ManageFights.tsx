@@ -119,7 +119,7 @@ const ManageFights: React.FC = () => {
             <CardTitle className="flex items-center">
               <Swords className="mr-2 h-6 w-6" /> Lutas da Categoria: {selectedCategoryKey}
             </CardTitle>
-            <CardDescription>Arraste para reordenar as lutas e registre os resultados.</CardDescription>
+            <CardDescription>Clique em uma luta para registrar o resultado.</CardDescription>
           </CardHeader>
           <CardContent>
             <FightList

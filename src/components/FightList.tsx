@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserRound, CheckCircle, XCircle, Trophy } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import FightDetailModal from './FightDetailModal'; // Importar o novo modal
+import { Link } from 'react-router-dom'; // Importar Link
 
 interface FightListProps {
   event: Event;
@@ -17,9 +17,6 @@ interface FightListProps {
 
 const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selectedDivisionId, onUpdateBracket }) => {
   const { divisions, athletes, brackets, isBeltGroupingEnabled } = event;
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   const currentBracket = useMemo(() => {
     if (!brackets || !selectedDivisionId) return null;
@@ -56,32 +53,88 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
     );
   };
 
-  const handleOpenFightModal = (match: Match) => {
-    setSelectedMatch(match);
-    setIsModalOpen(true);
-  };
+  // Função para registrar resultado diretamente no FightList (para botões inline)
+  const handleRecordResult = (match: Match, winnerId: string, resultType: FightResultType, details?: string) => {
+    if (!currentBracket) return;
 
-  const handleCloseFightModal = () => {
-    setSelectedMatch(null);
-    setIsModalOpen(false);
-  };
+    const loserId = (match.fighter1Id === winnerId) ? match.fighter2Id : match.fighter1Id;
 
-  const handleNavigateToNextFight = (nextMatchId: string) => {
-    if (currentBracket) {
-      const nextMatch = currentBracket.rounds.flat().find(m => m.id === nextMatchId) || currentBracket.thirdPlaceMatch;
-      if (nextMatch) {
-        setSelectedMatch(nextMatch);
-      } else {
-        showError("Próxima luta não encontrada.");
-        handleCloseFightModal();
-        // Optionally navigate back to bracket view if no next fight
-        // onBackToBracket();
+    if (winnerId === 'BYE' || loserId === 'BYE') {
+      showError("Não é possível registrar resultado para lutas com BYE.");
+      return;
+    }
+    if (!match.fighter1Id || !match.fighter2Id) {
+      showError("Ambos os lutadores devem estar definidos para registrar um resultado.");
+      return;
+    }
+
+    const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket)); // Deep copy
+    let matchFound = false;
+
+    // Update the current match
+    for (const round of updatedBracket.rounds) {
+      const targetMatch = round.find(m => m.id === match.id);
+      if (targetMatch) {
+        targetMatch.winnerId = winnerId;
+        targetMatch.loserId = loserId;
+        targetMatch.result = { type: resultType, winnerId, loserId, details };
+        matchFound = true;
+
+        // Advance winner to next match
+        if (targetMatch.nextMatchId) {
+          for (const nextRound of updatedBracket.rounds) {
+            const nextMatch = nextRound.find(m => m.id === targetMatch.nextMatchId);
+            if (nextMatch) {
+              if (nextMatch.prevMatchIds?.[0] === targetMatch.id) {
+                nextMatch.fighter1Id = winnerId;
+              } else if (nextMatch.prevMatchIds?.[1] === targetMatch.id) {
+                nextMatch.fighter2Id = winnerId;
+              }
+              // If both prev matches are done, and nextMatch has both fighters,
+              // its winnerId might be set if one of them was a BYE.
+              // Otherwise, it remains undefined until that match is played.
+              if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id && nextMatch.fighter2Id !== 'BYE') {
+                nextMatch.winnerId = nextMatch.fighter2Id;
+              } else if (nextMatch.fighter2Id === 'BYE' && nextMatch.fighter1Id && nextMatch.fighter1Id !== 'BYE') {
+                nextMatch.winnerId = nextMatch.fighter1Id;
+              } else if (nextMatch.fighter1Id === 'BYE' && nextMatch.fighter2Id === 'BYE') {
+                nextMatch.winnerId = 'BYE';
+              }
+            }
+          }
+        }
+        break;
       }
     }
-  };
 
-  const handleBackToBracket = () => {
-    handleCloseFightModal();
+    // Handle third place match losers
+    if (updatedBracket.thirdPlaceMatch && match.round === updatedBracket.rounds.length - 1) { // If it's a semi-final
+      if (match.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[0]) {
+        updatedBracket.thirdPlaceMatch.fighter1Id = loserId;
+      } else if (match.id === updatedBracket.thirdPlaceMatch.prevMatchIds?.[1]) {
+        updatedBracket.thirdPlaceMatch.fighter2Id = loserId;
+      }
+    }
+
+    if (matchFound) {
+      // Check for bracket completion and update finalists/winner
+      const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
+      if (finalRound && finalRound.length === 1 && finalRound[0].winnerId) {
+        updatedBracket.winnerId = finalRound[0].winnerId;
+        const finalMatch = finalRound[0];
+        updatedBracket.finalists = [finalMatch.fighter1Id as string, finalMatch.fighter2Id as string];
+        updatedBracket.runnerUpId = (finalMatch.fighter1Id === updatedBracket.winnerId) ? finalMatch.fighter2Id as string : finalMatch.fighter1Id as string;
+      }
+
+      if (updatedBracket.thirdPlaceMatch?.winnerId) {
+        updatedBracket.thirdPlaceWinnerId = updatedBracket.thirdPlaceMatch.winnerId;
+      }
+
+      onUpdateBracket(currentBracket.divisionId, updatedBracket);
+      showSuccess(`Resultado da luta ${match.matchNumber} registrado!`);
+    } else {
+      showError("Luta não encontrada no bracket.");
+    }
   };
 
   if (!currentBracket || !currentBracket.rounds || currentBracket.rounds.length === 0) {
@@ -95,40 +148,42 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
           <h4 className="text-lg font-semibold">Rodada {roundIndex + 1}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {round.map(match => (
-              <Card
+              <Link
                 key={match.id}
-                className={`border-2 cursor-pointer ${match.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
-                onClick={() => handleOpenFightModal(match)}
+                to={`/events/${event.id}/fights/${selectedDivisionId}/${match.id}`}
+                className={`block border-2 rounded-md transition-colors hover:border-primary ${match.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-md">Luta {match.matchNumber} (Rodada {match.round})</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className={`flex items-center space-x-2 p-1 rounded-md ${match.winnerId === match.fighter1Id ? 'bg-green-100 dark:bg-green-900' : match.loserId === match.fighter1Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
-                    {getFighterPhoto(match.fighter1Id)}
-                    <span className="flex-1 truncate">{getFighterDisplay(match.fighter1Id)}</span>
-                  </div>
-                  <div className={`flex items-center space-x-2 p-1 rounded-md ${match.winnerId === match.fighter2Id ? 'bg-green-100 dark:bg-green-900' : match.loserId === match.fighter2Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
-                    {getFighterPhoto(match.fighter2Id)}
-                    <span className="flex-1 truncate">{getFighterDisplay(match.fighter2Id)}</span>
-                  </div>
-                  {match.winnerId && match.winnerId !== 'BYE' && (
-                    <p className="text-sm font-semibold text-green-600 mt-2">
-                      Vencedor: {getFighterDisplay(match.winnerId)} ({match.result?.type})
-                    </p>
-                  )}
-                  {(match.fighter1Id === 'BYE' && match.fighter2Id && match.fighter2Id !== 'BYE') && (
-                    <p className="text-sm text-blue-600">
-                      {getFighterDisplay(match.fighter2Id)} avança por BYE
-                    </p>
-                  )}
-                  {(match.fighter2Id === 'BYE' && match.fighter1Id && match.fighter1Id !== 'BYE') && (
-                    <p className="text-sm text-blue-600">
-                      {getFighterDisplay(match.fighter1Id)} avança por BYE
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+                <Card className="h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md">Luta {match.matchNumber} (Rodada {match.round})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className={`flex items-center space-x-2 p-1 rounded-md ${match.winnerId === match.fighter1Id ? 'bg-green-100 dark:bg-green-900' : match.loserId === match.fighter1Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
+                      {getFighterPhoto(match.fighter1Id)}
+                      <span className="flex-1 truncate">{getFighterDisplay(match.fighter1Id)}</span>
+                    </div>
+                    <div className={`flex items-center space-x-2 p-1 rounded-md ${match.winnerId === match.fighter2Id ? 'bg-green-100 dark:bg-green-900' : match.loserId === match.fighter2Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
+                      {getFighterPhoto(match.fighter2Id)}
+                      <span className="flex-1 truncate">{getFighterDisplay(match.fighter2Id)}</span>
+                    </div>
+                    {match.winnerId && match.winnerId !== 'BYE' && (
+                      <p className="text-sm font-semibold text-green-600 mt-2">
+                        Vencedor: {getFighterDisplay(match.winnerId)} ({match.result?.type})
+                      </p>
+                    )}
+                    {(match.fighter1Id === 'BYE' && match.fighter2Id && match.fighter2Id !== 'BYE') && (
+                      <p className="text-sm text-blue-600">
+                        {getFighterDisplay(match.fighter2Id)} avança por BYE
+                      </p>
+                    )}
+                    {(match.fighter2Id === 'BYE' && match.fighter1Id && match.fighter1Id !== 'BYE') && (
+                      <p className="text-sm text-blue-600">
+                        {getFighterDisplay(match.fighter1Id)} avança por BYE
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -137,29 +192,31 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
       {currentBracket.thirdPlaceMatch && (
         <div className="space-y-4 mt-6">
           <h4 className="text-lg font-semibold">Luta pelo 3º Lugar</h4>
-          <Card
-            className={`border-2 cursor-pointer ${currentBracket.thirdPlaceMatch.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
-            onClick={() => handleOpenFightModal(currentBracket.thirdPlaceMatch!)}
+          <Link
+            to={`/events/${event.id}/fights/${selectedDivisionId}/${currentBracket.thirdPlaceMatch.id}`}
+            className={`block border-2 rounded-md transition-colors hover:border-primary ${currentBracket.thirdPlaceMatch.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}
           >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-md">Luta pelo 3º Lugar</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className={`flex items-center space-x-2 p-1 rounded-md ${currentBracket.thirdPlaceMatch.winnerId === currentBracket.thirdPlaceMatch.fighter1Id ? 'bg-green-100 dark:bg-green-900' : currentBracket.thirdPlaceMatch.loserId === currentBracket.thirdPlaceMatch.fighter1Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
-                {getFighterPhoto(currentBracket.thirdPlaceMatch.fighter1Id)}
-                <span className="flex-1 truncate">{getFighterDisplay(currentBracket.thirdPlaceMatch.fighter1Id)}</span>
-              </div>
-              <div className={`flex items-center space-x-2 p-1 rounded-md ${currentBracket.thirdPlaceMatch.winnerId === currentBracket.thirdPlaceMatch.fighter2Id ? 'bg-green-100 dark:bg-green-900' : currentBracket.thirdPlaceMatch.loserId === currentBracket.thirdPlaceMatch.fighter2Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
-                {getFighterPhoto(currentBracket.thirdPlaceMatch.fighter2Id)}
-                <span className="flex-1 truncate">{getFighterDisplay(currentBracket.thirdPlaceMatch.fighter2Id)}</span>
-              </div>
-              {currentBracket.thirdPlaceMatch.winnerId && currentBracket.thirdPlaceMatch.winnerId !== 'BYE' && (
-                <p className="text-sm font-semibold text-green-600 mt-2">
-                  Vencedor: {getFighterDisplay(currentBracket.thirdPlaceMatch.winnerId)} ({currentBracket.thirdPlaceMatch.result?.type})
-                </p>
-              )}
-            </CardContent>
-          </Card>
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-md">Luta pelo 3º Lugar</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className={`flex items-center space-x-2 p-1 rounded-md ${currentBracket.thirdPlaceMatch.winnerId === currentBracket.thirdPlaceMatch.fighter1Id ? 'bg-green-100 dark:bg-green-900' : currentBracket.thirdPlaceMatch.loserId === currentBracket.thirdPlaceMatch.fighter1Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
+                  {getFighterPhoto(currentBracket.thirdPlaceMatch.fighter1Id)}
+                  <span className="flex-1 truncate">{getFighterDisplay(currentBracket.thirdPlaceMatch.fighter1Id)}</span>
+                </div>
+                <div className={`flex items-center space-x-2 p-1 rounded-md ${currentBracket.thirdPlaceMatch.winnerId === currentBracket.thirdPlaceMatch.fighter2Id ? 'bg-green-100 dark:bg-green-900' : currentBracket.thirdPlaceMatch.loserId === currentBracket.thirdPlaceMatch.fighter2Id ? 'bg-red-100 dark:bg-red-900' : ''}`}>
+                  {getFighterPhoto(currentBracket.thirdPlaceMatch.fighter2Id)}
+                  <span className="flex-1 truncate">{getFighterDisplay(currentBracket.thirdPlaceMatch.fighter2Id)}</span>
+                </div>
+                {currentBracket.thirdPlaceMatch.winnerId && currentBracket.thirdPlaceMatch.winnerId !== 'BYE' && (
+                  <p className="text-sm font-semibold text-green-600 mt-2">
+                    Vencedor: {getFighterDisplay(currentBracket.thirdPlaceMatch.winnerId)} ({currentBracket.thirdPlaceMatch.result?.type})
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       )}
 
@@ -181,19 +238,6 @@ const FightList: React.FC<FightListProps> = ({ event, selectedCategoryKey, selec
             )}
           </CardContent>
         </Card>
-      )}
-
-      {selectedMatch && (
-        <FightDetailModal
-          isOpen={isModalOpen}
-          onClose={handleCloseFightModal}
-          match={selectedMatch}
-          currentBracket={currentBracket}
-          allAthletes={athletes}
-          onUpdateBracket={onUpdateBracket}
-          onNavigateToNextFight={handleNavigateToNextFight}
-          onBackToBracket={handleBackToBracket}
-        />
       )}
     </div>
   );
