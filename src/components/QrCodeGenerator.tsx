@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { QRCode } from 'qrcode.react'; // Corrigido: importação nomeada
+import QRCode from 'qrcode.react'; // Corrigido: importação padrão
 
 interface QrCodeGeneratorProps {
   value: string;
