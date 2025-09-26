@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/label'; // Corrigido aqui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Match, Athlete, Bracket, FightResultType, Event } from '@/types/index';
@@ -248,6 +248,9 @@ const FightDetail: React.FC = () => {
   const fighter2Athlete = currentMatch.fighter2Id === 'BYE' ? 'BYE' : athletesMap.get(currentMatch.fighter2Id || '');
   const isFightCompleted = !!currentMatch.winnerId;
   const isByeFight = (currentMatch.fighter1Id === 'BYE' || currentMatch.fighter2Id === 'BYE');
+  const isPendingFight = (!currentMatch.fighter1Id || !currentMatch.fighter2Id);
+  const isFightRecordable = !isByeFight && !isPendingFight;
+
 
   // Determine main card border class
   const mainCardBorderClass = isFightCompleted
@@ -284,32 +287,34 @@ const FightDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               className={cn(
-                "flex flex-col items-center p-4 border rounded-md cursor-pointer transition-colors",
+                "flex flex-col items-center p-4 border rounded-md transition-colors",
                 isFightCompleted
                   ? currentMatch.winnerId === currentMatch.fighter1Id
                     ? 'border-green-500 bg-green-50 dark:bg-green-950'
                     : 'border-red-500 bg-red-50 dark:bg-red-950'
-                  : selectedWinnerId === currentMatch.fighter1Id
+                  : selectedWinnerId === currentMatch.fighter1Id && isFightRecordable
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' // Azul para seleção
-                    : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
+                    : 'border-gray-200 dark:border-gray-700',
+                isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70'
               )}
-              onClick={() => !isFightCompleted && currentMatch.fighter1Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter1Id)}
+              onClick={() => isFightRecordable && !isFightCompleted && setSelectedWinnerId(currentMatch.fighter1Id)}
             >
               {getFighterPhoto(fighter1Athlete)}
               <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter1Athlete)}</span>
             </div>
             <div
               className={cn(
-                "flex flex-col items-center p-4 border rounded-md cursor-pointer transition-colors",
+                "flex flex-col items-center p-4 border rounded-md transition-colors",
                 isFightCompleted
                   ? currentMatch.winnerId === currentMatch.fighter2Id
                     ? 'border-green-500 bg-green-50 dark:bg-green-950'
                     : 'border-red-500 bg-red-50 dark:bg-red-950'
-                  : selectedWinnerId === currentMatch.fighter2Id
+                  : selectedWinnerId === currentMatch.fighter2Id && isFightRecordable
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' // Azul para seleção
-                    : 'border-gray-200 dark:border-gray-700 hover:bg-accent'
+                    : 'border-gray-200 dark:border-gray-700',
+                isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70'
               )}
-              onClick={() => !isFightCompleted && currentMatch.fighter2Id !== 'BYE' && setSelectedWinnerId(currentMatch.fighter2Id)}
+              onClick={() => isFightRecordable && !isFightCompleted && setSelectedWinnerId(currentMatch.fighter2Id)}
             >
               {getFighterPhoto(fighter2Athlete)}
               <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter2Athlete)}</span>
@@ -319,6 +324,10 @@ const FightDetail: React.FC = () => {
           {isByeFight ? (
             <p className="text-center text-muted-foreground mt-4 text-lg">
               Esta luta envolve um BYE. O atleta {currentMatch.fighter1Id === 'BYE' ? getFighterDisplay(fighter2Athlete) : getFighterDisplay(fighter1Athlete)} avança automaticamente.
+            </p>
+          ) : isPendingFight ? (
+            <p className="text-center text-muted-foreground mt-4 text-lg">
+              Aguardando adversário(s) para esta luta.
             </p>
           ) : isFightCompleted ? (
             <div className="text-center mt-4">
