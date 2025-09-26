@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
 import { Athlete } from '@/types/index';
-import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar utilitários
+import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 // Define os campos mínimos esperados no arquivo de importação
 const requiredAthleteFields = {
@@ -28,7 +28,7 @@ const requiredAthleteFields = {
   idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
   club: 'Clube',
   gender: 'Gênero',
-  nationality: 'Nacionalidade', // Novo campo
+  nationality: 'Nacionalidade',
 };
 
 type RequiredAthleteField = keyof typeof requiredAthleteFields;
@@ -67,7 +67,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<'Masculino' | 'Feminino' | 'Outro'>,
-  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Novo campo
+  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }),
 });
 
 interface ImportResult {
@@ -198,9 +198,9 @@ const BatchAthleteImport: React.FC = () => {
           gender,
           belt,
           weight,
-          nationality, // Adicionado
-          ageDivision, // Adicionado
-          weightDivision, // Adicionado
+          nationality,
+          ageDivision,
+          weightDivision,
           email,
           phone,
           emiratesId: idNumber, // Assuming ID maps to emiratesId for now
@@ -208,7 +208,9 @@ const BatchAthleteImport: React.FC = () => {
           consentAccepted: true, // Assuming consent for batch import
           consentDate: new Date(),
           consentVersion: '1.0',
-          registrationStatus: 'under_approval', // Default status for new registrations
+          registrationStatus: 'under_approval',
+          checkInStatus: 'pending', // Adicionado: status inicial do check-in
+          registeredWeight: undefined, // Adicionado: peso registrado inicialmente indefinido
         };
         successfulAthletes.push(newAthlete);
       } catch (error: any) {

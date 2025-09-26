@@ -17,7 +17,7 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Athlete } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
-import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar utilitários
+import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 interface AthleteRegistrationFormProps {
   eventId: string;
@@ -32,7 +32,7 @@ const formSchema = z.object({
   gender: z.enum(['Masculino', 'Feminino', 'Outro'], { required_error: 'Gênero é obrigatório.' }),
   belt: z.enum(['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'], { required_error: 'Faixa é obrigatória.' }),
   weight: z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' }),
-  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }), // Novo campo
+  nationality: z.string().min(2, { message: 'Nacionalidade é obrigatória.' }),
   email: z.string().email({ message: 'Email inválido.' }),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164, ex: +5511987654321).' }),
   emiratesId: z.string().optional(),
@@ -54,7 +54,7 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
       gender: 'Outro',
       belt: 'Branca',
       weight: 0,
-      nationality: '', // Valor padrão para nacionalidade
+      nationality: '',
       email: '',
       phone: '',
       consentAccepted: false,
@@ -71,12 +71,10 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
     try {
       const age = new Date().getFullYear() - values.dateOfBirth.getFullYear();
       const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(values.weight); // Simplificado, pode ser mais complexo
+      const weightDivision = getWeightDivision(values.weight);
 
       let paymentProofUrl: string | undefined;
       if (paymentProof && paymentProof.length > 0) {
-        // In a real application, you would upload this file to a storage service (e.g., S3, Cloudinary)
-        // and get a URL back. For this MVP, we'll just use a mock URL or file name.
         paymentProofUrl = `mock-payment-proof-url/${paymentProof[0].name}`;
         showSuccess(`Comprovante de pagamento ${paymentProof[0].name} anexado.`);
       }
@@ -92,9 +90,9 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         gender: values.gender,
         belt: values.belt,
         weight: values.weight,
-        nationality: values.nationality, // Adicionado
-        ageDivision, // Adicionado
-        weightDivision, // Adicionado
+        nationality: values.nationality,
+        ageDivision,
+        weightDivision,
         email: values.email,
         phone: values.phone,
         emiratesId: values.emiratesId,
@@ -103,12 +101,13 @@ const AthleteRegistrationForm: React.FC<AthleteRegistrationFormProps> = ({ event
         consentDate: new Date(),
         consentVersion: '1.0',
         paymentProofUrl,
-        registrationStatus: 'under_approval', // Default status for new registrations
+        registrationStatus: 'under_approval',
+        checkInStatus: 'pending', // Adicionado: status inicial do check-in
+        registeredWeight: undefined, // Adicionado: peso registrado inicialmente indefinido
       };
 
       onRegister(newAthlete);
       showSuccess('Inscrição enviada para aprovação!');
-      // Optionally reset form here
     } catch (error: any) {
       showError('Erro ao registrar atleta: ' + error.message);
     }

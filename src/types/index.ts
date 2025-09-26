@@ -9,7 +9,7 @@ export interface Athlete {
   club: string;
   gender: 'Masculino' | 'Feminino' | 'Outro';
   belt: 'Branca' | 'Azul' | 'Roxa' | 'Marrom' | 'Preta';
-  weight: number; // in kg
+  weight: number; // in kg (peso de inscrição)
   nationality: string; // Novo: Nacionalidade do atleta
   ageDivision: string; // Novo: Divisão de idade calculada
   weightDivision: string; // Novo: Divisão de peso calculada
@@ -23,6 +23,8 @@ export interface Athlete {
   consentVersion: string;
   paymentProofUrl?: string; // Novo: URL do comprovante de pagamento
   registrationStatus: 'under_approval' | 'approved' | 'rejected'; // Novo: Status da inscrição
+  checkInStatus: 'pending' | 'checked_in' | 'overweight'; // Novo: Status do check-in
+  registeredWeight?: number; // Novo: Peso registrado no check-in
 }
 
 export interface Event {
@@ -32,4 +34,7 @@ export interface Event {
   status: 'Aberto' | 'Fechado';
   date: string;
   athletes: Athlete[];
+  checkInStartTime?: string; // Novo: Horário de início do check-in (ISO string)
+  checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
+  numFightAreas?: number; // Novo: Número de áreas de luta
 }
