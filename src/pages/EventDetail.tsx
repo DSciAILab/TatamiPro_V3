@@ -335,7 +335,14 @@ const EventDetail: React.FC = () => {
 
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
+      let division: Division | undefined;
+      if (athlete.movedToDivisionId) {
+        // If athlete was moved, use the target division
+        division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
+      } else {
+        // Otherwise, find the division based on current attributes
+        division = findAthleteDivision(athlete, event.divisions);
+      }
       return {
         ...athlete,
         _division: division,
@@ -360,7 +367,12 @@ const EventDetail: React.FC = () => {
       athletes = athletes.filter(a => a.club === userClub);
     }
     return athletes.map(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
+      let division: Division | undefined;
+      if (athlete.movedToDivisionId) {
+        division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
+      } else {
+        division = findAthleteDivision(athlete, event.divisions);
+      }
       return {
         ...athlete,
         _division: division,
