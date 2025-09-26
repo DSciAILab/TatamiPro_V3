@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom'; // Importar Link
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { Athlete, Division, Event, Bracket } from '@/types/index';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
 import BracketView from '@/components/BracketView';
-import { ArrowLeft, PlayCircle } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Printer } from 'lucide-react'; // Adicionar Printer
 import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar a nova função
 
 const GenerateBrackets: React.FC = () => {
@@ -42,7 +42,7 @@ const GenerateBrackets: React.FC = () => {
           }
         } catch (e) {
           console.error("Failed to parse event data from localStorage", e);
-          showError("Error loading event data.");
+          showError("Erro ao carregar dados do evento.");
         }
       }
     }
@@ -160,6 +160,13 @@ const GenerateBrackets: React.FC = () => {
           <Button onClick={handleGenerateBrackets} className="w-full">
             <PlayCircle className="mr-2 h-4 w-4" /> Gerar Bracket(s)
           </Button>
+          {Object.keys(generatedBrackets).length > 0 && (
+            <Link to={`/events/${eventId}/print-brackets`}>
+              <Button className="w-full mt-2" variant="outline">
+                <Printer className="mr-2 h-4 w-4" /> Imprimir Brackets (PDF)
+              </Button>
+            </Link>
+          )}
         </CardContent>
       </Card>
 
