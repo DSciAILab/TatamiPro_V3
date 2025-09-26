@@ -40,7 +40,8 @@ const ColumnMappingDialog: React.FC<ColumnMappingDialogProps> = ({
           header.toLowerCase() === field.key.toLowerCase() ||
           header.toLowerCase() === field.label.toLowerCase()
         );
-        initialMapping[field.key] = foundHeader || '';
+        // Se não encontrar, define como 'ignore-column' em vez de vazio
+        initialMapping[field.key] = foundHeader || 'ignore-column';
       });
       setMapping(initialMapping);
     }
@@ -51,12 +52,19 @@ const ColumnMappingDialog: React.FC<ColumnMappingDialogProps> = ({
   };
 
   const handleConfirm = () => {
-    const requiredFieldsMissing = expectedFields.filter(field => field.required && !mapping[field.key]);
+    const requiredFieldsMissing = expectedFields.filter(field => field.required && mapping[field.key] === 'ignore-column');
     if (requiredFieldsMissing.length > 0) {
       showWarning(`Por favor, mapeie todos os campos obrigatórios: ${requiredFieldsMissing.map(f => f.label).join(', ')}.`);
       return;
     }
-    onConfirm(mapping);
+    // Remove 'ignore-column' entries before confirming, so the actual mapping doesn't contain them
+    const finalMapping: Record<string, string> = {};
+    for (const key in mapping) {
+      if (mapping[key] !== 'ignore-column') {
+        finalMapping[key] = mapping[key];
+      }
+    }
+    onConfirm(finalMapping);
     onClose();
   };
 
@@ -77,7 +85,7 @@ const ColumnMappingDialog: React.FC<ColumnMappingDialogProps> = ({
                 {field.label} {field.required && <span className="text-red-500">*</span>}
               </Label>
               <Select
-                value={mapping[field.key] || ''}
+                value={mapping[field.key] || 'ignore-column'} // Default to 'ignore-column'
                 onValueChange={(value) => handleSelectChange(field.key, value)}
               >
                 <SelectTrigger className="col-span-3">
@@ -89,7 +97,7 @@ const ColumnMappingDialog: React.FC<ColumnMappingDialogProps> = ({
                       {header}
                     </SelectItem>
                   ))}
-                  <SelectItem value="">(Ignorar)</SelectItem>
+                  <SelectItem value="ignore-column">(Ignorar)</SelectItem> {/* Changed value */}
                 </SelectContent>
               </Select>
             </div>
