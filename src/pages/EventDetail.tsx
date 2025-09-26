@@ -553,9 +553,9 @@ const EventDetail: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full grid-cols-${visibleTabs.length}`}>
+        <TabsList className="flex w-full">
           {visibleTabs.map(tab => (
-            <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
+            <TabsTrigger key={tab.value} value={tab.value} className="flex-1">{tab.label}</TabsTrigger>
           ))}
         </TabsList>
 
