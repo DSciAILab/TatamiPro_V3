@@ -15,33 +15,41 @@ const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [club, setClub] = useState('');
+  const [club, setClub] = useState(''); // This state is not used in the current mock logic, but kept for potential future use
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Para MVP, uma verificação de usuário simplificada.
-    // Em um aplicativo real, isso envolveria uma chamada de backend.
+    let storedUserName = '';
+
     if (isLogin) {
       if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
         showSuccess('Login de Admin realizado com sucesso!');
         localStorage.setItem('userRole', 'admin');
-        localStorage.removeItem('userClub'); // Admins generally don't have a specific club context
+        localStorage.setItem('userClub', 'Tatamipro HQ');
+        storedUserName = 'Admin';
+        localStorage.setItem('userName', storedUserName);
         navigate('/events');
       } else if (email === 'coach@tatamipro.com' && password === 'coach123' && role === 'coach') {
         showSuccess('Login de Coach realizado com sucesso!');
         localStorage.setItem('userRole', 'coach');
-        localStorage.setItem('userClub', 'Gracie Barra'); // Mock club for coach
+        localStorage.setItem('userClub', 'Gracie Barra');
+        storedUserName = 'Coach';
+        localStorage.setItem('userName', storedUserName);
         navigate('/events');
       } else if (email === 'staff@tatamipro.com' && password === 'staff123' && role === 'staff') {
         showSuccess('Login de Staff realizado com sucesso!');
         localStorage.setItem('userRole', 'staff');
-        localStorage.setItem('userClub', 'Alliance'); // Mock club for staff
+        localStorage.setItem('userClub', 'Alliance');
+        storedUserName = 'Staff';
+        localStorage.setItem('userName', storedUserName);
         navigate('/events');
       } else if (email === 'athlete@tatamipro.com' && password === 'athlete123' && role === 'athlete') {
         showSuccess('Login de Atleta realizado com sucesso!');
         localStorage.setItem('userRole', 'athlete');
-        localStorage.setItem('userClub', 'Checkmat'); // Mock club for athlete
+        localStorage.setItem('userClub', 'Checkmat');
+        storedUserName = 'Atleta';
+        localStorage.setItem('userName', storedUserName);
         navigate('/events');
       }
       else {
@@ -49,6 +57,10 @@ const Auth: React.FC = () => {
       }
     } else {
       // Registro simplificado: apenas "cria" o usuário admin/coach/staff/athlete se não existir
+      // For registration, we can derive a name from the email or use the role
+      const baseName = email.split('@')[0];
+      storedUserName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+
       if (email === 'admin@tatamipro.com' && password === 'admin123' && role === 'admin') {
         showSuccess('Registro de Admin realizado com sucesso! Faça login.');
         setIsLogin(true);
@@ -103,20 +115,23 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="role">Papel</Label>
-                  <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Selecione seu papel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="coach">Coach</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="athlete">Atleta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* A seleção de papel só aparece para registro */}
+                {!isLogin && (
+                  <div className="flex flex-col space-y-1.5">
+                    <Label htmlFor="role">Papel</Label>
+                    <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Selecione seu papel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="athlete">Atleta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <Button type="submit" className="w-full mt-4">
                   {isLogin ? 'Entrar' : 'Registrar'}
                 </Button>
