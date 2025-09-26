@@ -19,14 +19,13 @@ import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
-  firstName: 'Nome', // Separado de fullName
-  lastName: 'Sobrenome', // Separado de fullName
+  fullName: 'Nome Completo', // Agora lida com o nome completo
   dateOfBirth: 'Data de Nascimento',
   belt: 'Faixa',
   weight: 'Peso',
-  phone: 'Telefone',
-  email: 'Email',
-  idNumber: 'ID (Emirates ID ou School ID)', // Campo genérico para ID
+  phone: 'Telefone', // Será opcional no esquema
+  email: 'Email',   // Será opcional no esquema
+  idNumber: 'ID (Emirates ID ou School ID)', // Permanece obrigatório via refine
   club: 'Clube',
   gender: 'Gênero',
   nationality: 'Nacionalidade',
@@ -39,8 +38,12 @@ const baseRequiredAthleteFields = {
 type RequiredAthleteField = keyof typeof baseRequiredAthleteFields;
 
 // Define os esquemas base para campos de importação
-const importFirstNameSchema = z.string().min(2, { message: 'Nome é obrigatório.' });
-const importLastNameSchema = z.string().min(2, { message: 'Sobrenome é obrigatório.' });
+const importFullNameSchema = z.string()
+  .min(1, { message: 'Nome completo é obrigatório.' })
+  .transform(str => str.replace(/\s+/g, ' ').trim()) // Normaliza espaços
+  .refine(str => str.split(' ').filter(Boolean).length >= 2, { message: 'Nome completo deve conter pelo menos duas palavras.' }) // Não aceita um único nome
+  .transform(str => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')); // Capitaliza a primeira letra de cada palavra
+
 const importDateOfBirthSchema = z.string().transform((str, ctx) => {
   try {
     const date = parseISO(str);
@@ -52,27 +55,49 @@ const importDateOfBirthSchema = z.string().transform((str, ctx) => {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: e.message });
     return z.NEVER;
   }
-}).pipe(z.date()); // Garante que o tipo final é Date
+}).pipe(z.date());
 
 const importBeltSchema = z.string().transform((str, ctx) => {
   const lowerStr = str.toLowerCase();
   const validBelts = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta', 'white', 'grey', 'gray', 'yellow', 'orange', 'green', 'blue', 'purple', 'brown', 'black'];
-  if (validBelts.includes(lowerStr)) return str as Belt;
+  if (validBelts.includes(lowerStr)) {
+    // Retorna a versão padronizada em português para o tipo Belt
+    if (lowerStr === 'white') return 'Branca';
+    if (lowerStr === 'grey' || lowerStr === 'gray') return 'Cinza';
+    if (lowerStr === 'yellow') return 'Amarela';
+    if (lowerStr === 'orange') return 'Laranja';
+    if (lowerStr === 'green') return 'Verde';
+    if (lowerStr === 'blue') return 'Azul';
+    if (lowerStr === 'purple') return 'Roxa';
+    if (lowerStr === 'brown') return 'Marrom';
+    if (lowerStr === 'black') return 'Preta';
+    return str as Belt; // Se já estiver em português, mantém
+  }
   ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Faixa inválida.' });
   return z.NEVER;
-}).pipe(z.enum(['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'])); // Garante que o tipo final é Belt
+}).pipe(z.enum(['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta']));
 
 const importWeightSchema = z.coerce.number().min(20, { message: 'Peso deve ser no mínimo 20kg.' }).max(200, { message: 'Peso deve ser no máximo 200kg.' });
-const importPhoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164).' });
-const importEmailSchema = z.string().email({ message: 'Email inválido.' });
+
+// Email e Telefone agora são opcionais
+const importPhoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone inválido (formato E.164).' }).optional().or(z.literal(''));
+const importEmailSchema = z.string().email({ message: 'Email inválido.' }).optional().or(z.literal(''));
+
 const importClubSchema = z.string().min(1, { message: 'Clube é obrigatório.' });
+
 const importGenderSchema = z.string().transform((str, ctx) => {
   const lowerStr = str.toLowerCase();
   const validGenders = ['masculino', 'feminino', 'outro', 'male', 'female', 'other'];
-  if (validGenders.includes(lowerStr)) return str as Gender;
+  if (validGenders.includes(lowerStr)) {
+    // Retorna a versão padronizada em português para o tipo Gender
+    if (lowerStr === 'male') return 'Masculino';
+    if (lowerStr === 'female') return 'Feminino';
+    if (lowerStr === 'other') return 'Outro';
+    return str as Gender; // Se já estiver em português, mantém
+  }
   ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Gênero inválido.' });
   return z.NEVER;
-}).pipe(z.enum(['Masculino', 'Feminino', 'Outro'])); // Garante que o tipo final é Gender
+}).pipe(z.enum(['Masculino', 'Feminino', 'Outro']));
 
 const importNationalitySchema = z.string().min(2, { message: 'Nacionalidade é obrigatória.' });
 
@@ -118,37 +143,36 @@ const BatchAthleteImport: React.FC = () => {
       nationality: true,
       email: true,
       phone: true,
-      photoUrl: false,
-      emiratesIdFrontUrl: false,
-      emiratesIdBackUrl: false,
-      paymentProofUrl: false,
+      photo: false,
+      emiratesIdFront: false,
+      emiratesIdBack: false,
+      paymentProof: false,
     };
   }, [eventId]);
 
   // Função para criar o esquema de validação dinamicamente
   const createDynamicImportSchema = (config: Record<string, boolean>) => {
     const schemaDefinition = {
-      firstName: importFirstNameSchema,
-      lastName: importLastNameSchema,
+      fullName: importFullNameSchema,
       dateOfBirth: importDateOfBirthSchema,
       belt: importBeltSchema,
       weight: importWeightSchema,
-      phone: importPhoneSchema,
-      email: importEmailSchema,
+      phone: importPhoneSchema, // Sempre opcional para importação
+      email: importEmailSchema,   // Sempre opcional para importação
       idNumber: importIdNumberSchema,
       club: importClubSchema,
       gender: importGenderSchema,
       nationality: importNationalitySchema,
-      photoUrl: config.photoUrl
+      photoUrl: config.photo
         ? z.string().url({ message: 'URL da foto de perfil inválida.' }).min(1, { message: 'URL da foto de perfil é obrigatória.' })
         : importUrlSchema,
-      emiratesIdFrontUrl: config.emiratesIdFrontUrl
+      emiratesIdFrontUrl: config.emiratesIdFront
         ? z.string().url({ message: 'URL da frente do EID inválida.' }).min(1, { message: 'URL da frente do EID é obrigatória.' })
         : importUrlSchema,
-      emiratesIdBackUrl: config.emiratesIdBackUrl
+      emiratesIdBackUrl: config.emiratesIdBack
         ? z.string().url({ message: 'URL do verso do EID inválida.' }).min(1, { message: 'URL do verso do EID é obrigatória.' })
         : importUrlSchema,
-      paymentProofUrl: config.paymentProofUrl
+      paymentProofUrl: config.paymentProof
         ? z.string().url({ message: 'URL do comprovante de pagamento inválida.' }).min(1, { message: 'URL do comprovante de pagamento é obrigatória.' })
         : importUrlSchema,
     };
@@ -214,8 +238,10 @@ const BatchAthleteImport: React.FC = () => {
 
   const validateMapping = () => {
     for (const field of Object.keys(baseRequiredAthleteFields) as RequiredAthleteField[]) {
-      // Campos que são SEMPRE obrigatórios ou obrigatórios via config
-      const isMandatory = mandatoryFieldsConfig[field] || ['firstName', 'lastName', 'dateOfBirth', 'belt', 'weight', 'phone', 'email', 'idNumber', 'club', 'gender', 'nationality'].includes(field);
+      // Campos que são sempre obrigatórios para importação (conforme solicitação do usuário e lógica existente)
+      const alwaysMandatoryForImport = ['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'];
+      const isMandatory = alwaysMandatoryForImport.includes(field);
+
       if (isMandatory && !columnMapping[field]) {
         showError(`O campo "${baseRequiredAthleteFields[field]}" não foi mapeado.`);
         return false;
@@ -250,7 +276,11 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { firstName, lastName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
+        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
+
+        const nameParts = fullName.split(' ').filter(Boolean);
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' '); // O restante do nome como sobrenome
 
         const age = new Date().getFullYear() - dateOfBirth.getFullYear();
         const ageDivision = getAgeDivision(age);
@@ -270,14 +300,14 @@ const BatchAthleteImport: React.FC = () => {
           nationality,
           ageDivision,
           weightDivision,
-          email,
-          phone,
-          emiratesId: idNumber, // Assuming ID maps to emiratesId for now
-          schoolId: undefined, // Not explicitly mapped
+          email: email || '', // Garante que email é string, mesmo se opcional
+          phone: phone || '', // Garante que phone é string, mesmo se opcional
+          emiratesId: idNumber, // Assumindo que ID mapeia para emiratesId por enquanto
+          schoolId: undefined, // Não explicitamente mapeado
           photoUrl: photoUrl || undefined,
           emiratesIdFrontUrl: emiratesIdFrontUrl || undefined,
           emiratesIdBackUrl: emiratesIdBackUrl || undefined,
-          consentAccepted: true, // Assuming consent for batch import
+          consentAccepted: true, // Assumindo consentimento para importação em lote
           consentDate: new Date(),
           consentVersion: '1.0',
           paymentProofUrl: paymentProofUrl || undefined,
@@ -353,7 +383,7 @@ const BatchAthleteImport: React.FC = () => {
               <Label htmlFor="athlete-file">Arquivo CSV</Label>
               <Input id="athlete-file" type="file" accept=".csv" onChange={handleFileChange} />
               <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome do Atleta, Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), Telefone (E.164), Email, ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade. Campos opcionais: URL da Foto de Perfil, URL da Frente do EID, URL do Verso do EID, URL do Comprovante de Pagamento.
+                Certifique-se de que seu arquivo CSV contenha as colunas necessárias: Nome Completo (pelo menos duas palavras), Data de Nascimento (YYYY-MM-DD), Faixa (Branca, Cinza, Amarela, Laranja, Verde, Azul, Roxa, Marrom, Preta, ou seus equivalentes em inglês), Peso (kg), ID (Emirates ID ou School ID), Clube, Gênero (Masculino/Feminino/Outro/Male/Female/Other), Nacionalidade. Campos opcionais: Telefone (E.164), Email, URL da Foto de Perfil, URL da Frente do EID, URL do Verso do EID, URL do Comprovante de Pagamento.
               </p>
             </div>
           )}
@@ -369,7 +399,7 @@ const BatchAthleteImport: React.FC = () => {
                   <div key={fieldKey} className="flex flex-col space-y-1.5">
                     <Label htmlFor={`map-${fieldKey}`}>
                       {fieldLabel}
-                      {(mandatoryFieldsConfig[fieldKey] || ['firstName', 'lastName', 'dateOfBirth', 'belt', 'weight', 'phone', 'email', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
+                      {(['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
                     </Label>
                     <Select
                       onValueChange={(value) => handleMappingChange(fieldKey as RequiredAthleteField, value)}
