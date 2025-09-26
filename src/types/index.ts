@@ -1,5 +1,6 @@
 export interface Athlete {
   id: string;
+  eventId: string; // Adicionado: ID do evento ao qual o atleta está inscrito
   photoUrl?: string;
   firstName: string;
   lastName: string;
