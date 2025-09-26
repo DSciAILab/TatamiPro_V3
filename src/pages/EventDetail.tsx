@@ -18,8 +18,8 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution'; // Importar o novo componente
-import { Athlete, Event, WeightAttempt, Division } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
+import { Athlete, Event, WeightAttempt, Division, Bracket } from '../types/index';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision, getAthleteDisplayString, findAthleteDivision } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,6 +29,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Importar Dialog
+import BracketView from '@/components/BracketView'; // Importar BracketView
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +63,7 @@ const EventDetail: React.FC = () => {
         attendanceStatus: athleteData.attendanceStatus || 'pending',
         movedToDivisionId: athleteData.movedToDivisionId || undefined, // Load new prop
         moveReason: athleteData.moveReason || undefined, // Load new prop
+        seed: athleteData.seed || undefined, // Load new prop
       };
     };
 
@@ -87,6 +89,7 @@ const EventDetail: React.FC = () => {
     let matAssignments: Record<string, string[]> = {}; // Initialize matAssignments
     let isBeltGroupingEnabled = true; // Initialize isBeltGroupingEnabled
     let isOverweightAutoMoveEnabled = false; // Initialize isOverweightAutoMoveEnabled
+    let existingBrackets: Record<string, Bracket> = {}; // Initialize existingBrackets
 
     if (existingEventData) {
       try {
@@ -103,6 +106,7 @@ const EventDetail: React.FC = () => {
         matAssignments = parsedEvent.matAssignments || {}; // Load matAssignments
         isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true; // Load isBeltGroupingEnabled
         isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false; // Load new state
+        existingBrackets = parsedEvent.brackets || {}; // Load existing brackets
       } catch (e) {
         console.error("Falha ao analisar dados do evento armazenados do localStorage", e);
       }
@@ -121,6 +125,7 @@ const EventDetail: React.FC = () => {
       matAssignments, // Set matAssignments
       isBeltGroupingEnabled, // Set isBeltGroupingEnabled
       isOverweightAutoMoveEnabled, // Set new state
+      brackets: existingBrackets, // Set existing brackets
       ...eventSettings,
     };
   });
@@ -605,24 +610,24 @@ const EventDetail: React.FC = () => {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                           </>
                         )}
                       </div>
@@ -815,7 +820,7 @@ const EventDetail: React.FC = () => {
               <div className="mb-4">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="w-full">Distribuição dos Mats</Button>
+                    <Button className="w-full mb-2">Distribuição dos Mats</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -828,8 +833,31 @@ const EventDetail: React.FC = () => {
                     />
                   </DialogContent>
                 </Dialog>
+                <Link to={`/events/${event.id}/generate-brackets`}>
+                  <Button className="w-full" variant="secondary">
+                    <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
+                  </Button>
+                </Link>
               </div>
-              <p>Conteúdo da aba Brackets para o evento {event.name}.</p>
+              {event.brackets && Object.keys(event.brackets).length > 0 ? (
+                <div className="space-y-4 mt-6">
+                  <h3 className="text-xl font-semibold">Brackets Gerados</h3>
+                  {Object.values(event.brackets).map(bracket => {
+                    const division = event.divisions.find(d => d.id === bracket.divisionId);
+                    if (!division) return null;
+                    return (
+                      <BracketView
+                        key={bracket.id}
+                        bracket={bracket}
+                        allAthletes={event.athletes}
+                        division={division}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-muted-foreground mt-4">Nenhum bracket gerado ainda. Clique em "Gerar Brackets" para começar.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

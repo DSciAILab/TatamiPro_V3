@@ -12,6 +12,7 @@ import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
 import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
 import DivisionImport from "./pages/DivisionImport";
+import GenerateBrackets from "./pages/GenerateBrackets"; // Importar a nova página
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} /> {/* Updated: Removed props */}
             <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
             <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+            <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} /> {/* NOVA ROTA */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

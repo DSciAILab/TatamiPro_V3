@@ -59,6 +59,28 @@ export interface Athlete {
   movedToDivisionId?: string;
   moveReason?: string;
   _division?: Division; // Adicionado para facilitar o acesso à divisão no frontend
+  seed?: number; // NOVO: Propriedade para o seed do atleta
+}
+
+export interface Match {
+  id: string;
+  round: number; // 1 para a primeira rodada, 2 para a segunda, etc.
+  matchNumber: number; // Número da luta dentro da rodada
+  fighter1Id: string | 'BYE' | undefined; // ID do atleta 1 ou 'BYE'
+  fighter2Id: string | 'BYE' | undefined; // ID do atleta 2 ou 'BYE'
+  winnerId?: string; // ID do vencedor
+  loserId?: string; // ID do perdedor
+  nextMatchId?: string; // ID da próxima luta para onde o vencedor avança
+  prevMatchIds?: [string, string]; // IDs das lutas anteriores que alimentam esta luta
+}
+
+export interface Bracket {
+  id: string; // ID único do bracket (geralmente divisionId)
+  divisionId: string;
+  rounds: Match[][]; // Array de rodadas, onde cada rodada é um array de lutas
+  thirdPlaceMatch?: Match; // Luta pelo terceiro lugar, se houver
+  bracketSize: number; // Tamanho total do bracket (próxima potência de 2)
+  participants: (Athlete | 'BYE')[]; // Lista final de participantes (incluindo BYEs) na ordem do bracket
 }
 
 export interface Event {
@@ -77,4 +99,5 @@ export interface Event {
   matAssignments?: Record<string, string[]>; // NOVO: Atribuições de categorias aos mats
   isBeltGroupingEnabled?: boolean; // NOVO: Se o agrupamento de categorias considera a faixa
   isOverweightAutoMoveEnabled?: boolean; // NOVO: Se a movimentação automática por excesso de peso está habilitada
+  brackets?: Record<string, Bracket>; // NOVO: Brackets gerados para cada divisão
 }
