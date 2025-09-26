@@ -1,12 +1,20 @@
 "use client";
 
 import React from 'react';
-import { Button } from 'shadcn/ui/button';
+import { Button } from '@/components/ui/button'; // Caminho correto para o Button do shadcn/ui
+import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 
 export default function LogoutButton() {
+  const navigate = useNavigate(); // Usar useNavigate para redirecionamento
+
   const handleLogout = () => {
-    // Placeholder for logout logic
+    // Lógica de logout: remover informações do usuário do localStorage
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userClub');
     console.log('User logged out');
+    navigate('/auth'); // Redireciona para a página de autenticação
   };
 
   return (

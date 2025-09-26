@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { PageHeader } from '@/components/PageHeader';
-import LogoutButton from '@/components/LogoutButton';
+import { PageHeader } from '@/components/PageHeader'; // Caminho corrigido para usar alias
+import LogoutButton from '@/components/LogoutButton'; // Caminho corrigido para usar alias
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Index = () => {
