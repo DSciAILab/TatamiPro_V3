@@ -46,13 +46,29 @@ const EventDetail: React.FC = () => {
   const navigate = useNavigate(); // Inicializar useNavigate
 
   const [event, setEvent] = useState<Event | null>(() => {
-    const processAthleteData = (athleteData: any): Athlete => {
-      const age = new Date().getFullYear() - new Date(athleteData.dateOfBirth).getFullYear();
+    // Temporarily define divisions here for initial processing, will be overwritten by stored event.
+    // This is a fallback to prevent errors if divisions are not yet loaded.
+    let tempDivisions: Division[] = [];
+    const existingEventDataRaw = localStorage.getItem(`event_${id}`);
+    if (existingEventDataRaw) {
+      try {
+        const parsedEvent = JSON.parse(existingEventDataRaw);
+        tempDivisions = parsedEvent.divisions || [];
+      } catch (e) {
+        console.error("Falha ao analisar dados do evento armazenados do localStorage para divisões temporárias", e);
+      }
+    }
+
+    const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
+      const dateOfBirth = new Date(athleteData.dateOfBirth);
+      const age = new Date().getFullYear() - dateOfBirth.getFullYear();
       const ageDivision = getAgeDivision(age);
       const weightDivision = getWeightDivision(athleteData.weight);
-      return {
+
+      // Find the athlete's division based on their attributes
+      const athleteWithCalculatedProps: Athlete = {
         ...athleteData,
-        dateOfBirth: new Date(athleteData.dateOfBirth),
+        dateOfBirth,
         consentDate: new Date(athleteData.consentDate),
         age,
         ageDivision,
@@ -62,17 +78,22 @@ const EventDetail: React.FC = () => {
         registeredWeight: athleteData.registeredWeight || undefined,
         weightAttempts: athleteData.weightAttempts || [],
         attendanceStatus: athleteData.attendanceStatus || 'pending',
-        movedToDivisionId: athleteData.movedToDivisionId || undefined, // Load new prop
-        moveReason: athleteData.moveReason || undefined, // Load new prop
-        seed: athleteData.seed || undefined, // Load new prop
+        movedToDivisionId: athleteData.movedToDivisionId || undefined,
+        moveReason: athleteData.moveReason || undefined,
+        seed: athleteData.seed || undefined,
       };
+      
+      // Assign the _division property
+      athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
+
+      return athleteWithCalculatedProps;
     };
 
     const storedImportedAthletes = localStorage.getItem(`importedAthletes_${id}`);
     let initialImportedAthletes: Athlete[] = [];
     if (storedImportedAthletes) {
       try {
-        initialImportedAthletes = JSON.parse(storedImportedAthletes).map(processAthleteData);
+        initialImportedAthletes = JSON.parse(storedImportedAthletes).map((a: any) => processAthleteData(a, tempDivisions));
         localStorage.removeItem(`importedAthletes_${id}`);
         showSuccess(`Atletas importados do arquivo CSV carregados para o evento ${id}.`);
       } catch (e) {
@@ -95,13 +116,13 @@ const EventDetail: React.FC = () => {
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
-        existingAthletes = parsedEvent.athletes.map(processAthleteData);
+        existingDivisions = parsedEvent.divisions || [];
+        existingAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, existingDivisions)); // Process with actual divisions
         eventSettings = {
           checkInStartTime: parsedEvent.checkInStartTime,
           checkInEndTime: parsedEvent.checkInEndTime,
           numFightAreas: parsedEvent.numFightAreas,
         };
-        existingDivisions = parsedEvent.divisions || [];
         isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
         isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
         matAssignments = parsedEvent.matAssignments || {}; // Load matAssignments
@@ -309,9 +330,16 @@ const EventDetail: React.FC = () => {
   const handleUpdateDivisions = (updatedDivisions: Division[]) => {
     setEvent(prevEvent => {
       if (!prevEvent) return null;
+      // Re-process all athletes with the new divisions to update their _division property
+      const updatedAthletes = prevEvent.athletes.map(athlete => {
+        const updatedAthlete = { ...athlete };
+        updatedAthlete._division = findAthleteDivision(updatedAthlete, updatedDivisions);
+        return updatedAthlete;
+      });
       return {
         ...prevEvent,
         divisions: updatedDivisions,
+        athletes: updatedAthletes,
       };
     });
   };
@@ -341,13 +369,13 @@ const EventDetail: React.FC = () => {
 
   const processedApprovedAthletes = useMemo(() => {
     return approvedAthletes.map(athlete => {
+      // The _division should already be set by processAthleteData, but we ensure it here.
+      // If an athlete was moved, their _division should reflect the moved division.
       let division: Division | undefined;
       if (athlete.movedToDivisionId) {
-        // If athlete was moved, use the target division
         division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
       } else {
-        // Otherwise, find the division based on current attributes
-        division = findAthleteDivision(athlete, event.divisions);
+        division = athlete._division; // Use the pre-calculated _division
       }
       return {
         ...athlete,
@@ -358,10 +386,10 @@ const EventDetail: React.FC = () => {
 
   const sortedAthletesUnderApproval = useMemo(() => {
     return athletesUnderApproval.map(athlete => {
-      const division = findAthleteDivision(athlete, event.divisions);
+      // The _division should already be set by processAthleteData.
       return {
         ...athlete,
-        _division: division,
+        _division: athlete._division, // Use the pre-calculated _division
       };
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [athletesUnderApproval, event.divisions]);
@@ -373,11 +401,12 @@ const EventDetail: React.FC = () => {
       athletes = athletes.filter(a => a.club === userClub);
     }
     return athletes.map(athlete => {
+      // The _division should already be set by processAthleteData.
       let division: Division | undefined;
       if (athlete.movedToDivisionId) {
         division = event.divisions.find(d => d.id === athlete.movedToDivisionId);
       } else {
-        division = findAthleteDivision(athlete, event.divisions);
+        division = athlete._division; // Use the pre-calculated _division
       }
       return {
         ...athlete,
