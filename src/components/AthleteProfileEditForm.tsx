@@ -19,7 +19,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 interface AthleteProfileEditFormProps {
-  athlete: Athlete | null; // A prop 'athlete' agora pode ser nula
+  athlete: Athlete;
   onSave: (updatedAthlete: Athlete) => void;
   onCancel: () => void;
   mandatoryFieldsConfig?: Record<string, boolean>;
@@ -107,12 +107,6 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const photo = watch('photo');
   const emiratesIdFront = watch('emiratesIdFront');
   const emiratesIdBack = watch('emiratesIdBack');
-
-  // Se não houver atleta para editar, não renderizamos nada.
-  // Isso é seguro porque todos os hooks foram chamados incondicionalmente acima.
-  if (!athlete) {
-    return null;
-  }
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     try {
