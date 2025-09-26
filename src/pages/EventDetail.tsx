@@ -320,7 +320,7 @@ const EventDetail: React.FC = () => {
     }).sort((a, b) => getAthleteDisplayString(a, a._division).localeCompare(getAthleteDisplayString(b, b._division)));
   }, [athletesUnderApproval, event.divisions]);
 
-  // NOVO: Lógica para a aba 'Inscrições' para coaches
+  // Lógica para a aba 'Inscrições' para coaches
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event.athletes;
     if (userRole === 'coach' && userClub) {
@@ -600,18 +600,31 @@ const EventDetail: React.FC = () => {
                 ) : (
                   <span className="text-muted-foreground block mt-2">Horário: {format(checkInStartTime, 'dd/MM HH:mm')} - {format(checkInEndTime, 'dd/MM HH:mm')}</span>
                 )}
-                <div className="mt-4 text-sm">
-                  <p>Total de Atletas Aprovados: <span className="font-semibold">{totalApprovedAthletes}</span></p>
-                  <p>Check-in OK: <span className="font-semibold text-green-600">{totalCheckedInOk}</span></p>
-                  <p>Acima do Peso: <span className="font-semibold text-red-600">{totalOverweights}</span></p>
-                  <p>Faltam: <span className="font-semibold text-orange-500">{totalPendingCheckIn}</span></p>
-                </div>
                 {isAttendanceMandatory && (
                   <p className="text-orange-500 mt-2">Atenção: A presença é obrigatória antes do check-in. Apenas atletas marcados como 'Presente' aparecerão aqui.</p>
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                  <p className="text-2xl font-bold text-green-600">{totalCheckedInOk}</p>
+                  <p className="text-sm text-muted-foreground">Check-in OK</p>
+                </div>
+                <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
+                  <p className="text-2xl font-bold text-red-600">{totalOverweights}</p>
+                  <p className="text-sm text-muted-foreground">Acima do Peso</p>
+                </div>
+                <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
+                  <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
+                  <p className="text-sm text-muted-foreground">Faltam</p>
+                </div>
+                <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
+                  <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
+                  <p className="text-sm text-muted-foreground">Total Aprovados</p>
+                </div>
+              </div>
+
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                   <QrCodeScanner onScanSuccess={(qrCodeId) => {
@@ -644,14 +657,14 @@ const EventDetail: React.FC = () => {
 
               <div className="mb-4 flex justify-center">
                 <ToggleGroup type="single" value={checkInFilter} onValueChange={(value: 'pending' | 'done' | 'all') => value && setCheckInFilter(value)}>
+                  <ToggleGroupItem value="all" aria-label="Mostrar todos">
+                    Todos ({totalApprovedAthletes})
+                  </ToggleGroupItem>
                   <ToggleGroupItem value="pending" aria-label="Mostrar pendentes">
-                    Pendentes
+                    Pendentes ({totalPendingCheckIn})
                   </ToggleGroupItem>
                   <ToggleGroupItem value="done" aria-label="Mostrar concluídos">
-                    Concluídos
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="all" aria-label="Mostrar todos">
-                    Todos
+                    Concluídos ({totalCheckedInOk + totalOverweights})
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
@@ -687,7 +700,7 @@ const EventDetail: React.FC = () => {
                           )}
                           {athlete.checkInStatus === 'overweight' && (
                             <span className="flex items-center text-red-600 font-semibold text-sm">
-                              <XCircle className="h-4 w-4 mr-1" /> Overweight ({athlete.registeredWeight}kg)
+                              <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registeredWeight}kg)
                             </span>
                           )}
                           {athlete.checkInStatus === 'pending' && (
