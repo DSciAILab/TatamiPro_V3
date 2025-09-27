@@ -43,11 +43,17 @@ serve(async (req: Request) => {
       }),
     });
 
+    // Adiciona verificação para respostas de erro da API do Ollama
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Erro da API do Ollama (${response.status}): ${errorBody}`);
+    }
+
     // Retorna a resposta em streaming diretamente para o cliente
     return new Response(response.body, {
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/x-ndjson", // Correct content type for streaming newline-delimited JSON
+        "Content-Type": "application/x-ndjson",
       },
     });
   } catch (error: any) {

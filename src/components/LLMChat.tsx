@@ -40,14 +40,20 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('chat-with-event', {
+      // The 'data' returned from invoke is the raw Response object
+      const { data: response, error } = await supabase.functions.invoke('chat-with-event', {
         body: { query: input, eventData: event },
         responseType: 'stream',
       } as any);
 
       if (error) throw error;
 
-      const reader = data.getReader();
+      // We need to access the .body property of the Response object to get the stream
+      if (!response || !response.body) {
+        throw new Error("A resposta da função não continha um corpo de stream válido.");
+      }
+
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantResponse = '';
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -58,13 +64,11 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
         
-        let newlineIndex;
-        // Process all complete lines in the buffer
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1); // Update buffer to remove the processed line
+        buffer = lines.pop() || ''; // Keep the last, possibly incomplete, line in the buffer
 
+        for (const line of lines) {
           if (line.trim() === '') continue;
           try {
             const parsed = JSON.parse(line);
@@ -82,7 +86,6 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         }
       }
       
-      // Process any remaining data in the buffer
       if (buffer.trim()) {
         try {
           const parsed = JSON.parse(buffer.trim());
