@@ -249,6 +249,20 @@ const EventDetail: React.FC = () => {
     return athletes;
   }, [allAthletesForInscricoesTab, userRole, registrationStatusFilter, searchTerm]);
 
+  // NOVO: Definição de filteredAthletesForCheckIn
+  const filteredAthletesForCheckIn = useMemo(() => {
+    let athletes = processedApprovedAthletes;
+    if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
+    if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
+    }
+    if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
+    return athletes;
+  }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter]);
+
+
   const visibleTabs = useMemo(() => [
     userRole === 'admin' && { value: 'config', label: 'Config' },
     { value: 'inscricoes', label: 'Inscrições' },
@@ -374,17 +388,7 @@ const EventDetail: React.FC = () => {
             setScannedAthleteId={setScannedAthleteId}
             setSearchTerm={setSearchTerm}
             searchTerm={searchTerm}
-            filteredAthletesForCheckIn={useMemo(() => {
-              let athletes = processedApprovedAthletes;
-              if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
-              if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
-              if (searchTerm) {
-                const lower = searchTerm.toLowerCase();
-                athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
-              }
-              if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
-              return athletes;
-            }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter])}
+            filteredAthletesForCheckIn={filteredAthletesForCheckIn}
             handleCheckInAthlete={handleCheckInAthlete}
           />
         </TabsContent>

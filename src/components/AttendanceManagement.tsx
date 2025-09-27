@@ -9,6 +9,7 @@ import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucid
 import { showSuccess, showError } from '@/utils/toast';
 import { findAthleteDivision, getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context'; // Import useAuth
 
 interface AttendanceManagementProps {
   eventId: string;
@@ -19,15 +20,17 @@ interface AttendanceManagementProps {
 }
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, eventDivisions, onUpdateAthleteAttendance, isAttendanceMandatory, userRole }) => {
+  // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all');
   const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
-  const userClub = localStorage.getItem('userClub');
+  const { profile } = useAuth(); // Use profile from AuthContext
+  const userClub = profile?.club; // Get userClub from profile
 
   useEffect(() => {
     if (!isAttendanceMandatory) {
-      setAthletes([]);
+      setAthletes([]); // Clear athletes if feature is disabled
       return;
     }
 

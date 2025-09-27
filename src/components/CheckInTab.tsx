@@ -57,6 +57,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   filteredAthletesForCheckIn,
   handleCheckInAthlete,
 }) => {
+  // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {

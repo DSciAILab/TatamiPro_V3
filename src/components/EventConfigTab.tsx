@@ -98,6 +98,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
 }) => {
   const { t } = useTranslations();
 
+  // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
+
   return (
     <Card>
       <CardHeader>
