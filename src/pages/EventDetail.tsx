@@ -19,7 +19,7 @@ import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution';
 import LLMChat from '@/components/LLMChat';
 import { Athlete, Event, Division, Bracket } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords, Download } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -401,6 +401,29 @@ const EventDetail: React.FC = () => {
     });
   };
 
+  const handleExportJson = () => {
+    if (!event) {
+      showError('Dados do evento não estão disponíveis para exportação.');
+      return;
+    }
+    try {
+      const jsonString = JSON.stringify(event, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dados_evento_${event.id}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showSuccess('Exportação iniciada. Verifique seus downloads.');
+    } catch (error) {
+      console.error("Erro ao exportar JSON:", error);
+      showError('Ocorreu um erro ao tentar exportar os dados.');
+    }
+  };
+
   if (!event) {
     return (
       <Layout>
@@ -589,6 +612,12 @@ const EventDetail: React.FC = () => {
                             onCheckedChange={setIsActive}
                           />
                           <Label htmlFor="event-active">Evento Ativo</Label>
+                        </div>
+                        <div className="mt-4">
+                          <Button onClick={handleExportJson} variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar Dados (JSON)
+                          </Button>
                         </div>
                       </div>
 
