@@ -275,47 +275,45 @@ const EventDetail: React.FC = () => {
           ))}
         </TabsList>
 
-        {userRole === 'admin' && (
-          <TabsContent value="config" className="mt-6">
-            <EventConfigTab
-              event={event}
-              configSubTab={configSubTab}
-              setConfigSubTab={setConfigSubTab}
-              isActive={isActive}
-              setIsActive={setIsActive}
-              handleExportJson={handleExportJson}
-              checkInStartTime={checkInStartTime}
-              setCheckInStartTime={setCheckInStartTime}
-              checkInEndTime={checkInEndTime}
-              setCheckInEndTime={setCheckInEndTime}
-              numFightAreas={numFightAreas}
-              setNumFightAreas={setNumFightAreas}
-              isAttendanceMandatory={isAttendanceMandatory}
-              setIsAttendanceMandatory={setIsAttendanceMandatory}
-              isWeightCheckEnabled={isWeightCheckEnabled}
-              setIsWeightCheckEnabled={setIsWeightCheckEnabled}
-              isBeltGroupingEnabled={isBeltGroupingEnabled}
-              setIsBeltGroupingEnabled={setIsBeltGroupingEnabled}
-              isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
-              setIsOverweightAutoMoveEnabled={setIsOverweightAutoMoveEnabled}
-              includeThirdPlace={includeThirdPlace}
-              setIncludeThirdPlace={setIncludeThirdPlace}
-              checkInScanMode={checkInScanMode}
-              setCheckInScanMode={setCheckInScanMode}
-              handleUpdateDivisions={handleUpdateDivisions}
-              championPoints={championPoints}
-              setChampionPoints={setChampionPoints}
-              runnerUpPoints={runnerUpPoints}
-              setRunnerUpPoints={setRunnerUpPoints}
-              thirdPlacePoints={thirdPlacePoints}
-              setThirdPlacePoints={setThirdPlacePoints}
-              countSingleClubCategories={countSingleClubCategories}
-              setCountSingleClubCategories={setCountSingleClubCategories}
-              countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
-              setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
-            />
-          </TabsContent>
-        )}
+        <TabsContent value="config" className="mt-6">
+          <EventConfigTab
+            event={event}
+            configSubTab={configSubTab}
+            setConfigSubTab={setConfigSubTab}
+            isActive={isActive}
+            setIsActive={setIsActive}
+            handleExportJson={handleExportJson}
+            checkInStartTime={checkInStartTime}
+            setCheckInStartTime={setCheckInStartTime}
+            checkInEndTime={checkInEndTime}
+            setCheckInEndTime={setCheckInEndTime}
+            numFightAreas={numFightAreas}
+            setNumFightAreas={setNumFightAreas}
+            isAttendanceMandatory={isAttendanceMandatory}
+            setIsAttendanceMandatory={setIsAttendanceMandatory}
+            isWeightCheckEnabled={isWeightCheckEnabled}
+            setIsWeightCheckEnabled={setIsWeightCheckEnabled}
+            isBeltGroupingEnabled={isBeltGroupingEnabled}
+            setIsBeltGroupingEnabled={setIsBeltGroupingEnabled}
+            isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
+            setIsOverweightAutoMoveEnabled={setIsOverweightAutoMoveEnabled}
+            includeThirdPlace={includeThirdPlace}
+            setIncludeThirdPlace={setIncludeThirdPlace}
+            checkInScanMode={checkInScanMode}
+            setCheckInScanMode={setCheckInScanMode}
+            handleUpdateDivisions={handleUpdateDivisions}
+            championPoints={championPoints}
+            setChampionPoints={setChampionPoints}
+            runnerUpPoints={runnerUpPoints}
+            setRunnerUpPoints={setRunnerUpPoints}
+            thirdPlacePoints={thirdPlacePoints}
+            setThirdPlacePoints={setThirdPlacePoints}
+            countSingleClubCategories={countSingleClubCategories}
+            setCountSingleClubCategories={setCountSingleClubCategories}
+            countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
+            setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
+          />
+        </TabsContent>
 
         <TabsContent value="inscricoes" className="mt-6">
           <RegistrationsTab
@@ -345,51 +343,47 @@ const EventDetail: React.FC = () => {
           />
         </TabsContent>
 
-        {isAttendanceMandatory && (
-          <TabsContent value="attendance" className="mt-6">
-            <AttendanceManagement
-              eventId={event.id}
-              eventDivisions={event.divisions}
-              onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
-            />
-          </TabsContent>
-        )}
+        <TabsContent value="attendance" className="mt-6">
+          <AttendanceManagement
+            eventId={event.id}
+            eventDivisions={event.divisions}
+            onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
+          />
+        </TabsContent>
 
-        {userRole && (
-          <TabsContent value="checkin" className="mt-6">
-            <CheckInTab
-              event={event}
-              userRole={userRole}
-              checkInStartTime={checkInStartTime}
-              checkInEndTime={checkInEndTime}
-              checkInFilter={checkInFilter}
-              handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
-              setCheckInFilter={setCheckInFilter}
-              totalCheckedInOk={processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length}
-              totalOverweights={processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length}
-              totalPendingCheckIn={processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length}
-              totalApprovedAthletes={processedApprovedAthletes.length}
-              isScannerOpen={isScannerOpen}
-              setIsScannerOpen={setIsScannerOpen}
-              processedApprovedAthletes={processedApprovedAthletes}
-              setScannedAthleteId={setScannedAthleteId}
-              setSearchTerm={setSearchTerm}
-              searchTerm={searchTerm}
-              filteredAthletesForCheckIn={useMemo(() => {
-                let athletes = processedApprovedAthletes;
-                if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
-                if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
-                if (searchTerm) {
-                  const lower = searchTerm.toLowerCase();
-                  athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
-                }
-                if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
-                return athletes;
-              }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter])}
-              handleCheckInAthlete={handleCheckInAthlete}
-            />
-          </TabsContent>
-        )}
+        <TabsContent value="checkin" className="mt-6">
+          <CheckInTab
+            event={event}
+            userRole={userRole}
+            checkInStartTime={checkInStartTime}
+            checkInEndTime={checkInEndTime}
+            checkInFilter={checkInFilter}
+            handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
+            setCheckInFilter={setCheckInFilter}
+            totalCheckedInOk={processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length}
+            totalOverweights={processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length}
+            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length}
+            totalApprovedAthletes={processedApprovedAthletes.length}
+            isScannerOpen={isScannerOpen}
+            setIsScannerOpen={setIsScannerOpen}
+            processedApprovedAthletes={processedApprovedAthletes}
+            setScannedAthleteId={setScannedAthleteId}
+            setSearchTerm={setSearchTerm}
+            searchTerm={searchTerm}
+            filteredAthletesForCheckIn={useMemo(() => {
+              let athletes = processedApprovedAthletes;
+              if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
+              if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
+              if (searchTerm) {
+                const lower = searchTerm.toLowerCase();
+                athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
+              }
+              if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
+              return athletes;
+            }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter])}
+            handleCheckInAthlete={handleCheckInAthlete}
+          />
+        </TabsContent>
 
         <TabsContent value="brackets" className="mt-6">
           <BracketsTab
