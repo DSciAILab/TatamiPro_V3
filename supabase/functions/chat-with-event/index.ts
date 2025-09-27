@@ -1,5 +1,3 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Cabeçalhos CORS para permitir que o app frontend chame esta função
@@ -42,7 +40,8 @@ serve(async (req: Request) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama3", // Você pode alterar para o modelo que estiver usando
+        // IMPORTANTE: Altere "seu-modelo-aqui" para o nome do modelo que você instalou, ex: "mistral"
+        model: "seu-modelo-aqui", 
         messages: [{ role: "user", content: prompt }],
         stream: true,
       }),
