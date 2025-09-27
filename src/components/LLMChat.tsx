@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createEventSummaryForLLM } from '@/utils/llm-utils';
 
 interface LLMChatProps {
   event: Event;
@@ -40,8 +41,10 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
     setIsLoading(true);
 
     try {
+      const eventSummary = createEventSummaryForLLM(event);
+
       const { data: responseData, error } = await supabase.functions.invoke('chat-with-event', {
-        body: { query: input, eventData: event },
+        body: { query: input, eventSummary: eventSummary },
         responseType: 'stream',
       } as any);
 
@@ -60,7 +63,6 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         throw new Error("A resposta da função foi nula.");
       }
 
-      // Ideal case: The response is a ReadableStream
       if (typeof responseData.getReader === 'function') {
         const reader = responseData.getReader();
         const decoder = new TextDecoder();
@@ -112,7 +114,6 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
           }
         }
       } 
-      // Fallback case: The client buffered the stream into a single string
       else if (typeof responseData === 'string') {
         const lines = responseData.trim().split('\n');
         let finalContent = '';
@@ -135,7 +136,6 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
           throw new Error(`Não foi possível extrair conteúdo da resposta: ${responseData}`);
         }
       }
-      // Error case
       else {
         throw new Error(`Resposta inesperada: ${JSON.stringify(responseData)}`);
       }
