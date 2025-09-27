@@ -2,16 +2,14 @@
 
 import React, { useEffect } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode';
-import { showError } from '@/utils/toast';
 
 interface QrScannerProps {
   onScanSuccess: (decodedText: string) => void;
-  onClose: () => void;
 }
 
 const scannerRegionId = "qr-scanner-region";
 
-const QrScanner: React.FC<QrScannerProps> = ({ onScanSuccess, onClose }) => {
+const QrScanner: React.FC<QrScannerProps> = ({ onScanSuccess }) => {
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
