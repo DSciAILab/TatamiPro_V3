@@ -1,14 +1,15 @@
 "use client";
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 'Link' removido
 import { Event } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // 'DialogTrigger' removido
 import { LayoutGrid, Swords } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 interface BracketsTabProps {
   event: Event;
@@ -22,6 +23,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   handleUpdateMatAssignments,
 }) => {
   const navigate = useNavigate();
+  const [isMatDistributionDialogOpen, setIsMatDistributionDialogOpen] = useState(false);
+  const [activeBracketAction, setActiveBracketAction] = useState<'distribute' | 'generate' | 'manage' | null>(null);
 
   return (
     <Card>
@@ -31,32 +34,69 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       </CardHeader>
       <CardContent>
         {userRole && (
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="w-full">Distribuição dos Mats</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Configurar Distribuição dos Mats</DialogTitle>
-                </DialogHeader>
-                <MatDistribution
-                  event={event}
-                  onUpdateMatAssignments={handleUpdateMatAssignments}
-                  isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
-                />
-              </DialogContent>
-            </Dialog>
-            <Link to={`/events/${event.id}/generate-brackets`}>
-              <Button className="w-full" variant="secondary">
-                <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
-              </Button>
-            </Link>
-            <Button className="w-full" variant="outline" onClick={() => navigate(`/events/${event.id}/manage-fights`)}>
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 border-b border-input"> {/* Mimic TabsList container */}
+            <Button
+              variant="ghost" // Use ghost variant as a base for styling
+              className={cn(
+                "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                activeBracketAction === 'distribute'
+                  ? "bg-background text-foreground shadow-sm" // Active state styles
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground" // Inactive state styles
+              )}
+              onClick={() => {
+                setIsMatDistributionDialogOpen(true);
+                setActiveBracketAction('distribute');
+              }}
+            >
+              Distribuição dos Mats
+            </Button>
+            <Button
+              variant="ghost"
+              className={cn(
+                "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                activeBracketAction === 'generate'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              onClick={() => {
+                navigate(`/events/${event.id}/generate-brackets`);
+                setActiveBracketAction('generate');
+              }}
+            >
+              <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
+            </Button>
+            <Button
+              variant="ghost"
+              className={cn(
+                "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                activeBracketAction === 'manage'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              onClick={() => {
+                navigate(`/events/${event.id}/manage-fights`);
+                setActiveBracketAction('manage');
+              }}
+            >
               <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
             </Button>
           </div>
         )}
+
+        {/* Dialog for Mat Distribution (remains outside the "tab-like" buttons) */}
+        <Dialog open={isMatDistributionDialogOpen} onOpenChange={setIsMatDistributionDialogOpen}>
+          <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Configurar Distribuição dos Mats</DialogTitle>
+            </DialogHeader>
+            <MatDistribution
+              event={event}
+              onUpdateMatAssignments={handleUpdateMatAssignments}
+              isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
+            />
+          </DialogContent>
+        </Dialog>
+
         {event.brackets && Object.keys(event.brackets).length > 0 ? (
           <div className="space-y-4 mt-6">
             <h3 className="text-xl font-semibold">Brackets Gerados</h3>
