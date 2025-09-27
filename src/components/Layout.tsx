@@ -42,6 +42,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link to="/events">
               <Button variant="ghost">{t('events')}</Button>
             </Link>
+            {userRole && (
+              <Link to="/account-security">
+                <Button variant="ghost">Security</Button>
+              </Link>
+            )}
             <ModeToggle />
             {userRole && (
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">

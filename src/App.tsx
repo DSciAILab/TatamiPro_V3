@@ -18,6 +18,7 @@ import ManageFights from "./pages/ManageFights";
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
 import CreateEvent from "./pages/CreateEvent";
+import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/events/:id/manage-fights" element={<ManageFights />} />
               <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
               <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
+              <Route path="/account-security" element={<AccountSecurity />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
