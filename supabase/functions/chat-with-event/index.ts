@@ -1,3 +1,5 @@
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Cabeçalhos CORS para permitir que o app frontend chame esta função
@@ -17,7 +19,10 @@ serve(async (req: Request) => {
     const ollamaUrl = Deno.env.get("OLLAMA_URL");
 
     if (!ollamaUrl) {
-      throw new Error("A variável de ambiente OLLAMA_URL não está configurada.");
+      return new Response(JSON.stringify({ error: "A variável de ambiente OLLAMA_URL não está configurada." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Constrói o prompt para o LLM, fornecendo os dados do evento como contexto (RAG)
@@ -46,7 +51,10 @@ serve(async (req: Request) => {
     // Adiciona verificação para respostas de erro da API do Ollama
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Erro da API do Ollama (${response.status}): ${errorBody}`);
+      return new Response(JSON.stringify({ error: `Erro da API do Ollama (${response.status}): ${errorBody}` }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Retorna a resposta em streaming diretamente para o cliente
