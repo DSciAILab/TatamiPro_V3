@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Event, Athlete } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,16 +11,14 @@ import CheckInForm from '@/components/CheckInForm';
 import QrScanner from '@/components/QrScanner';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, differenceInSeconds } from 'date-fns';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface CheckInTabProps {
   event: Event;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
-  isCheckInAllowedGlobally: boolean;
-  isCheckInTimeValid: () => boolean;
-  currentTime: Date;
-  timeRemainingFormatted: string;
+  checkInStartTime?: Date;
+  checkInEndTime?: Date;
   checkInFilter: 'pending' | 'checked_in' | 'overweight' | 'all';
   handleCheckInBoxClick: (filter: 'pending' | 'checked_in' | 'overweight') => void;
   setCheckInFilter: (filter: 'all' | 'pending' | 'checked_in' | 'overweight') => void;
@@ -41,10 +39,8 @@ interface CheckInTabProps {
 const CheckInTab: React.FC<CheckInTabProps> = ({
   event,
   userRole,
-  isCheckInAllowedGlobally,
-  isCheckInTimeValid,
-  currentTime,
-  timeRemainingFormatted,
+  checkInStartTime,
+  checkInEndTime,
   checkInFilter,
   handleCheckInBoxClick,
   setCheckInFilter,
@@ -61,6 +57,23 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   filteredAthletesForCheckIn,
   handleCheckInAthlete,
 }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isCheckInTimeValid = () => {
+    if (!checkInStartTime || !checkInEndTime) return false;
+    return currentTime >= checkInStartTime && currentTime <= checkInEndTime;
+  };
+
+  const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
+
+  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
+  const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
+
   return (
     <Card>
       <CardHeader>

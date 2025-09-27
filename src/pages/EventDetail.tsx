@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division } from '../types/index';
 import { showSuccess } from '@/utils/toast';
 import { processAthleteData } from '@/utils/athlete-utils';
-import { parseISO, differenceInSeconds } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 
@@ -32,7 +32,6 @@ const EventDetail: React.FC = () => {
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [event, setEvent] = useState<Event | null>(() => {
@@ -110,12 +109,6 @@ const EventDetail: React.FC = () => {
       }
     }
   }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
-
-  // Timer for current time display
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Handler Functions
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
@@ -221,15 +214,6 @@ const EventDetail: React.FC = () => {
     }
     return athletes;
   }, [allAthletesForInscricoesTab, userRole, registrationStatusFilter, searchTerm]);
-
-  const isCheckInTimeValid = () => {
-    if (!checkInStartTime || !checkInEndTime) return false;
-    return currentTime >= checkInStartTime && currentTime <= checkInEndTime;
-  };
-  const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
-
-  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
-  const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
 
   const visibleTabs = useMemo(() => [
     userRole === 'admin' && { value: 'config', label: 'Config' },
@@ -342,10 +326,8 @@ const EventDetail: React.FC = () => {
             <CheckInTab
               event={event}
               userRole={userRole}
-              isCheckInAllowedGlobally={isCheckInAllowedGlobally}
-              isCheckInTimeValid={isCheckInTimeValid}
-              currentTime={currentTime}
-              timeRemainingFormatted={timeRemainingFormatted}
+              checkInStartTime={checkInStartTime}
+              checkInEndTime={checkInEndTime}
               checkInFilter={checkInFilter}
               handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
               setCheckInFilter={setCheckInFilter}
