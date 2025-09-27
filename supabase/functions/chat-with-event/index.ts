@@ -40,8 +40,8 @@ serve(async (req: Request) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Modelo padrão definido. Pode ser alterado se você tiver um modelo diferente no Ollama.
-        model: "mistral", 
+        // Alterado de 'mistral' para 'llama3', um modelo mais comum.
+        model: "llama3", 
         messages: [{ role: "user", content: prompt }],
         stream: true,
       }),
