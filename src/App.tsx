@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider } from "@/context/auth-context";
-import { LayoutSettingsProvider } from "@/context/layout-settings-context"; // NOVO: Importar LayoutSettingsProvider
+import { LayoutSettingsProvider } from "@/context/layout-settings-context";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
@@ -15,13 +15,13 @@ import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
 import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
 import DivisionImport from "./pages/DivisionImport";
-import GenerateBrackets from "./pages/GenerateBrackets";
-import ManageFights from "./pages/ManageFights";
+// import GenerateBrackets from "./pages/GenerateBrackets"; // REMOVIDO
+// import ManageFights from "./pages/ManageFights"; // REMOVIDO
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
 import CreateEvent from "./pages/CreateEvent";
 import AccountSecurity from "./pages/AccountSecurity";
-import MatDistributionPage from "./pages/MatDistributionPage"; // NOVO: Importar MatDistributionPage
+// import MatDistributionPage from "./pages/MatDistributionPage"; // REMOVIDO
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +37,7 @@ const App = () => (
     >
       <LanguageProvider>
         <AuthProvider>
-          <LayoutSettingsProvider> {/* NOVO: Envolver com LayoutSettingsProvider */}
+          <LayoutSettingsProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -52,11 +52,12 @@ const App = () => (
                   <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
                   <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
                   <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-                  <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
-                  <Route path="/events/:id/manage-fights" element={<ManageFights />} />
+                  {/* Rotas abaixo foram integradas no EventDetail/BracketsTab */}
+                  {/* <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} /> */}
+                  {/* <Route path="/events/:id/manage-fights" element={<ManageFights />} /> */}
                   <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
                   <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
-                  <Route path="/events/:id/distribute-mats" element={<MatDistributionPage />} /> {/* NOVO: Rota para MatDistributionPage */}
+                  {/* <Route path="/events/:id/distribute-mats" element={<MatDistributionPage />} /> */}
                   <Route path="/account-security" element={<AccountSecurity />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

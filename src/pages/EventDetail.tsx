@@ -54,6 +54,7 @@ const EventDetail: React.FC = () => {
   const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(true);
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
+  const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution'); // NOVO: Estado para a sub-aba de Brackets
 
   // Effect to load event data and sync all related state
   useEffect(() => {
@@ -398,6 +399,8 @@ const EventDetail: React.FC = () => {
             event={event}
             userRole={userRole}
             handleUpdateMatAssignments={handleUpdateMatAssignments}
+            bracketsSubTab={bracketsSubTab} // NOVO: Passar o estado da sub-aba
+            setBracketsSubTab={setBracketsSubTab} // NOVO: Passar a função de atualização
           />
         </TabsContent>
 
