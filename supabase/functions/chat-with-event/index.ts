@@ -6,8 +6,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Função para criar um resumo legível dos dados do evento
+const createEventSummary = (eventData: any): string => {
+  const summary = [];
+  summary.push(`- Nome do Evento: ${eventData.name}`);
+  summary.push(`- Data: ${eventData.date}`);
+  summary.push(`- Status: ${eventData.status}`);
+  summary.push(`- Descrição: ${eventData.description}`);
+
+  if (eventData.athletes && eventData.athletes.length > 0) {
+    const totalAthletes = eventData.athletes.length;
+    const approved = eventData.athletes.filter((a: any) => a.registrationStatus === 'approved').length;
+    const pending = eventData.athletes.filter((a: any) => a.registrationStatus === 'under_approval').length;
+    const checkedIn = eventData.athletes.filter((a: any) => a.checkInStatus === 'checked_in').length;
+    summary.push(`- Atletas: ${totalAthletes} inscritos (${approved} aprovados, ${pending} pendentes, ${checkedIn} com check-in OK).`);
+  } else {
+    summary.push("- Atletas: Nenhum atleta inscrito.");
+  }
+
+  if (eventData.divisions && eventData.divisions.length > 0) {
+    summary.push(`- Divisões: ${eventData.divisions.length} divisões configuradas.`);
+    summary.push(`  - Nomes das Divisões: ${eventData.divisions.map((d: any) => d.name).join(', ')}`);
+  } else {
+    summary.push("- Divisões: Nenhuma divisão configurada.");
+  }
+
+  if (eventData.brackets && Object.keys(eventData.brackets).length > 0) {
+    const bracketedDivisions = Object.keys(eventData.brackets);
+    summary.push(`- Brackets: Gerados para ${bracketedDivisions.length} divisões: ${bracketedDivisions.join(', ')}.`);
+  } else {
+    summary.push("- Brackets: Nenhum bracket gerado ainda.");
+  }
+
+  return summary.join('\n');
+};
+
 serve(async (req: Request) => {
-  // Lida com a requisição pre-flight CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -23,45 +57,22 @@ serve(async (req: Request) => {
       });
     }
 
-    // Novas instruções detalhadas para o chatbot
-    const instructions = `Você é o assistente oficial deste campeonato de Jiu-Jitsu.
-Seu papel é responder de forma clara, curta e confiável às perguntas dos usuários sobre o evento.
+    // Gera o resumo do evento
+    const eventSummary = createEventSummary(eventData);
 
-### Regras de comportamento:
-1. Sempre responda em tom profissional, acolhedor e objetivo.
-2. Se a pergunta for sobre informações do evento, use APENAS os dados fornecidos. O escopo de informações inclui:
-   - Nome do campeonato, local, datas, horários.
-   - Tabelas de lutas (brackets).
-   - Regras principais.
-   - Procedimentos de pesagem.
-   - Premiação.
-   - Informações de equipes e atletas.
-   - Contatos de suporte.
-3. Se a informação não estiver disponível nos dados fornecidos, diga claramente:
-   "No momento não tenho essa informação, por favor verifique com a organização do evento."
-   Nunca invente dados.
-4. Resuma sempre que possível, e ofereça informações em formato de lista quando forem muitos detalhes.
-5. Se a pergunta não tiver relação com o evento, redirecione educadamente:
-   "Este assistente só responde perguntas relacionadas ao campeonato."
-
-### Estilo de resposta:
-- Breve, direto e com clareza.
-- Use listas e bullets para organizar informações.
-- Evite linguagem excessivamente técnica ou prolixa.
-
-Você está agora pronto para responder dúvidas sobre este campeonato.`;
+    const instructions = `Você é um assistente de IA para o TatamiPro. Sua tarefa é responder perguntas sobre um campeonato de Jiu-Jitsu usando APENAS o resumo fornecido. Seja direto e conciso. Se a informação não estiver no resumo, responda: "Não consigo encontrar essa informação nos dados do evento."`;
 
     const prompt = `
       ${instructions}
 
-      Dados do Evento para sua referência:
-      ${JSON.stringify(eventData, null, 2)}
+      ### Resumo do Evento ###
+      ${eventSummary}
+      ######################
 
       Pergunta do usuário: "${query}"
       Sua resposta:
     `;
 
-    // Chama a API do Ollama com streaming
     const response = await fetch(`${ollamaUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -72,7 +83,6 @@ Você está agora pronto para responder dúvidas sobre este campeonato.`;
       }),
     });
 
-    // Adiciona verificação para respostas de erro da API do Ollama
     if (!response.ok) {
       const errorBody = await response.text();
       return new Response(JSON.stringify({ error: `Erro da API do Ollama (${response.status}): ${errorBody}` }), {
@@ -81,7 +91,6 @@ Você está agora pronto para responder dúvidas sobre este campeonato.`;
       });
     }
 
-    // Retorna a resposta em streaming diretamente para o cliente
     return new Response(response.body, {
       headers: {
         ...corsHeaders,
