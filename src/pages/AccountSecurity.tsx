@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { startRegistration } from '@simplewebauthn/browser';
-import { PlusCircle, Trash2, Monitor, Smartphone } from 'lucide-react';
+import { PlusCircle, Trash2, Smartphone } from 'lucide-react';
 
 interface Authenticator {
   id: string;

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/context/language-context";
+import { AuthProvider } from "@/context/auth-context";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
@@ -33,30 +34,32 @@ const App = () => (
       storageKey="vite-ui-theme"
     >
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Welcome />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/create" element={<CreateEvent />} />
-              <Route path="/events/:id" element={<EventDetail />} />
-              <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-              <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
-              <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-              <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-              <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
-              <Route path="/events/:id/manage-fights" element={<ManageFights />} />
-              <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
-              <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
-              <Route path="/account-security" element={<AccountSecurity />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Welcome />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/events/create" element={<CreateEvent />} />
+                <Route path="/events/:id" element={<EventDetail />} />
+                <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+                <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
+                <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
+                <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+                <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} />
+                <Route path="/events/:id/manage-fights" element={<ManageFights />} />
+                <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
+                <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
+                <Route path="/account-security" element={<AccountSecurity />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>

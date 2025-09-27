@@ -6,9 +6,12 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 const Events: React.FC = () => {
-  // Esta função agora é chamada a cada renderização para garantir que os dados mais recentes do localStorage sejam exibidos.
+  const { profile } = useAuth();
+
+  // This function now is called at each render to ensure the latest data from localStorage is displayed.
   const getEvents = () => {
     const baseEvents = [
       { id: '1', name: 'Campeonato Aberto de Verão', status: 'Aberto', date: '2024-12-01', isActive: true },
@@ -39,7 +42,7 @@ const Events: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Eventos</h1>
-        {localStorage.getItem('userRole') === 'admin' && (
+        {profile?.role === 'admin' && (
           <Link to="/events/create">
             <Button>Criar Novo Evento</Button>
           </Link>

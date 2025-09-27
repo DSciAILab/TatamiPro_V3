@@ -34,12 +34,14 @@ import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { cn } from '@/lib/utils';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
+import { useAuth } from '@/context/auth-context';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { profile } = useAuth();
+  const userRole = profile?.role;
+  const userClub = profile?.club;
   const [activeTab, setActiveTab] = useState('inscricoes');
-  const userRole = localStorage.getItem('userRole');
-  const userClub = localStorage.getItem('userClub');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');

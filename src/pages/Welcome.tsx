@@ -1,22 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, UserPlus } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 const Welcome: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
-  }, []);
+  const { session } = useAuth();
+  const isLoggedIn = !!session;
 
   return (
     <Layout>

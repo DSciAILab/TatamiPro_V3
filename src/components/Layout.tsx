@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { showSuccess } from '@/utils/toast';
 import { LogOut } from 'lucide-react';
-import { useTranslations } from '@/hooks/use-translations'; // Importar o hook
+import { useTranslations } from '@/hooks/use-translations';
+import { useAuth } from '@/context/auth-context';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,14 +16,11 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
-  const { t } = useTranslations(); // Usar o hook
-  const userName = localStorage.getItem('userName');
-  const userRole = localStorage.getItem('userRole');
+  const { t } = useTranslations();
+  const { session, profile } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userClub');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     showSuccess('Logout realizado com sucesso!');
     navigate('/auth');
   };
@@ -34,21 +33,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link to="/" className="text-2xl font-bold text-primary">
               TatamiPro
             </Link>
-            {userName && (
-              <span className="text-lg text-muted-foreground">({userName})</span>
+            {profile && (
+              <span className="text-lg text-muted-foreground">({profile.first_name})</span>
             )}
           </div>
           <nav className="flex items-center space-x-2">
             <Link to="/events">
               <Button variant="ghost">{t('events')}</Button>
             </Link>
-            {userRole && (
+            {session && (
               <Link to="/account-security">
                 <Button variant="ghost">Security</Button>
               </Link>
             )}
             <ModeToggle />
-            {userRole && (
+            {session && (
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">
                 <LogOut className="h-5 w-5" />
               </Button>
