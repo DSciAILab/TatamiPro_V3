@@ -47,7 +47,7 @@ serve(async (req: Request) => {
     return new Response(response.body, {
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-ndjson", // Correct content type for streaming newline-delimited JSON
       },
     });
   } catch (error: any) {

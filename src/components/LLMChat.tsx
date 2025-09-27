@@ -58,12 +58,13 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
         
-        // Keep the last, possibly incomplete, line in the buffer
-        buffer = lines.pop() || '';
+        let newlineIndex;
+        // Process all complete lines in the buffer
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1); // Update buffer to remove the processed line
 
-        for (const line of lines) {
           if (line.trim() === '') continue;
           try {
             const parsed = JSON.parse(line);
