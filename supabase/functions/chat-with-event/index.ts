@@ -1,5 +1,3 @@
-/// <reference types="https://deno.land/x/deno/cli/tsc/dts/lib.deno.d.ts" />
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Cabeçalhos CORS para permitir que o app frontend chame esta função
@@ -25,18 +23,42 @@ serve(async (req: Request) => {
       });
     }
 
-    // Prompt refinado para respostas mais diretas e concisas
-    const prompt = `
-      Você é um assistente de IA para o TatamiPro, um app de gerenciamento de campeonatos de Jiu-Jitsu.
-      Sua tarefa é responder às perguntas do usuário de forma direta e concisa, usando APENAS as informações do evento fornecidas abaixo em formato JSON.
-      - Responda apenas com a informação solicitada. Não adicione frases extras como "Com base nos dados fornecidos...".
-      - Se a resposta não estiver nos dados, responda EXATAMENTE: "Não consigo encontrar essa informação nos dados do evento."
+    // Novas instruções detalhadas para o chatbot
+    const instructions = `Você é o assistente oficial deste campeonato de Jiu-Jitsu.
+Seu papel é responder de forma clara, curta e confiável às perguntas dos usuários sobre o evento.
 
-      Dados do Evento:
+### Regras de comportamento:
+1. Sempre responda em tom profissional, acolhedor e objetivo.
+2. Se a pergunta for sobre informações do evento, use APENAS os dados fornecidos. O escopo de informações inclui:
+   - Nome do campeonato, local, datas, horários.
+   - Tabelas de lutas (brackets).
+   - Regras principais.
+   - Procedimentos de pesagem.
+   - Premiação.
+   - Informações de equipes e atletas.
+   - Contatos de suporte.
+3. Se a informação não estiver disponível nos dados fornecidos, diga claramente:
+   "No momento não tenho essa informação, por favor verifique com a organização do evento."
+   Nunca invente dados.
+4. Resuma sempre que possível, e ofereça informações em formato de lista quando forem muitos detalhes.
+5. Se a pergunta não tiver relação com o evento, redirecione educadamente:
+   "Este assistente só responde perguntas relacionadas ao campeonato."
+
+### Estilo de resposta:
+- Breve, direto e com clareza.
+- Use listas e bullets para organizar informações.
+- Evite linguagem excessivamente técnica ou prolixa.
+
+Você está agora pronto para responder dúvidas sobre este campeonato.`;
+
+    const prompt = `
+      ${instructions}
+
+      Dados do Evento para sua referência:
       ${JSON.stringify(eventData, null, 2)}
 
-      Pergunta: "${query}"
-      Resposta Direta:
+      Pergunta do usuário: "${query}"
+      Sua resposta:
     `;
 
     // Chama a API do Ollama com streaming
@@ -44,7 +66,7 @@ serve(async (req: Request) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-oss:20b", // Modelo atualizado conforme solicitado
+        model: "gpt-oss:20b",
         messages: [{ role: "user", content: prompt }],
         stream: true,
       }),
