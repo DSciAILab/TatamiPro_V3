@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
-import QrCodeScanner from '@/components/QrCodeScanner';
+import NativeQrScanner from '@/components/NativeQrScanner';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
@@ -19,7 +19,7 @@ import AttendanceManagement from '@/components/AttendanceManagement';
 import MatDistribution from '@/components/MatDistribution';
 import LLMChat from '@/components/LLMChat';
 import { Athlete, Event, Division, Bracket } from '../types/index';
-import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords, Download } from 'lucide-react';
+import { UserRound, Edit, CheckCircle, XCircle, Scale, CalendarIcon, Search, Trash2, PlusCircle, QrCodeIcon, LayoutGrid, Swords, Download, Barcode } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAthleteDisplayString, findAthleteDivision, processAthleteData } from '@/utils/athlete-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -81,6 +81,7 @@ const EventDetail: React.FC = () => {
     let existingDivisions: Division[] = [];
     let isAttendanceMandatoryBeforeCheckIn = false;
     let isWeightCheckEnabled = true;
+    let checkInScanMode: 'qr' | 'barcode' | 'none' = 'qr';
     let matAssignments: Record<string, string[]> = {};
     let isBeltGroupingEnabled = true;
     let isOverweightAutoMoveEnabled = false;
@@ -108,6 +109,7 @@ const EventDetail: React.FC = () => {
         };
         isAttendanceMandatoryBeforeCheckIn = parsedEvent.isAttendanceMandatoryBeforeCheckIn || false;
         isWeightCheckEnabled = parsedEvent.isWeightCheckEnabled !== undefined ? parsedEvent.isWeightCheckEnabled : true;
+        checkInScanMode = parsedEvent.checkInScanMode || 'qr';
         matAssignments = parsedEvent.matAssignments || {};
         isBeltGroupingEnabled = parsedEvent.isBeltGroupingEnabled !== undefined ? parsedEvent.isBeltGroupingEnabled : true;
         isOverweightAutoMoveEnabled = parsedEvent.isOverweightAutoMoveEnabled !== undefined ? parsedEvent.isOverweightAutoMoveEnabled : false;
@@ -137,6 +139,7 @@ const EventDetail: React.FC = () => {
       divisions: existingDivisions,
       isAttendanceMandatoryBeforeCheckIn,
       isWeightCheckEnabled,
+      checkInScanMode,
       matAssignments,
       isBeltGroupingEnabled,
       isOverweightAutoMoveEnabled,
@@ -162,6 +165,7 @@ const EventDetail: React.FC = () => {
   const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
   const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
   const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled || true);
+  const [checkInScanMode, setCheckInScanMode] = useState<'qr' | 'barcode' | 'none'>(event?.checkInScanMode || 'qr');
   const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled || true);
   const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled || false);
   const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false);
@@ -208,6 +212,7 @@ const EventDetail: React.FC = () => {
         numFightAreas: numFightAreas,
         isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
         isWeightCheckEnabled: isWeightCheckEnabled,
+        checkInScanMode: checkInScanMode,
         isBeltGroupingEnabled: isBeltGroupingEnabled,
         isOverweightAutoMoveEnabled: isOverweightAutoMoveEnabled,
         includeThirdPlace: includeThirdPlace,
@@ -235,7 +240,7 @@ const EventDetail: React.FC = () => {
         }
       }
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
+  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -736,6 +741,30 @@ const EventDetail: React.FC = () => {
                           <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
                         </div>
                       </div>
+                      <div>
+                        <h4 className="text-md font-semibold mt-4">Modo de Escaneamento para Check-in</h4>
+                        <ToggleGroup
+                          type="single"
+                          value={checkInScanMode}
+                          onValueChange={(value: 'qr' | 'barcode' | 'none') => {
+                            if (value) setCheckInScanMode(value);
+                            else setCheckInScanMode('none');
+                          }}
+                          className="mt-2"
+                        >
+                          <ToggleGroupItem value="qr" aria-label="QR Code">
+                            <QrCodeIcon className="mr-2 h-4 w-4" />
+                            QR Code
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="barcode" aria-label="Código de Barras">
+                            <Barcode className="mr-2 h-4 w-4" />
+                            Código de Barras
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Selecione o método de escaneamento. Se nenhum for selecionado, a opção será desativada.
+                        </p>
+                      </div>
                     </div>
                     <CheckInMandatoryFieldsConfig eventId={event.id} />
                   </TabsContent>
@@ -1151,19 +1180,33 @@ const EventDetail: React.FC = () => {
               </div>
 
               <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <QrCodeScanner onScanSuccess={(qrCodeId) => {
-                    const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
-                    if (athlete) {
-                      setScannedAthleteId(qrCodeId);
-                      setSearchTerm('');
-                      showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
-                    } else {
-                      showError('QR Code não reconhecido ou atleta não encontrado.');
-                      setScannedAthleteId(null);
-                    }
-                  }} />
-                </div>
+                {event.checkInScanMode === 'qr' && (
+                  <div className="flex-1">
+                    <NativeQrScanner
+                      onScanSuccess={(qrCodeId) => {
+                        const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
+                        if (athlete) {
+                          setScannedAthleteId(qrCodeId);
+                          setSearchTerm('');
+                          showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
+                        } else {
+                          showError('QR Code não reconhecido ou atleta não encontrado.');
+                          setScannedAthleteId(null);
+                        }
+                      }}
+                      onScanError={(error) => {
+                        showError(error);
+                      }}
+                    />
+                  </div>
+                )}
+                {event.checkInScanMode === 'barcode' && (
+                  <div className="flex-1">
+                    <Button variant="outline" className="w-full" disabled>
+                      <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
+                    </Button>
+                  </div>
+                )}
                 <div className="flex-1 relative">
                   <Input
                     type="text"
