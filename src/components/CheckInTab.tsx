@@ -74,12 +74,6 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
 
-  if (!userRole) {
-    return (
-      <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar o check-in.</CardDescription></CardHeader></Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -112,162 +106,168 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div
-            className={cn(
-              "p-3 border rounded-md cursor-pointer transition-colors",
-              checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-              'hover:bg-green-100 dark:hover:bg-green-900'
-            )}
-            onClick={() => handleCheckInBoxClick('checked_in')}
-          >
-            <p className="text-2xl font-bold text-green-600">{totalCheckedInOk}</p>
-            <p className="text-sm text-muted-foreground">Check-in OK</p>
-          </div>
-          <div
-            className={cn(
-              "p-3 border rounded-md cursor-pointer transition-colors",
-              checkInFilter === 'overweight' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
-              checkInFilter === 'overweight' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
-            )}
-            onClick={() => handleCheckInBoxClick('overweight')}
-          >
-            <p className="text-2xl font-bold text-red-600">{totalOverweights}</p>
-            <p className="text-sm text-muted-foreground">Acima do Peso</p>
-          </div>
-          <div
-            className={cn(
-              "p-3 border rounded-md cursor-pointer transition-colors",
-              checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-              checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
-            )}
-            onClick={() => handleCheckInBoxClick('pending')}
-          >
-            <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
-            <p className="text-sm text-muted-foreground">Faltam</p>
-          </div>
-          <div
-            className={cn(
-              "p-3 border rounded-md cursor-pointer transition-colors",
-              checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-              checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
-            )}
-            onClick={() => setCheckInFilter('all')}
-          >
-            <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
-            <p className="text-sm text-muted-foreground">Total Aprovados</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          {event.checkInScanMode === 'qr' && (
-            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                  <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR Code
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Escanear QR Code do Atleta</DialogTitle>
-                </DialogHeader>
-                <QrScanner
-                  onScanSuccess={(qrCodeId) => {
-                    const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
-                    if (athlete) {
-                      setScannedAthleteId(qrCodeId);
-                      setSearchTerm('');
-                      showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
-                      setIsScannerOpen(false);
-                    } else {
-                      showError('QR Code não reconhecido ou atleta não encontrado.');
-                    }
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
-          {event.checkInScanMode === 'barcode' && (
-            <div className="flex-1">
-              <Button variant="outline" className="w-full" disabled>
-                <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
-              </Button>
-            </div>
-          )}
-          <div className="flex-1 relative">
-            <Input
-              type="text"
-              placeholder="Buscar atleta (nome, clube, divisão...)"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setScannedAthleteId(null);
-              }}
-              className="pr-10"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
-
-        {filteredAthletesForCheckIn.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
+        {!userRole ? (
+          <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar o check-in.</CardDescription></CardHeader></Card>
         ) : (
-          <ul className="space-y-4">
-            {filteredAthletesForCheckIn.map((athlete) => (
-              <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
-                <div className="flex items-center space-x-3 flex-grow">
-                  {athlete.photoUrl ? (
-                    <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      <UserRound className="h-5 w-5 text-muted-foreground" />
+          <>
+            <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div
+                className={cn(
+                  "p-3 border rounded-md cursor-pointer transition-colors",
+                  checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+                  'hover:bg-green-100 dark:hover:bg-green-900'
+                )}
+                onClick={() => handleCheckInBoxClick('checked_in')}
+              >
+                <p className="text-2xl font-bold text-green-600">{totalCheckedInOk}</p>
+                <p className="text-sm text-muted-foreground">Check-in OK</p>
+              </div>
+              <div
+                className={cn(
+                  "p-3 border rounded-md cursor-pointer transition-colors",
+                  checkInFilter === 'overweight' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
+                  checkInFilter === 'overweight' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
+                )}
+                onClick={() => handleCheckInBoxClick('overweight')}
+              >
+                <p className="text-2xl font-bold text-red-600">{totalOverweights}</p>
+                <p className="text-sm text-muted-foreground">Acima do Peso</p>
+              </div>
+              <div
+                className={cn(
+                  "p-3 border rounded-md cursor-pointer transition-colors",
+                  checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
+                  checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
+                )}
+                onClick={() => handleCheckInBoxClick('pending')}
+              >
+                <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
+                <p className="text-sm text-muted-foreground">Faltam</p>
+              </div>
+              <div
+                className={cn(
+                  "p-3 border rounded-md cursor-pointer transition-colors",
+                  checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
+                  checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
+                )}
+                onClick={() => setCheckInFilter('all')}
+              >
+                <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
+                <p className="text-sm text-muted-foreground">Total Aprovados</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              {event.checkInScanMode === 'qr' && (
+                <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR Code
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Escanear QR Code do Atleta</DialogTitle>
+                    </DialogHeader>
+                    <QrScanner
+                      onScanSuccess={(qrCodeId) => {
+                        const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
+                        if (athlete) {
+                          setScannedAthleteId(qrCodeId);
+                          setSearchTerm('');
+                          showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
+                          setIsScannerOpen(false);
+                        } else {
+                          showError('QR Code não reconhecido ou atleta não encontrado.');
+                        }
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+              {event.checkInScanMode === 'barcode' && (
+                <div className="flex-1">
+                  <Button variant="outline" className="w-full" disabled>
+                    <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
+                  </Button>
+                </div>
+              )}
+              <div className="flex-1 relative">
+                <Input
+                  type="text"
+                  placeholder="Buscar atleta (nome, clube, divisão...)"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setScannedAthleteId(null);
+                  }}
+                  className="pr-10"
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+
+            {filteredAthletesForCheckIn.length === 0 ? (
+              <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
+            ) : (
+              <ul className="space-y-4">
+                {filteredAthletesForCheckIn.map((athlete) => (
+                  <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
+                    <div className="flex items-center space-x-3 flex-grow">
+                      {athlete.photoUrl ? (
+                        <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <UserRound className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                        {athlete.registeredWeight && (
+                          <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                        )}
+                        {athlete.moveReason && (
+                          <p className="text-xs text-blue-500">
+                            <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div>
-                    <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
-                    <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                    {athlete.registeredWeight && (
-                      <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
-                    )}
-                    {athlete.moveReason && (
-                      <p className="text-xs text-blue-500">
-                        <span className="font-semibold">Movido:</span> {athlete.moveReason}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end space-y-2">
-                  <div className="flex items-center space-x-2">
-                    {athlete.checkInStatus === 'checked_in' && (
-                      <span className="flex items-center text-green-600 font-semibold text-sm">
-                        <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
-                      </span>
-                    )}
-                    {athlete.checkInStatus === 'overweight' && (
-                      <span className="flex items-center text-red-600 font-semibold text-sm">
-                        <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registeredWeight}kg)
-                      </span>
-                    )}
-                    {athlete.checkInStatus === 'pending' && (
-                      <span className="flex items-center text-orange-500 font-semibold text-sm">
-                        <Scale className="h-4 w-4 mr-1" /> Pendente
-                      </span>
-                    )}
-                  </div>
-                  <CheckInForm
-                    athlete={athlete}
-                    onCheckIn={handleCheckInAthlete}
-                    isCheckInAllowed={isCheckInAllowedGlobally && (event.isAttendanceMandatoryBeforeCheckIn ? athlete.attendanceStatus === 'present' : true)}
-                    divisionMaxWeight={athlete._division?.maxWeight}
-                    isWeightCheckEnabled={event.isWeightCheckEnabled ?? true}
-                    isOverweightAutoMoveEnabled={event.isOverweightAutoMoveEnabled ?? false}
-                    eventDivisions={event.divisions}
-                    isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <div className="flex flex-col items-end space-y-2">
+                      <div className="flex items-center space-x-2">
+                        {athlete.checkInStatus === 'checked_in' && (
+                          <span className="flex items-center text-green-600 font-semibold text-sm">
+                            <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
+                          </span>
+                        )}
+                        {athlete.checkInStatus === 'overweight' && (
+                          <span className="flex items-center text-red-600 font-semibold text-sm">
+                            <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registeredWeight}kg)
+                          </span>
+                        )}
+                        {athlete.checkInStatus === 'pending' && (
+                          <span className="flex items-center text-orange-500 font-semibold text-sm">
+                            <Scale className="h-4 w-4 mr-1" /> Pendente
+                          </span>
+                        )}
+                      </div>
+                      <CheckInForm
+                        athlete={athlete}
+                        onCheckIn={handleCheckInAthlete}
+                        isCheckInAllowed={isCheckInAllowedGlobally && (event.isAttendanceMandatoryBeforeCheckIn ? athlete.attendanceStatus === 'present' : true)}
+                        divisionMaxWeight={athlete._division?.maxWeight}
+                        isWeightCheckEnabled={event.isWeightCheckEnabled ?? true}
+                        isOverweightAutoMoveEnabled={event.isOverweightAutoMoveEnabled ?? false}
+                        eventDivisions={event.divisions}
+                        isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
