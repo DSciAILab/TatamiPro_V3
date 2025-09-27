@@ -40,7 +40,6 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
     setIsLoading(true);
 
     try {
-      // The 'data' returned from invoke is the raw Response object
       const { data: response, error } = await supabase.functions.invoke('chat-with-event', {
         body: { query: input, eventData: event },
         responseType: 'stream',
@@ -48,8 +47,17 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
 
       if (error) throw error;
 
-      // We need to access the .body property of the Response object to get the stream
-      if (!response || !response.body) {
+      if (!response) {
+        throw new Error("A resposta da função foi nula.");
+      }
+
+      // Check if the response is OK. If not, it's an error from the edge function.
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Ocorreu um erro ao se comunicar com o assistente.");
+      }
+
+      if (!response.body) {
         throw new Error("A resposta da função não continha um corpo de stream válido.");
       }
 
@@ -64,11 +72,13 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
         
-        buffer = lines.pop() || ''; // Keep the last, possibly incomplete, line in the buffer
+        let newlineIndex;
+        // Process all complete lines in the buffer
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1); // Update buffer to remove the processed line
 
-        for (const line of lines) {
           if (line.trim() === '') continue;
           try {
             const parsed = JSON.parse(line);
@@ -86,6 +96,7 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         }
       }
       
+      // Process any remaining data in the buffer
       if (buffer.trim()) {
         try {
           const parsed = JSON.parse(buffer.trim());
