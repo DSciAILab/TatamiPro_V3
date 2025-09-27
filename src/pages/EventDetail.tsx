@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import CheckInForm from '@/components/CheckInForm';
-import NativeQrScanner from '@/components/NativeQrScanner';
+import QrScanner from '@/components/QrScanner'; // Updated import
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
@@ -49,6 +49,7 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isScannerOpen, setIsScannerOpen] = useState(false); // New state for scanner dialog
   const navigate = useNavigate();
   const { t } = useTranslations();
 
@@ -558,7 +559,7 @@ const EventDetail: React.FC = () => {
   const totalPendingCheckIn = processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length;
   const totalApprovedAthletes = processedApprovedAthletes.length;
 
-  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
+  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(currentTime, checkInEndTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0
     ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s`
     : 'Encerrado';
@@ -748,9 +749,8 @@ const EventDetail: React.FC = () => {
                         <ToggleGroup
                           type="single"
                           value={checkInScanMode}
-                          onValueChange={(value: 'qr' | 'barcode' | 'none') => {
-                            if (value) setCheckInScanMode(value);
-                            else setCheckInScanMode('none');
+                          onValueChange={(value: 'qr' | 'barcode' | '' | null) => {
+                            setCheckInScanMode(value || 'none');
                           }}
                           className="mt-2"
                         >
@@ -1183,24 +1183,32 @@ const EventDetail: React.FC = () => {
 
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 {event.checkInScanMode === 'qr' && (
-                  <div className="flex-1">
-                    <NativeQrScanner
-                      onScanSuccess={(qrCodeId) => {
-                        const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
-                        if (athlete) {
-                          setScannedAthleteId(qrCodeId);
-                          setSearchTerm('');
-                          showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
-                        } else {
-                          showError('QR Code não reconhecido ou atleta não encontrado.');
-                          setScannedAthleteId(null);
-                        }
-                      }}
-                      onScanError={(error) => {
-                        showError(error);
-                      }}
-                    />
-                  </div>
+                  <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR Code
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Escanear QR Code do Atleta</DialogTitle>
+                      </DialogHeader>
+                      <QrScanner
+                        onScanSuccess={(qrCodeId) => {
+                          const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
+                          if (athlete) {
+                            setScannedAthleteId(qrCodeId);
+                            setSearchTerm('');
+                            showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
+                            setIsScannerOpen(false);
+                          } else {
+                            showError('QR Code não reconhecido ou atleta não encontrado.');
+                          }
+                        }}
+                        onClose={() => setIsScannerOpen(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 )}
                 {event.checkInScanMode === 'barcode' && (
                   <div className="flex-1">

@@ -8,15 +8,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const rpID = 'localhost';
-const origin = `http://${rpID}:8080`;
-
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    const origin = req.headers.get('origin');
+    if (!origin) {
+      throw new Error('Origin header is missing');
+    }
+    const url = new URL(origin);
+    const rpID = url.hostname;
+
     const authHeader = req.headers.get('Authorization')!;
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -52,7 +56,7 @@ serve(async (req: Request) => {
     const { verified, registrationInfo } = verification;
 
     if (verified && registrationInfo) {
-      const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = registrationInfo;
+      const { credentialPublicKey, credentialID, counter } = registrationInfo;
 
       const { error: insertError } = await supabaseAdmin
         .from('user_authenticators')
@@ -67,7 +71,6 @@ serve(async (req: Request) => {
 
       if (insertError) throw insertError;
 
-      // Clear the challenge
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
         user_metadata: { ...user.user_metadata, currentChallenge: null },
       });

@@ -7,18 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// The Relying Party ID is your website's domain.
-// For development, 'localhost' is fine. For production, this MUST be updated.
-const rpID = 'localhost';
-const rpName = 'TatamiPro';
-const origin = `http://${rpID}:8080`;
-
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Dynamically determine RP ID and origin from the request
+    const origin = req.headers.get('origin');
+    if (!origin) {
+      throw new Error('Origin header is missing');
+    }
+    const url = new URL(origin);
+    const rpID = url.hostname;
+    const rpName = 'TatamiPro';
+
     const authHeader = req.headers.get('Authorization')!;
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -43,11 +46,9 @@ serve(async (req: Request) => {
       rpID,
       userID: user.id,
       userName: user.email!,
-      // Don't prompt for resident keys if not needed
       authenticatorSelection: {
         residentKey: 'discouraged',
       },
-      // Exclude credentials that have already been registered
       excludeCredentials: existingAuthenticators.map(auth => ({
         id: auth.credential_id,
         type: 'public-key',
@@ -55,7 +56,6 @@ serve(async (req: Request) => {
       })),
     });
 
-    // Store the challenge in the user's metadata temporarily
     await supabaseClient.auth.updateUser({
       data: {
         currentChallenge: options.challenge,
