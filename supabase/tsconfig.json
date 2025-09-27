@@ -1,0 +1,28 @@
+{
+  // This file is for IDEs and type-checkers that use the standard TypeScript server.
+  // It provides the Deno-specific types needed for Supabase Edge Functions,
+  // preventing conflicts with the root tsconfig.json which is for the React app.
+  "compilerOptions": {
+    // Deno-specific libraries
+    "lib": ["deno.ns", "deno.window"],
+
+    // Standard module settings for Deno
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+
+    // Allow importing from URLs
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    // Only apply this configuration to files within the functions directory
+    "./functions/**/*.ts"
+  ]
+}
