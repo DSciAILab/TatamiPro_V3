@@ -40,7 +40,7 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
     setIsLoading(true);
 
     try {
-      const { data: response, error } = await supabase.functions.invoke('chat-with-event', {
+      const { data: responseData, error } = await supabase.functions.invoke('chat-with-event', {
         body: { query: input, eventData: event },
         responseType: 'stream',
       } as any);
@@ -56,39 +56,49 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         throw error;
       }
 
-      if (!response || !response.body || typeof response.body.getReader !== 'function') {
-        let errorMessage = "A resposta da função não era um stream válido.";
-        if (response) {
-          const errorData = response as any;
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          } else {
-            errorMessage = `Resposta inesperada: ${JSON.stringify(errorData)}`;
-          }
-        }
-        throw new Error(errorMessage);
+      if (!responseData) {
+        throw new Error("A resposta da função foi nula.");
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantResponse = '';
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      // Ideal case: The response is a ReadableStream
+      if (typeof responseData.getReader === 'function') {
+        const reader = responseData.getReader();
+        const decoder = new TextDecoder();
+        let assistantResponse = '';
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+          buffer += decoder.decode(value, { stream: true });
+          
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (line.trim() === '') continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message && parsed.message.content) {
+                assistantResponse += parsed.message.content;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].content = assistantResponse;
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.error("Erro ao parsear linha do stream:", line, e);
+            }
+          }
+        }
         
-        let newlineIndex;
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.trim() === '') continue;
+        if (buffer.trim()) {
           try {
-            const parsed = JSON.parse(line);
+            const parsed = JSON.parse(buffer.trim());
             if (parsed.message && parsed.message.content) {
               assistantResponse += parsed.message.content;
               setMessages(prev => {
@@ -98,25 +108,36 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
               });
             }
           } catch (e) {
-            console.error("Erro ao parsear linha do stream:", line, e);
+            console.error("Erro ao parsear buffer final do stream:", buffer.trim(), e);
           }
+        }
+      } 
+      // Fallback case: The client buffered the stream into a single string
+      else if (typeof responseData === 'string') {
+        const lines = responseData.trim().split('\n');
+        let finalContent = '';
+        lines.forEach(line => {
+          if (line.trim()) {
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message && parsed.message.content) {
+                finalContent += parsed.message.content;
+              }
+            } catch (e) {
+              console.warn("Não foi possível analisar a linha da resposta em buffer:", line);
+            }
+          }
+        });
+
+        if (finalContent) {
+          setMessages(prev => [...prev, { role: 'assistant', content: finalContent }]);
+        } else {
+          throw new Error(`Não foi possível extrair conteúdo da resposta: ${responseData}`);
         }
       }
-      
-      if (buffer.trim()) {
-        try {
-          const parsed = JSON.parse(buffer.trim());
-          if (parsed.message && parsed.message.content) {
-            assistantResponse += parsed.message.content;
-            setMessages(prev => {
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1].content = assistantResponse;
-              return newMessages;
-            });
-          }
-        } catch (e) {
-          console.error("Erro ao parsear buffer final do stream:", buffer.trim(), e);
-        }
+      // Error case
+      else {
+        throw new Error(`Resposta inesperada: ${JSON.stringify(responseData)}`);
       }
 
     } catch (err: any) {
