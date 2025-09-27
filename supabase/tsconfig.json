@@ -1,19 +1,11 @@
 {
   "compilerOptions": {
     "lib": ["deno.ns", "deno.window"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "target": "esnext",
-    "allowJs": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true
   },
-  "include": [
-    "./functions/**/*.ts"
-  ]
+  "include": ["./functions/**/*.ts"]
 }
