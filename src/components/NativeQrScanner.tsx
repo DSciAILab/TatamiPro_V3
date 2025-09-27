@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useRef, useState } from 'react';
-import jsQR from 'jsqr';
 import { Button } from '@/components/ui/button';
 import { QrCodeIcon, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { showError } from '@/utils/toast';
 
 interface NativeQrScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -16,57 +16,43 @@ const NativeQrScanner: React.FC<NativeQrScannerProps> = ({ onScanSuccess, onScan
   const [isLoading, setIsLoading] = useState(false);
 
   const handleButtonClick = () => {
+    // @ts-ignore
+    if (!('BarcodeDetector' in window)) {
+      showError('Seu navegador não suporta a detecção de QR Code. Tente usar Chrome ou Safari em um dispositivo móvel.');
+      return;
+    }
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
     setIsLoading(true);
-    const reader = new FileReader();
 
-    reader.onload = (e) => {
-      const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          onScanError('Não foi possível obter o contexto do canvas.');
-          setIsLoading(false);
-          return;
-        }
-        ctx.drawImage(image, 0, 0, image.width, image.height);
-        const imageData = ctx.getImageData(0, 0, image.width, image.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+    try {
+      // @ts-ignore - BarcodeDetector might not be in all TS lib versions
+      const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      const imageBitmap = await createImageBitmap(file);
+      const barcodes = await barcodeDetector.detect(imageBitmap);
 
-        if (code) {
-          onScanSuccess(code.data);
-        } else {
-          onScanError('Nenhum QR Code encontrado na imagem.');
-        }
-        setIsLoading(false);
-      };
-      image.onerror = () => {
-        onScanError('Não foi possível carregar a imagem.');
-        setIsLoading(false);
-      };
-      image.src = e.target?.result as string;
-    };
-
-    reader.onerror = () => {
-      onScanError('Não foi possível ler o arquivo.');
+      if (barcodes.length > 0) {
+        onScanSuccess(barcodes[0].rawValue);
+      } else {
+        onScanError('Nenhum QR Code encontrado na imagem.');
+      }
+    } catch (error) {
+      console.error('Erro ao escanear QR Code:', error);
+      onScanError('Ocorreu um erro ao processar a imagem.');
+    } finally {
       setIsLoading(false);
-    };
-
-    reader.readAsDataURL(file);
-
-    // Reset the input value to allow scanning the same file again
-    event.target.value = '';
+      // Reset the input value to allow scanning the same file again
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   return (
