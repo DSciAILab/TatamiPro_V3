@@ -1,3 +1,5 @@
+/// <reference types="https://deno.land/x/deno/cli/tsc/dts/lib.deno.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Cabeçalhos CORS para permitir que o app frontend chame esta função
@@ -23,16 +25,18 @@ serve(async (req: Request) => {
       });
     }
 
-    // Constrói o prompt para o LLM, fornecendo os dados do evento como contexto (RAG)
+    // Prompt refinado para respostas mais diretas e concisas
     const prompt = `
-      Você é um assistente prestativo para um aplicativo de gerenciamento de campeonatos de Jiu-Jitsu chamado TatamiPro.
-      Sua tarefa é responder às perguntas do usuário usando APENAS as informações fornecidas no seguinte JSON de dados do evento.
-      Se a resposta não estiver nos dados, diga "Não consigo encontrar essa informação nos dados do evento."
+      Você é um assistente de IA para o TatamiPro, um app de gerenciamento de campeonatos de Jiu-Jitsu.
+      Sua tarefa é responder às perguntas do usuário de forma direta e concisa, usando APENAS as informações do evento fornecidas abaixo em formato JSON.
+      - Responda apenas com a informação solicitada. Não adicione frases extras como "Com base nos dados fornecidos...".
+      - Se a resposta não estiver nos dados, responda EXATAMENTE: "Não consigo encontrar essa informação nos dados do evento."
 
-      Aqui estão os dados do evento:
+      Dados do Evento:
       ${JSON.stringify(eventData, null, 2)}
 
-      Pergunta do usuário: "${query}"
+      Pergunta: "${query}"
+      Resposta Direta:
     `;
 
     // Chama a API do Ollama com streaming
@@ -40,8 +44,7 @@ serve(async (req: Request) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Alterado de 'mistral' para 'llama3', um modelo mais comum.
-        model: "llama3", 
+        model: "gpt-oss:20b", // Modelo atualizado conforme solicitado
         messages: [{ role: "user", content: prompt }],
         stream: true,
       }),

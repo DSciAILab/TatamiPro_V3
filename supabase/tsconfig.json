@@ -1,11 +1,14 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "lib": ["deno.ns", "deno.window"],
-    "strict": true,
-    "module": "esnext",
-    "target": "esnext",
+    "lib": ["ESNext", "deno.ns", "deno.window"],
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "target": "ESNext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["./functions/**/*.ts"]
+  "include": [
+    "./functions/**/*.ts"
+  ]
 }
