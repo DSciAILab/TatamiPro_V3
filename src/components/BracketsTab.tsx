@@ -1,13 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 'Link' removido
+import { useNavigate } from 'react-router-dom';
 import { Event } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // 'DialogTrigger' removido
 import { LayoutGrid, Swords } from 'lucide-react';
-import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
 import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
@@ -20,10 +18,8 @@ interface BracketsTabProps {
 const BracketsTab: React.FC<BracketsTabProps> = ({
   event,
   userRole,
-  handleUpdateMatAssignments,
 }) => {
   const navigate = useNavigate();
-  const [isMatDistributionDialogOpen, setIsMatDistributionDialogOpen] = useState(false);
   const [activeBracketAction, setActiveBracketAction] = useState<'distribute' | 'generate' | 'manage' | null>(null);
 
   return (
@@ -44,7 +40,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                   : "text-muted-foreground hover:bg-muted hover:text-foreground" // Inactive state styles
               )}
               onClick={() => {
-                setIsMatDistributionDialogOpen(true);
+                navigate(`/events/${event.id}/distribute-mats`); // NOVO: Navegar para a página
                 setActiveBracketAction('distribute');
               }}
             >
@@ -82,20 +78,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
             </Button>
           </div>
         )}
-
-        {/* Dialog for Mat Distribution (remains outside the "tab-like" buttons) */}
-        <Dialog open={isMatDistributionDialogOpen} onOpenChange={setIsMatDistributionDialogOpen}>
-          <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Configurar Distribuição dos Mats</DialogTitle>
-            </DialogHeader>
-            <MatDistribution
-              event={event}
-              onUpdateMatAssignments={handleUpdateMatAssignments}
-              isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
-            />
-          </DialogContent>
-        </Dialog>
 
         {event.brackets && Object.keys(event.brackets).length > 0 ? (
           <div className="space-y-4 mt-6">

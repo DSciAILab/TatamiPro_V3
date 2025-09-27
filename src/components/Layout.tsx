@@ -9,6 +9,8 @@ import { LogOut } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
+import { useLayoutSettings } from '@/context/layout-settings-context'; // NOVO: Importar useLayoutSettings
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const { t } = useTranslations();
   const { session, profile } = useAuth();
+  const { isWideLayout } = useLayoutSettings(); // NOVO: Usar isWideLayout do contexto
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -55,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </nav>
         </div>
       </header>
-      <main className="flex-1 container py-8">
+      <main className={cn("flex-1 py-8", isWideLayout ? "px-4" : "container")}> {/* NOVO: Aplica px-4 ou container */}
         {children}
       </main>
     </div>

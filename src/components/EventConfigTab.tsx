@@ -18,6 +18,7 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import { useLayoutSettings } from '@/context/layout-settings-context'; // NOVO: Importar useLayoutSettings
 
 interface EventConfigTabProps {
   event: Event;
@@ -97,6 +98,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   userRole,
 }) => {
   const { t } = useTranslations();
+  const { isWideLayout, setIsWideLayout } = useLayoutSettings(); // NOVO: Usar isWideLayout e setIsWideLayout
 
   // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
 
@@ -132,6 +134,15 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       onCheckedChange={setIsActive}
                     />
                     <Label htmlFor="event-active">Evento Ativo</Label>
+                  </div>
+                  {/* NOVO: Toggle para Layout Amplo */}
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Switch
+                      id="wide-layout"
+                      checked={isWideLayout}
+                      onCheckedChange={setIsWideLayout}
+                    />
+                    <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
                   </div>
                   <div className="mt-4">
                     <Button onClick={handleExportJson} variant="outline">
