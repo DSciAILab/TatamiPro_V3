@@ -7,18 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { baseEvents } from '@/data/base-events';
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
 
-  // This function now is called at each render to ensure the latest data from localStorage is displayed.
   const getEvents = () => {
-    const baseEvents = [
-      { id: '1', name: 'Campeonato Aberto de Verão', status: 'Aberto', date: '2024-12-01', isActive: true },
-      { id: '2', name: 'Copa TatamiPro Inverno', status: 'Fechado', date: '2024-07-15', isActive: true },
-      { id: '3', name: 'Desafio de Faixas Coloridas', status: 'Aberto', date: '2025-03-10', isActive: false },
-    ];
-
     const storedEventsListRaw = localStorage.getItem('events');
     let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
     if (storedEventsListRaw) {
@@ -29,8 +23,16 @@ const Events: React.FC = () => {
       }
     }
 
-    const combinedEventsMap = new Map<string, typeof baseEvents[0]>();
-    baseEvents.forEach(event => combinedEventsMap.set(event.id, event));
+    const combinedEventsMap = new Map<string, { id: string; name: string; status: string; date: string; isActive: boolean }>();
+    
+    baseEvents.forEach(event => combinedEventsMap.set(event.id, {
+      id: event.id,
+      name: event.name,
+      status: event.status,
+      date: event.date,
+      isActive: event.isActive,
+    }));
+
     storedEventsList.forEach(event => combinedEventsMap.set(event.id, event));
 
     return Array.from(combinedEventsMap.values());

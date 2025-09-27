@@ -10,6 +10,7 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
+import { baseEvents } from '@/data/base-events';
 
 // Import the new tab components
 import EventConfigTab from '@/components/EventConfigTab';
@@ -33,43 +34,80 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [event, setEvent] = useState<Event | null>(() => {
+  // Effect to load event data
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    let eventData: Event | null = null;
     const existingEventData = localStorage.getItem(`event_${id}`);
+    
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
         const processedAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, parsedEvent.divisions || []));
-        return { ...parsedEvent, athletes: processedAthletes };
+        eventData = { ...parsedEvent, athletes: processedAthletes };
       } catch (e) {
         console.error("Failed to parse event data", e);
       }
     }
-    return null;
-  });
+
+    if (!eventData) {
+      const baseEvent = baseEvents.find(e => e.id === id);
+      if (baseEvent) {
+        localStorage.setItem(`event_${id}`, JSON.stringify(baseEvent));
+        eventData = baseEvent;
+      }
+    }
+
+    setEvent(eventData);
+    setLoading(false);
+  }, [id]);
 
   // Component State derived from event state
-  const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>(
-    event?.checkInStartTime ? parseISO(event.checkInStartTime) : undefined
-  );
-  const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>(
-    event?.checkInEndTime ? parseISO(event.checkInEndTime) : undefined
-  );
-  const [numFightAreas, setNumFightAreas] = useState<number>(event?.numFightAreas || 1);
-  const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(event?.isAttendanceMandatoryBeforeCheckIn || false);
-  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(event?.isWeightCheckEnabled ?? true);
-  const [checkInScanMode, setCheckInScanMode] = useState<'qr' | 'barcode' | 'none'>(event?.checkInScanMode || 'qr');
-  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(event?.isBeltGroupingEnabled ?? true);
-  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(event?.isOverweightAutoMoveEnabled ?? false);
-  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(event?.includeThirdPlace || false);
-  const [isActive, setIsActive] = useState<boolean>(event?.isActive ?? true);
-  const [championPoints, setChampionPoints] = useState<number>(event?.championPoints || 9);
-  const [runnerUpPoints, setRunnerUpPoints] = useState<number>(event?.runnerUpPoints || 3);
-  const [thirdPlacePoints, setThirdPlacePoints] = useState<number>(event?.thirdPlacePoints || 1);
-  const [countSingleClubCategories, setCountSingleClubCategories] = useState<boolean>(event?.countSingleClubCategories ?? true);
-  const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(event?.countWalkoverSingleFightCategories ?? true);
+  const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>();
+  const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>();
+  const [numFightAreas, setNumFightAreas] = useState<number>(1);
+  const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(false);
+  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(true);
+  const [checkInScanMode, setCheckInScanMode] = useState<'qr' | 'barcode' | 'none'>('qr');
+  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(true);
+  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(false);
+  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(false);
+  const [isActive, setIsActive] = useState<boolean>(true);
+  const [championPoints, setChampionPoints] = useState<number>(9);
+  const [runnerUpPoints, setRunnerUpPoints] = useState<number>(3);
+  const [thirdPlacePoints, setThirdPlacePoints] = useState<number>(1);
+  const [countSingleClubCategories, setCountSingleClubCategories] = useState<boolean>(true);
+  const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(true);
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
+
+  // Effect to sync local state with loaded event data
+  useEffect(() => {
+    if (event) {
+      setCheckInStartTime(event.checkInStartTime ? parseISO(event.checkInStartTime) : undefined);
+      setCheckInEndTime(event.checkInEndTime ? parseISO(event.checkInEndTime) : undefined);
+      setNumFightAreas(event.numFightAreas || 1);
+      setIsAttendanceMandatory(event.isAttendanceMandatoryBeforeCheckIn || false);
+      setIsWeightCheckEnabled(event.isWeightCheckEnabled ?? true);
+      setCheckInScanMode(event.checkInScanMode || 'qr');
+      setIsBeltGroupingEnabled(event.isBeltGroupingEnabled ?? true);
+      setIsOverweightAutoMoveEnabled(event.isOverweightAutoMoveEnabled ?? false);
+      setIncludeThirdPlace(event.includeThirdPlace || false);
+      setIsActive(event.isActive ?? true);
+      setChampionPoints(event.championPoints || 9);
+      setRunnerUpPoints(event.runnerUpPoints || 3);
+      setThirdPlacePoints(event.thirdPlacePoints || 1);
+      setCountSingleClubCategories(event.countSingleClubCategories ?? true);
+      setCountWalkoverSingleFightCategories(event.countWalkoverSingleFightCategories ?? true);
+    }
+  }, [event]);
 
   // Effect to persist event data to localStorage
   useEffect(() => {
@@ -225,8 +263,12 @@ const EventDetail: React.FC = () => {
     { value: 'llm', label: 'LLM (Q&A)' },
   ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, isAttendanceMandatory]);
 
-  if (!event) {
+  if (loading) {
     return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
+  }
+
+  if (!event) {
+    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado.</div></Layout>;
   }
 
   return (
