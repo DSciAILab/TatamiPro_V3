@@ -74,6 +74,12 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
 
+  if (!userRole) {
+    return (
+      <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar o check-in.</CardDescription></CardHeader></Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -122,7 +128,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             className={cn(
               "p-3 border rounded-md cursor-pointer transition-colors",
               checkInFilter === 'overweight' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
-              'hover:bg-red-100 dark:hover:bg-red-900'
+              checkInFilter === 'overweight' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
             )}
             onClick={() => handleCheckInBoxClick('overweight')}
           >
@@ -133,7 +139,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             className={cn(
               "p-3 border rounded-md cursor-pointer transition-colors",
               checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-              'hover:bg-orange-100 dark:hover:bg-orange-900'
+              checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
             )}
             onClick={() => handleCheckInBoxClick('pending')}
           >
@@ -144,7 +150,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             className={cn(
               "p-3 border rounded-md cursor-pointer transition-colors",
               checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-              'hover:bg-blue-100 dark:hover:bg-blue-900'
+              checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
             )}
             onClick={() => setCheckInFilter('all')}
           >

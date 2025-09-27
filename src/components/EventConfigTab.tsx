@@ -55,6 +55,7 @@ interface EventConfigTabProps {
   setCountSingleClubCategories: (value: boolean) => void;
   countWalkoverSingleFightCategories: boolean;
   setCountWalkoverSingleFightCategories: (value: boolean) => void;
+  userRole?: 'admin' | 'coach' | 'staff' | 'athlete'; // New prop
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -93,8 +94,15 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   setCountSingleClubCategories,
   countWalkoverSingleFightCategories,
   setCountWalkoverSingleFightCategories,
+  userRole, // Destructure new prop
 }) => {
   const { t } = useTranslations();
+
+  if (userRole !== 'admin') {
+    return (
+      <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar as configurações do evento.</CardDescription></CardHeader></Card>
+    );
+  }
 
   return (
     <Card>

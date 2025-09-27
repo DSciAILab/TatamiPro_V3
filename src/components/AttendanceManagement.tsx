@@ -14,17 +14,23 @@ interface AttendanceManagementProps {
   eventId: string;
   eventDivisions: Event['divisions'];
   onUpdateAthleteAttendance: (athleteId: string, status: Athlete['attendanceStatus']) => void;
+  isAttendanceMandatory: boolean; // New prop
+  userRole?: 'admin' | 'coach' | 'staff' | 'athlete'; // New prop
 }
 
-const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, eventDivisions, onUpdateAthleteAttendance }) => {
+const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, eventDivisions, onUpdateAthleteAttendance, isAttendanceMandatory, userRole }) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent' | 'private_transportation' | 'pending'>('all');
   const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
-  const userClub = localStorage.getItem('userClub');
-  const userRole = localStorage.getItem('userRole');
+  const userClub = localStorage.getItem('userClub'); // Still using localStorage for club, consider passing as prop if it's part of profile
 
   useEffect(() => {
+    if (!isAttendanceMandatory) {
+      setAthletes([]); // Clear athletes if feature is disabled
+      return;
+    }
+
     const existingEventData = localStorage.getItem(`event_${eventId}`);
     if (existingEventData) {
       try {
@@ -40,7 +46,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
         showError("Erro ao carregar atletas para gerenciamento de presença.");
       }
     }
-  }, [eventId, userClub, userRole, onUpdateAthleteAttendance]);
+  }, [eventId, userClub, userRole, onUpdateAthleteAttendance, isAttendanceMandatory]);
 
   const handleAttendanceChange = (athleteId: string, status: Athlete['attendanceStatus']) => {
     onUpdateAthleteAttendance(athleteId, status);
@@ -75,6 +81,12 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
   const totalAbsent = athletes.filter(a => a.attendanceStatus === 'absent').length;
   const totalPrivateTransportation = athletes.filter(a => a.attendanceStatus === 'private_transportation').length;
   const totalMissing = athletes.filter(a => a.attendanceStatus === 'pending').length;
+
+  if (!isAttendanceMandatory) {
+    return (
+      <Card><CardHeader><CardTitle>Gerenciamento de Presença Desabilitado</CardTitle><CardDescription>A presença obrigatória antes do check-in não está habilitada para este evento.</CardDescription></CardHeader></Card>
+    );
+  }
 
   if (userRole !== 'coach' && userRole !== 'staff' && userRole !== 'admin') {
     return (

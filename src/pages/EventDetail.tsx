@@ -277,47 +277,44 @@ const EventDetail: React.FC = () => {
 
         {/* Render all TabsContent unconditionally to maintain hook consistency */}
         <TabsContent value="config" className="mt-6">
-          {userRole === 'admin' ? (
-            <EventConfigTab
-              event={event}
-              configSubTab={configSubTab}
-              setConfigSubTab={setConfigSubTab}
-              isActive={isActive}
-              setIsActive={setIsActive}
-              handleExportJson={handleExportJson}
-              checkInStartTime={checkInStartTime}
-              setCheckInStartTime={setCheckInStartTime}
-              checkInEndTime={checkInEndTime}
-              setCheckInEndTime={setCheckInEndTime}
-              numFightAreas={numFightAreas}
-              setNumFightAreas={setNumFightAreas}
-              isAttendanceMandatory={isAttendanceMandatory}
-              setIsAttendanceMandatory={setIsAttendanceMandatory}
-              isWeightCheckEnabled={isWeightCheckEnabled}
-              setIsWeightCheckEnabled={setIsWeightCheckEnabled}
-              isBeltGroupingEnabled={isBeltGroupingEnabled}
-              setIsBeltGroupingEnabled={setIsBeltGroupingEnabled}
-              isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
-              setIsOverweightAutoMoveEnabled={setIsOverweightAutoMoveEnabled}
-              includeThirdPlace={includeThirdPlace}
-              setIncludeThirdPlace={setIncludeThirdPlace}
-              checkInScanMode={checkInScanMode}
-              setCheckInScanMode={setCheckInScanMode}
-              handleUpdateDivisions={handleUpdateDivisions}
-              championPoints={championPoints}
-              setChampionPoints={setChampionPoints}
-              runnerUpPoints={runnerUpPoints}
-              setRunnerUpPoints={setRunnerUpPoints}
-              thirdPlacePoints={thirdPlacePoints}
-              setThirdPlacePoints={setThirdPlacePoints}
-              countSingleClubCategories={countSingleClubCategories}
-              setCountSingleClubCategories={setCountSingleClubCategories}
-              countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
-              setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
-            />
-          ) : (
-            <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar as configurações do evento.</CardDescription></CardHeader></Card>
-          )}
+          <EventConfigTab
+            event={event}
+            configSubTab={configSubTab}
+            setConfigSubTab={setConfigSubTab}
+            isActive={isActive}
+            setIsActive={setIsActive}
+            handleExportJson={handleExportJson}
+            checkInStartTime={checkInStartTime}
+            setCheckInStartTime={setCheckInStartTime}
+            checkInEndTime={checkInEndTime}
+            setCheckInEndTime={setCheckInEndTime}
+            numFightAreas={numFightAreas}
+            setNumFightAreas={setNumFightAreas}
+            isAttendanceMandatory={isAttendanceMandatory}
+                        setIsAttendanceMandatory={setIsAttendanceMandatory}
+            isWeightCheckEnabled={isWeightCheckEnabled}
+            setIsWeightCheckEnabled={setIsWeightCheckEnabled}
+            isBeltGroupingEnabled={isBeltGroupingEnabled}
+            setIsBeltGroupingEnabled={setIsBeltGroupingEnabled}
+            isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
+            setIsOverweightAutoMoveEnabled={setIsOverweightAutoMoveEnabled}
+            includeThirdPlace={includeThirdPlace}
+            setIncludeThirdPlace={setIncludeThirdPlace}
+            checkInScanMode={checkInScanMode}
+            setCheckInScanMode={setCheckInScanMode}
+            handleUpdateDivisions={handleUpdateDivisions}
+            championPoints={championPoints}
+            setChampionPoints={setChampionPoints}
+            runnerUpPoints={runnerUpPoints}
+            setRunnerUpPoints={setRunnerUpPoints}
+            thirdPlacePoints={thirdPlacePoints}
+            setThirdPlacePoints={setThirdPlacePoints}
+            countSingleClubCategories={countSingleClubCategories}
+            setCountSingleClubCategories={setCountSingleClubCategories}
+            countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
+            setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
+            userRole={userRole} // Pass userRole down
+          />
         </TabsContent>
 
         <TabsContent value="inscricoes" className="mt-6">
@@ -349,53 +346,47 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
-          {isAttendanceMandatory ? (
-            <AttendanceManagement
-              eventId={event.id}
-              eventDivisions={event.divisions}
-              onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
-            />
-          ) : (
-            <Card><CardHeader><CardTitle>Gerenciamento de Presença Desabilitado</CardTitle><CardDescription>A presença obrigatória antes do check-in não está habilitada para este evento.</CardDescription></CardHeader></Card>
-          )}
+          <AttendanceManagement
+            eventId={event.id}
+            eventDivisions={event.divisions}
+            onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
+            isAttendanceMandatory={isAttendanceMandatory} // Pass isAttendanceMandatory down
+            userRole={userRole} // Pass userRole down
+          />
         </TabsContent>
 
         <TabsContent value="checkin" className="mt-6">
-          {userRole ? (
-            <CheckInTab
-              event={event}
-              userRole={userRole}
-              checkInStartTime={checkInStartTime}
-              checkInEndTime={checkInEndTime}
-              checkInFilter={checkInFilter}
-              handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
-              setCheckInFilter={setCheckInFilter}
-              totalCheckedInOk={processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length}
-              totalOverweights={processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length}
-              totalPendingCheckIn={processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length}
-              totalApprovedAthletes={processedApprovedAthletes.length}
-              isScannerOpen={isScannerOpen}
-              setIsScannerOpen={setIsScannerOpen}
-              processedApprovedAthletes={processedApprovedAthletes}
-              setScannedAthleteId={setScannedAthleteId}
-              setSearchTerm={setSearchTerm}
-              searchTerm={searchTerm}
-              filteredAthletesForCheckIn={useMemo(() => {
-                let athletes = processedApprovedAthletes;
-                if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
-                if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
-                if (searchTerm) {
-                  const lower = searchTerm.toLowerCase();
-                  athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
-                }
-                if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
-                return athletes;
-              }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter])}
-              handleCheckInAthlete={handleCheckInAthlete}
-            />
-          ) : (
-            <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar o check-in.</CardDescription></CardHeader></Card>
-          )}
+          <CheckInTab
+            event={event}
+            userRole={userRole}
+            checkInStartTime={checkInStartTime}
+            checkInEndTime={checkInEndTime}
+            checkInFilter={checkInFilter}
+            handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
+            setCheckInFilter={setCheckInFilter}
+            totalCheckedInOk={processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length}
+            totalOverweights={processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length}
+            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length}
+            totalApprovedAthletes={processedApprovedAthletes.length}
+            isScannerOpen={isScannerOpen}
+            setIsScannerOpen={setIsScannerOpen}
+            processedApprovedAthletes={processedApprovedAthletes}
+            setScannedAthleteId={setScannedAthleteId}
+            setSearchTerm={setSearchTerm}
+            searchTerm={searchTerm}
+            filteredAthletesForCheckIn={useMemo(() => {
+              let athletes = processedApprovedAthletes;
+              if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
+              if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
+              if (searchTerm) {
+                const lower = searchTerm.toLowerCase();
+                athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
+              }
+              if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
+              return athletes;
+            }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter])}
+            handleCheckInAthlete={handleCheckInAthlete}
+          />
         </TabsContent>
 
         <TabsContent value="brackets" className="mt-6">
