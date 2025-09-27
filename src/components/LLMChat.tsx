@@ -51,37 +51,46 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
         throw new Error("A resposta da função foi nula.");
       }
 
-      // Check if the response is OK. If not, it's an error from the edge function.
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Ocorreu um erro ao se comunicar com o assistente.");
-      }
+      // Check if the response is a streamable Response object.
+      // A standard Response object will have a `body` property which is a ReadableStream.
+      if (response.body && typeof response.body.getReader === 'function') {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantResponse = '';
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      if (!response.body) {
-        throw new Error("A resposta da função não continha um corpo de stream válido.");
-      }
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantResponse = '';
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+          buffer += decoder.decode(value, { stream: true });
+          
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
 
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
+            if (line.trim() === '') continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message && parsed.message.content) {
+                assistantResponse += parsed.message.content;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].content = assistantResponse;
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.error("Erro ao parsear linha do stream:", line, e);
+            }
+          }
+        }
         
-        let newlineIndex;
-        // Process all complete lines in the buffer
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1); // Update buffer to remove the processed line
-
-          if (line.trim() === '') continue;
+        if (buffer.trim()) {
           try {
-            const parsed = JSON.parse(line);
+            const parsed = JSON.parse(buffer.trim());
             if (parsed.message && parsed.message.content) {
               assistantResponse += parsed.message.content;
               setMessages(prev => {
@@ -91,26 +100,13 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
               });
             }
           } catch (e) {
-            console.error("Erro ao parsear linha do stream:", line, e);
+            console.error("Erro ao parsear buffer final do stream:", buffer.trim(), e);
           }
         }
-      }
-      
-      // Process any remaining data in the buffer
-      if (buffer.trim()) {
-        try {
-          const parsed = JSON.parse(buffer.trim());
-          if (parsed.message && parsed.message.content) {
-            assistantResponse += parsed.message.content;
-            setMessages(prev => {
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1].content = assistantResponse;
-              return newMessages;
-            });
-          }
-        } catch (e) {
-          console.error("Erro ao parsear buffer final do stream:", buffer.trim(), e);
-        }
+      } else {
+        // This is likely an error object that was pre-parsed by the client.
+        const errorData = response as any;
+        throw new Error(errorData.error || "Ocorreu um erro desconhecido ao se comunicar com o assistente.");
       }
 
     } catch (err: any) {
