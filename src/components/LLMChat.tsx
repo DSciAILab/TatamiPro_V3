@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Certifique-se que o cliente Supabase está aqui
+import { supabase } from '@/integrations/supabase/client';
 import { Event } from '@/types/index';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,14 +52,19 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
       let assistantResponse = '';
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
+      let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        // Ollama streaming envia múltiplos JSONs, um por linha
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last, possibly incomplete, line in the buffer
+        buffer = lines.pop() || '';
+
         for (const line of lines) {
+          if (line.trim() === '') continue;
           try {
             const parsed = JSON.parse(line);
             if (parsed.message && parsed.message.content) {
@@ -71,10 +76,28 @@ const LLMChat: React.FC<LLMChatProps> = ({ event }) => {
               });
             }
           } catch (e) {
-            console.error("Erro ao parsear chunk do stream:", line, e);
+            console.error("Erro ao parsear linha do stream:", line, e);
           }
         }
       }
+      
+      // Process any remaining data in the buffer
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer.trim());
+          if (parsed.message && parsed.message.content) {
+            assistantResponse += parsed.message.content;
+            setMessages(prev => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1].content = assistantResponse;
+              return newMessages;
+            });
+          }
+        } catch (e) {
+          console.error("Erro ao parsear buffer final do stream:", buffer.trim(), e);
+        }
+      }
+
     } catch (err: any) {
       console.error("Erro ao chamar a Edge Function:", err);
       setMessages(prev => [...prev, { role: 'assistant', content: `Erro: ${err.message}` }]);
