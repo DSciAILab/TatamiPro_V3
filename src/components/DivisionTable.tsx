@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
-import { Division, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index'; // Importar tipos
+import { PlusCircle, Trash2, Edit, Save, XCircle, Search } from 'lucide-react';
+import { Division, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface DivisionTableProps {
   divisions: Division[];
@@ -22,16 +34,34 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     name: '',
     minAge: 0,
     maxAge: 99,
-    maxWeight: 999, // minWeight removido
+    maxWeight: 999,
     gender: 'Ambos',
     belt: 'Todas',
-    ageCategoryName: 'Adult', // Default para uma das novas categorias
+    ageCategoryName: 'Adult',
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedDivisionIds, setSelectedDivisionIds] = useState<string[]>([]);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+
+  const filteredDivisions = useMemo(() => {
+    if (!searchTerm) {
+      return divisions;
+    }
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return divisions.filter(division =>
+      division.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+      division.ageCategoryName.toLowerCase().includes(lowerCaseSearchTerm) ||
+      division.gender.toLowerCase().includes(lowerCaseSearchTerm) ||
+      division.belt.toLowerCase().includes(lowerCaseSearchTerm) ||
+      `${division.minAge}-${division.maxAge}`.includes(lowerCaseSearchTerm) ||
+      `${division.maxWeight}kg`.includes(lowerCaseSearchTerm)
+    );
+  }, [divisions, searchTerm]);
 
   const handleAddDivision = () => {
     if (!newDivision.name || !newDivision.ageCategoryName || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
-        newDivision.maxWeight === undefined) { // minWeight removido da validação
+        newDivision.maxWeight === undefined) {
       showError('Por favor, preencha todos os campos da nova divisão.');
       return;
     }
@@ -55,7 +85,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
   const handleSaveEdit = () => {
     if (currentEdit) {
       if (!currentEdit.name || !currentEdit.ageCategoryName || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
-          currentEdit.maxWeight === undefined) { // minWeight removido da validação
+          currentEdit.maxWeight === undefined) {
         showError('Por favor, preencha todos os campos da divisão.');
         return;
       }
@@ -84,6 +114,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       const updatedDivisions = divisions.filter(div => div.id !== id);
       onUpdateDivisions(updatedDivisions);
       showSuccess('Divisão removida.');
+      setSelectedDivisionIds(prev => prev.filter(selectedId => selectedId !== id));
     }
   };
 
@@ -95,10 +126,63 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     showSuccess(`Divisão ${isEnabled ? 'habilitada' : 'desabilitada'}.`);
   };
 
+  const handleToggleSelectDivision = (id: string, checked: boolean) => {
+    setSelectedDivisionIds(prev =>
+      checked ? [...prev, id] : prev.filter(selectedId => selectedId !== id)
+    );
+  };
+
+  const handleSelectAllDivisions = (checked: boolean) => {
+    if (checked) {
+      setSelectedDivisionIds(filteredDivisions.map(div => div.id));
+    } else {
+      setSelectedDivisionIds([]);
+    }
+  };
+
+  const handleBatchEnable = () => {
+    if (selectedDivisionIds.length === 0) {
+      showError('Nenhuma divisão selecionada.');
+      return;
+    }
+    const updatedDivisions = divisions.map(div =>
+      selectedDivisionIds.includes(div.id) ? { ...div, isEnabled: true } : div
+    );
+    onUpdateDivisions(updatedDivisions);
+    showSuccess(`${selectedDivisionIds.length} divisões habilitadas.`);
+    setSelectedDivisionIds([]);
+  };
+
+  const handleBatchDisable = () => {
+    if (selectedDivisionIds.length === 0) {
+      showError('Nenhuma divisão selecionada.');
+      return;
+    }
+    const updatedDivisions = divisions.map(div =>
+      selectedDivisionIds.includes(div.id) ? { ...div, isEnabled: false } : div
+    );
+    onUpdateDivisions(updatedDivisions);
+    showSuccess(`${selectedDivisionIds.length} divisões desabilitadas.`);
+    setSelectedDivisionIds([]);
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedDivisionIds.length === 0) {
+      showError('Nenhuma divisão selecionada.');
+      return;
+    }
+    const updatedDivisions = divisions.filter(div => !selectedDivisionIds.includes(div.id));
+    onUpdateDivisions(updatedDivisions);
+    showSuccess(`${selectedDivisionIds.length} divisões removidas.`);
+    setSelectedDivisionIds([]);
+    setShowBatchDeleteConfirm(false);
+  };
+
   const beltOptions: DivisionBelt[] = ['Todas', 'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
   const genderOptions: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
   const ageCategoryOptions: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master'];
 
+  const isAllSelected = filteredDivisions.length > 0 && selectedDivisionIds.length === filteredDivisions.length;
 
   return (
     <div className="space-y-6">
@@ -128,7 +212,6 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           <Label htmlFor="newMaxAge">Idade Máxima</Label>
           <Input id="newMaxAge" type="number" value={newDivision.maxAge} onChange={(e) => setNewDivision(prev => ({ ...prev, maxAge: Number(e.target.value) }))} />
         </div>
-        {/* minWeight removido */}
         <div>
           <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
           <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.maxWeight} onChange={(e) => setNewDivision(prev => ({ ...prev, maxWeight: Number(e.target.value) }))} />
@@ -156,12 +239,58 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         </div>
       </div>
 
-      {divisions.length === 0 ? (
-        <p className="text-muted-foreground">Nenhuma divisão configurada ainda. Adicione uma acima ou importe.</p>
+      <div className="relative mb-4">
+        <Input
+          type="text"
+          placeholder="Buscar divisões..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pr-10"
+        />
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      </div>
+
+      {selectedDivisionIds.length > 0 && (
+        <div className="flex space-x-2 mb-4">
+          <Button onClick={handleBatchEnable} variant="outline">Habilitar Selecionados ({selectedDivisionIds.length})</Button>
+          <Button onClick={handleBatchDisable} variant="outline">Desabilitar Selecionados ({selectedDivisionIds.length})</Button>
+          <AlertDialog open={showBatchDeleteConfirm} onOpenChange={setShowBatchDeleteConfirm}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={selectedDivisionIds.length === 0}>
+                <Trash2 className="mr-2 h-4 w-4" /> Deletar Selecionados ({selectedDivisionIds.length})
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza que deseja deletar as divisões selecionadas?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso removerá permanentemente {selectedDivisionIds.length} divisões.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBatchDelete} className="bg-red-600 hover:bg-red-700 text-white">
+                  Deletar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
+      {filteredDivisions.length === 0 ? (
+        <p className="text-muted-foreground">Nenhuma divisão configurada ainda ou encontrada com a pesquisa.</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={(checked: boolean) => handleSelectAllDivisions(checked)}
+                  aria-label="Selecionar todas as divisões"
+                />
+              </TableHead>
               <TableHead>Nome da Divisão</TableHead>
               <TableHead>Idade</TableHead>
               <TableHead>Peso (kg)</TableHead>
@@ -172,10 +301,11 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
             </TableRow>
           </TableHeader>
           <TableBody>
-            {divisions.map((division) => (
+            {filteredDivisions.map((division) => (
               <TableRow key={division.id}>
                 {editingDivisionId === division.id && currentEdit ? (
                   <>
+                    <TableCell /> {/* Empty cell for checkbox in edit mode */}
                     <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
                     <TableCell>
                       <Select value={currentEdit.ageCategoryName} onValueChange={(value: AgeCategory) => setCurrentEdit(prev => prev ? { ...prev, ageCategoryName: value } : null)}>
@@ -190,7 +320,6 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       </div>
                     </TableCell>
                     <TableCell>
-                      {/* minWeight removido */}
                       <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-full" />
                     </TableCell>
                     <TableCell>
@@ -222,9 +351,15 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                   </>
                 ) : (
                   <>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedDivisionIds.includes(division.id)}
+                        onCheckedChange={(checked: boolean) => handleToggleSelectDivision(division.id, checked)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{division.name}</TableCell>
                     <TableCell>{division.ageCategoryName} ({division.minAge}-{division.maxAge})</TableCell>
-                    <TableCell>Até {division.maxWeight}kg</TableCell> {/* Exibir apenas maxWeight */}
+                    <TableCell>Até {division.maxWeight}kg</TableCell>
                     <TableCell>{division.gender}</TableCell>
                     <TableCell>{division.belt}</TableCell>
                     <TableCell className="text-center">
