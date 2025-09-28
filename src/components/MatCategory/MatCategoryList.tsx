@@ -1,27 +1,27 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { Event, DivisionGender, AgeCategory, DivisionBelt } from '@/types/index'; // CORREÇÃO: 'Division' removido
-import { Button } from '@/components/ui/button';
+import { Event, DivisionGender, AgeCategory, DivisionBelt } from '@/types/index';
 import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface MatCategoryListProps {
   event: Event;
-  selectedMat: string | 'all-mats'; // Atualizado para 'all-mats'
+  selectedMat: string | 'all-mats';
   selectedCategoryKey: string | null;
   onSelectCategory: (categoryKey: string, divisionId: string) => void;
-  hasOngoingFights: (divisionId: string) => boolean; // Receber a função
+  hasOngoingFights: (divisionId: string) => boolean;
 }
 
 interface CategoryGroup {
-  key: string; // e.g., "Masculino/Adult/Preta" or "Masculino/Adult"
-  display: string; // e.g., "Masculino / Adult / Preta"
+  key: string;
+  display: string;
   gender: DivisionGender;
   ageCategoryName: AgeCategory;
   belt?: DivisionBelt;
   athleteCount: number;
   divisionIds: string[];
-  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Sem Atletas'; // NOVO: Status do bracket
+  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Sem Atletas';
 }
 
 const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory, hasOngoingFights }) => {
@@ -64,19 +64,15 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       }
     };
 
-    // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
     event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(processAthlete);
 
-    // Agora, filtrar e adicionar status de bracket
     const finalGroups: CategoryGroup[] = [];
     groupsMap.forEach(group => {
-      // Verificar se a categoria está atribuída ao mat selecionado ou se é 'all-mats'
       const isAssignedToSelectedMat = selectedMat === 'all-mats' || event.mat_assignments?.[selectedMat]?.includes(group.key);
 
       if (isAssignedToSelectedMat) {
-        // Determinar o status do bracket
         let status: CategoryGroup['bracketStatus'];
-        const firstDivisionId = group.divisionIds[0]; // Usar o primeiro ID para verificar o bracket
+        const firstDivisionId = group.divisionIds[0];
 
         if (group.athleteCount < 2) {
           status = 'Sem Atletas';
@@ -91,7 +87,6 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       }
     });
 
-    // Sort categories by display name for consistent order
     return finalGroups.sort((a, b) => a.display.localeCompare(b.display));
   }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets, hasOngoingFights]);
 
@@ -111,28 +106,35 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       {categoriesOnSelectedMat.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nenhuma categoria encontrada para esta seleção.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <ToggleGroup
+          type="single"
+          value={selectedCategoryKey || ''}
+          onValueChange={(value) => {
+            if (value) {
+              const group = categoriesOnSelectedMat.find(g => g.key === value);
+              if (group) {
+                onSelectCategory(group.key, group.divisionIds[0]);
+              }
+            }
+          }}
+          className="flex flex-wrap justify-start gap-2"
+        >
           {categoriesOnSelectedMat.map(group => (
-            <Button
+            <ToggleGroupItem
               key={group.key}
-              className={cn(
-                "justify-start h-auto py-2", // Ajuste de altura e padding
-                selectedCategoryKey === group.key
-                  ? "bg-blue-900 text-white hover:bg-blue-800 dark:bg-blue-900 dark:text-white dark:hover:bg-blue-800"
-                  : "bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-              )}
-              onClick={() => onSelectCategory(group.key, group.divisionIds[0])}
-              disabled={group.bracketStatus === 'Sem Atletas' || group.bracketStatus === 'Não Gerado'} // Desabilitar se não houver bracket ou atletas
+              value={group.key}
+              className="h-auto py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              disabled={group.bracketStatus === 'Sem Atletas' || group.bracketStatus === 'Não Gerado'}
             >
-              <div className="flex flex-col items-start">
+              <div className="flex flex-col items-start text-left">
                 <span className="font-medium">{group.display} ({group.athleteCount} atletas)</span>
                 <span className={cn("text-xs", getStatusColor(group.bracketStatus))}>
                   Status: {group.bracketStatus}
                 </span>
               </div>
-            </Button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       )}
     </div>
   );

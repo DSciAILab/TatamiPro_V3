@@ -6,7 +6,7 @@ import { Event, Bracket, Division } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LayoutGrid, Swords, Printer } from 'lucide-react';
+import { LayoutGrid, Swords, Printer, Columns, Rows, GitMerge } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import FightList from '@/components/FightList';
-import MatCategoryList from '@/components/MatCategory'; // CORREÇÃO: Caminho de importação atualizado
+import MatCategoryList from '@/components/MatCategory';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,15 +44,13 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // --- Estados para a sub-aba "Gerar Brackets" ---
   const [selectedDivisionIdForBracket, setSelectedDivisionIdForBracket] = useState<string | 'all'>('all');
   const [generatedBrackets, setGeneratedBrackets] = useState<Record<string, Bracket>>(() => event.brackets || {});
-
-  // Estados para os diálogos de confirmação/aviso
   const [showRegenerateConfirmDialog, setShowRegenerateConfirmDialog] = useState(false);
   const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
   const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
   const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
+  const [fightViewMode, setFightViewMode] = useState<'grid3' | 'grid2' | 'grid1' | 'bracket'>('grid3');
 
   useEffect(() => {
     setGeneratedBrackets(event.brackets || {});
@@ -70,7 +68,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     });
   }, [event]);
 
-  // Helper para verificar se uma divisão tem lutas em andamento
   const hasOngoingFights = (divisionId: string): boolean => {
     const bracket = event.brackets?.[divisionId];
     if (!bracket || !bracket.rounds) return false;
@@ -136,7 +133,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     const divisionsWithOngoingFights = divisionsToConsider.filter(div => hasOngoingFights(div.id));
 
     if (selectedDivisionIdForBracket !== 'all' && divisionsWithOngoingFights.length > 0) {
-      // Caso 1: Uma única divisão em andamento foi selecionada manualmente
       if (userRole === 'admin') {
         setDivisionToRegenerateOngoing(divisionsWithOngoingFights[0]);
         setShowOngoingWarningDialog(true);
@@ -146,7 +142,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       return;
     }
 
-    // Caso 2: "Todas as Divisões" ou uma única divisão NÃO em andamento
     const divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
     const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => event.brackets?.[div.id]);
 
@@ -154,7 +149,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       setDivisionsToConfirmRegenerate(divisionsThatWillBeRegenerated);
       setShowRegenerateConfirmDialog(true);
     } else {
-      // Nenhuma divisão existente ou em andamento, pode gerar diretamente
       executeBracketGeneration(divisionsToActuallyGenerate);
     }
   };
@@ -173,15 +167,14 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     setDivisionToRegenerateOngoing(null);
   };
 
-  // --- Estados e Memos para a sub-aba "Gerenciar Lutas" ---
-  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null); // Atualizado para 'all-mats'
+  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null);
   const [selectedDivisionIdForFightList, setSelectedDivisionIdForFightList] = useState<string | null>(null);
 
   const matNames = useMemo(() => {
     if (!event?.num_fight_areas) return [];
     const names = Array.from({ length: event.num_fight_areas }, (_, i) => `Mat ${i + 1}`);
-    return ['all-mats', ...names]; // Adiciona 'all-mats'
+    return ['all-mats', ...names];
   }, [event?.num_fight_areas]);
 
   const handleSelectCategory = (categoryKey: string, divisionId: string) => {
@@ -200,7 +193,24 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     });
     const updatedEvent = { ...event, brackets: finalBrackets, mat_fight_order: newMatFightOrder };
     localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
-    setGeneratedBrackets(finalBrackets); // Atualiza o estado local para re-renderizar
+    setGeneratedBrackets(finalBrackets);
+  };
+
+  const toggleFightView = () => {
+    const modes: ('grid3' | 'grid2' | 'grid1' | 'bracket')[] = ['grid3', 'grid2', 'grid1', 'bracket'];
+    const currentIndex = modes.indexOf(fightViewMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setFightViewMode(modes[nextIndex]);
+  };
+
+  const ViewModeIcon = ({ mode }: { mode: typeof fightViewMode }) => {
+    switch (mode) {
+      case 'grid3': return <LayoutGrid className="h-4 w-4" />;
+      case 'grid2': return <Columns className="h-4 w-4" />;
+      case 'grid1': return <Rows className="h-4 w-4" />;
+      case 'bracket': return <GitMerge className="h-4 w-4" />;
+      default: return <LayoutGrid className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -287,8 +297,15 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
             <TabsContent value="manage-fights" className="mt-6">
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Seleção de Mat e Categoria</CardTitle>
-                  <CardDescription>Selecione uma área de luta e uma categoria para gerenciar as lutas.</CardDescription>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Seleção de Mat e Categoria</CardTitle>
+                      <CardDescription>Selecione uma área de luta e uma categoria para gerenciar as lutas.</CardDescription>
+                    </div>
+                    <Button variant="outline" size="icon" onClick={toggleFightView} title={`Alterar visualização (Atual: ${fightViewMode})`}>
+                      <ViewModeIcon mode={fightViewMode} />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -313,7 +330,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       selectedMat={selectedMat}
                       selectedCategoryKey={selectedCategoryKey}
                       onSelectCategory={handleSelectCategory}
-                      hasOngoingFights={hasOngoingFights} // Passar a função
+                      hasOngoingFights={hasOngoingFights}
                     />
                   )}
                 </CardContent>
@@ -334,6 +351,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       selectedCategoryKey={selectedCategoryKey}
                       selectedDivisionId={selectedDivisionIdForFightList}
                       onUpdateBracket={handleUpdateBracket}
+                      fightViewMode={fightViewMode}
                     />
                   </CardContent>
                 </Card>
@@ -343,7 +361,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         )}
       </CardContent>
 
-      {/* Diálogo de Confirmação para Regerar Brackets Existentes */}
       <AlertDialog open={showRegenerateConfirmDialog} onOpenChange={setShowRegenerateConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -367,7 +384,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo de Aviso para Categoria em Andamento (com opção de Admin) */}
       <AlertDialog open={showOngoingWarningDialog} onOpenChange={setShowOngoingWarningDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
