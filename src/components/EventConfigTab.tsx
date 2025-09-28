@@ -18,99 +18,96 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
-import { useLayoutSettings } from '@/context/layout-settings-context'; // NOVO: Importar useLayoutSettings
-import { Textarea } from '@/components/ui/textarea'; // Importar Textarea
+import { useLayoutSettings } from '@/context/layout-settings-context';
+import { Textarea } from '@/components/ui/textarea';
 
 interface EventConfigTabProps {
   event: Event;
   configSubTab: string;
   setConfigSubTab: (value: string) => void;
-  isActive: boolean;
-  setIsActive: (value: boolean) => void;
+  is_active: boolean;
+  set_is_active: (value: boolean) => void;
   handleExportJson: () => void;
-  checkInStartTime?: Date;
-  setCheckInStartTime: (date?: Date) => void;
-  checkInEndTime?: Date;
-  setCheckInEndTime: (date?: Date) => void;
-  numFightAreas: number;
-  setNumFightAreas: (value: number) => void;
-  isAttendanceMandatory: boolean;
-  setIsAttendanceMandatory: (value: boolean) => void;
-  isWeightCheckEnabled: boolean;
-  setIsWeightCheckEnabled: (value: boolean) => void;
-  isBeltGroupingEnabled: boolean;
-  setIsBeltGroupingEnabled: (value: boolean) => void;
-  isOverweightAutoMoveEnabled: boolean;
-  setIsOverweightAutoMoveEnabled: (value: boolean) => void;
-  includeThirdPlace: boolean;
-  setIncludeThirdPlace: (value: boolean) => void;
-  checkInScanMode: 'qr' | 'barcode' | 'none';
-  setCheckInScanMode: (value: 'qr' | 'barcode' | 'none') => void;
+  check_in_start_time?: Date;
+  set_check_in_start_time: (date?: Date) => void;
+  check_in_end_time?: Date;
+  set_check_in_end_time: (date?: Date) => void;
+  num_fight_areas: number;
+  set_num_fight_areas: (value: number) => void;
+  is_attendance_mandatory_before_check_in: boolean;
+  set_is_attendance_mandatory_before_check_in: (value: boolean) => void;
+  is_weight_check_enabled: boolean;
+  set_is_weight_check_enabled: (value: boolean) => void;
+  is_belt_grouping_enabled: boolean;
+  set_is_belt_grouping_enabled: (value: boolean) => void;
+  is_overweight_auto_move_enabled: boolean;
+  set_is_overweight_auto_move_enabled: (value: boolean) => void;
+  include_third_place: boolean;
+  set_include_third_place: (value: boolean) => void;
+  check_in_scan_mode: 'qr' | 'barcode' | 'none';
+  set_check_in_scan_mode: (value: 'qr' | 'barcode' | 'none') => void;
   handleUpdateDivisions: (divisions: Division[]) => void;
-  championPoints: number;
-  setChampionPoints: (value: number) => void;
-  runnerUpPoints: number;
-  setRunnerUpPoints: (value: number) => void;
-  thirdPlacePoints: number;
-  setThirdPlacePoints: (value: number) => void;
-  countSingleClubCategories: boolean;
-  setCountSingleClubCategories: (value: boolean) => void;
-  countWalkoverSingleFightCategories: boolean;
-  setCountWalkoverSingleFightCategories: (value: boolean) => void;
+  champion_points: number;
+  set_champion_points: (value: number) => void;
+  runner_up_points: number;
+  set_runner_up_points: (value: number) => void;
+  third_place_points: number;
+  set_third_place_points: (value: number) => void;
+  count_single_club_categories: boolean;
+  set_count_single_club_categories: (value: boolean) => void;
+  count_walkover_single_fight_categories: boolean;
+  set_count_walkover_single_fight_categories: (value: boolean) => void;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
-  // NOVO: Props para nome e descrição do evento
-  eventName: string;
-  setEventName: (name: string) => void;
-  eventDescription: string;
-  setEventDescription: (description: string) => void;
+  event_name: string;
+  set_event_name: (name: string) => void;
+  event_description: string;
+  set_event_description: (description: string) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
   event,
   configSubTab,
   setConfigSubTab,
-  isActive,
-  setIsActive,
+  is_active,
+  set_is_active,
   handleExportJson,
-  checkInStartTime,
-  setCheckInStartTime,
-  checkInEndTime,
-  setCheckInEndTime,
-  numFightAreas,
-  setNumFightAreas,
-  isAttendanceMandatory,
-  setIsAttendanceMandatory,
-  isWeightCheckEnabled,
-  setIsWeightCheckEnabled,
-  isBeltGroupingEnabled,
-  setIsBeltGroupingEnabled,
-  isOverweightAutoMoveEnabled,
-  setIsOverweightAutoMoveEnabled,
-  includeThirdPlace,
-  setIncludeThirdPlace,
-  checkInScanMode,
-  setCheckInScanMode,
+  check_in_start_time,
+  set_check_in_start_time,
+  check_in_end_time,
+  set_check_in_end_time,
+  num_fight_areas,
+  set_num_fight_areas,
+  is_attendance_mandatory_before_check_in,
+  set_is_attendance_mandatory_before_check_in,
+  is_weight_check_enabled,
+  set_is_weight_check_enabled,
+  is_belt_grouping_enabled,
+  set_is_belt_grouping_enabled,
+  is_overweight_auto_move_enabled,
+  set_is_overweight_auto_move_enabled,
+  include_third_place,
+  set_include_third_place,
+  check_in_scan_mode,
+  set_check_in_scan_mode,
   handleUpdateDivisions,
-  championPoints,
-  setChampionPoints,
-  runnerUpPoints,
-  setRunnerUpPoints,
-  thirdPlacePoints,
-  setThirdPlacePoints,
-  countSingleClubCategories,
-  setCountSingleClubCategories,
-  countWalkoverSingleFightCategories,
-  setCountWalkoverSingleFightCategories,
+  champion_points,
+  set_champion_points,
+  runner_up_points,
+  set_runner_up_points,
+  third_place_points,
+  set_third_place_points,
+  count_single_club_categories,
+  set_count_single_club_categories,
+  count_walkover_single_fight_categories,
+  set_count_walkover_single_fight_categories,
   userRole,
-  eventName, // NOVO
-  setEventName, // NOVO
-  eventDescription, // NOVO
-  setEventDescription, // NOVO
+  event_name,
+  set_event_name,
+  event_description,
+  set_event_description,
 }) => {
   const { t } = useTranslations();
-  const { isWideLayout, setIsWideLayout } = useLayoutSettings(); // NOVO: Usar isWideLayout e setIsWideLayout
-
-  // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
+  const { isWideLayout, setIsWideLayout } = useLayoutSettings();
 
   return (
     <Card>
@@ -123,10 +120,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
           <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar as configurações do evento.</CardDescription></CardHeader></Card>
         ) : (
           <Tabs value={configSubTab} onValueChange={setConfigSubTab}>
-            <TabsList className="grid w-full grid-cols-4"> {/* Ajustado para 4 colunas */}
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
               <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
-              <TabsTrigger value="check-in-settings">Check-in</TabsTrigger> {/* Nova aba */}
+              <TabsTrigger value="check-in-settings">Check-in</TabsTrigger>
               <TabsTrigger value="results-settings">Resultados</TabsTrigger>
             </TabsList>
 
@@ -139,13 +136,12 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                   </h3>
                   <p className="text-muted-foreground">{t('languageDemo')}</p>
                   
-                  {/* NOVO: Campos de edição para Nome e Descrição do Evento */}
                   <div className="mt-4">
                     <Label htmlFor="eventName">Nome do Evento</Label>
                     <Input
                       id="eventName"
-                      value={eventName}
-                      onChange={(e) => setEventName(e.target.value)}
+                      value={event_name}
+                      onChange={(e) => set_event_name(e.target.value)}
                       placeholder="Ex: Campeonato Aberto de Verão"
                     />
                   </div>
@@ -153,8 +149,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     <Label htmlFor="eventDescription">Descrição</Label>
                     <Textarea
                       id="eventDescription"
-                      value={eventDescription}
-                      onChange={(e) => setEventDescription(e.target.value)}
+                      value={event_description}
+                      onChange={(e) => set_event_description(e.target.value)}
                       placeholder="Uma breve descrição do evento..."
                       rows={3}
                     />
@@ -163,12 +159,11 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
                       id="event-active"
-                      checked={isActive}
-                      onCheckedChange={setIsActive}
+                      checked={is_active}
+                      onCheckedChange={set_is_active}
                     />
                     <Label htmlFor="event-active">Evento Ativo</Label>
                   </div>
-                  {/* NOVO: Toggle para Layout Amplo */}
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
                       id="wide-layout"
@@ -194,7 +189,6 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
               <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
             </TabsContent>
 
-            {/* Nova TabsContent para configurações de Check-in */}
             <TabsContent value="check-in-settings" className="mt-6">
               <div className="space-y-6">
                 <div>
@@ -206,19 +200,19 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                         <PopoverTrigger asChild>
                           <Button variant={"outline"} className="w-full justify-start text-left font-normal">
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkInStartTime ? format(checkInStartTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                            {check_in_start_time ? format(check_in_start_time, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={checkInStartTime}
+                            selected={check_in_start_time}
                             onSelect={(date) => {
                               if (date) {
                                 const newDate = new Date(date);
-                                if (checkInStartTime) newDate.setHours(checkInStartTime.getHours(), checkInStartTime.getMinutes());
+                                if (check_in_start_time) newDate.setHours(check_in_start_time.getHours(), check_in_start_time.getMinutes());
                                 else newDate.setHours(9, 0);
-                                setCheckInStartTime(newDate);
+                                set_check_in_start_time(newDate);
                               }
                             }}
                             initialFocus
@@ -226,12 +220,12 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                           <div className="p-3 border-t border-border">
                             <Input
                               type="time"
-                              value={checkInStartTime ? format(checkInStartTime, 'HH:mm') : '09:00'}
+                              value={check_in_start_time ? format(check_in_start_time, 'HH:mm') : '09:00'}
                               onChange={(e) => {
                                 const [hours, minutes] = e.target.value.split(':').map(Number);
-                                const newDate = checkInStartTime ? new Date(checkInStartTime) : new Date();
+                                const newDate = check_in_start_time ? new Date(check_in_start_time) : new Date();
                                 newDate.setHours(hours, minutes);
-                                setCheckInStartTime(newDate);
+                                set_check_in_start_time(newDate);
                               }}
                             />
                           </div>
@@ -244,19 +238,19 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                         <PopoverTrigger asChild>
                           <Button variant={"outline"} className="w-full justify-start text-left font-normal">
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkInEndTime ? format(checkInEndTime, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
+                            {check_in_end_time ? format(check_in_end_time, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={checkInEndTime}
+                            selected={check_in_end_time}
                             onSelect={(date) => {
                               if (date) {
                                 const newDate = new Date(date);
-                                if (checkInEndTime) newDate.setHours(checkInEndTime.getHours(), checkInEndTime.getMinutes());
+                                if (check_in_end_time) newDate.setHours(check_in_end_time.getHours(), check_in_end_time.getMinutes());
                                 else newDate.setHours(17, 0);
-                                setCheckInEndTime(newDate);
+                                set_check_in_end_time(newDate);
                               }
                             }}
                             initialFocus
@@ -264,12 +258,12 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                           <div className="p-3 border-t border-border">
                             <Input
                               type="time"
-                              value={checkInEndTime ? format(checkInEndTime, 'HH:mm') : '17:00'}
+                              value={check_in_end_time ? format(check_in_end_time, 'HH:mm') : '17:00'}
                               onChange={(e) => {
                                 const [hours, minutes] = e.target.value.split(':').map(Number);
-                                const newDate = checkInEndTime ? new Date(checkInEndTime) : new Date();
+                                const newDate = check_in_end_time ? new Date(check_in_end_time) : new Date();
                                 newDate.setHours(hours, minutes);
-                                setCheckInEndTime(newDate);
+                                set_check_in_end_time(newDate);
                               }}
                             />
                           </div>
@@ -285,30 +279,30 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     id="numFightAreas"
                     type="number"
                     min="1"
-                    value={numFightAreas}
-                    onChange={(e) => setNumFightAreas(Number(e.target.value))}
+                    value={num_fight_areas}
+                    onChange={(e) => set_num_fight_areas(Number(e.target.value))}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
                   <div className="flex items-center space-x-2">
-                    <Switch id="attendance-mandatory" checked={isAttendanceMandatory} onCheckedChange={setIsAttendanceMandatory} />
+                    <Switch id="attendance-mandatory" checked={is_attendance_mandatory_before_check_in} onCheckedChange={set_is_attendance_mandatory_before_check_in} />
                     <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch id="weight-check-enabled" checked={isWeightCheckEnabled} onCheckedChange={setIsWeightCheckEnabled} />
+                    <Switch id="weight-check-enabled" checked={is_weight_check_enabled} onCheckedChange={set_is_weight_check_enabled} />
                     <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch id="belt-grouping-enabled" checked={isBeltGroupingEnabled} onCheckedChange={setIsBeltGroupingEnabled} />
+                    <Switch id="belt-grouping-enabled" checked={is_belt_grouping_enabled} onCheckedChange={set_is_belt_grouping_enabled} />
                     <Label htmlFor="belt-grouping-enabled">Agrupar Divisões por Faixa</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch id="overweight-auto-move-enabled" checked={isOverweightAutoMoveEnabled} onCheckedChange={setIsOverweightAutoMoveEnabled} />
+                    <Switch id="overweight-auto-move-enabled" checked={is_overweight_auto_move_enabled} onCheckedChange={set_is_overweight_auto_move_enabled} />
                     <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch id="include-third-place" checked={includeThirdPlace} onCheckedChange={setIncludeThirdPlace} />
+                    <Switch id="include-third-place" checked={include_third_place} onCheckedChange={set_include_third_place} />
                     <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
                   </div>
                 </div>
@@ -316,10 +310,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                   <h4 className="text-md font-semibold mt-4">Modo de Escaneamento para Check-in</h4>
                   <ToggleGroup
                     type="single"
-                    value={checkInScanMode}
+                    value={check_in_scan_mode}
                     onValueChange={(value: 'qr' | 'barcode' | 'none') => {
-                      if (value) setCheckInScanMode(value);
-                      else setCheckInScanMode('none');
+                      if (value) set_check_in_scan_mode(value);
+                      else set_check_in_scan_mode('none');
                     }}
                     className="mt-2"
                   >
@@ -350,8 +344,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       id="championPoints"
                       type="number"
                       min="0"
-                      value={championPoints}
-                      onChange={(e) => setChampionPoints(Number(e.target.value))}
+                      value={champion_points}
+                      onChange={(e) => set_champion_points(Number(e.target.value))}
                     />
                   </div>
                   <div>
@@ -360,8 +354,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       id="runnerUpPoints"
                       type="number"
                       min="0"
-                      value={runnerUpPoints}
-                      onChange={(e) => setRunnerUpPoints(Number(e.target.value))}
+                      value={runner_up_points}
+                      onChange={(e) => set_runner_up_points(Number(e.target.value))}
                     />
                   </div>
                   <div>
@@ -370,8 +364,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       id="thirdPlacePoints"
                       type="number"
                       min="0"
-                      value={thirdPlacePoints}
-                      onChange={(e) => setThirdPlacePoints(Number(e.target.value))}
+                      value={third_place_points}
+                      onChange={(e) => set_third_place_points(Number(e.target.value))}
                     />
                   </div>
                 </div>
@@ -380,16 +374,16 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="count-single-club-categories"
-                    checked={countSingleClubCategories}
-                    onCheckedChange={setCountSingleClubCategories}
+                    checked={count_single_club_categories}
+                    onCheckedChange={set_count_single_club_categories}
                   />
                   <Label htmlFor="count-single-club-categories">Categorias com apenas uma equipe contam pontos</Label>
                 </div>
                 <div className="flex items-center space-x-2 mt-2">
                   <Switch
                     id="count-walkover-single-fight-categories"
-                    checked={countWalkoverSingleFightCategories}
-                    onCheckedChange={setCountWalkoverSingleFightCategories}
+                    checked={count_walkover_single_fight_categories}
+                    onCheckedChange={set_count_walkover_single_fight_categories}
                   />
                   <Label htmlFor="count-walkover-single-fight-categories">W.O. em lutas únicas (equipes diferentes) contam pontos</Label>
                 </div>

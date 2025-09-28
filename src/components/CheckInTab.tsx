@@ -17,8 +17,8 @@ import { showSuccess, showError } from '@/utils/toast';
 interface CheckInTabProps {
   event: Event;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
-  checkInStartTime?: Date;
-  checkInEndTime?: Date;
+  check_in_start_time?: Date;
+  check_in_end_time?: Date;
   checkInFilter: 'pending' | 'checked_in' | 'overweight' | 'all';
   handleCheckInBoxClick: (filter: 'pending' | 'checked_in' | 'overweight') => void;
   setCheckInFilter: (filter: 'all' | 'pending' | 'checked_in' | 'overweight') => void;
@@ -39,8 +39,8 @@ interface CheckInTabProps {
 const CheckInTab: React.FC<CheckInTabProps> = ({
   event,
   userRole,
-  checkInStartTime,
-  checkInEndTime,
+  check_in_start_time,
+  check_in_end_time,
   checkInFilter,
   handleCheckInBoxClick,
   setCheckInFilter,
@@ -57,7 +57,6 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   filteredAthletesForCheckIn,
   handleCheckInAthlete,
 }) => {
-  // Todos os Hooks são chamados aqui, no topo do componente, incondicionalmente.
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -66,13 +65,13 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   }, []);
 
   const isCheckInTimeValid = () => {
-    if (!checkInStartTime || !checkInEndTime) return false;
-    return currentTime >= checkInStartTime && currentTime <= checkInEndTime;
+    if (!check_in_start_time || !check_in_end_time) return false;
+    return currentTime >= check_in_start_time && currentTime <= check_in_end_time;
   };
 
   const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
 
-  const timeRemainingInSeconds = checkInEndTime ? differenceInSeconds(checkInEndTime, currentTime) : 0;
+  const timeRemainingInSeconds = check_in_end_time ? differenceInSeconds(check_in_end_time, currentTime) : 0;
   const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
 
   return (

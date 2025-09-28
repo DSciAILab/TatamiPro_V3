@@ -295,43 +295,43 @@ const EventDetail: React.FC = () => {
             event={event}
             configSubTab={configSubTab}
             setConfigSubTab={setConfigSubTab}
-            isActive={event.is_active}
-            setIsActive={(value) => handleUpdateEventProperty('is_active', value)}
+            is_active={event.is_active}
+            set_is_active={(value) => handleUpdateEventProperty('is_active', value)}
             handleExportJson={handleExportJson}
-            checkInStartTime={event.check_in_start_time}
-            setCheckInStartTime={(date) => handleUpdateEventProperty('check_in_start_time', date)}
-            checkInEndTime={event.check_in_end_time}
-            setCheckInEndTime={(date) => handleUpdateEventProperty('check_in_end_time', date)}
-            numFightAreas={event.num_fight_areas || 1}
-            setNumFightAreas={(value) => handleUpdateEventProperty('num_fight_areas', value)}
-            isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
-            setIsAttendanceMandatory={(value) => handleUpdateEventProperty('is_attendance_mandatory_before_check_in', value)}
-            isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
-            setIsWeightCheckEnabled={(value) => handleUpdateEventProperty('is_weight_check_enabled', value)}
-            isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
-            setIsBeltGroupingEnabled={(value) => handleUpdateEventProperty('is_belt_grouping_enabled', value)}
-            isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
-            setIsOverweightAutoMoveEnabled={(value) => handleUpdateEventProperty('is_overweight_auto_move_enabled', value)}
-            includeThirdPlace={event.include_third_place || false}
-            setIncludeThirdPlace={(value) => handleUpdateEventProperty('include_third_place', value)}
-            checkInScanMode={event.check_in_scan_mode || 'qr'}
-            setCheckInScanMode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
+            check_in_start_time={event.check_in_start_time}
+            set_check_in_start_time={(date) => handleUpdateEventProperty('check_in_start_time', date)}
+            check_in_end_time={event.check_in_end_time}
+            set_check_in_end_time={(date) => handleUpdateEventProperty('check_in_end_time', date)}
+            num_fight_areas={event.num_fight_areas || 1}
+            set_num_fight_areas={(value) => handleUpdateEventProperty('num_fight_areas', value)}
+            is_attendance_mandatory_before_check_in={event.is_attendance_mandatory_before_check_in || false}
+            set_is_attendance_mandatory_before_check_in={(value) => handleUpdateEventProperty('is_attendance_mandatory_before_check_in', value)}
+            is_weight_check_enabled={event.is_weight_check_enabled ?? true}
+            set_is_weight_check_enabled={(value) => handleUpdateEventProperty('is_weight_check_enabled', value)}
+            is_belt_grouping_enabled={event.is_belt_grouping_enabled ?? true}
+            set_is_belt_grouping_enabled={(value) => handleUpdateEventProperty('is_belt_grouping_enabled', value)}
+            is_overweight_auto_move_enabled={event.is_overweight_auto_move_enabled ?? false}
+            set_is_overweight_auto_move_enabled={(value) => handleUpdateEventProperty('is_overweight_auto_move_enabled', value)}
+            include_third_place={event.include_third_place || false}
+            set_include_third_place={(value) => handleUpdateEventProperty('include_third_place', value)}
+            check_in_scan_mode={event.check_in_scan_mode || 'qr'}
+            set_check_in_scan_mode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
             handleUpdateDivisions={handleUpdateDivisions}
-            championPoints={event.champion_points || 9}
-            setChampionPoints={(value) => handleUpdateEventProperty('champion_points', value)}
-            runnerUpPoints={event.runner_up_points || 3}
-            setRunnerUpPoints={(value) => handleUpdateEventProperty('runner_up_points', value)}
-            thirdPlacePoints={event.third_place_points || 1}
-            setThirdPlacePoints={(value) => handleUpdateEventProperty('third_place_points', value)}
-            countSingleClubCategories={event.count_single_club_categories ?? true}
-            setCountSingleClubCategories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
-            countWalkoverSingleFightCategories={event.count_walkover_single_fight_categories ?? true}
-            setCountWalkoverSingleFightCategories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
+            champion_points={event.champion_points || 9}
+            set_champion_points={(value) => handleUpdateEventProperty('champion_points', value)}
+            runner_up_points={event.runner_up_points || 3}
+            set_runner_up_points={(value) => handleUpdateEventProperty('runner_up_points', value)}
+            third_place_points={event.third_place_points || 1}
+            set_third_place_points={(value) => handleUpdateEventProperty('third_place_points', value)}
+            count_single_club_categories={event.count_single_club_categories ?? true}
+            set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
+            count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
+            set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
             userRole={userRole}
-            eventName={event.name}
-            setEventName={(value) => handleUpdateEventProperty('name', value)}
-            eventDescription={event.description}
-            setEventDescription={(value) => handleUpdateEventProperty('description', value)}
+            event_name={event.name}
+            set_event_name={(value) => handleUpdateEventProperty('name', value)}
+            event_description={event.description}
+            set_event_description={(value) => handleUpdateEventProperty('description', value)}
           />
         </TabsContent>
 
@@ -377,8 +377,8 @@ const EventDetail: React.FC = () => {
           <CheckInTab
             event={event}
             userRole={userRole}
-            checkInStartTime={event.check_in_start_time}
-            checkInEndTime={event.check_in_end_time}
+            check_in_start_time={event.check_in_start_time}
+            check_in_end_time={event.check_in_end_time}
             checkInFilter={checkInFilter}
             handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
             setCheckInFilter={setCheckInFilter}
