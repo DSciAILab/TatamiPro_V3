@@ -23,19 +23,25 @@ const Events: React.FC = () => {
       }
     }
 
-    const combinedEventsMap = new Map<string, { id: string; name: string; status: string; date: string; isActive: boolean }>();
-    
-    baseEvents.forEach(event => combinedEventsMap.set(event.id, {
-      id: event.id,
-      name: event.name,
-      status: event.status,
-      date: event.date,
-      isActive: event.isActive,
-    }));
+    const finalEvents: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [...storedEventsList];
+    const storedEventIds = new Set(storedEventsList.map(e => e.id));
 
-    storedEventsList.forEach(event => combinedEventsMap.set(event.id, event));
+    baseEvents.forEach(baseEvent => {
+      if (!storedEventIds.has(baseEvent.id)) {
+        finalEvents.push({
+          id: baseEvent.id,
+          name: baseEvent.name,
+          status: baseEvent.status,
+          date: baseEvent.date,
+          isActive: baseEvent.isActive,
+        });
+      }
+    });
 
-    return Array.from(combinedEventsMap.values());
+    // Sort events for consistent display, e.g., by date or name
+    finalEvents.sort((a, b) => a.name.localeCompare(b.name));
+
+    return finalEvents;
   };
 
   const events = getEvents();

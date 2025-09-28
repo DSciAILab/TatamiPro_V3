@@ -132,15 +132,34 @@ const EventDetail: React.FC = () => {
       const eventsListRaw = localStorage.getItem('events');
       if (eventsListRaw) {
         try {
-          let eventsList: { id: string; isActive: boolean }[] = JSON.parse(eventsListRaw);
+          let eventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = JSON.parse(eventsListRaw);
           const eventIndex = eventsList.findIndex(e => e.id === id);
           if (eventIndex > -1) {
-            eventsList[eventIndex].isActive = isActive;
+            eventsList[eventIndex].isActive = isActive; // Update isActive in the events list
+            localStorage.setItem('events', JSON.stringify(eventsList));
+          } else {
+            // If event is not in the list (e.g., a base event not yet modified), add it
+            eventsList.push({
+              id: event.id,
+              name: event.name,
+              status: event.status,
+              date: event.date,
+              isActive: isActive,
+            });
             localStorage.setItem('events', JSON.stringify(eventsList));
           }
         } catch (e) {
           console.error("Failed to update events list", e);
         }
+      } else {
+        // If no 'events' list exists yet, create it with the current event
+        localStorage.setItem('events', JSON.stringify([{
+          id: event.id,
+          name: event.name,
+          status: event.status,
+          date: event.date,
+          isActive: isActive,
+        }]));
       }
     }
   }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
