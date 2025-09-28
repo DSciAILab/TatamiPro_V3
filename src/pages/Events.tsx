@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { baseEvents } from '@/data/base-events';
+import { Trash2 } from 'lucide-react';
+import DeleteEventDialog from '@/components/DeleteEventDialog';
+import { Event } from '@/types/index'; // Importar o tipo Event
+import { showSuccess } from '@/utils/toast'; // 'showError' removido, pois não é utilizado neste arquivo
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]); // Mudar para Event[]
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null); // Armazena o evento completo
 
-  const getEvents = () => {
+  useEffect(() => {
+    const loadedEvents = getEvents();
+    setEvents(loadedEvents);
+  }, []);
+
+  const getEvents = (): Event[] => {
     const storedEventsListRaw = localStorage.getItem('events');
     let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
     if (storedEventsListRaw) {
@@ -23,28 +34,59 @@ const Events: React.FC = () => {
       }
     }
 
-    const finalEvents: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [...storedEventsList];
-    const storedEventIds = new Set(storedEventsList.map(e => e.id));
+    const finalEvents: Event[] = [];
+    const storedEventIds = new Set<string>();
 
-    baseEvents.forEach(baseEvent => {
-      if (!storedEventIds.has(baseEvent.id)) {
-        finalEvents.push({
-          id: baseEvent.id,
-          name: baseEvent.name,
-          status: baseEvent.status,
-          date: baseEvent.date,
-          isActive: baseEvent.isActive,
-        });
+    // Prioriza eventos do localStorage, carregando os detalhes completos
+    storedEventsList.forEach(eventSummary => {
+      const fullEventDataRaw = localStorage.getItem(`event_${eventSummary.id}`);
+      if (fullEventDataRaw) {
+        try {
+          const fullEvent: Event = JSON.parse(fullEventDataRaw);
+          finalEvents.push(fullEvent);
+          storedEventIds.add(fullEvent.id);
+        } catch (e) {
+          console.error(`Failed to parse full event data for ${eventSummary.id}`, e);
+        }
       }
     });
 
-    // Sort events for consistent display, e.g., by date or name
+    // Adiciona eventos base que não estão no localStorage
+    baseEvents.forEach(baseEvent => {
+      if (!storedEventIds.has(baseEvent.id)) {
+        finalEvents.push(baseEvent);
+      }
+    });
+
+    // Sort events for consistent display, e.g., by name
     finalEvents.sort((a, b) => a.name.localeCompare(b.name));
 
     return finalEvents;
   };
 
-  const events = getEvents();
+  const handleDeleteClick = (event: Event) => {
+    setEventToDelete(event);
+  };
+
+  const handleConfirmDelete = (eventId: string) => {
+    // Remove o evento do localStorage
+    localStorage.removeItem(`event_${eventId}`);
+
+    // Atualiza a lista de eventos no localStorage
+    const updatedEventsList = events.filter(e => e.id !== eventId).map(e => ({
+      id: e.id,
+      name: e.name,
+      status: e.status,
+      date: e.date,
+      isActive: e.isActive,
+    }));
+    localStorage.setItem('events', JSON.stringify(updatedEventsList));
+
+    // Atualiza o estado local para re-renderizar
+    setEvents(prevEvents => prevEvents.filter(e => e.id !== eventId));
+    setEventToDelete(null);
+    showSuccess(`Evento "${eventToDelete?.name}" deletado com sucesso.`);
+  };
 
   return (
     <Layout>
@@ -59,32 +101,55 @@ const Events: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => (
-          <Link
-            to={`/events/${event.id}`}
-            key={event.id}
-            className={cn({ 'pointer-events-none': !event.isActive })}
-            aria-disabled={!event.isActive}
-          >
-            <Card
-              className={cn(
-                "h-full transition-colors",
-                { 'opacity-50 grayscale': !event.isActive },
-                event.isActive && "hover:bg-accent"
-              )}
+          <div key={event.id} className="relative">
+            <Link
+              to={`/events/${event.id}`}
+              className={cn("block", { 'pointer-events-none': !event.isActive })}
+              aria-disabled={!event.isActive}
             >
-              <CardHeader>
-                <CardTitle>{event.name}</CardTitle>
-                <CardDescription>Status: {event.status} | Data: {event.date}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {event.isActive ? "Clique para ver os detalhes" : "Este evento está inativo"}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+              <Card
+                className={cn(
+                  "h-full transition-colors",
+                  { 'opacity-50 grayscale': !event.isActive },
+                  event.isActive && "hover:bg-accent"
+                )}
+              >
+                <CardHeader>
+                  <CardTitle>{event.name}</CardTitle>
+                  <CardDescription>Status: {event.status} | Data: {event.date}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {event.isActive ? "Clique para ver os detalhes" : "Este evento está inativo"}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+            {profile?.role === 'admin' && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 z-10"
+                onClick={() => handleDeleteClick(event)}
+                aria-label={`Deletar evento ${event.name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         ))}
       </div>
+
+      {eventToDelete && (
+        <DeleteEventDialog
+          isOpen={!!eventToDelete}
+          onClose={() => setEventToDelete(null)}
+          eventId={eventToDelete.id}
+          eventName={eventToDelete.name}
+          eventData={eventToDelete}
+          onConfirmDelete={handleConfirmDelete}
+        />
+      )}
     </Layout>
   );
 };
