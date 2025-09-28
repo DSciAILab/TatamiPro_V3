@@ -16,7 +16,7 @@ import { baseEvents } from '@/data/base-events';
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
 import CheckInTab from '@/components/CheckInTab';
-import BracketsTab from '@/components/BracketsTab';
+import BracketsTab from '@/components/BracketsTab'; // Caminho corrigido
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,31 +34,16 @@ const EventDetail: React.FC = () => {
   const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all'>('all');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  
+  // Consolidate all event-related states into a single 'event' object
   const [event, setEvent] = useState<Event | null>(null);
 
-  // Component State derived from event state
-  const [eventName, setEventName] = useState(''); // NOVO
-  const [eventDescription, setEventDescription] = useState(''); // NOVO
-  const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>();
-  const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>();
-  const [numFightAreas, setNumFightAreas] = useState<number>(1);
-  const [isAttendanceMandatory, setIsAttendanceMandatory] = useState<boolean>(false);
-  const [isWeightCheckEnabled, setIsWeightCheckEnabled] = useState<boolean>(true);
-  const [checkInScanMode, setCheckInScanMode] = useState<'qr' | 'barcode' | 'none'>('qr');
-  const [isBeltGroupingEnabled, setIsBeltGroupingEnabled] = useState<boolean>(true);
-  const [isOverweightAutoMoveEnabled, setIsOverweightAutoMoveEnabled] = useState<boolean>(false);
-  const [includeThirdPlace, setIncludeThirdPlace] = useState<boolean>(false);
-  const [isActive, setIsActive] = useState<boolean>(true);
-  const [championPoints, setChampionPoints] = useState<number>(9);
-  const [runnerUpPoints, setRunnerUpPoints] = useState<number>(3);
-  const [thirdPlacePoints, setThirdPlacePoints] = useState<number>(1);
-  const [countSingleClubCategories, setCountSingleClubCategories] = useState<boolean>(true);
-  const [countWalkoverSingleFightCategories, setCountWalkoverSingleFightCategories] = useState<boolean>(true);
+  // Sub-tab states (these are UI-specific, not event data)
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
-  const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution'); // NOVO: Estado para a sub-aba de Brackets
+  const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
-  // Effect to load event data and sync all related state
+  // Effect to load event data
   useEffect(() => {
     if (!id) {
       setEvent(null);
@@ -71,126 +56,124 @@ const EventDetail: React.FC = () => {
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
+        // Ensure dates are parsed correctly
         const processedAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, parsedEvent.divisions || []));
-        eventData = { ...parsedEvent, athletes: processedAthletes };
+        eventData = { 
+          ...parsedEvent, 
+          athletes: processedAthletes,
+          checkInStartTime: parsedEvent.checkInStartTime ? parseISO(parsedEvent.checkInStartTime) : undefined,
+          checkInEndTime: parsedEvent.checkInEndTime ? parseISO(parsedEvent.checkInEndTime) : undefined,
+        };
       } catch (e) {
-        console.error("Failed to parse event data", e);
+        console.error("Failed to parse event data from localStorage", e);
       }
     }
 
     if (!eventData) {
       const baseEvent = baseEvents.find(e => e.id === id);
       if (baseEvent) {
-        localStorage.setItem(`event_${id}`, JSON.stringify(baseEvent));
-        eventData = baseEvent;
+        // For base events, checkInStartTime and checkInEndTime are already Date objects or undefined
+        // No need to parseISO if they are already Date objects.
+        eventData = {
+          ...baseEvent,
+          // Ensure they are Date objects if they exist, otherwise undefined
+          checkInStartTime: baseEvent.checkInStartTime instanceof Date ? baseEvent.checkInStartTime : undefined,
+          checkInEndTime: baseEvent.checkInEndTime instanceof Date ? baseEvent.checkInEndTime : undefined,
+        };
+        localStorage.setItem(`event_${id}`, JSON.stringify({
+          ...eventData,
+          checkInStartTime: eventData.checkInStartTime?.toISOString(),
+          checkInEndTime: eventData.checkInEndTime?.toISOString(),
+          athletes: eventData.athletes.map(a => ({
+            ...a,
+            dateOfBirth: a.dateOfBirth.toISOString(),
+            consentDate: a.consentDate.toISOString(),
+          })),
+        })); // Save base event to localStorage
       }
     }
 
-    if (eventData) {
-      setEvent(eventData);
-      setEventName(eventData.name); // NOVO
-      setEventDescription(eventData.description); // NOVO
-      setCheckInStartTime(eventData.checkInStartTime ? parseISO(eventData.checkInStartTime) : undefined);
-      setCheckInEndTime(eventData.checkInEndTime ? parseISO(eventData.checkInEndTime) : undefined);
-      setNumFightAreas(eventData.numFightAreas || 1);
-      setIsAttendanceMandatory(eventData.isAttendanceMandatoryBeforeCheckIn || false);
-      setIsWeightCheckEnabled(eventData.isWeightCheckEnabled ?? true);
-      setCheckInScanMode(eventData.checkInScanMode || 'qr');
-      setIsBeltGroupingEnabled(eventData.isBeltGroupingEnabled ?? true);
-      setIsOverweightAutoMoveEnabled(eventData.isOverweightAutoMoveEnabled ?? false);
-      setIncludeThirdPlace(eventData.includeThirdPlace || false);
-      setIsActive(eventData.isActive ?? true);
-      setChampionPoints(eventData.championPoints || 9);
-      setRunnerUpPoints(eventData.runnerUpPoints || 3);
-      setThirdPlacePoints(eventData.thirdPlacePoints || 1);
-      setCountSingleClubCategories(eventData.countSingleClubCategories ?? true);
-      setCountWalkoverSingleFightCategories(eventData.countWalkoverSingleFightCategories ?? true);
-    } else {
-      setEvent(null);
-    }
+    setEvent(eventData);
   }, [id]);
 
-  // Effect to persist event data to localStorage
+  // Effect to persist event data to localStorage whenever 'event' state changes
   useEffect(() => {
-    if (event) {
+    if (event && id) {
+      // Prepare event data for saving (convert Date objects back to ISO strings)
       const eventDataToSave = {
         ...event,
-        name: eventName, // NOVO
-        description: eventDescription, // NOVO
-        checkInStartTime: checkInStartTime?.toISOString(),
-        checkInEndTime: checkInEndTime?.toISOString(),
-        numFightAreas,
-        isAttendanceMandatoryBeforeCheckIn: isAttendanceMandatory,
-        isWeightCheckEnabled,
-        checkInScanMode,
-        isBeltGroupingEnabled,
-        isOverweightAutoMoveEnabled,
-        includeThirdPlace,
-        isActive,
-        championPoints,
-        runnerUpPoints,
-        thirdPlacePoints,
-        countSingleClubCategories,
-        countWalkoverSingleFightCategories,
+        checkInStartTime: event.checkInStartTime instanceof Date ? event.checkInStartTime.toISOString() : event.checkInStartTime,
+        checkInEndTime: event.checkInEndTime instanceof Date ? event.checkInEndTime.toISOString() : event.checkInEndTime,
+        athletes: event.athletes.map(a => ({
+          ...a,
+          dateOfBirth: a.dateOfBirth instanceof Date ? a.dateOfBirth.toISOString() : a.dateOfBirth,
+          consentDate: a.consentDate instanceof Date ? a.consentDate.toISOString() : a.consentDate,
+        })),
       };
       localStorage.setItem(`event_${id}`, JSON.stringify(eventDataToSave));
 
+      // Also update the summary list of events
       const eventsListRaw = localStorage.getItem('events');
+      let eventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
       if (eventsListRaw) {
         try {
-          let eventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = JSON.parse(eventsListRaw);
-          const eventIndex = eventsList.findIndex(e => e.id === id);
-          if (eventIndex > -1) {
-            eventsList[eventIndex] = { // Atualiza o objeto completo do evento na lista
-              ...eventsList[eventIndex],
-              name: eventName,
-              isActive: isActive,
-            };
-            localStorage.setItem('events', JSON.stringify(eventsList));
-          } else {
-            // If event is not in the list (e.g., a base event not yet modified), add it
-            eventsList.push({
-              id: event.id,
-              name: eventName, // Usa o nome atualizado
-              status: event.status,
-              date: event.date,
-              isActive: isActive,
-            });
-            localStorage.setItem('events', JSON.stringify(eventsList));
-          }
+          eventsList = JSON.parse(eventsListRaw);
         } catch (e) {
-          console.error("Failed to update events list", e);
+          console.error("Failed to parse events list from localStorage", e);
         }
-      } else {
-        // If no 'events' list exists yet, create it with the current event
-        localStorage.setItem('events', JSON.stringify([{
-          id: event.id,
-          name: eventName, // Usa o nome atualizado
-          status: event.status,
-          date: event.date,
-          isActive: isActive,
-        }]));
       }
-    }
-  }, [event, id, eventName, eventDescription, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
-  // Handler Functions
+      const eventIndex = eventsList.findIndex(e => e.id === id);
+      const eventSummary = {
+        id: event.id,
+        name: event.name,
+        status: event.status,
+        date: event.date,
+        isActive: event.isActive,
+      };
+
+      if (eventIndex > -1) {
+        eventsList[eventIndex] = eventSummary;
+      } else {
+        eventsList.push(eventSummary);
+      }
+      localStorage.setItem('events', JSON.stringify(eventsList));
+    }
+  }, [event, id]); // This useEffect now depends only on the 'event' object
+
+  // Generic handler to update any property of the event object
+  const handleUpdateEventProperty = <K extends keyof Event>(key: K, value: Event[K]) => {
+    setEvent(prev => {
+      if (!prev) return null;
+      const updatedEvent = { ...prev, [key]: value };
+
+      // Special handling for properties that might affect derived data
+      if (key === 'divisions' || key === 'matAssignments' || key === 'athletes' || key === 'isBeltGroupingEnabled') {
+        // Recalculate mat fight order and brackets if divisions, assignments, or athletes change
+        const { updatedBrackets, matFightOrder } = generateMatFightOrder(updatedEvent);
+        return { ...updatedEvent, brackets: updatedBrackets, matFightOrder };
+      }
+      return updatedEvent;
+    });
+  };
+
+  // Specific handlers for complex updates or nested objects
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
     setEditingAthlete(null);
   };
 
   const handleDeleteAthlete = (athleteId: string) => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.filter(a => a.id !== athleteId) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.filter(a => a.id !== athleteId));
     showSuccess('Inscrição removida.');
   };
 
   const handleCheckInAthlete = (updatedAthlete: Athlete) => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
   };
 
   const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendanceStatus']) => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a));
   };
 
   const handleToggleAthleteSelection = (athleteId: string) => {
@@ -205,13 +188,13 @@ const EventDetail: React.FC = () => {
   };
 
   const handleApproveSelected = () => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'approved' } : a) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'approved' } : a));
     showSuccess(`${selectedAthletesForApproval.length} inscrições aprovadas.`);
     setSelectedAthletesForApproval([]);
   };
 
   const handleRejectSelected = () => {
-    setEvent(prev => prev ? { ...prev, athletes: prev.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'rejected' } : a) } : null);
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'rejected' } : a));
     showSuccess(`${selectedAthletesForApproval.length} inscrições rejeitadas.`);
     setSelectedAthletesForApproval([]);
   };
@@ -249,7 +232,7 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  // Memoized Calculations
+  // Memoized Calculations (now directly from 'event' state)
   const athletesUnderApproval = useMemo(() => event?.athletes.filter(a => a.registrationStatus === 'under_approval') || [], [event]);
   const approvedAthletes = useMemo(() => event?.athletes.filter(a => a.registrationStatus === 'approved') || [], [event]);
   const processedApprovedAthletes = useMemo(() => approvedAthletes.map(a => processAthleteData(a, event?.divisions || [])), [approvedAthletes, event?.divisions]);
@@ -279,10 +262,9 @@ const EventDetail: React.FC = () => {
     return athletes;
   }, [allAthletesForInscricoesTab, userRole, registrationStatusFilter, searchTerm]);
 
-  // NOVO: Definição de filteredAthletesForCheckIn
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletes = processedApprovedAthletes;
-    if (isAttendanceMandatory) athletes = athletes.filter(a => a.attendanceStatus === 'present');
+    if (event?.isAttendanceMandatoryBeforeCheckIn) athletes = athletes.filter(a => a.attendanceStatus === 'present');
     if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
@@ -290,18 +272,18 @@ const EventDetail: React.FC = () => {
     }
     if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
     return athletes;
-  }, [processedApprovedAthletes, isAttendanceMandatory, scannedAthleteId, searchTerm, checkInFilter]);
+  }, [processedApprovedAthletes, event?.isAttendanceMandatoryBeforeCheckIn, scannedAthleteId, searchTerm, checkInFilter]);
 
 
   const visibleTabs = useMemo(() => [
     userRole === 'admin' && { value: 'config', label: 'Config' },
     { value: 'inscricoes', label: 'Inscrições' },
-    isAttendanceMandatory && { value: 'attendance', label: 'Attendance' },
+    event?.isAttendanceMandatoryBeforeCheckIn && { value: 'attendance', label: 'Attendance' },
     userRole && { value: 'checkin', label: 'Check-in' },
     { value: 'brackets', label: 'Brackets' },
     { value: 'resultados', label: 'Resultados' },
     { value: 'llm', label: 'LLM (Q&A)' },
-  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, isAttendanceMandatory]);
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, event?.isAttendanceMandatoryBeforeCheckIn]);
 
   if (!event) {
     return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
@@ -309,8 +291,8 @@ const EventDetail: React.FC = () => {
 
   return (
     <Layout>
-      <h1 className="text-4xl font-bold mb-4">{eventName}</h1> {/* Usar o estado eventName */}
-      <p className="text-lg text-muted-foreground mb-8">{eventDescription}</p> {/* Usar o estado eventDescription */}
+      <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
+      <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full">
@@ -319,49 +301,48 @@ const EventDetail: React.FC = () => {
           ))}
         </TabsList>
 
-        {/* Render all TabsContent unconditionally to maintain hook consistency */}
         <TabsContent value="config" className="mt-6">
           <EventConfigTab
             event={event}
             configSubTab={configSubTab}
             setConfigSubTab={setConfigSubTab}
-            isActive={isActive}
-            setIsActive={setIsActive}
+            isActive={event.isActive}
+            setIsActive={(value) => handleUpdateEventProperty('isActive', value)}
             handleExportJson={handleExportJson}
-            checkInStartTime={checkInStartTime}
-            setCheckInStartTime={setCheckInStartTime}
-            checkInEndTime={checkInEndTime}
-            setCheckInEndTime={setCheckInEndTime}
-            numFightAreas={numFightAreas}
-            setNumFightAreas={setNumFightAreas}
-            isAttendanceMandatory={isAttendanceMandatory}
-            setIsAttendanceMandatory={setIsAttendanceMandatory}
-            isWeightCheckEnabled={isWeightCheckEnabled}
-            setIsWeightCheckEnabled={setIsWeightCheckEnabled}
-            isBeltGroupingEnabled={isBeltGroupingEnabled}
-            setIsBeltGroupingEnabled={setIsBeltGroupingEnabled}
-            isOverweightAutoMoveEnabled={isOverweightAutoMoveEnabled}
-            setIsOverweightAutoMoveEnabled={setIsOverweightAutoMoveEnabled}
-            includeThirdPlace={includeThirdPlace}
-            setIncludeThirdPlace={setIncludeThirdPlace}
-            checkInScanMode={checkInScanMode}
-            setCheckInScanMode={setCheckInScanMode}
+            checkInStartTime={event.checkInStartTime}
+            setCheckInStartTime={(date) => handleUpdateEventProperty('checkInStartTime', date)}
+            checkInEndTime={event.checkInEndTime}
+            setCheckInEndTime={(date) => handleUpdateEventProperty('checkInEndTime', date)}
+            numFightAreas={event.numFightAreas || 1}
+            setNumFightAreas={(value) => handleUpdateEventProperty('numFightAreas', value)}
+            isAttendanceMandatory={event.isAttendanceMandatoryBeforeCheckIn || false}
+            setIsAttendanceMandatory={(value) => handleUpdateEventProperty('isAttendanceMandatoryBeforeCheckIn', value)}
+            isWeightCheckEnabled={event.isWeightCheckEnabled ?? true}
+            setIsWeightCheckEnabled={(value) => handleUpdateEventProperty('isWeightCheckEnabled', value)}
+            isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
+            setIsBeltGroupingEnabled={(value) => handleUpdateEventProperty('isBeltGroupingEnabled', value)}
+            isOverweightAutoMoveEnabled={event.isOverweightAutoMoveEnabled ?? false}
+            setIsOverweightAutoMoveEnabled={(value) => handleUpdateEventProperty('isOverweightAutoMoveEnabled', value)}
+            includeThirdPlace={event.includeThirdPlace || false}
+            setIncludeThirdPlace={(value) => handleUpdateEventProperty('includeThirdPlace', value)}
+            checkInScanMode={event.checkInScanMode || 'qr'}
+            setCheckInScanMode={(value) => handleUpdateEventProperty('checkInScanMode', value)}
             handleUpdateDivisions={handleUpdateDivisions}
-            championPoints={championPoints}
-            setChampionPoints={setChampionPoints}
-            runnerUpPoints={runnerUpPoints}
-            setRunnerUpPoints={setRunnerUpPoints}
-            thirdPlacePoints={thirdPlacePoints}
-            setThirdPlacePoints={setThirdPlacePoints}
-            countSingleClubCategories={countSingleClubCategories}
-            setCountSingleClubCategories={setCountSingleClubCategories}
-            countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
-            setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
-            userRole={userRole} // Pass userRole down
-            eventName={eventName} // NOVO
-            setEventName={setEventName} // NOVO
-            eventDescription={eventDescription} // NOVO
-            setEventDescription={setEventDescription} // NOVO
+            championPoints={event.championPoints || 9}
+            setChampionPoints={(value) => handleUpdateEventProperty('championPoints', value)}
+            runnerUpPoints={event.runnerUpPoints || 3}
+            setRunnerUpPoints={(value) => handleUpdateEventProperty('runnerUpPoints', value)}
+            thirdPlacePoints={event.thirdPlacePoints || 1}
+            setThirdPlacePoints={(value) => handleUpdateEventProperty('thirdPlacePoints', value)}
+            countSingleClubCategories={event.countSingleClubCategories ?? true}
+            setCountSingleClubCategories={(value) => handleUpdateEventProperty('countSingleClubCategories', value)}
+            countWalkoverSingleFightCategories={event.countWalkoverSingleFightCategories ?? true}
+            setCountWalkoverSingleFightCategories={(value) => handleUpdateEventProperty('countWalkoverSingleFightCategories', value)}
+            userRole={userRole}
+            eventName={event.name}
+            setEventName={(value) => handleUpdateEventProperty('name', value)}
+            eventDescription={event.description}
+            setEventDescription={(value) => handleUpdateEventProperty('description', value)}
           />
         </TabsContent>
 
@@ -398,8 +379,8 @@ const EventDetail: React.FC = () => {
             eventId={event.id}
             eventDivisions={event.divisions}
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
-            isAttendanceMandatory={isAttendanceMandatory} // Pass isAttendanceMandatory down
-            userRole={userRole} // Pass userRole down
+            isAttendanceMandatory={event.isAttendanceMandatoryBeforeCheckIn || false}
+            userRole={userRole}
           />
         </TabsContent>
 
@@ -407,8 +388,8 @@ const EventDetail: React.FC = () => {
           <CheckInTab
             event={event}
             userRole={userRole}
-            checkInStartTime={checkInStartTime}
-            checkInEndTime={checkInEndTime}
+            checkInStartTime={event.checkInStartTime}
+            checkInEndTime={event.checkInEndTime}
             checkInFilter={checkInFilter}
             handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
             setCheckInFilter={setCheckInFilter}
@@ -432,8 +413,8 @@ const EventDetail: React.FC = () => {
             event={event}
             userRole={userRole}
             handleUpdateMatAssignments={handleUpdateMatAssignments}
-            bracketsSubTab={bracketsSubTab} // NOVO: Passar o estado da sub-aba
-            setBracketsSubTab={setBracketsSubTab} // NOVO: Passar a função de atualização
+            bracketsSubTab={bracketsSubTab}
+            setBracketsSubTab={setBracketsSubTab}
           />
         </TabsContent>
 

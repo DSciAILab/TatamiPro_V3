@@ -105,8 +105,8 @@ export interface Event {
   status: 'Aberto' | 'Fechado';
   date: string;
   athletes: Athlete[];
-  checkInStartTime?: string; // Novo: Horário de início do check-in (ISO string)
-  checkInEndTime?: string; // Novo: Horário de término do check-in (ISO string)
+  checkInStartTime?: Date; // Alterado para Date | undefined
+  checkInEndTime?: Date; // Alterado para Date | undefined
   numFightAreas?: number; // Novo: Número de áreas de luta
   divisions: Division[]; // Novo: Divisões configuradas para o evento
   isAttendanceMandatoryBeforeCheckIn?: boolean; // NOVO: Se a presença é obrigatória antes do check-in
