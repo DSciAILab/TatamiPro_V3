@@ -123,9 +123,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
           <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar as configurações do evento.</CardDescription></CardHeader></Card>
         ) : (
           <Tabs value={configSubTab} onValueChange={setConfigSubTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4"> {/* Ajustado para 4 colunas */}
               <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
               <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+              <TabsTrigger value="check-in-settings">Check-in</TabsTrigger> {/* Nova aba */}
               <TabsTrigger value="results-settings">Resultados</TabsTrigger>
             </TabsList>
 
@@ -183,7 +184,19 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     </Button>
                   </div>
                 </div>
+              </div>
+            </TabsContent>
 
+            <TabsContent value="divisions" className="mt-6">
+              <Link to={`/events/${event.id}/import-divisions`}>
+                <Button className="w-full mb-4">Importar Divisões em Lote</Button>
+              </Link>
+              <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+            </TabsContent>
+
+            {/* Nova TabsContent para configurações de Check-in */}
+            <TabsContent value="check-in-settings" className="mt-6">
+              <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -325,13 +338,6 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                 </div>
               </div>
               <CheckInMandatoryFieldsConfig eventId={event.id} />
-            </TabsContent>
-
-            <TabsContent value="divisions" className="mt-6">
-              <Link to={`/events/${event.id}/import-divisions`}>
-                <Button className="w-full mb-4">Importar Divisões em Lote</Button>
-              </Link>
-              <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
             </TabsContent>
 
             <TabsContent value="results-settings" className="mt-6">
