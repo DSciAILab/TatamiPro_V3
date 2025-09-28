@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'; // Importar cn
 
 interface FightListProps {
   event: Event;
-  selectedMat: string; // NOVO: Mat selecionado
+  selectedMat: string | 'all-mats'; // NOVO: Mat selecionado pode ser 'all-mats'
   selectedCategoryKey: string; // e.g., "Masculino/Adult/Preta"
   selectedDivisionId: string; // ID da divisão
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
@@ -65,19 +65,45 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   };
 
   const fightsForSelectedMatAndCategory = useMemo(() => {
-    if (!matFightOrder || !selectedMat || !brackets) return [];
+    if (!matFightOrder || !brackets) return [];
 
-    const matMatchesIds = matFightOrder[selectedMat] || [];
     const fights: Match[] = [];
 
-    matMatchesIds.forEach(matchId => {
-      const match = allMatchesMap.get(matchId);
-      // Filter by selected division AND hide BYE vs BYE fights
-      if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
-        fights.push(match);
+    if (selectedMat === 'all-mats') {
+      // Coletar lutas de todas as áreas para a divisão selecionada
+      Object.values(matFightOrder).forEach(matMatchesIds => {
+        matMatchesIds.forEach(matchId => {
+          const match = allMatchesMap.get(matchId);
+          if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
+            fights.push(match);
+          }
+        });
+      });
+    } else if (selectedMat) {
+      // Coletar lutas apenas para o mat selecionado
+      const matMatchesIds = matFightOrder[selectedMat] || [];
+      matMatchesIds.forEach(matchId => {
+        const match = allMatchesMap.get(matchId);
+        if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
+          fights.push(match);
+        }
+      });
+    }
+    
+    // Ordenar as lutas: primeiro por mat (se 'all-mats'), depois por round, depois por matFightNumber
+    return fights.sort((a, b) => {
+      if (selectedMat === 'all-mats') {
+        // Ordenar por nome do mat primeiro
+        const matNameA = a._matName || '';
+        const matNameB = b._matName || '';
+        if (matNameA !== matNameB) {
+          return matNameA.localeCompare(matNameB);
+        }
       }
+      // Depois por round e matFightNumber
+      if (a.round !== b.round) return a.round - b.round;
+      return (a.matFightNumber || 0) - (b.matFightNumber || 0);
     });
-    return fights;
   }, [matFightOrder, selectedMat, selectedDivisionId, allMatchesMap, brackets]);
 
   // NOVO: Agrupar lutas por rodada
@@ -104,7 +130,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
 
   if (fightsForSelectedMatAndCategory.length === 0) {
-    return <p className="text-muted-foreground">Nenhuma luta encontrada para esta categoria no {selectedMat}.</p>;
+    return <p className="text-muted-foreground">Nenhuma luta encontrada para esta categoria no {selectedMat === 'all-mats' ? 'todas as áreas' : selectedMat}.</p>;
   }
 
   const renderMatchCard = (match: Match) => {
@@ -123,13 +149,14 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const resultTime = "XX:XX"; // Placeholder for now, as no match start/end time is stored.
 
-    const matNumber = selectedMat.replace('Mat ', '');
+    const matNumberDisplay = match._matName ? match._matName.replace('Mat ', '') : 'N/A'; // Usar _matName
+    const fightNumberDisplay = `${matNumberDisplay}-${match.matFightNumber}`;
 
     const cardContent = (
       <div className="relative flex p-4">
         {/* Left: Fight Number and Time */}
         <div className="flex-shrink-0 w-16 text-center absolute top-4 left-4">
-          <span className="text-2xl font-extrabold text-primary">{matNumber}-{match.matFightNumber}</span>
+          <span className="text-2xl font-extrabold text-primary">{fightNumberDisplay}</span>
           <p className="text-xs text-muted-foreground mt-1">{resultTime}</p>
         </div>
 

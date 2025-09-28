@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import FightList from '@/components/FightList';
-import MatCategoryList from '@/components/MatCategoryList';
+import MatCategoryList from '@/components/MatCategory'; // CORREÇÃO: Caminho de importação atualizado
 import {
   AlertDialog,
   AlertDialogAction,
@@ -133,7 +133,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       return;
     }
 
-    // Removido: const divisionsWithExistingBrackets = divisionsToConsider.filter(div => event.brackets?.[div.id]);
     const divisionsWithOngoingFights = divisionsToConsider.filter(div => hasOngoingFights(div.id));
 
     if (selectedDivisionIdForBracket !== 'all' && divisionsWithOngoingFights.length > 0) {
@@ -175,13 +174,14 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   // --- Estados e Memos para a sub-aba "Gerenciar Lutas" ---
-  const [selectedMat, setSelectedMat] = useState<string | null>(null);
+  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null); // Atualizado para 'all-mats'
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null);
   const [selectedDivisionIdForFightList, setSelectedDivisionIdForFightList] = useState<string | null>(null);
 
   const matNames = useMemo(() => {
     if (!event?.numFightAreas) return [];
-    return Array.from({ length: event.numFightAreas }, (_, i) => `Mat ${i + 1}`);
+    const names = Array.from({ length: event.numFightAreas }, (_, i) => `Mat ${i + 1}`);
+    return ['all-mats', ...names]; // Adiciona 'all-mats'
   }, [event?.numFightAreas]);
 
   const handleSelectCategory = (categoryKey: string, divisionId: string) => {
@@ -293,13 +293,15 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                 <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
-                    <Select value={selectedMat || ''} onValueChange={(value) => { setSelectedMat(value); setSelectedCategoryKey(null); setSelectedDivisionIdForFightList(null); }}>
+                    <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => { setSelectedMat(value); setSelectedCategoryKey(null); setSelectedDivisionIdForFightList(null); }}>
                       <SelectTrigger id="mat-select">
                         <SelectValue placeholder="Selecione um Mat" />
                       </SelectTrigger>
                       <SelectContent>
                         {matNames.map(mat => (
-                          <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                          <SelectItem key={mat} value={mat}>
+                            {mat === 'all-mats' ? 'Todas as Áreas' : mat}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -311,6 +313,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       selectedMat={selectedMat}
                       selectedCategoryKey={selectedCategoryKey}
                       onSelectCategory={handleSelectCategory}
+                      hasOngoingFights={hasOngoingFights} // Passar a função
                     />
                   )}
                 </CardContent>
