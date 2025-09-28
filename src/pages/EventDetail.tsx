@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division } from '../types/index';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
@@ -19,6 +19,7 @@ import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import SaveChangesButton from '@/components/SaveChangesButton';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,15 +35,15 @@ const EventDetail: React.FC = () => {
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   
-  // Consolidate all event-related states into a single 'event' object
   const [event, setEvent] = useState<Event | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Sub-tab states (these are UI-specific, not event data)
+  // Sub-tab states
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
-  // Effect to load event data
   useEffect(() => {
     if (!id) {
       setEvent(null);
@@ -55,7 +56,6 @@ const EventDetail: React.FC = () => {
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
-        // Ensure dates are parsed correctly
         const processedAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, parsedEvent.divisions || []));
         eventData = { 
           ...parsedEvent, 
@@ -69,12 +69,15 @@ const EventDetail: React.FC = () => {
     }
 
     setEvent(eventData);
+    setHasUnsavedChanges(false); // Reset on load
   }, [id]);
 
-  // Effect to persist event data to localStorage whenever 'event' state changes
-  useEffect(() => {
-    if (event && id) {
-      // Prepare event data for saving (convert Date objects back to ISO strings)
+  const handleSaveChanges = () => {
+    if (!event || !id) return;
+    setIsSaving(true);
+    const toastId = showLoading("Salvando alterações...");
+
+    try {
       const eventDataToSave = {
         ...event,
         check_in_start_time: event.check_in_start_time instanceof Date ? event.check_in_start_time.toISOString() : event.check_in_start_time,
@@ -87,7 +90,6 @@ const EventDetail: React.FC = () => {
       };
       localStorage.setItem(`event_${id}`, JSON.stringify(eventDataToSave));
 
-      // Also update the summary list of events
       const eventsListRaw = localStorage.getItem('events');
       let eventsList: { id: string; name: string; status: string; date: string; is_active: boolean }[] = [];
       if (eventsListRaw) {
@@ -113,18 +115,25 @@ const EventDetail: React.FC = () => {
         eventsList.push(eventSummary);
       }
       localStorage.setItem('events', JSON.stringify(eventsList));
-    }
-  }, [event, id]); // This useEffect now depends only on the 'event' object
 
-  // Generic handler to update any property of the event object
+      setHasUnsavedChanges(false);
+      dismissToast(toastId);
+      showSuccess("Alterações salvas com sucesso!");
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError("Falha ao salvar alterações: " + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleUpdateEventProperty = <K extends keyof Event>(key: K, value: Event[K]) => {
     setEvent(prev => {
       if (!prev) return null;
       const updatedEvent = { ...prev, [key]: value };
+      setHasUnsavedChanges(true);
 
-      // Special handling for properties that might affect derived data
       if (key === 'divisions' || key === 'mat_assignments' || key === 'athletes' || key === 'is_belt_grouping_enabled') {
-        // Recalculate mat fight order and brackets if divisions, assignments, or athletes change
         const { updatedBrackets, matFightOrder } = generateMatFightOrder(updatedEvent);
         return { ...updatedEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
       }
@@ -132,7 +141,6 @@ const EventDetail: React.FC = () => {
     });
   };
 
-  // Specific handlers for complex updates or nested objects
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
     handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
     setEditingAthlete(null);
@@ -167,7 +175,7 @@ const EventDetail: React.FC = () => {
       'athletes',
       event!.athletes.map(a =>
         selectedAthletesForApproval.includes(a.id)
-          ? { ...a, registration_status: 'approved' as Athlete['registration_status'] } // Type assertion aqui
+          ? { ...a, registration_status: 'approved' as Athlete['registration_status'] }
           : a
       )
     );
@@ -180,7 +188,7 @@ const EventDetail: React.FC = () => {
       'athletes',
       event!.athletes.map(a =>
         selectedAthletesForApproval.includes(a.id)
-          ? { ...a, registration_status: 'rejected' as Athlete['registration_status'] } // Type assertion aqui
+          ? { ...a, registration_status: 'rejected' as Athlete['registration_status'] }
           : a
       )
     );
@@ -193,6 +201,7 @@ const EventDetail: React.FC = () => {
       if (!prev) return null;
       const updatedAthletes = prev.athletes.map(a => processAthleteData(a, updatedDivisions));
       const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, divisions: updatedDivisions, athletes: updatedAthletes });
+      setHasUnsavedChanges(true);
       return { ...prev, divisions: updatedDivisions, athletes: updatedAthletes, brackets: updatedBrackets, mat_fight_order: matFightOrder };
     });
   };
@@ -201,6 +210,7 @@ const EventDetail: React.FC = () => {
     setEvent(prev => {
       if (!prev) return null;
       const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, mat_assignments: assignments });
+      setHasUnsavedChanges(true);
       return { ...prev, mat_assignments: assignments, brackets: updatedBrackets, mat_fight_order: matFightOrder };
     });
   };
@@ -221,7 +231,6 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  // Memoized Calculations (now directly from 'event' state)
   const athletesUnderApproval = useMemo(() => event?.athletes.filter(a => a.registration_status === 'under_approval') || [], [event]);
   const approvedAthletes = useMemo(() => event?.athletes.filter(a => a.registration_status === 'approved') || [], [event]);
   const processedApprovedAthletes = useMemo(() => approvedAthletes.map(a => processAthleteData(a, event?.divisions || [])), [approvedAthletes, event?.divisions]);
@@ -262,7 +271,6 @@ const EventDetail: React.FC = () => {
     if (checkInFilter !== 'all') athletes = athletes.filter(a => a.check_in_status === checkInFilter);
     return athletes;
   }, [processedApprovedAthletes, event?.is_attendance_mandatory_before_check_in, scannedAthleteId, searchTerm, checkInFilter]);
-
 
   const visibleTabs = useMemo(() => [
     userRole === 'admin' && { value: 'config', label: 'Config' },
@@ -431,6 +439,11 @@ const EventDetail: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      <SaveChangesButton
+        onSave={handleSaveChanges}
+        isSaving={isSaving}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
     </Layout>
   );
 };
