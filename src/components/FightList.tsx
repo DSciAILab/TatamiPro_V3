@@ -27,15 +27,15 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
 };
 
 const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId }) => {
-  const { athletes, brackets, matFightOrder } = event;
+  const { athletes, brackets, mat_fight_order } = event;
 
   const allMatchesMap = useMemo(() => {
     const map = new Map<string, Match>();
     if (brackets) {
       Object.values(brackets).forEach(bracket => {
         bracket.rounds.flat().forEach(match => map.set(match.id, match));
-        if (bracket.thirdPlaceMatch) {
-          map.set(bracket.thirdPlaceMatch.id, bracket.thirdPlaceMatch);
+        if (bracket.third_place_match) {
+          map.set(bracket.third_place_match.id, bracket.third_place_match);
         }
       });
     }
@@ -55,8 +55,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       );
     }
     const fighter = athletesMap.get(fighterId);
-    return fighter?.photoUrl ? (
-      <img src={fighter.photoUrl} alt={fighter.firstName} className="w-8 h-8 rounded-full object-cover" />
+    return fighter?.photo_url ? (
+      <img src={fighter.photo_url} alt={fighter.first_name} className="w-8 h-8 rounded-full object-cover" />
     ) : (
       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
         <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -65,46 +65,46 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   };
 
   const fightsForSelectedMatAndCategory = useMemo(() => {
-    if (!matFightOrder || !brackets) return [];
+    if (!mat_fight_order || !brackets) return [];
 
     const fights: Match[] = [];
 
     if (selectedMat === 'all-mats') {
       // Coletar lutas de todas as áreas para a divisão selecionada
-      Object.values(matFightOrder).forEach(matMatchesIds => {
-        matMatchesIds.forEach(matchId => {
+      Object.values(mat_fight_order).forEach((matMatchesIds: any) => {
+        matMatchesIds.forEach((matchId: string) => {
           const match = allMatchesMap.get(matchId);
-          if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
+          if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
             fights.push(match);
           }
         });
       });
     } else if (selectedMat) {
       // Coletar lutas apenas para o mat selecionado
-      const matMatchesIds = matFightOrder[selectedMat] || [];
-      matMatchesIds.forEach(matchId => {
+      const matMatchesIds = mat_fight_order[selectedMat] || [];
+      matMatchesIds.forEach((matchId: string) => {
         const match = allMatchesMap.get(matchId);
-        if (match && match._divisionId === selectedDivisionId && !(match.fighter1Id === 'BYE' && match.fighter2Id === 'BYE')) {
+        if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
           fights.push(match);
         }
       });
     }
     
-    // Ordenar as lutas: primeiro por mat (se 'all-mats'), depois por round, depois por matFightNumber
+    // Ordenar as lutas: primeiro por mat (se 'all-mats'), depois por round, depois por mat_fight_number
     return fights.sort((a, b) => {
       if (selectedMat === 'all-mats') {
         // Ordenar por nome do mat primeiro
-        const matNameA = a._matName || '';
-        const matNameB = b._matName || '';
+        const matNameA = a._mat_name || '';
+        const matNameB = b._mat_name || '';
         if (matNameA !== matNameB) {
           return matNameA.localeCompare(matNameB);
         }
       }
-      // Depois por round e matFightNumber
+      // Depois por round e mat_fight_number
       if (a.round !== b.round) return a.round - b.round;
-      return (a.matFightNumber || 0) - (b.matFightNumber || 0);
+      return (a.mat_fight_number || 0) - (b.mat_fight_number || 0);
     });
-  }, [matFightOrder, selectedMat, selectedDivisionId, allMatchesMap, brackets]);
+  }, [mat_fight_order, selectedMat, selectedDivisionId, allMatchesMap, brackets]);
 
   // NOVO: Agrupar lutas por rodada
   const groupedFightsByRound = useMemo(() => {
@@ -121,7 +121,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       .sort(([roundNumA], [roundNumB]) => Number(roundNumA) - Number(roundNumB))
       .map(([roundNum, matches]) => ({
         roundNumber: Number(roundNum),
-        matches: matches.sort((a, b) => (a.matFightNumber || 0) - (b.matFightNumber || 0)), // Ordenar lutas dentro da rodada pelo matFightNumber
+        matches: matches.sort((a, b) => (a.mat_fight_number || 0) - (b.mat_fight_number || 0)), // Ordenar lutas dentro da rodada pelo mat_fight_number
       }));
   }, [fightsForSelectedMatAndCategory]);
 
@@ -134,23 +134,23 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   }
 
   const renderMatchCard = (match: Match) => {
-    const isByeFight = (match.fighter1Id === 'BYE' || match.fighter2Id === 'BYE');
-    const isPendingFight = (!match.fighter1Id || !match.fighter2Id);
+    const isByeFight = (match.fighter1_id === 'BYE' || match.fighter2_id === 'BYE');
+    const isPendingFight = (!match.fighter1_id || !match.fighter2_id);
     const isFightRecordable = !isByeFight && !isPendingFight;
 
-    const fighter1 = match.fighter1Id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1Id || '');
-    const fighter2 = match.fighter2Id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2Id || '');
+    const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
+    const fighter2 = match.fighter2_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2_id || '');
 
-    const fighter1Display = fighter1 === 'BYE' ? 'BYE' : (fighter1 ? `${fighter1.firstName} ${fighter1.lastName}` : 'Aguardando');
-    const fighter2Display = fighter2 === 'BYE' ? 'BYE' : (fighter2 ? `${fighter2.firstName} ${fighter2.lastName}` : 'Aguardando');
+    const fighter1Display = fighter1 === 'BYE' ? 'BYE' : (fighter1 ? `${fighter1.first_name} ${fighter1.last_name}` : 'Aguardando');
+    const fighter2Display = fighter2 === 'BYE' ? 'BYE' : (fighter2 ? `${fighter2.first_name} ${fighter2.last_name}` : 'Aguardando');
 
     const fighter1Club = fighter1 !== 'BYE' && fighter1 ? fighter1.club : '';
     const fighter2Club = fighter2 !== 'BYE' && fighter2 ? fighter2.club : '';
 
     const resultTime = "XX:XX"; // Placeholder for now, as no match start/end time is stored.
 
-    const matNumberDisplay = match._matName ? match._matName.replace('Mat ', '') : 'N/A'; // Usar _matName
-    const fightNumberDisplay = `${matNumberDisplay}-${match.matFightNumber}`;
+    const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : 'N/A'; // Usar _mat_name
+    const fightNumberDisplay = `${matNumberDisplay}-${match.mat_fight_number}`;
 
     const cardContent = (
       <div className="relative flex p-4">
@@ -164,10 +164,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         <div className="flex-grow ml-24 space-y-2"> {/* Adjusted ml to make space for fight number */}
           <div className={cn(
             "flex items-center p-1 rounded-md",
-            match.winnerId === match.fighter1Id ? 'bg-green-100 dark:bg-green-900' :
-            (match.winnerId && match.winnerId !== match.fighter1Id) ? 'bg-red-100 dark:bg-red-950' : ''
+            match.winner_id === match.fighter1_id ? 'bg-green-100 dark:bg-green-900' :
+            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-red-100 dark:bg-red-950' : ''
           )}>
-            {getFighterPhoto(match.fighter1Id)}
+            {getFighterPhoto(match.fighter1_id)}
             <div className="ml-2">
               <p className="text-base flex items-center">
                 {fighter1Display}
@@ -177,10 +177,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           </div>
           <div className={cn(
             "flex items-center p-1 rounded-md",
-            match.winnerId === match.fighter2Id ? 'bg-green-100 dark:bg-green-900' :
-            (match.winnerId && match.winnerId !== match.fighter2Id) ? 'bg-red-100 dark:bg-red-950' : ''
+            match.winner_id === match.fighter2_id ? 'bg-green-100 dark:bg-green-900' :
+            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-red-100 dark:bg-red-950' : ''
           )}>
-            {getFighterPhoto(match.fighter2Id)}
+            {getFighterPhoto(match.fighter2_id)}
             <div className="ml-2">
               <p className="text-base flex items-center">
                 {fighter2Display}
@@ -194,7 +194,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const cardClasses = cn(
       "block border-2 rounded-md transition-colors",
-      match.winnerId ? 'border-green-500' : 'border-gray-200 dark:border-gray-700',
+      match.winner_id ? 'border-green-500' : 'border-gray-200 dark:border-gray-700',
       isFightRecordable ? 'hover:border-primary' : 'opacity-70 cursor-not-allowed'
     );
 

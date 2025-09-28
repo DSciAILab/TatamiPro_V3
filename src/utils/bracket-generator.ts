@@ -66,8 +66,8 @@ export const generateBracketForDivision = (
 
   // 1. Pré-processo: Filtrar e preparar atletas
   const divisionAthletes = athletes.filter(a =>
-    a.registrationStatus === 'approved' &&
-    a.checkInStatus === 'checked_in' &&
+    a.registration_status === 'approved' &&
+    a.check_in_status === 'checked_in' &&
     a._division?.id === division.id // Usar a divisão já atribuída ao atleta
   );
 
@@ -142,8 +142,8 @@ export const generateBracketForDivision = (
       const matchId = `${division.id}-M${globalMatchCounter}`; // Use global counter for ID
       
       let winner: Athlete | 'BYE' | undefined;
-      let fighter1Id: string | 'BYE' | undefined = fighter1 === 'BYE' ? 'BYE' : (fighter1 as Athlete)?.id;
-      let fighter2Id: string | 'BYE' | undefined = fighter2 === 'BYE' ? 'BYE' : (fighter2 as Athlete)?.id;
+      let fighter1_id: string | 'BYE' | undefined = fighter1 === 'BYE' ? 'BYE' : (fighter1 as Athlete)?.id;
+      let fighter2_id: string | 'BYE' | undefined = fighter2 === 'BYE' ? 'BYE' : (fighter2 as Athlete)?.id;
 
       if (fighter1 === 'BYE' && fighter2 !== 'BYE') {
         winner = fighter2;
@@ -161,13 +161,13 @@ export const generateBracketForDivision = (
       matchesInRound.push({
         id: matchId,
         round: roundNumber,
-        matchNumber: i / 2 + 1, // This is still match number *within the round*
-        fighter1Id: fighter1Id,
-        fighter2Id: fighter2Id,
-        winnerId: winner === 'BYE' ? 'BYE' : (winner as Athlete)?.id,
-        loserId: (winner === fighter1) ? fighter2Id : (winner === fighter2 ? fighter1Id : undefined), // Define loser for BYE matches
-        nextMatchId: undefined, // Will be filled in a later pass
-        prevMatchIds: undefined, // Will be filled in a later pass
+        match_number: i / 2 + 1, // This is still match number *within the round*
+        fighter1_id: fighter1_id,
+        fighter2_id: fighter2_id,
+        winner_id: winner === 'BYE' ? 'BYE' : (winner as Athlete)?.id,
+        loser_id: (winner === fighter1) ? fighter2_id : (winner === fighter2 ? fighter1_id : undefined), // Define loser for BYE matches
+        next_match_id: undefined, // Will be filled in a later pass
+        prev_match_ids: undefined, // Will be filled in a later pass
       });
     }
     rounds.push(matchesInRound);
@@ -175,7 +175,7 @@ export const generateBracketForDivision = (
     roundNumber++;
   }
 
-  // Segunda Passagem: Ligar Matches (definir nextMatchId e prevMatchIds)
+  // Segunda Passagem: Ligar Matches (definir next_match_id e prev_match_ids)
   for (let r = 0; r < rounds.length; r++) {
     const currentRound = rounds[r];
     const nextRound = rounds[r + 1];
@@ -186,47 +186,47 @@ export const generateBracketForDivision = (
         const nextMatchIndex = Math.floor(m / 2); // A luta na próxima rodada que esta luta alimenta
         if (nextMatchIndex < nextRound.length) {
           const nextMatch = nextRound[nextMatchIndex];
-          currentMatch.nextMatchId = nextMatch.id;
+          currentMatch.next_match_id = nextMatch.id;
 
-          // Definir prevMatchIds para a próxima luta
-          if (!nextMatch.prevMatchIds) {
-            nextMatch.prevMatchIds = [undefined, undefined];
+          // Definir prev_match_ids para a próxima luta
+          if (!nextMatch.prev_match_ids) {
+            nextMatch.prev_match_ids = [undefined, undefined];
           }
           if (m % 2 === 0) { // Primeira luta do par
-            nextMatch.prevMatchIds[0] = currentMatch.id;
+            nextMatch.prev_match_ids[0] = currentMatch.id;
           } else { // Segunda luta do par
-            nextMatch.prevMatchIds[1] = currentMatch.id;
+            nextMatch.prev_match_ids[1] = currentMatch.id;
           }
         }
       }
     }
   }
 
-  let thirdPlaceMatch: Match | undefined = undefined;
+  let third_place_match: Match | undefined = undefined;
   if (options?.thirdPlace && rounds.length >= 2) {
     const semiFinals = rounds[rounds.length - 2];
     if (semiFinals.length === 2) {
       globalMatchCounter++; // Increment for third place match
-      thirdPlaceMatch = {
+      third_place_match = {
         id: `${division.id}-M${globalMatchCounter}`, // Use global counter for ID
         round: -1, // Rodada especial
-        matchNumber: 1,
-        fighter1Id: undefined, // Perdedor da primeira semifinal
-        fighter2Id: undefined, // Perdedor da segunda semifinal
-        winnerId: undefined,
-        loserId: undefined,
-        nextMatchId: undefined,
-        prevMatchIds: [semiFinals[0].id, semiFinals[1].id], // IDs das semifinais
+        match_number: 1,
+        fighter1_id: undefined, // Perdedor da primeira semifinal
+        fighter2_id: undefined, // Perdedor da segunda semifinal
+        winner_id: undefined,
+        loser_id: undefined,
+        next_match_id: undefined,
+        prev_match_ids: [semiFinals[0].id, semiFinals[1].id], // IDs das semifinais
       };
     }
   }
 
   return {
     id: division.id,
-    divisionId: division.id,
+    division_id: division.id,
     rounds,
-    thirdPlaceMatch,
-    bracketSize,
+    third_place_match,
+    bracket_size: bracketSize,
     participants: initialRoundParticipants, // A lista final de participantes na ordem do bracket
   };
 };

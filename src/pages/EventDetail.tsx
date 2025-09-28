@@ -10,7 +10,6 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
-import { baseEvents } from '@/data/base-events';
 
 // Import the new tab components
 import EventConfigTab from '@/components/EventConfigTab';
@@ -61,35 +60,11 @@ const EventDetail: React.FC = () => {
         eventData = { 
           ...parsedEvent, 
           athletes: processedAthletes,
-          checkInStartTime: parsedEvent.checkInStartTime ? parseISO(parsedEvent.checkInStartTime) : undefined,
-          checkInEndTime: parsedEvent.checkInEndTime ? parseISO(parsedEvent.checkInEndTime) : undefined,
+          check_in_start_time: parsedEvent.check_in_start_time ? parseISO(parsedEvent.check_in_start_time) : undefined,
+          check_in_end_time: parsedEvent.check_in_end_time ? parseISO(parsedEvent.check_in_end_time) : undefined,
         };
       } catch (e) {
         console.error("Failed to parse event data from localStorage", e);
-      }
-    }
-
-    if (!eventData) {
-      const baseEvent = baseEvents.find(e => e.id === id);
-      if (baseEvent) {
-        // For base events, checkInStartTime and checkInEndTime are already Date objects or undefined
-        // No need to parseISO if they are already Date objects.
-        eventData = {
-          ...baseEvent,
-          // Ensure they are Date objects if they exist, otherwise undefined
-          checkInStartTime: baseEvent.checkInStartTime instanceof Date ? baseEvent.checkInStartTime : undefined,
-          checkInEndTime: baseEvent.checkInEndTime instanceof Date ? baseEvent.checkInEndTime : undefined,
-        };
-        localStorage.setItem(`event_${id}`, JSON.stringify({
-          ...eventData,
-          checkInStartTime: eventData.checkInStartTime?.toISOString(),
-          checkInEndTime: eventData.checkInEndTime?.toISOString(),
-          athletes: eventData.athletes.map(a => ({
-            ...a,
-            dateOfBirth: a.dateOfBirth.toISOString(),
-            consentDate: a.consentDate.toISOString(),
-          })),
-        })); // Save base event to localStorage
       }
     }
 
@@ -102,19 +77,19 @@ const EventDetail: React.FC = () => {
       // Prepare event data for saving (convert Date objects back to ISO strings)
       const eventDataToSave = {
         ...event,
-        checkInStartTime: event.checkInStartTime instanceof Date ? event.checkInStartTime.toISOString() : event.checkInStartTime,
-        checkInEndTime: event.checkInEndTime instanceof Date ? event.checkInEndTime.toISOString() : event.checkInEndTime,
+        check_in_start_time: event.check_in_start_time instanceof Date ? event.check_in_start_time.toISOString() : event.check_in_start_time,
+        check_in_end_time: event.check_in_end_time instanceof Date ? event.check_in_end_time.toISOString() : event.check_in_end_time,
         athletes: event.athletes.map(a => ({
           ...a,
-          dateOfBirth: a.dateOfBirth instanceof Date ? a.dateOfBirth.toISOString() : a.dateOfBirth,
-          consentDate: a.consentDate instanceof Date ? a.consentDate.toISOString() : a.consentDate,
+          date_of_birth: a.date_of_birth instanceof Date ? a.date_of_birth.toISOString() : a.date_of_birth,
+          consent_date: a.consent_date instanceof Date ? a.consent_date.toISOString() : a.consent_date,
         })),
       };
       localStorage.setItem(`event_${id}`, JSON.stringify(eventDataToSave));
 
       // Also update the summary list of events
       const eventsListRaw = localStorage.getItem('events');
-      let eventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
+      let eventsList: { id: string; name: string; status: string; date: string; is_active: boolean }[] = [];
       if (eventsListRaw) {
         try {
           eventsList = JSON.parse(eventsListRaw);
@@ -129,7 +104,7 @@ const EventDetail: React.FC = () => {
         name: event.name,
         status: event.status,
         date: event.date,
-        isActive: event.isActive,
+        is_active: event.is_active,
       };
 
       if (eventIndex > -1) {
@@ -148,10 +123,10 @@ const EventDetail: React.FC = () => {
       const updatedEvent = { ...prev, [key]: value };
 
       // Special handling for properties that might affect derived data
-      if (key === 'divisions' || key === 'matAssignments' || key === 'athletes' || key === 'isBeltGroupingEnabled') {
+      if (key === 'divisions' || key === 'mat_assignments' || key === 'athletes' || key === 'is_belt_grouping_enabled') {
         // Recalculate mat fight order and brackets if divisions, assignments, or athletes change
         const { updatedBrackets, matFightOrder } = generateMatFightOrder(updatedEvent);
-        return { ...updatedEvent, brackets: updatedBrackets, matFightOrder };
+        return { ...updatedEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
       }
       return updatedEvent;
     });
@@ -172,8 +147,8 @@ const EventDetail: React.FC = () => {
     handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
   };
 
-  const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendanceStatus']) => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === athleteId ? { ...a, attendanceStatus: status } : a));
+  const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendance_status']) => {
+    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === athleteId ? { ...a, attendance_status: status } : a));
   };
 
   const handleToggleAthleteSelection = (athleteId: string) => {
@@ -182,7 +157,7 @@ const EventDetail: React.FC = () => {
 
   const handleSelectAllAthletes = (checked: boolean) => {
     if (event) {
-      const athletesUnderApproval = event.athletes.filter(a => a.registrationStatus === 'under_approval');
+      const athletesUnderApproval = event.athletes.filter(a => a.registration_status === 'under_approval');
       setSelectedAthletesForApproval(checked ? athletesUnderApproval.map(a => a.id) : []);
     }
   };
@@ -192,7 +167,7 @@ const EventDetail: React.FC = () => {
       'athletes',
       event!.athletes.map(a =>
         selectedAthletesForApproval.includes(a.id)
-          ? { ...a, registrationStatus: 'approved' as Athlete['registrationStatus'] } // Type assertion aqui
+          ? { ...a, registration_status: 'approved' as Athlete['registration_status'] } // Type assertion aqui
           : a
       )
     );
@@ -205,7 +180,7 @@ const EventDetail: React.FC = () => {
       'athletes',
       event!.athletes.map(a =>
         selectedAthletesForApproval.includes(a.id)
-          ? { ...a, registrationStatus: 'rejected' as Athlete['registrationStatus'] } // Type assertion aqui
+          ? { ...a, registration_status: 'rejected' as Athlete['registration_status'] } // Type assertion aqui
           : a
       )
     );
@@ -218,15 +193,15 @@ const EventDetail: React.FC = () => {
       if (!prev) return null;
       const updatedAthletes = prev.athletes.map(a => processAthleteData(a, updatedDivisions));
       const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, divisions: updatedDivisions, athletes: updatedAthletes });
-      return { ...prev, divisions: updatedDivisions, athletes: updatedAthletes, brackets: updatedBrackets, matFightOrder };
+      return { ...prev, divisions: updatedDivisions, athletes: updatedAthletes, brackets: updatedBrackets, mat_fight_order: matFightOrder };
     });
   };
 
   const handleUpdateMatAssignments = (assignments: Record<string, string[]>) => {
     setEvent(prev => {
       if (!prev) return null;
-      const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, matAssignments: assignments });
-      return { ...prev, matAssignments: assignments, brackets: updatedBrackets, matFightOrder };
+      const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, mat_assignments: assignments });
+      return { ...prev, mat_assignments: assignments, brackets: updatedBrackets, mat_fight_order: matFightOrder };
     });
   };
 
@@ -247,8 +222,8 @@ const EventDetail: React.FC = () => {
   };
 
   // Memoized Calculations (now directly from 'event' state)
-  const athletesUnderApproval = useMemo(() => event?.athletes.filter(a => a.registrationStatus === 'under_approval') || [], [event]);
-  const approvedAthletes = useMemo(() => event?.athletes.filter(a => a.registrationStatus === 'approved') || [], [event]);
+  const athletesUnderApproval = useMemo(() => event?.athletes.filter(a => a.registration_status === 'under_approval') || [], [event]);
+  const approvedAthletes = useMemo(() => event?.athletes.filter(a => a.registration_status === 'approved') || [], [event]);
   const processedApprovedAthletes = useMemo(() => approvedAthletes.map(a => processAthleteData(a, event?.divisions || [])), [approvedAthletes, event?.divisions]);
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event?.athletes || [];
@@ -260,44 +235,44 @@ const EventDetail: React.FC = () => {
 
   const coachStats = useMemo(() => ({
     total: allAthletesForInscricoesTab.length,
-    approved: allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'approved').length,
-    pending: allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'under_approval').length,
-    rejected: allAthletesForInscricoesTab.filter(a => a.registrationStatus === 'rejected').length,
+    approved: allAthletesForInscricoesTab.filter(a => a.registration_status === 'approved').length,
+    pending: allAthletesForInscricoesTab.filter(a => a.registration_status === 'under_approval').length,
+    rejected: allAthletesForInscricoesTab.filter(a => a.registration_status === 'rejected').length,
   }), [allAthletesForInscricoesTab]);
 
   const filteredAthletesForDisplayInscricoes = useMemo(() => {
     let athletes = allAthletesForInscricoesTab;
-    if (!userRole) athletes = athletes.filter(a => a.registrationStatus === 'approved');
-    else if (registrationStatusFilter !== 'all') athletes = athletes.filter(a => a.registrationStatus === registrationStatusFilter);
+    if (!userRole) athletes = athletes.filter(a => a.registration_status === 'approved');
+    else if (registrationStatusFilter !== 'all') athletes = athletes.filter(a => a.registration_status === registrationStatusFilter);
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
     }
     return athletes;
   }, [allAthletesForInscricoesTab, userRole, registrationStatusFilter, searchTerm]);
 
   const filteredAthletesForCheckIn = useMemo(() => {
     let athletes = processedApprovedAthletes;
-    if (event?.isAttendanceMandatoryBeforeCheckIn) athletes = athletes.filter(a => a.attendanceStatus === 'present');
-    if (scannedAthleteId) return athletes.filter(a => a.registrationQrCodeId === scannedAthleteId);
+    if (event?.is_attendance_mandatory_before_check_in) athletes = athletes.filter(a => a.attendance_status === 'present');
+    if (scannedAthleteId) return athletes.filter(a => a.registration_qr_code_id === scannedAthleteId);
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      athletes = athletes.filter(a => `${a.firstName} ${a.lastName} ${a.club} ${a.ageDivision} ${a.weightDivision} ${a.belt}`.toLowerCase().includes(lower));
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
     }
-    if (checkInFilter !== 'all') athletes = athletes.filter(a => a.checkInStatus === checkInFilter);
+    if (checkInFilter !== 'all') athletes = athletes.filter(a => a.check_in_status === checkInFilter);
     return athletes;
-  }, [processedApprovedAthletes, event?.isAttendanceMandatoryBeforeCheckIn, scannedAthleteId, searchTerm, checkInFilter]);
+  }, [processedApprovedAthletes, event?.is_attendance_mandatory_before_check_in, scannedAthleteId, searchTerm, checkInFilter]);
 
 
   const visibleTabs = useMemo(() => [
     userRole === 'admin' && { value: 'config', label: 'Config' },
     { value: 'inscricoes', label: 'Inscrições' },
-    event?.isAttendanceMandatoryBeforeCheckIn && { value: 'attendance', label: 'Attendance' },
+    event?.is_attendance_mandatory_before_check_in && { value: 'attendance', label: 'Attendance' },
     userRole && { value: 'checkin', label: 'Check-in' },
     { value: 'brackets', label: 'Brackets' },
     { value: 'resultados', label: 'Resultados' },
     { value: 'llm', label: 'LLM (Q&A)' },
-  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, event?.isAttendanceMandatoryBeforeCheckIn]);
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, event?.is_attendance_mandatory_before_check_in]);
 
   if (!event) {
     return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
@@ -320,38 +295,38 @@ const EventDetail: React.FC = () => {
             event={event}
             configSubTab={configSubTab}
             setConfigSubTab={setConfigSubTab}
-            isActive={event.isActive}
-            setIsActive={(value) => handleUpdateEventProperty('isActive', value)}
+            isActive={event.is_active}
+            setIsActive={(value) => handleUpdateEventProperty('is_active', value)}
             handleExportJson={handleExportJson}
-            checkInStartTime={event.checkInStartTime}
-            setCheckInStartTime={(date) => handleUpdateEventProperty('checkInStartTime', date)}
-            checkInEndTime={event.checkInEndTime}
-            setCheckInEndTime={(date) => handleUpdateEventProperty('checkInEndTime', date)}
-            numFightAreas={event.numFightAreas || 1}
-            setNumFightAreas={(value) => handleUpdateEventProperty('numFightAreas', value)}
-            isAttendanceMandatory={event.isAttendanceMandatoryBeforeCheckIn || false}
-            setIsAttendanceMandatory={(value) => handleUpdateEventProperty('isAttendanceMandatoryBeforeCheckIn', value)}
-            isWeightCheckEnabled={event.isWeightCheckEnabled ?? true}
-            setIsWeightCheckEnabled={(value) => handleUpdateEventProperty('isWeightCheckEnabled', value)}
-            isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
-            setIsBeltGroupingEnabled={(value) => handleUpdateEventProperty('isBeltGroupingEnabled', value)}
-            isOverweightAutoMoveEnabled={event.isOverweightAutoMoveEnabled ?? false}
-            setIsOverweightAutoMoveEnabled={(value) => handleUpdateEventProperty('isOverweightAutoMoveEnabled', value)}
-            includeThirdPlace={event.includeThirdPlace || false}
-            setIncludeThirdPlace={(value) => handleUpdateEventProperty('includeThirdPlace', value)}
-            checkInScanMode={event.checkInScanMode || 'qr'}
-            setCheckInScanMode={(value) => handleUpdateEventProperty('checkInScanMode', value)}
+            checkInStartTime={event.check_in_start_time}
+            setCheckInStartTime={(date) => handleUpdateEventProperty('check_in_start_time', date)}
+            checkInEndTime={event.check_in_end_time}
+            setCheckInEndTime={(date) => handleUpdateEventProperty('check_in_end_time', date)}
+            numFightAreas={event.num_fight_areas || 1}
+            setNumFightAreas={(value) => handleUpdateEventProperty('num_fight_areas', value)}
+            isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
+            setIsAttendanceMandatory={(value) => handleUpdateEventProperty('is_attendance_mandatory_before_check_in', value)}
+            isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
+            setIsWeightCheckEnabled={(value) => handleUpdateEventProperty('is_weight_check_enabled', value)}
+            isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
+            setIsBeltGroupingEnabled={(value) => handleUpdateEventProperty('is_belt_grouping_enabled', value)}
+            isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
+            setIsOverweightAutoMoveEnabled={(value) => handleUpdateEventProperty('is_overweight_auto_move_enabled', value)}
+            includeThirdPlace={event.include_third_place || false}
+            setIncludeThirdPlace={(value) => handleUpdateEventProperty('include_third_place', value)}
+            checkInScanMode={event.check_in_scan_mode || 'qr'}
+            setCheckInScanMode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
             handleUpdateDivisions={handleUpdateDivisions}
-            championPoints={event.championPoints || 9}
-            setChampionPoints={(value) => handleUpdateEventProperty('championPoints', value)}
-            runnerUpPoints={event.runnerUpPoints || 3}
-            setRunnerUpPoints={(value) => handleUpdateEventProperty('runnerUpPoints', value)}
-            thirdPlacePoints={event.thirdPlacePoints || 1}
-            setThirdPlacePoints={(value) => handleUpdateEventProperty('thirdPlacePoints', value)}
-            countSingleClubCategories={event.countSingleClubCategories ?? true}
-            setCountSingleClubCategories={(value) => handleUpdateEventProperty('countSingleClubCategories', value)}
-            countWalkoverSingleFightCategories={event.countWalkoverSingleFightCategories ?? true}
-            setCountWalkoverSingleFightCategories={(value) => handleUpdateEventProperty('countWalkoverSingleFightCategories', value)}
+            championPoints={event.champion_points || 9}
+            setChampionPoints={(value) => handleUpdateEventProperty('champion_points', value)}
+            runnerUpPoints={event.runner_up_points || 3}
+            setRunnerUpPoints={(value) => handleUpdateEventProperty('runner_up_points', value)}
+            thirdPlacePoints={event.third_place_points || 1}
+            setThirdPlacePoints={(value) => handleUpdateEventProperty('third_place_points', value)}
+            countSingleClubCategories={event.count_single_club_categories ?? true}
+            setCountSingleClubCategories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
+            countWalkoverSingleFightCategories={event.count_walkover_single_fight_categories ?? true}
+            setCountWalkoverSingleFightCategories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
             userRole={userRole}
             eventName={event.name}
             setEventName={(value) => handleUpdateEventProperty('name', value)}
@@ -393,7 +368,7 @@ const EventDetail: React.FC = () => {
             eventId={event.id}
             eventDivisions={event.divisions}
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
-            isAttendanceMandatory={event.isAttendanceMandatoryBeforeCheckIn || false}
+            isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
             userRole={userRole}
           />
         </TabsContent>
@@ -402,14 +377,14 @@ const EventDetail: React.FC = () => {
           <CheckInTab
             event={event}
             userRole={userRole}
-            checkInStartTime={event.checkInStartTime}
-            checkInEndTime={event.checkInEndTime}
+            checkInStartTime={event.check_in_start_time}
+            checkInEndTime={event.check_in_end_time}
             checkInFilter={checkInFilter}
             handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)}
             setCheckInFilter={setCheckInFilter}
-            totalCheckedInOk={processedApprovedAthletes.filter(a => a.checkInStatus === 'checked_in').length}
-            totalOverweights={processedApprovedAthletes.filter(a => a.checkInStatus === 'overweight').length}
-            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.checkInStatus === 'pending').length}
+            totalCheckedInOk={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length}
+            totalOverweights={processedApprovedAthletes.filter(a => a.check_in_status === 'overweight').length}
+            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length}
             totalApprovedAthletes={processedApprovedAthletes.length}
             isScannerOpen={isScannerOpen}
             setIsScannerOpen={setIsScannerOpen}

@@ -44,7 +44,7 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
     if (!fighter) return 'Atleta Desconhecido';
     return (
       <span className={cn("text-xs font-medium", isWinner && "font-bold")}>
-        {fighter.firstName} {fighter.lastName} ({fighter.club})
+        {fighter.first_name} {fighter.last_name} ({fighter.club})
       </span>
     );
   };
@@ -58,8 +58,8 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
       );
     }
     const fighter = athletesMap.get(fighterId);
-    return fighter?.photoUrl ? (
-      <img src={fighter.photoUrl} alt={fighter.firstName} className="w-4 h-4 rounded-full object-cover" />
+    return fighter?.photo_url ? (
+      <img src={fighter.photo_url} alt={fighter.first_name} className="w-4 h-4 rounded-full object-cover" />
     ) : (
       <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center">
         <UserRound className="h-2 w-2 text-muted-foreground" />
@@ -68,25 +68,25 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
   };
 
   const renderMatch = (match: Match, isFinal: boolean = false) => {
-    const fighter1IsWinner = match.winnerId === match.fighter1Id;
-    const fighter2IsWinner = match.winnerId === match.fighter2Id;
+    const fighter1IsWinner = match.winner_id === match.fighter1_id;
+    const fighter2IsWinner = match.winner_id === match.fighter2_id;
 
-    const matchNumberDisplay = match.matFightNumber ? `${match._matName?.replace('Mat ', '') || ''}-${match.matFightNumber}` : `Luta ${match.matchNumber}`;
+    const matchNumberDisplay = match.mat_fight_number ? `${match._mat_name?.replace('Mat ', '') || ''}-${match.mat_fight_number}` : `Luta ${match.match_number}`;
 
     return (
       <div key={match.id} className="border border-gray-300 dark:border-gray-700 rounded-sm p-1 mb-1 text-xs">
         <div className="flex justify-between items-center mb-1">
           <span className="font-semibold text-muted-foreground">{matchNumberDisplay}</span>
-          {isFinal && match.winnerId && <Trophy className="h-3 w-3 text-yellow-500" />}
+          {isFinal && match.winner_id && <Trophy className="h-3 w-3 text-yellow-500" />}
         </div>
         <div className="space-y-0.5">
           <div className={cn("flex items-center space-x-1", fighter1IsWinner && "bg-green-50 dark:bg-green-900 rounded-sm")}>
-            {getFighterPhoto(match.fighter1Id)}
-            {getFighterDisplay(match.fighter1Id, fighter1IsWinner)}
+            {getFighterPhoto(match.fighter1_id)}
+            {getFighterDisplay(match.fighter1_id, fighter1IsWinner)}
           </div>
           <div className={cn("flex items-center space-x-1", fighter2IsWinner && "bg-green-50 dark:bg-green-900 rounded-sm")}>
-            {getFighterPhoto(match.fighter2Id)}
-            {getFighterDisplay(match.fighter2Id, fighter2IsWinner)}
+            {getFighterPhoto(match.fighter2_id)}
+            {getFighterDisplay(match.fighter2_id, fighter2IsWinner)}
           </div>
         </div>
       </div>
@@ -106,10 +106,10 @@ const PrintableBracket: React.FC<PrintableBracketProps> = ({ bracket, allAthlete
           </div>
         ))}
       </div>
-      {bracket.thirdPlaceMatch && (
+      {bracket.third_place_match && (
         <div className="mt-8 text-center">
           <h2 className="text-sm font-semibold mb-2">Luta pelo 3º Lugar</h2>
-          {renderMatch(bracket.thirdPlaceMatch, false)}
+          {renderMatch(bracket.third_place_match, false)}
         </div>
       )}
     </div>

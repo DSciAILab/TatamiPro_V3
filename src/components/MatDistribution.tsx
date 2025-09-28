@@ -24,13 +24,13 @@ interface CategoryGroup {
 }
 
 const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAssignments, isBeltGroupingEnabled }) => {
-  const numMats = event.numFightAreas || 1;
+  const numMats = event.num_fight_areas || 1;
   const matNames = useMemo(() => Array.from({ length: numMats }, (_, i) => `Mat ${i + 1}`), [numMats]);
 
   const [matAssignments, setMatAssignments] = useState<Record<string, string[]>>(() => {
     const initialAssignments: Record<string, string[]> = {};
     matNames.forEach(mat => {
-      initialAssignments[mat] = event.matAssignments?.[mat] || [];
+      initialAssignments[mat] = event.mat_assignments?.[mat] || [];
     });
     return initialAssignments;
   });
@@ -39,7 +39,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
     const groupsMap = new Map<string, CategoryGroup>();
 
     // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
-    event.athletes.filter(a => a.registrationStatus === 'approved' && a.checkInStatus === 'checked_in').forEach(athlete => {
+    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
       // Usar a _division já calculada e anexada em EventDetail
       const division = athlete._division; 
       if (!division) return; // Se não houver divisão (o que não deveria acontecer para atletas aprovados/check-in), pular
@@ -49,12 +49,12 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
       let belt: DivisionBelt | undefined;
 
       if (isBeltGroupingEnabled) {
-        key = `${division.gender}/${division.ageCategoryName}/${division.belt}`;
-        display = `${division.gender} / ${division.ageCategoryName} / ${division.belt}`;
+        key = `${division.gender}/${division.age_category_name}/${division.belt}`;
+        display = `${division.gender} / ${division.age_category_name} / ${division.belt}`;
         belt = division.belt;
       } else {
-        key = `${division.gender}/${division.ageCategoryName}`;
-        display = `${division.gender} / ${division.ageCategoryName}`;
+        key = `${division.gender}/${division.age_category_name}`;
+        display = `${division.gender} / ${division.age_category_name}`;
       }
 
       if (!groupsMap.has(key)) {
@@ -62,7 +62,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
           key,
           display,
           gender: division.gender,
-          ageCategoryName: division.ageCategoryName,
+          ageCategoryName: division.age_category_name,
           belt,
           athleteCount: 0,
           divisionIds: [],
@@ -106,13 +106,13 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
   }, [allCategoryGroups, matAssignments]);
 
   useEffect(() => {
-    // Ensure matAssignments state is in sync with event.matAssignments on initial load or event change
+    // Ensure matAssignments state is in sync with event.mat_assignments on initial load or event change
     const initialAssignments: Record<string, string[]> = {};
     matNames.forEach(mat => {
-      initialAssignments[mat] = event.matAssignments?.[mat] || [];
+      initialAssignments[mat] = event.mat_assignments?.[mat] || [];
     });
     setMatAssignments(initialAssignments);
-  }, [event.matAssignments, matNames]);
+  }, [event.mat_assignments, matNames]);
 
   const handleDragStart = (e: React.DragEvent, categoryKey: string) => {
     e.dataTransfer.setData('text/plain', categoryKey);

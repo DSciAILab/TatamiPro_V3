@@ -62,8 +62,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     if (!event) return [];
     return event.divisions.filter(div => {
       const athletesInDivision = event.athletes.filter(a =>
-        a.registrationStatus === 'approved' &&
-        a.checkInStatus === 'checked_in' &&
+        a.registration_status === 'approved' &&
+        a.check_in_status === 'checked_in' &&
         a._division?.id === div.id
       );
       return athletesInDivision.length >= 2;
@@ -74,7 +74,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const hasOngoingFights = (divisionId: string): boolean => {
     const bracket = event.brackets?.[divisionId];
     if (!bracket || !bracket.rounds) return false;
-    return bracket.rounds.flat().some(match => match.winnerId !== undefined);
+    return bracket.rounds.flat().some(match => match.winner_id !== undefined);
   };
 
   const executeBracketGeneration = (divisionsToGenerate: Division[]) => {
@@ -84,7 +84,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     }
 
     const newBrackets: Record<string, Bracket> = {};
-    const includeThirdPlaceFromEvent = event.includeThirdPlace || false;
+    const includeThirdPlaceFromEvent = event.include_third_place || false;
 
     try {
       divisionsToGenerate.forEach(div => {
@@ -100,7 +100,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       });
 
       setGeneratedBrackets(finalBrackets);
-      const updatedEvent = { ...event, brackets: finalBrackets, matFightOrder: newMatFightOrder };
+      const updatedEvent = { ...event, brackets: finalBrackets, mat_fight_order: newMatFightOrder };
       localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
       showSuccess(`${divisionsToGenerate.length} bracket(s) gerado(s) com sucesso!`);
     } catch (error: any) {
@@ -179,10 +179,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const [selectedDivisionIdForFightList, setSelectedDivisionIdForFightList] = useState<string | null>(null);
 
   const matNames = useMemo(() => {
-    if (!event?.numFightAreas) return [];
-    const names = Array.from({ length: event.numFightAreas }, (_, i) => `Mat ${i + 1}`);
+    if (!event?.num_fight_areas) return [];
+    const names = Array.from({ length: event.num_fight_areas }, (_, i) => `Mat ${i + 1}`);
     return ['all-mats', ...names]; // Adiciona 'all-mats'
-  }, [event?.numFightAreas]);
+  }, [event?.num_fight_areas]);
 
   const handleSelectCategory = (categoryKey: string, divisionId: string) => {
     setSelectedCategoryKey(categoryKey);
@@ -198,7 +198,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       ...event,
       brackets: updatedBrackets,
     });
-    const updatedEvent = { ...event, brackets: finalBrackets, matFightOrder: newMatFightOrder };
+    const updatedEvent = { ...event, brackets: finalBrackets, mat_fight_order: newMatFightOrder };
     localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
     setGeneratedBrackets(finalBrackets); // Atualiza o estado local para re-renderizar
   };
@@ -226,7 +226,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               <MatDistribution
                 event={event}
                 onUpdateMatAssignments={handleUpdateMatAssignments}
-                isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
+                isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
               />
             </TabsContent>
 
@@ -268,7 +268,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               ) : (
                 <div className="space-y-8">
                   {Object.values(generatedBrackets).map(bracket => {
-                    const division = event?.divisions.find(d => d.id === bracket.divisionId);
+                    const division = event?.divisions.find(d => d.id === bracket.division_id);
                     if (!division) return null;
                     return (
                       <BracketView

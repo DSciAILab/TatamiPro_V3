@@ -4,7 +4,7 @@ interface CategoryGroup {
   key: string; // e.g., "Masculino/Adult/Preta" or "Masculino/Adult"
   display: string; // e.g., "Masculino / Adult / Preta"
   gender: DivisionGender;
-  ageCategoryName: AgeCategory;
+  age_category_name: AgeCategory;
   belt?: DivisionBelt;
   athleteCount: number;
   divisionIds: string[];
@@ -20,30 +20,30 @@ const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant',
 const genderOrder: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
 
 /**
- * Gera a ordem sequencial das lutas para cada mat, atribuindo um `matFightNumber` a cada luta.
+ * Gera a ordem sequencial das lutas para cada mat, atribuindo um `mat_fight_number` a cada luta.
  *
  * @param event O objeto Event completo.
- * @returns Um objeto contendo os brackets atualizados com `matFightNumber` e o `matFightOrder` para o evento.
+ * @returns Um objeto contendo os brackets atualizados com `mat_fight_number` e o `mat_fight_order` para o evento.
  */
 export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<string, Bracket>; matFightOrder: Record<string, string[]> } => {
   const updatedBrackets: Record<string, Bracket> = JSON.parse(JSON.stringify(event.brackets || {})); // Deep copy
   const matFightOrder: Record<string, string[]> = {};
 
-  if (!event.matAssignments || !event.brackets || !event.numFightAreas) {
+  if (!event.mat_assignments || !event.brackets || !event.num_fight_areas) {
     return { updatedBrackets, matFightOrder };
   }
 
-  const matNames = Array.from({ length: event.numFightAreas }, (_, i) => `Mat ${i + 1}`);
+  const matNames = Array.from({ length: event.num_fight_areas }, (_, i) => `Mat ${i + 1}`);
 
   matNames.forEach(matName => {
     matFightOrder[matName] = [];
     let currentMatFightNumber = 1;
 
-    const assignedCategoryKeys = event.matAssignments?.[matName] || [];
+    const assignedCategoryKeys = event.mat_assignments?.[matName] || [];
 
     // Reconstroi os grupos de categoria para ordenar corretamente
     const groupsMap = new Map<string, CategoryGroup>();
-    event.athletes.filter(a => a.registrationStatus === 'approved' && a.checkInStatus === 'checked_in').forEach(athlete => {
+    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
       const division = athlete._division;
       if (!division) return;
 
@@ -51,13 +51,13 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
       let display: string;
       let belt: DivisionBelt | undefined;
 
-      if (event.isBeltGroupingEnabled) {
-        key = `${division.gender}/${division.ageCategoryName}/${division.belt}`;
-        display = `${division.gender} / ${division.ageCategoryName} / ${division.belt}`;
+      if (event.is_belt_grouping_enabled) {
+        key = `${division.gender}/${division.age_category_name}/${division.belt}`;
+        display = `${division.gender} / ${division.age_category_name} / ${division.belt}`;
         belt = division.belt;
       } else {
-        key = `${division.gender}/${division.ageCategoryName}`;
-        display = `${division.gender} / ${division.ageCategoryName}`;
+        key = `${division.gender}/${division.age_category_name}`;
+        display = `${division.gender} / ${division.age_category_name}`;
       }
 
       if (assignedCategoryKeys.includes(key)) {
@@ -66,7 +66,7 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
             key,
             display,
             gender: division.gender,
-            ageCategoryName: division.ageCategoryName,
+            age_category_name: division.age_category_name,
             belt,
             athleteCount: 0,
             divisionIds: [],
@@ -85,10 +85,10 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
       const genderDiff = genderOrder.indexOf(a.gender) - genderOrder.indexOf(b.gender);
       if (genderDiff !== 0) return genderDiff;
 
-      const ageDiff = ageCategoryOrder.indexOf(a.ageCategoryName) - ageCategoryOrder.indexOf(b.ageCategoryName);
+      const ageDiff = ageCategoryOrder.indexOf(a.age_category_name) - ageCategoryOrder.indexOf(b.age_category_name);
       if (ageDiff !== 0) return ageDiff;
 
-      if (event.isBeltGroupingEnabled && a.belt && b.belt) {
+      if (event.is_belt_grouping_enabled && a.belt && b.belt) {
         const beltAIndex = beltOrder.indexOf(a.belt);
         const beltBIndex = beltOrder.indexOf(b.belt);
         if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
@@ -103,26 +103,26 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
           // Coletar todas as lutas do bracket, incluindo a luta pelo 3º lugar
           const allMatchesInBracket: Match[] = [];
           bracket.rounds.forEach(round => allMatchesInBracket.push(...round));
-          if (bracket.thirdPlaceMatch) {
-            allMatchesInBracket.push(bracket.thirdPlaceMatch);
+          if (bracket.third_place_match) {
+            allMatchesInBracket.push(bracket.third_place_match);
           }
 
           // Ordenar as lutas dentro do bracket (primeiro por rodada, depois por número da luta)
           allMatchesInBracket.sort((a, b) => {
             if (a.round !== b.round) return a.round - b.round;
-            return a.matchNumber - b.matchNumber;
+            return a.match_number - b.match_number;
           });
 
           allMatchesInBracket.forEach(match => {
-            // Atribuir o matFightNumber e adicionar à ordem do mat
-            match.matFightNumber = currentMatFightNumber++;
-            match._divisionId = divisionId; // Adicionar para fácil acesso
-            match._matName = matName; // Adicionar para fácil acesso
+            // Atribuir o mat_fight_number e adicionar à ordem do mat
+            match.mat_fight_number = currentMatFightNumber++;
+            match._division_id = divisionId; // Adicionar para fácil acesso
+            match._mat_name = matName; // Adicionar para fácil acesso
             matFightOrder[matName].push(match.id);
 
             // Atualizar o match no bracket original (deep copy)
-            if (match.round === -1 && bracket.thirdPlaceMatch) {
-              bracket.thirdPlaceMatch = match;
+            if (match.round === -1 && bracket.third_place_match) {
+              bracket.third_place_match = match;
             } else {
               const roundIndex = bracket.rounds.findIndex(r => r.some(m => m.id === match.id));
               if (roundIndex !== -1) {

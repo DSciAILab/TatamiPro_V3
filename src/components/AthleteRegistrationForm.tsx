@@ -47,9 +47,9 @@ const AthleteRegistrationForm: React.FC = () => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
     return storedConfig ? JSON.parse(storedConfig) : {
       club: true,
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
+      first_name: true,
+      last_name: true,
+      date_of_birth: true,
       belt: true,
       weight: true,
       idNumber: true, // Representa Emirates ID ou School ID
@@ -67,9 +67,9 @@ const AthleteRegistrationForm: React.FC = () => {
   // Função para criar o esquema dinamicamente
   const createDynamicSchema = (config: Record<string, boolean>) => {
     const schemaDefinition = {
-      firstName: firstNameSchema,
-      lastName: lastNameSchema,
-      dateOfBirth: dateOfBirthSchema,
+      first_name: firstNameSchema,
+      last_name: lastNameSchema,
+      date_of_birth: dateOfBirthSchema,
       club: clubSchema,
       gender: genderSchema,
       belt: beltSchema,
@@ -77,9 +77,9 @@ const AthleteRegistrationForm: React.FC = () => {
       nationality: nationalitySchema,
       email: emailSchema,
       phone: phoneSchema,
-      consentAccepted: consentAcceptedSchema,
-      emiratesId: emiratesIdOptionalSchema,
-      schoolId: schoolIdOptionalSchema,
+      consent_accepted: consentAcceptedSchema,
+      emirates_id: emiratesIdOptionalSchema,
+      school_id: schoolIdOptionalSchema,
       photo: config?.photo
         ? fileListSchema.refine(file => file.length > 0, { message: 'Foto de perfil é obrigatória.' })
         : fileListSchema.optional(),
@@ -94,9 +94,9 @@ const AthleteRegistrationForm: React.FC = () => {
         : fileListSchema.optional(),
     };
 
-    return z.object(schemaDefinition).refine(data => data.emiratesId || data.schoolId, {
+    return z.object(schemaDefinition).refine(data => data.emirates_id || data.school_id, {
       message: 'Pelo menos um ID (Emirates ID ou School ID) é obrigatório.',
-      path: ['emiratesId'],
+      path: ['emirates_id'],
     });
   };
 
@@ -105,8 +105,8 @@ const AthleteRegistrationForm: React.FC = () => {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      first_name: '',
+      last_name: '',
       club: '',
       gender: 'Outro',
       belt: 'Branca',
@@ -114,11 +114,11 @@ const AthleteRegistrationForm: React.FC = () => {
       nationality: '',
       email: '',
       phone: '',
-      consentAccepted: false,
+      consent_accepted: false,
     },
   });
 
-  const dateOfBirth = watch('dateOfBirth');
+  const date_of_birth = watch('date_of_birth');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     if (!eventId) {
@@ -127,68 +127,68 @@ const AthleteRegistrationForm: React.FC = () => {
     }
 
     try {
-      const age = new Date().getFullYear() - values.dateOfBirth!.getFullYear(); // dateOfBirth é obrigatório
-      const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(values.weight!); // weight é obrigatório
+      const age = new Date().getFullYear() - values.date_of_birth!.getFullYear(); // date_of_birth é obrigatório
+      const age_division = getAgeDivision(age);
+      const weight_division = getWeightDivision(values.weight!); // weight é obrigatório
 
-      let paymentProofUrl: string | undefined;
+      let payment_proof_url: string | undefined;
       if (values.paymentProof && values.paymentProof.length > 0) {
-        paymentProofUrl = `mock-payment-proof-url/${values.paymentProof[0].name}`;
+        payment_proof_url = `mock-payment-proof-url/${values.paymentProof[0].name}`;
         showSuccess(`Comprovante de pagamento ${values.paymentProof[0].name} anexado.`);
       }
 
-      let photoUrl: string | undefined;
+      let photo_url: string | undefined;
       if (values.photo && values.photo.length > 0) {
-        photoUrl = `mock-photo-url/${values.photo[0].name}`;
+        photo_url = `mock-photo-url/${values.photo[0].name}`;
         showSuccess(`Foto de perfil ${values.photo[0].name} anexada.`);
       }
 
-      let emiratesIdFrontUrl: string | undefined;
+      let emirates_id_front_url: string | undefined;
       if (values.emiratesIdFront && values.emiratesIdFront.length > 0) {
-        emiratesIdFrontUrl = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
+        emirates_id_front_url = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
         showSuccess(`Foto da frente do EID ${values.emiratesIdFront[0].name} anexada.`);
       }
 
-      let emiratesIdBackUrl: string | undefined;
+      let emirates_id_back_url: string | undefined;
       if (values.emiratesIdBack && values.emiratesIdBack.length > 0) {
-        emiratesIdBackUrl = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
+        emirates_id_back_url = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
         showSuccess(`Foto do verso do EID ${values.emiratesIdBack[0].name} anexada.`);
       }
 
       const athleteId = `ath-${Date.now()}`; // Gerar um ID de atleta único
-      const registrationQrCodeId = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
+      const registration_qr_code_id = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
 
       const newAthlete: Athlete = {
         id: athleteId,
-        eventId,
-        registrationQrCodeId, // Adicionar o ID do QR Code
-        firstName: values.firstName!,
-        lastName: values.lastName!,
-        dateOfBirth: values.dateOfBirth!,
+        event_id: eventId,
+        registration_qr_code_id, // Adicionar o ID do QR Code
+        first_name: values.first_name!,
+        last_name: values.last_name!,
+        date_of_birth: values.date_of_birth!,
         age,
         club: values.club!,
         gender: values.gender!,
         belt: values.belt!,
         weight: values.weight!,
         nationality: values.nationality!,
-        ageDivision,
-        weightDivision,
+        age_division,
+        weight_division,
         email: values.email!,
         phone: values.phone!,
-        emiratesId: values.emiratesId,
-        schoolId: values.schoolId,
-        photoUrl,
-        emiratesIdFrontUrl,
-        emiratesIdBackUrl,
-        consentAccepted: values.consentAccepted!,
-        consentDate: new Date(),
-        consentVersion: '1.0',
-        paymentProofUrl,
-        registrationStatus: 'under_approval',
-        checkInStatus: 'pending',
-        registeredWeight: undefined,
-        weightAttempts: [],
-        attendanceStatus: 'pending', // Default attendance status
+        emirates_id: values.emirates_id,
+        school_id: values.school_id,
+        photo_url,
+        emirates_id_front_url,
+        emirates_id_back_url,
+        consent_accepted: values.consent_accepted!,
+        consent_date: new Date(),
+        consent_version: '1.0',
+        payment_proof_url,
+        registration_status: 'under_approval',
+        check_in_status: 'pending',
+        registered_weight: undefined,
+        weight_attempts: [],
+        attendance_status: 'pending', // Default attendance status
       };
 
       // Load existing event data to add the new athlete
@@ -201,12 +201,12 @@ const AthleteRegistrationForm: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         athletes: [],
         divisions: [],
-        isActive: true, // Default value
-        championPoints: 9, // Default value
-        runnerUpPoints: 3, // Default value
-        thirdPlacePoints: 1, // Default value
-        countSingleClubCategories: true, // Default value
-        countWalkoverSingleFightCategories: true, // Default value
+        is_active: true, // Default value
+        champion_points: 9, // Default value
+        runner_up_points: 3, // Default value
+        third_place_points: 1, // Default value
+        count_single_club_categories: true, // Default value
+        count_walkover_single_fight_categories: true, // Default value
       };
       if (existingEventData) {
         try {
@@ -228,7 +228,7 @@ const AthleteRegistrationForm: React.FC = () => {
 
   const isFieldMandatory = (fieldName: string) => {
     // Campos sempre obrigatórios
-    const alwaysMandatory = ['firstName', 'lastName', 'dateOfBirth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone', 'consentAccepted'];
+    const alwaysMandatory = ['first_name', 'last_name', 'date_of_birth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone', 'consent_accepted'];
     if (alwaysMandatory.includes(fieldName)) return true;
     // Campos configuráveis
     return mandatoryFieldsConfig?.[fieldName] === true;
@@ -243,42 +243,42 @@ const AthleteRegistrationForm: React.FC = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="firstName">Nome {isFieldMandatory('firstName') && <span className="text-red-500">*</span>}</Label>
-            <Input id="firstName" {...register('firstName')} />
-            {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
+            <Label htmlFor="first_name">Nome {isFieldMandatory('first_name') && <span className="text-red-500">*</span>}</Label>
+            <Input id="first_name" {...register('first_name')} />
+            {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
           </div>
           <div>
-            <Label htmlFor="lastName">Sobrenome {isFieldMandatory('lastName') && <span className="text-red-500">*</span>}</Label>
-            <Input id="lastName" {...register('lastName')} />
-            {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
+            <Label htmlFor="last_name">Sobrenome {isFieldMandatory('last_name') && <span className="text-red-500">*</span>}</Label>
+            <Input id="last_name" {...register('last_name')} />
+            {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
           </div>
         </div>
 
         <div>
-          <Label htmlFor="dateOfBirth">Data de Nascimento {isFieldMandatory('dateOfBirth') && <span className="text-red-500">*</span>}</Label>
+          <Label htmlFor="date_of_birth">Data de Nascimento {isFieldMandatory('date_of_birth') && <span className="text-red-500">*</span>}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !dateOfBirth && "text-muted-foreground"
+                  !date_of_birth && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Selecione uma data</span>}
+                {date_of_birth ? format(date_of_birth, "PPP") : <span>Selecione uma data</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={dateOfBirth}
-                onSelect={(date) => setValue('dateOfBirth', date!)}
+                selected={date_of_birth}
+                onSelect={(date) => setValue('date_of_birth', date!)}
                 initialFocus
               />
             </PopoverContent>
           </Popover>
-          {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth.message}</p>}
+          {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
         </div>
 
         <div>
@@ -357,14 +357,14 @@ const AthleteRegistrationForm: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="emiratesId">Emirates ID (Opcional)</Label>
-            <Input id="emiratesId" {...register('emiratesId')} />
-            {errors.emiratesId && <p className="text-red-500 text-sm mt-1">{errors.emiratesId.message}</p>}
+            <Label htmlFor="emirates_id">Emirates ID (Opcional)</Label>
+            <Input id="emirates_id" {...register('emirates_id')} />
+            {errors.emirates_id && <p className="text-red-500 text-sm mt-1">{errors.emirates_id.message}</p>}
           </div>
           <div>
-            <Label htmlFor="schoolId">School ID (Opcional)</Label>
-            <Input id="schoolId" {...register('schoolId')} />
-            {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+            <Label htmlFor="school_id">School ID (Opcional)</Label>
+            <Input id="school_id" {...register('school_id')} />
+            {errors.school_id && <p className="text-red-500 text-sm mt-1">{errors.school_id.message}</p>}
           </div>
         </div>
 
@@ -395,13 +395,13 @@ const AthleteRegistrationForm: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <Checkbox
-            id="consentAccepted"
-            checked={watch('consentAccepted')}
-            onCheckedChange={(checked) => setValue('consentAccepted', checked as boolean)}
+            id="consent_accepted"
+            checked={watch('consent_accepted')}
+            onCheckedChange={(checked) => setValue('consent_accepted', checked as boolean)}
           />
-          <Label htmlFor="consentAccepted">Eu aceito os termos e condições. {isFieldMandatory('consentAccepted') && <span className="text-red-500">*</span>}</Label>
+          <Label htmlFor="consent_accepted">Eu aceito os termos e condições. {isFieldMandatory('consent_accepted') && <span className="text-red-500">*</span>}</Label>
         </div>
-        {errors.consentAccepted && <p className="text-red-500 text-sm mt-1">{errors.consentAccepted.message}</p>}
+        {errors.consent_accepted && <p className="text-red-500 text-sm mt-1">{errors.consent_accepted.message}</p>}
 
         <Button type="submit" className="w-full">Registrar Atleta</Button>
       </form>

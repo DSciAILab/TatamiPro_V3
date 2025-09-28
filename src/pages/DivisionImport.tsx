@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { showSuccess, showError } from '@/utils/toast';
 import { Division, AgeCategory, DivisionBelt, DivisionGender } from '@/types/index'; // Importar tipos
 
-// Mapeamento de categoria de idade para minAge/maxAge
+// Mapeamento de categoria de idade para min_age/max_age
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
   'kids 1': { min: 4, max: 6 },
   'kids 2': { min: 7, max: 8 },
@@ -31,8 +31,8 @@ const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
 // Define os campos mínimos esperados no arquivo de importação para divisões
 const requiredDivisionFields = {
   name: 'Nome da Divisão', // Corresponde a Division.name
-  ageCategory: 'Categoria de Idade', // Corresponde a Division.ageCategoryName e para derivar minAge/maxAge
-  maxWeight: 'Peso Máximo', // minWeight removido
+  age_category_name: 'Categoria de Idade', // Corresponde a Division.age_category_name e para derivar min_age/max_age
+  max_weight: 'Peso Máximo', // min_weight removido
   gender: 'Gênero',
   belt: 'Faixa',
 };
@@ -42,7 +42,7 @@ type RequiredDivisionField = keyof typeof requiredDivisionFields;
 // Esquema de validação para os dados de entrada do CSV
 const importSchema = z.object({
   name: z.string().min(1, { message: 'Nome da divisão é obrigatório.' }),
-  ageCategory: z.string().transform((str, ctx) => {
+  age_category_name: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (ageCategoryMap[lowerStr]) {
       return str as AgeCategory; // Retorna a string original se for uma categoria válida
@@ -53,7 +53,7 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }),
-  maxWeight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // minWeight removido
+  max_weight: z.coerce.number().min(0, { message: 'Peso máximo deve ser >= 0.' }), // min_weight removido
   gender: z.string().transform((str, ctx) => {
     const lowerStr = str.toLowerCase();
     if (lowerStr === 'masculino' || lowerStr === 'male') return 'Masculino';
@@ -83,9 +83,9 @@ const importSchema = z.object({
     });
     return z.NEVER;
   }) as z.ZodType<DivisionBelt>,
-}).refine(() => true, { // Validação de peso mínimo vs máximo removida aqui, pois minWeight não existe mais
+}).refine(() => true, { // Validação de peso mínimo vs máximo removida aqui, pois min_weight não existe mais
   message: 'A validação de peso será feita na lógica de encaixe.',
-  path: ['maxWeight'],
+  path: ['max_weight'],
 });
 
 interface ImportResult {
@@ -189,24 +189,24 @@ const DivisionImport: React.FC = () => {
           return;
         }
 
-        const { name, ageCategory, maxWeight, gender, belt } = parsed.data; // minWeight removido
+        const { name, age_category_name, max_weight, gender, belt } = parsed.data; // min_weight removido
 
-        const ageBounds = ageCategoryMap[ageCategory.toLowerCase()];
+        const ageBounds = ageCategoryMap[age_category_name.toLowerCase()];
         if (!ageBounds) {
-          failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${ageCategory}" não reconhecida.` });
+          failedImports.push({ row: rowNumber, data: row, reason: `Categoria de idade "${age_category_name}" não reconhecida.` });
           return;
         }
 
         const newDivision: Division = {
           id: `division-${Date.now()}-${index}`,
           name,
-          minAge: ageBounds.min,
-          maxAge: ageBounds.max,
-          maxWeight, // minWeight removido
+          min_age: ageBounds.min,
+          max_age: ageBounds.max,
+          max_weight, // min_weight removido
           gender,
           belt,
-          ageCategoryName: ageCategory,
-          isEnabled: true, // Default to enabled
+          age_category_name: age_category_name,
+          is_enabled: true, // Default to enabled
         };
         successfulDivisions.push(newDivision);
       } catch (error: any) {

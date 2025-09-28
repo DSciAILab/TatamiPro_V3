@@ -12,7 +12,7 @@ export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' |
 
 export interface Division {
   id: string;
-  event_id?: string; // Added for linking to an event
+  event_id?: string;
   name: string;
   min_age: number;
   max_age: number;
@@ -106,7 +106,6 @@ export interface Event {
   date: string;
   athletes: Athlete[];
   divisions: Division[];
-  // DB fields
   check_in_start_time?: Date;
   check_in_end_time?: Date;
   num_fight_areas?: number;

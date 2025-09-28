@@ -175,28 +175,28 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       {userRole && <Checkbox
                         checked={selectedAthletesForApproval.includes(athlete.id)}
                         onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                        className={athlete.registrationStatus !== 'under_approval' ? 'invisible' : ''}
+                        className={athlete.registration_status !== 'under_approval' ? 'invisible' : ''}
                       />}
-                      {athlete.photoUrl ? (
-                        <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                      {athlete.photo_url ? (
+                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                           <UserRound className="h-5 w-5 text-muted-foreground" />
                         </div>
                       )}
                       <div>
-                        <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                         <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                        <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registrationStatus === 'approved' ? 'text-green-600' : athlete.registrationStatus === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registrationStatus === 'under_approval' ? 'Aguardando Aprovação' : athlete.registrationStatus === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
-                        {athlete.moveReason && (
+                        <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registration_status === 'under_approval' ? 'Aguardando Aprovação' : athlete.registration_status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
+                        {athlete.move_reason && (
                           <p className="text-xs text-blue-500">
-                            <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                            <span className="font-semibold">Movido:</span> {athlete.move_reason}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {athlete.registrationQrCodeId && (
+                      {athlete.registration_qr_code_id && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" size="icon">
@@ -204,8 +204,8 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-2">
-                            <QrCodeGenerator value={athlete.registrationQrCodeId} size={100} />
-                            <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registrationQrCodeId}</p>
+                            <QrCodeGenerator value={athlete.registration_qr_code_id} size={100} />
+                            <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registration_qr_code_id}</p>
                           </PopoverContent>
                         </Popover>
                       )}
@@ -224,7 +224,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.first_name} {athlete.last_name}.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -278,19 +278,19 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                                 checked={selectedAthletesForApproval.includes(athlete.id)}
                                 onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
                               />
-                              {athlete.photoUrl ? (
-                                <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                              {athlete.photo_url ? (
+                                <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
                               ) : (
                                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                                   <UserRound className="h-5 w-5 text-muted-foreground" />
                                 </div>
                               )}
                               <div className="flex-grow">
-                                <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                                <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                                 <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                                {athlete.paymentProofUrl && (
+                                {athlete.payment_proof_url && (
                                   <p className="text-xs text-blue-500">
-                                    <a href={athlete.paymentProofUrl} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
+                                    <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
                                   </p>
                                 )}
                               </div>
@@ -312,7 +312,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.firstName} {athlete.lastName}.
+                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.first_name} {athlete.last_name}.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

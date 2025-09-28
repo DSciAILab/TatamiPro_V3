@@ -11,9 +11,9 @@ export const createEventSummaryForLLM = (eventData: Event): string => {
 
   if (eventData.athletes && eventData.athletes.length > 0) {
     const totalAthletes = eventData.athletes.length;
-    const approved = eventData.athletes.filter(a => a.registrationStatus === 'approved').length;
-    const pending = eventData.athletes.filter(a => a.registrationStatus === 'under_approval').length;
-    const checkedIn = eventData.athletes.filter(a => a.checkInStatus === 'checked_in').length;
+    const approved = eventData.athletes.filter(a => a.registration_status === 'approved').length;
+    const pending = eventData.athletes.filter(a => a.registration_status === 'under_approval').length;
+    const checkedIn = eventData.athletes.filter(a => a.check_in_status === 'checked_in').length;
     const belts = [...new Set(eventData.athletes.map(a => a.belt))];
 
     summary.push(`- Atletas: ${totalAthletes} inscritos no total.`);

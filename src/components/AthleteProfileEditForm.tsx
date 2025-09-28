@@ -46,9 +46,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   // Função para criar o esquema dinamicamente
   const createDynamicSchema = (config?: Record<string, boolean>) => {
     const schemaDefinition = {
-      firstName: firstNameSchema,
-      lastName: lastNameSchema,
-      dateOfBirth: dateOfBirthSchema,
+      first_name: firstNameSchema,
+      last_name: lastNameSchema,
+      date_of_birth: dateOfBirthSchema,
       club: clubSchema,
       gender: genderSchema,
       belt: beltSchema,
@@ -56,8 +56,8 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       nationality: nationalitySchema,
       email: emailSchema,
       phone: phoneSchema,
-      emiratesId: emiratesIdOptionalSchema,
-      schoolId: schoolIdOptionalSchema,
+      emirates_id: emiratesIdOptionalSchema,
+      school_id: schoolIdOptionalSchema,
       photo: config?.photo
         ? fileListSchema.refine(file => file.length > 0, { message: 'Foto de perfil é obrigatória.' })
         : fileListSchema.optional(),
@@ -70,9 +70,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       // paymentProof is not editable via this form, so it's not included in dynamic schema for edit.
     };
 
-    return z.object(schemaDefinition).refine(data => data.emiratesId || data.schoolId, {
+    return z.object(schemaDefinition).refine(data => data.emirates_id || data.school_id, {
       message: 'Pelo menos um ID (Emirates ID ou School ID) é obrigatório.',
-      path: ['emiratesId'],
+      path: ['emirates_id'],
     });
   };
 
@@ -81,9 +81,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
-      firstName: athlete.firstName,
-      lastName: athlete.lastName,
-      dateOfBirth: athlete.dateOfBirth,
+      first_name: athlete.first_name,
+      last_name: athlete.last_name,
+      date_of_birth: athlete.date_of_birth,
       club: athlete.club,
       gender: athlete.gender,
       belt: athlete.belt,
@@ -91,12 +91,12 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       nationality: athlete.nationality,
       email: athlete.email,
       phone: athlete.phone,
-      emiratesId: athlete.emiratesId,
-      schoolId: athlete.schoolId,
+      emirates_id: athlete.emirates_id,
+      school_id: athlete.school_id,
     },
   });
 
-  const dateOfBirth = watch('dateOfBirth');
+  const date_of_birth = watch('date_of_birth');
   const currentGender = watch('gender');
   const currentBelt = watch('belt');
   const photo = watch('photo');
@@ -105,17 +105,17 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     try {
-      const age = new Date().getFullYear() - values.dateOfBirth!.getFullYear();
-      const ageDivision = getAgeDivision(age);
-      const weightDivision = getWeightDivision(values.weight!);
+      const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
+      const age_division = getAgeDivision(age);
+      const weight_division = getWeightDivision(values.weight!);
 
-      let newRegistrationStatus = athlete.registrationStatus;
+      let newRegistrationStatus = athlete.registration_status;
 
       // Check if any significant field has changed that would require re-approval
       const hasChangesRequiringReapproval =
-        values.firstName !== athlete.firstName ||
-        values.lastName !== athlete.lastName ||
-        values.dateOfBirth!.getTime() !== athlete.dateOfBirth.getTime() ||
+        values.first_name !== athlete.first_name ||
+        values.last_name !== athlete.last_name ||
+        values.date_of_birth!.getTime() !== athlete.date_of_birth.getTime() ||
         values.club !== athlete.club ||
         values.gender !== athlete.gender ||
         values.belt !== athlete.belt ||
@@ -123,31 +123,31 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         values.nationality !== athlete.nationality ||
         values.email !== athlete.email ||
         values.phone !== athlete.phone ||
-        values.emiratesId !== athlete.emiratesId ||
-        values.schoolId !== athlete.schoolId;
+        values.emirates_id !== athlete.emirates_id ||
+        values.school_id !== athlete.school_id;
 
-      if (athlete.registrationStatus === 'approved' && hasChangesRequiringReapproval) {
+      if (athlete.registration_status === 'approved' && hasChangesRequiringReapproval) {
         newRegistrationStatus = 'under_approval';
         showSuccess('Perfil atualizado. A aprovação anterior foi cancelada e requer nova aprovação.');
       } else {
         showSuccess('Perfil atualizado com sucesso!');
       }
 
-      let photoUrl = athlete.photoUrl;
+      let photo_url = athlete.photo_url;
       if (values.photo && values.photo.length > 0) {
-        photoUrl = `mock-photo-url/${values.photo[0].name}`;
+        photo_url = `mock-photo-url/${values.photo[0].name}`;
         showSuccess(`Nova foto de perfil ${values.photo[0].name} anexada.`);
       }
 
-      let emiratesIdFrontUrl = athlete.emiratesIdFrontUrl;
+      let emirates_id_front_url = athlete.emirates_id_front_url;
       if (values.emiratesIdFront && values.emiratesIdFront.length > 0) {
-        emiratesIdFrontUrl = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
+        emirates_id_front_url = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
         showSuccess(`Nova foto da frente do EID ${values.emiratesIdFront[0].name} anexada.`);
       }
 
-      let emiratesIdBackUrl = athlete.emiratesIdBackUrl;
+      let emirates_id_back_url = athlete.emirates_id_back_url;
       if (values.emiratesIdBack && values.emiratesIdBack.length > 0) {
-        emiratesIdBackUrl = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
+        emirates_id_back_url = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
         showSuccess(`Nova foto do verso do EID ${values.emiratesIdBack[0].name} anexada.`);
       }
 
@@ -155,12 +155,12 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         ...athlete,
         ...values,
         age,
-        ageDivision,
-        weightDivision,
-        registrationStatus: newRegistrationStatus,
-        photoUrl,
-        emiratesIdFrontUrl,
-        emiratesIdBackUrl,
+        age_division,
+        weight_division,
+        registration_status: newRegistrationStatus,
+        photo_url,
+        emirates_id_front_url,
+        emirates_id_back_url,
       };
 
       onSave(updatedAthlete);
@@ -171,7 +171,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
   const isFieldMandatory = (fieldName: string) => {
     // Campos sempre obrigatórios
-    const alwaysMandatory = ['firstName', 'lastName', 'dateOfBirth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone'];
+    const alwaysMandatory = ['first_name', 'last_name', 'date_of_birth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone'];
     if (alwaysMandatory.includes(fieldName)) return true;
     // Campos configuráveis
     return mandatoryFieldsConfig?.[fieldName] === true;
@@ -183,42 +183,42 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">Nome {isFieldMandatory('firstName') && <span className="text-red-500">*</span>}</Label>
-          <Input id="firstName" {...register('firstName')} />
-          {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
+          <Label htmlFor="first_name">Nome {isFieldMandatory('first_name') && <span className="text-red-500">*</span>}</Label>
+          <Input id="first_name" {...register('first_name')} />
+          {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
         </div>
         <div>
-          <Label htmlFor="lastName">Sobrenome {isFieldMandatory('lastName') && <span className="text-red-500">*</span>}</Label>
-          <Input id="lastName" {...register('lastName')} />
-          {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
+          <Label htmlFor="last_name">Sobrenome {isFieldMandatory('last_name') && <span className="text-red-500">*</span>}</Label>
+          <Input id="last_name" {...register('last_name')} />
+          {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
         </div>
       </div>
 
       <div>
-        <Label htmlFor="dateOfBirth">Data de Nascimento {isFieldMandatory('dateOfBirth') && <span className="text-red-500">*</span>}</Label>
+        <Label htmlFor="date_of_birth">Data de Nascimento {isFieldMandatory('date_of_birth') && <span className="text-red-500">*</span>}</Label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
               className={cn(
                 "w-full justify-start text-left font-normal",
-                !dateOfBirth && "text-muted-foreground"
+                !date_of_birth && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Selecione uma data</span>}
+              {date_of_birth ? format(date_of_birth, "PPP") : <span>Selecione uma data</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
             <Calendar
               mode="single"
-              selected={dateOfBirth}
-              onSelect={(date) => setValue('dateOfBirth', date!)}
+              selected={date_of_birth}
+              onSelect={(date) => setValue('date_of_birth', date!)}
               initialFocus
             />
           </PopoverContent>
         </Popover>
-        {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth.message}</p>}
+        {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
       </div>
 
       <div>
@@ -297,14 +297,14 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="emiratesId">Emirates ID (Opcional)</Label>
-          <Input id="emiratesId" {...register('emiratesId')} />
-          {errors.emiratesId && <p className="text-red-500 text-sm mt-1">{errors.emiratesId.message}</p>}
+          <Label htmlFor="emirates_id">Emirates ID (Opcional)</Label>
+          <Input id="emirates_id" {...register('emirates_id')} />
+          {errors.emirates_id && <p className="text-red-500 text-sm mt-1">{errors.emirates_id.message}</p>}
         </div>
         <div>
-          <Label htmlFor="schoolId">School ID (Opcional)</Label>
-          <Input id="schoolId" {...register('schoolId')} />
-          {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId.message}</p>}
+          <Label htmlFor="school_id">School ID (Opcional)</Label>
+          <Input id="school_id" {...register('school_id')} />
+          {errors.school_id && <p className="text-red-500 text-sm mt-1">{errors.school_id.message}</p>}
         </div>
       </div>
 
@@ -312,8 +312,8 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         <Label htmlFor="photo">Foto de Perfil {isFieldMandatory('photo') && <span className="text-red-500">*</span>}</Label>
         <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
         {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
-        {athlete.photoUrl && !photo?.length && (
-          <p className="text-sm text-muted-foreground mt-1">Foto atual: <a href={athlete.photoUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+        {athlete.photo_url && !photo?.length && (
+          <p className="text-sm text-muted-foreground mt-1">Foto atual: <a href={athlete.photo_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
         )}
       </div>
 
@@ -322,16 +322,16 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
           <Label htmlFor="emiratesIdFront">Emirates ID (Frente {isFieldMandatory('emiratesIdFront') && <span className="text-red-500">*</span>})</Label>
           <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
           {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
-          {athlete.emiratesIdFrontUrl && !emiratesIdFront?.length && (
-            <p className="text-sm text-muted-foreground mt-1">Frente atual: <a href={athlete.emiratesIdFrontUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+          {athlete.emirates_id_front_url && !emiratesIdFront?.length && (
+            <p className="text-sm text-muted-foreground mt-1">Frente atual: <a href={athlete.emirates_id_front_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
           )}
         </div>
         <div>
           <Label htmlFor="emiratesIdBack">Emirates ID (Verso {isFieldMandatory('emiratesIdBack') && <span className="text-red-500">*</span>})</Label>
           <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
           {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
-          {athlete.emiratesIdBackUrl && !emiratesIdBack?.length && (
-            <p className="text-sm text-muted-foreground mt-1">Verso atual: <a href={athlete.emiratesIdBackUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
+          {athlete.emirates_id_back_url && !emiratesIdBack?.length && (
+            <p className="text-sm text-muted-foreground mt-1">Verso atual: <a href={athlete.emirates_id_back_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
           )}
         </div>
       </div>

@@ -130,11 +130,11 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           match={match}
                           athletesMap={athletesMap}
                           isFinal={isLastRound}
-                          bracketWinnerId={bracket.winnerId}
-                          bracketRunnerUpId={bracket.runnerUpId}
-                          bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
+                          bracketWinnerId={bracket.winner_id}
+                          bracketRunnerUpId={bracket.runner_up_id}
+                          bracketThirdPlaceWinnerId={bracket.third_place_winner_id}
                           eventId={eventId} // Passar eventId
-                          divisionId={bracket.divisionId} // Passar divisionId
+                          divisionId={bracket.division_id} // Passar divisionId
                         />
                       </div>
                     ))}
@@ -145,17 +145,17 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             );
           })}
         </div>
-        {bracket.thirdPlaceMatch && (
+        {bracket.third_place_match && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">Luta pelo 3º Lugar</h3>
             <BracketMatchCard
-              match={bracket.thirdPlaceMatch}
+              match={bracket.third_place_match}
               athletesMap={athletesMap}
-              bracketWinnerId={bracket.winnerId}
-              bracketRunnerUpId={bracket.runnerUpId}
-              bracketThirdPlaceWinnerId={bracket.thirdPlaceWinnerId}
+              bracketWinnerId={bracket.winner_id}
+              bracketRunnerUpId={bracket.runner_up_id}
+              bracketThirdPlaceWinnerId={bracket.third_place_winner_id}
               eventId={eventId} // Passar eventId
-              divisionId={bracket.divisionId} // Passar divisionId
+              divisionId={bracket.division_id} // Passar divisionId
             />
           </div>
         )}

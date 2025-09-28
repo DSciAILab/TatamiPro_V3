@@ -30,14 +30,14 @@ interface DivisionTableProps {
 
 const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions }) => {
   const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
-  const [newDivision, setNewDivision] = useState<Omit<Division, 'id' | 'isEnabled'>>({
+  const [newDivision, setNewDivision] = useState<Omit<Division, 'id' | 'is_enabled'>>({
     name: '',
-    minAge: 0,
-    maxAge: 99,
-    maxWeight: 999,
+    min_age: 0,
+    max_age: 99,
+    max_weight: 999,
     gender: 'Ambos',
     belt: 'Todas',
-    ageCategoryName: 'Adult',
+    age_category_name: 'Adult',
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -51,30 +51,30 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
     return divisions.filter(division =>
       division.name.toLowerCase().includes(lowerCaseSearchTerm) ||
-      division.ageCategoryName.toLowerCase().includes(lowerCaseSearchTerm) ||
+      division.age_category_name.toLowerCase().includes(lowerCaseSearchTerm) ||
       division.gender.toLowerCase().includes(lowerCaseSearchTerm) ||
       division.belt.toLowerCase().includes(lowerCaseSearchTerm) ||
-      `${division.minAge}-${division.maxAge}`.includes(lowerCaseSearchTerm) ||
-      `${division.maxWeight}kg`.includes(lowerCaseSearchTerm)
+      `${division.min_age}-${division.max_age}`.includes(lowerCaseSearchTerm) ||
+      `${division.max_weight}kg`.includes(lowerCaseSearchTerm)
     );
   }, [divisions, searchTerm]);
 
   const handleAddDivision = () => {
-    if (!newDivision.name || !newDivision.ageCategoryName || newDivision.minAge === undefined || newDivision.maxAge === undefined ||
-        newDivision.maxWeight === undefined) {
+    if (!newDivision.name || !newDivision.age_category_name || newDivision.min_age === undefined || newDivision.max_age === undefined ||
+        newDivision.max_weight === undefined) {
       showError('Por favor, preencha todos os campos da nova divisão.');
       return;
     }
-    if (newDivision.minAge > newDivision.maxAge) {
+    if (newDivision.min_age > newDivision.max_age) {
       showError('Idade mínima não pode ser maior que idade máxima.');
       return;
     }
 
     const id = `division-${Date.now()}`;
-    const updatedDivisions = [...divisions, { ...newDivision, id, isEnabled: true }];
+    const updatedDivisions = [...divisions, { ...newDivision, id, is_enabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', minAge: 0, maxAge: 99, maxWeight: 999, gender: 'Ambos', belt: 'Todas', ageCategoryName: 'Adult' });
+    setNewDivision({ name: '', min_age: 0, max_age: 99, max_weight: 999, gender: 'Ambos', belt: 'Todas', age_category_name: 'Adult' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -84,12 +84,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
   const handleSaveEdit = () => {
     if (currentEdit) {
-      if (!currentEdit.name || !currentEdit.ageCategoryName || currentEdit.minAge === undefined || currentEdit.maxAge === undefined ||
-          currentEdit.maxWeight === undefined) {
+      if (!currentEdit.name || !currentEdit.age_category_name || currentEdit.min_age === undefined || currentEdit.max_age === undefined ||
+          currentEdit.max_weight === undefined) {
         showError('Por favor, preencha todos os campos da divisão.');
         return;
       }
-      if (currentEdit.minAge > currentEdit.maxAge) {
+      if (currentEdit.min_age > currentEdit.max_age) {
         showError('Idade mínima não pode ser maior que idade máxima.');
         return;
       }
@@ -118,12 +118,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     }
   };
 
-  const handleToggleEnable = (id: string, isEnabled: boolean) => {
+  const handleToggleEnable = (id: string, is_enabled: boolean) => {
     const updatedDivisions = divisions.map(div =>
-      div.id === id ? { ...div, isEnabled } : div
+      div.id === id ? { ...div, is_enabled } : div
     );
     onUpdateDivisions(updatedDivisions);
-    showSuccess(`Divisão ${isEnabled ? 'habilitada' : 'desabilitada'}.`);
+    showSuccess(`Divisão ${is_enabled ? 'habilitada' : 'desabilitada'}.`);
   };
 
   const handleToggleSelectDivision = (id: string, checked: boolean) => {
@@ -146,7 +146,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       return;
     }
     const updatedDivisions = divisions.map(div =>
-      selectedDivisionIds.includes(div.id) ? { ...div, isEnabled: true } : div
+      selectedDivisionIds.includes(div.id) ? { ...div, is_enabled: true } : div
     );
     onUpdateDivisions(updatedDivisions);
     showSuccess(`${selectedDivisionIds.length} divisões habilitadas.`);
@@ -159,7 +159,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       return;
     }
     const updatedDivisions = divisions.map(div =>
-      selectedDivisionIds.includes(div.id) ? { ...div, isEnabled: false } : div
+      selectedDivisionIds.includes(div.id) ? { ...div, is_enabled: false } : div
     );
     onUpdateDivisions(updatedDivisions);
     showSuccess(`${selectedDivisionIds.length} divisões desabilitadas.`);
@@ -197,7 +197,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         </div>
         <div>
           <Label htmlFor="newAgeCategoryName">Categoria de Idade</Label>
-          <Select value={newDivision.ageCategoryName} onValueChange={(value: AgeCategory) => setNewDivision(prev => ({ ...prev, ageCategoryName: value }))}>
+          <Select value={newDivision.age_category_name} onValueChange={(value: AgeCategory) => setNewDivision(prev => ({ ...prev, age_category_name: value }))}>
             <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder="Categoria de Idade" /></SelectTrigger>
             <SelectContent>
               {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
@@ -206,15 +206,15 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         </div>
         <div>
           <Label htmlFor="newMinAge">Idade Mínima</Label>
-          <Input id="newMinAge" type="number" value={newDivision.minAge} onChange={(e) => setNewDivision(prev => ({ ...prev, minAge: Number(e.target.value) }))} />
+          <Input id="newMinAge" type="number" value={newDivision.min_age} onChange={(e) => setNewDivision(prev => ({ ...prev, min_age: Number(e.target.value) }))} />
         </div>
         <div>
           <Label htmlFor="newMaxAge">Idade Máxima</Label>
-          <Input id="newMaxAge" type="number" value={newDivision.maxAge} onChange={(e) => setNewDivision(prev => ({ ...prev, maxAge: Number(e.target.value) }))} />
+          <Input id="newMaxAge" type="number" value={newDivision.max_age} onChange={(e) => setNewDivision(prev => ({ ...prev, max_age: Number(e.target.value) }))} />
         </div>
         <div>
           <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
-          <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.maxWeight} onChange={(e) => setNewDivision(prev => ({ ...prev, maxWeight: Number(e.target.value) }))} />
+          <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.max_weight} onChange={(e) => setNewDivision(prev => ({ ...prev, max_weight: Number(e.target.value) }))} />
         </div>
         <div>
           <Label htmlFor="newGender">Gênero</Label>
@@ -308,19 +308,19 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                     <TableCell /> {/* Empty cell for checkbox in edit mode */}
                     <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
                     <TableCell>
-                      <Select value={currentEdit.ageCategoryName} onValueChange={(value: AgeCategory) => setCurrentEdit(prev => prev ? { ...prev, ageCategoryName: value } : null)}>
+                      <Select value={currentEdit.age_category_name} onValueChange={(value: AgeCategory) => setCurrentEdit(prev => prev ? { ...prev, age_category_name: value } : null)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <div className="flex space-x-1 mt-1">
-                        <Input type="number" value={currentEdit.minAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, minAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Min Age" />
-                        <Input type="number" value={currentEdit.maxAge} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxAge: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
+                        <Input type="number" value={currentEdit.min_age} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, min_age: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Min Age" />
+                        <Input type="number" value={currentEdit.max_age} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, max_age: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Input type="number" step="0.1" value={currentEdit.maxWeight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, maxWeight: Number(e.target.value) } : null)} className="w-full" />
+                      <Input type="number" step="0.1" value={currentEdit.max_weight} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, max_weight: Number(e.target.value) } : null)} className="w-full" />
                     </TableCell>
                     <TableCell>
                       <Select value={currentEdit.gender} onValueChange={(value: DivisionGender) => setCurrentEdit(prev => prev ? { ...prev, gender: value } : null)}>
@@ -340,8 +340,8 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                     </TableCell>
                     <TableCell className="text-center">
                       <Switch
-                        checked={currentEdit.isEnabled}
-                        onCheckedChange={(checked) => setCurrentEdit(prev => prev ? { ...prev, isEnabled: checked } : null)}
+                        checked={currentEdit.is_enabled}
+                        onCheckedChange={(checked) => setCurrentEdit(prev => prev ? { ...prev, is_enabled: checked } : null)}
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -358,13 +358,13 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       />
                     </TableCell>
                     <TableCell className="font-medium">{division.name}</TableCell>
-                    <TableCell>{division.ageCategoryName} ({division.minAge}-{division.maxAge})</TableCell>
-                    <TableCell>Até {division.maxWeight}kg</TableCell>
+                    <TableCell>{division.age_category_name} ({division.min_age}-{division.max_age})</TableCell>
+                    <TableCell>Até {division.max_weight}kg</TableCell>
                     <TableCell>{division.gender}</TableCell>
                     <TableCell>{division.belt}</TableCell>
                     <TableCell className="text-center">
                       <Switch
-                        checked={division.isEnabled}
+                        checked={division.is_enabled}
                         onCheckedChange={(checked) => handleToggleEnable(division.id, checked)}
                       />
                     </TableCell>

@@ -93,15 +93,15 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
           {isCheckInTimeValid() && (
             <span className="text-green-600 block mt-2">Check-in aberto!</span>
           )}
-          {!event.checkInStartTime || !event.checkInEndTime ? (
+          {!event.check_in_start_time || !event.check_in_end_time ? (
             <span className="text-orange-500 block mt-2">Horário de check-in não configurado.</span>
           ) : (
-            <span className="text-muted-foreground block mt-2">Horário: {format(new Date(event.checkInStartTime), 'dd/MM HH:mm')} - {format(new Date(event.checkInEndTime), 'dd/MM HH:mm')}</span>
+            <span className="text-muted-foreground block mt-2">Horário: {format(new Date(event.check_in_start_time), 'dd/MM HH:mm')} - {format(new Date(event.check_in_end_time), 'dd/MM HH:mm')}</span>
           )}
-          {event.isAttendanceMandatoryBeforeCheckIn && (
+          {event.is_attendance_mandatory_before_check_in && (
             <p className="text-orange-500 mt-2">Atenção: A presença é obrigatória antes do check-in. Apenas atletas marcados como 'Presente' aparecerão aqui.</p>
           )}
-          {!event.isWeightCheckEnabled && (
+          {!event.is_weight_check_enabled && (
             <p className="text-blue-500 mt-2">Verificação de peso desabilitada. Todos os atletas serão considerados no peso.</p>
           )}
         </CardDescription>
@@ -159,7 +159,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 mb-6">
-              {event.checkInScanMode === 'qr' && (
+              {event.check_in_scan_mode === 'qr' && (
                 <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
@@ -172,11 +172,11 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                     </DialogHeader>
                     <QrScanner
                       onScanSuccess={(qrCodeId) => {
-                        const athlete = processedApprovedAthletes.find(a => a.registrationQrCodeId === qrCodeId);
+                        const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
                         if (athlete) {
                           setScannedAthleteId(qrCodeId);
                           setSearchTerm('');
-                          showSuccess(`Atleta ${athlete.firstName} ${athlete.lastName} escaneado!`);
+                          showSuccess(`Atleta ${athlete.first_name} ${athlete.last_name} escaneado!`);
                           setIsScannerOpen(false);
                         } else {
                           showError('QR Code não reconhecido ou atleta não encontrado.');
@@ -186,7 +186,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                   </DialogContent>
                 </Dialog>
               )}
-              {event.checkInScanMode === 'barcode' && (
+              {event.check_in_scan_mode === 'barcode' && (
                 <div className="flex-1">
                   <Button variant="outline" className="w-full" disabled>
                     <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
@@ -215,39 +215,39 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 {filteredAthletesForCheckIn.map((athlete) => (
                   <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                     <div className="flex items-center space-x-3 flex-grow">
-                      {athlete.photoUrl ? (
-                        <img src={athlete.photoUrl} alt={athlete.firstName} className="w-10 h-10 rounded-full object-cover" />
+                      {athlete.photo_url ? (
+                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                           <UserRound className="h-5 w-5 text-muted-foreground" />
                         </div>
                       )}
                       <div>
-                        <p className="font-medium">{athlete.firstName} {athlete.lastName} ({athlete.nationality})</p>
+                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                         <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                        {athlete.registeredWeight && (
-                          <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registeredWeight}kg</span></p>
+                        {athlete.registered_weight && (
+                          <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
                         )}
-                        {athlete.moveReason && (
+                        {athlete.move_reason && (
                           <p className="text-xs text-blue-500">
-                            <span className="font-semibold">Movido:</span> {athlete.moveReason}
+                            <span className="font-semibold">Movido:</span> {athlete.move_reason}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-col items-end space-y-2">
                       <div className="flex items-center space-x-2">
-                        {athlete.checkInStatus === 'checked_in' && (
+                        {athlete.check_in_status === 'checked_in' && (
                           <span className="flex items-center text-green-600 font-semibold text-sm">
                             <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
                           </span>
                         )}
-                        {athlete.checkInStatus === 'overweight' && (
+                        {athlete.check_in_status === 'overweight' && (
                           <span className="flex items-center text-red-600 font-semibold text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registeredWeight}kg)
+                            <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registered_weight}kg)
                           </span>
                         )}
-                        {athlete.checkInStatus === 'pending' && (
+                        {athlete.check_in_status === 'pending' && (
                           <span className="flex items-center text-orange-500 font-semibold text-sm">
                             <Scale className="h-4 w-4 mr-1" /> Pendente
                           </span>
@@ -256,12 +256,12 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                       <CheckInForm
                         athlete={athlete}
                         onCheckIn={handleCheckInAthlete}
-                        isCheckInAllowed={isCheckInAllowedGlobally && (event.isAttendanceMandatoryBeforeCheckIn ? athlete.attendanceStatus === 'present' : true)}
-                        divisionMaxWeight={athlete._division?.maxWeight}
-                        isWeightCheckEnabled={event.isWeightCheckEnabled ?? true}
-                        isOverweightAutoMoveEnabled={event.isOverweightAutoMoveEnabled ?? false}
+                        isCheckInAllowed={isCheckInAllowedGlobally && (event.is_attendance_mandatory_before_check_in ? athlete.attendance_status === 'present' : true)}
+                        divisionMaxWeight={athlete._division?.max_weight}
+                        isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
+                        isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
                         eventDivisions={event.divisions}
-                        isBeltGroupingEnabled={event.isBeltGroupingEnabled ?? true}
+                        isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
                       />
                     </div>
                   </li>

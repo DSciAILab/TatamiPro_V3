@@ -40,7 +40,7 @@ const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant',
 export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Division | undefined => {
   // Filtrar divisões habilitadas e que correspondem ao gênero e faixa
   const possibleDivisions = divisions.filter(div =>
-    div.isEnabled &&
+    div.is_enabled &&
     (div.gender === 'Ambos' || div.gender === athlete.gender) &&
     (div.belt === 'Todas' || div.belt === athlete.belt)
   );
@@ -57,8 +57,8 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
     }
 
     // 2. Categoria de Idade
-    const ageAIndex = ageCategoryOrder.indexOf(a.ageCategoryName);
-    const ageBIndex = ageCategoryOrder.indexOf(b.ageCategoryName);
+    const ageAIndex = ageCategoryOrder.indexOf(a.age_category_name);
+    const ageBIndex = ageCategoryOrder.indexOf(b.age_category_name);
     if (ageAIndex !== ageBIndex) return ageAIndex - ageBIndex;
 
     // 3. Faixa
@@ -67,25 +67,25 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
     if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
 
     // 4. Peso Máximo
-    return a.maxWeight - b.maxWeight;
+    return a.max_weight - b.max_weight;
   });
 
   // Encontrar a divisão que o atleta se encaixa
   for (let i = 0; i < possibleDivisions.length; i++) {
     const div = possibleDivisions[i];
 
-    // O peso mínimo efetivo é o maxWeight da divisão anterior no mesmo grupo (gênero, idade, faixa)
+    // O peso mínimo efetivo é o max_weight da divisão anterior no mesmo grupo (gênero, idade, faixa)
     // ou 0 se for a primeira divisão do grupo.
     let effectiveMinWeight = 0;
     if (i > 0) {
       const prevDiv = possibleDivisions[i - 1];
-      if (prevDiv.gender === div.gender && prevDiv.ageCategoryName === div.ageCategoryName && prevDiv.belt === div.belt) {
-        effectiveMinWeight = prevDiv.maxWeight;
+      if (prevDiv.gender === div.gender && prevDiv.age_category_name === div.age_category_name && prevDiv.belt === div.belt) {
+        effectiveMinWeight = prevDiv.max_weight;
       }
     }
 
-    if (athlete.age >= div.minAge && athlete.age <= div.maxAge &&
-        athlete.weight > effectiveMinWeight && athlete.weight <= div.maxWeight) {
+    if (athlete.age >= div.min_age && athlete.age <= div.max_age &&
+        athlete.weight > effectiveMinWeight && athlete.weight <= div.max_weight) {
       return div;
     }
   }
@@ -103,10 +103,10 @@ export const findNextHigherWeightDivision = (
 ): Division | undefined => {
   // Filtrar divisões que correspondem ao gênero e idade do atleta
   const relevantDivisions = allDivisions.filter(div =>
-    div.isEnabled &&
+    div.is_enabled &&
     (div.gender === 'Ambos' || div.gender === athlete.gender) &&
-    div.ageCategoryName === athlete.ageDivision &&
-    div.maxWeight > currentDivision.maxWeight // Deve ser uma categoria de peso superior
+    div.age_category_name === athlete.age_division &&
+    div.max_weight > currentDivision.max_weight // Deve ser uma categoria de peso superior
   );
 
   // Se o agrupamento por faixa estiver habilitado, filtrar também pela faixa
@@ -117,11 +117,11 @@ export const findNextHigherWeightDivision = (
   }
 
   // Ordenar por peso máximo para encontrar a "próxima" categoria
-  relevantDivisions.sort((a, b) => a.maxWeight - b.maxWeight);
+  relevantDivisions.sort((a, b) => a.max_weight - b.max_weight);
 
   // Encontrar a menor categoria de peso superior que o atleta se encaixa com o peso atual
   for (const div of relevantDivisions) {
-    if (weighedWeight <= div.maxWeight) {
+    if (weighedWeight <= div.max_weight) {
       return div;
     }
   }
@@ -133,33 +133,33 @@ export const findNextHigherWeightDivision = (
 // Função para gerar a string de ordenação/exibição
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
   if (division) {
-    return `${division.gender} / ${division.ageCategoryName} / ${division.belt} / ${division.maxWeight}kg`;
+    return `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
   }
   // Fallback se a divisão não for encontrada ou passada
-  return `${athlete.gender} / ${athlete.ageDivision} / ${athlete.belt} / Divisão não encontrada`;
+  return `${athlete.gender} / ${athlete.age_division} / ${athlete.belt} / Divisão não encontrada`;
 };
 
 // NOVO: Função para processar dados do atleta
 export const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
-  const dateOfBirth = new Date(athleteData.dateOfBirth);
-  const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-  const ageDivision = getAgeDivision(age);
-  const weightDivision = getWeightDivision(athleteData.weight);
+  const date_of_birth = new Date(athleteData.date_of_birth);
+  const age = new Date().getFullYear() - date_of_birth.getFullYear();
+  const age_division = getAgeDivision(age);
+  const weight_division = getWeightDivision(athleteData.weight);
 
   const athleteWithCalculatedProps: Athlete = {
     ...athleteData,
-    dateOfBirth,
-    consentDate: new Date(athleteData.consentDate),
+    date_of_birth,
+    consent_date: new Date(athleteData.consent_date),
     age,
-    ageDivision,
-    weightDivision,
-    registrationStatus: athleteData.registrationStatus as 'under_approval' | 'approved' | 'rejected',
-    checkInStatus: athleteData.checkInStatus || 'pending',
-    registeredWeight: athleteData.registeredWeight || undefined,
-    weightAttempts: athleteData.weightAttempts || [],
-    attendanceStatus: athleteData.attendanceStatus || 'pending',
-    movedToDivisionId: athleteData.movedToDivisionId || undefined,
-    moveReason: athleteData.moveReason || undefined,
+    age_division,
+    weight_division,
+    registration_status: athleteData.registration_status as 'under_approval' | 'approved' | 'rejected',
+    check_in_status: athleteData.check_in_status || 'pending',
+    registered_weight: athleteData.registered_weight || undefined,
+    weight_attempts: athleteData.weight_attempts || [],
+    attendance_status: athleteData.attendance_status || 'pending',
+    moved_to_division_id: athleteData.moved_to_division_id || undefined,
+    move_reason: athleteData.move_reason || undefined,
     seed: athleteData.seed || undefined,
   };
   

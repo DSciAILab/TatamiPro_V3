@@ -36,13 +36,13 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       let display: string;
       let belt: DivisionBelt | undefined;
 
-      if (event.isBeltGroupingEnabled) {
-        key = `${division.gender}/${division.ageCategoryName}/${division.belt}`;
-        display = `${division.gender} / ${division.ageCategoryName} / ${division.belt}`;
+      if (event.is_belt_grouping_enabled) {
+        key = `${division.gender}/${division.age_category_name}/${division.belt}`;
+        display = `${division.gender} / ${division.age_category_name} / ${division.belt}`;
         belt = division.belt;
       } else {
-        key = `${division.gender}/${division.ageCategoryName}`;
-        display = `${division.gender} / ${division.ageCategoryName}`;
+        key = `${division.gender}/${division.age_category_name}`;
+        display = `${division.gender} / ${division.age_category_name}`;
       }
 
       if (!groupsMap.has(key)) {
@@ -50,7 +50,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
           key,
           display,
           gender: division.gender,
-          ageCategoryName: division.ageCategoryName,
+          ageCategoryName: division.age_category_name,
           belt,
           athleteCount: 0,
           divisionIds: [],
@@ -65,13 +65,13 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
     };
 
     // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
-    event.athletes.filter(a => a.registrationStatus === 'approved' && a.checkInStatus === 'checked_in').forEach(processAthlete);
+    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(processAthlete);
 
     // Agora, filtrar e adicionar status de bracket
     const finalGroups: CategoryGroup[] = [];
     groupsMap.forEach(group => {
       // Verificar se a categoria está atribuída ao mat selecionado ou se é 'all-mats'
-      const isAssignedToSelectedMat = selectedMat === 'all-mats' || event.matAssignments?.[selectedMat]?.includes(group.key);
+      const isAssignedToSelectedMat = selectedMat === 'all-mats' || event.mat_assignments?.[selectedMat]?.includes(group.key);
 
       if (isAssignedToSelectedMat) {
         // Determinar o status do bracket
@@ -93,7 +93,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
 
     // Sort categories by display name for consistent order
     return finalGroups.sort((a, b) => a.display.localeCompare(b.display));
-  }, [event.matAssignments, selectedMat, event.athletes, event.isBeltGroupingEnabled, event.brackets, hasOngoingFights]);
+  }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets, hasOngoingFights]);
 
   const getStatusColor = (status: CategoryGroup['bracketStatus']) => {
     switch (status) {

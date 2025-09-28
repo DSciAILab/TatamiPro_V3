@@ -19,7 +19,7 @@ import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
   fullName: 'Nome Completo', // Agora lida com o nome completo
-  dateOfBirth: 'Data de Nascimento',
+  date_of_birth: 'Data de Nascimento',
   belt: 'Faixa',
   weight: 'Peso',
   phone: 'Telefone', // Será opcional no esquema
@@ -28,10 +28,10 @@ const baseRequiredAthleteFields = {
   club: 'Clube',
   gender: 'Gênero',
   nationality: 'Nacionalidade',
-  photoUrl: 'URL da Foto de Perfil',
-  emiratesIdFrontUrl: 'URL da Frente do EID',
-  emiratesIdBackUrl: 'URL do Verso do EID',
-  paymentProofUrl: 'URL do Comprovante de Pagamento',
+  photo_url: 'URL da Foto de Perfil',
+  emirates_id_front_url: 'URL da Frente do EID',
+  emirates_id_back_url: 'URL do Verso do EID',
+  payment_proof_url: 'URL do Comprovante de Pagamento',
 };
 
 type RequiredAthleteField = keyof typeof baseRequiredAthleteFields;
@@ -131,9 +131,9 @@ const BatchAthleteImport: React.FC = () => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
     return storedConfig ? JSON.parse(storedConfig) : {
       club: true,
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
+      first_name: true,
+      last_name: true,
+      date_of_birth: true,
       belt: true,
       weight: true,
       idNumber: true, // ID (Emirates ID ou School ID)
@@ -152,7 +152,7 @@ const BatchAthleteImport: React.FC = () => {
   const createDynamicImportSchema = (config: Record<string, boolean>) => {
     const schemaDefinition = {
       fullName: importFullNameSchema,
-      dateOfBirth: importDateOfBirthSchema,
+      date_of_birth: importDateOfBirthSchema,
       belt: importBeltSchema,
       weight: importWeightSchema,
       phone: importPhoneSchema, // Sempre opcional para importação
@@ -161,16 +161,16 @@ const BatchAthleteImport: React.FC = () => {
       club: importClubSchema,
       gender: importGenderSchema,
       nationality: importNationalitySchema,
-      photoUrl: config.photo
+      photo_url: config.photo
         ? z.string().url({ message: 'URL da foto de perfil inválida.' }).min(1, { message: 'URL da foto de perfil é obrigatória.' })
         : importUrlSchema,
-      emiratesIdFrontUrl: config.emiratesIdFront
+      emirates_id_front_url: config.emiratesIdFront
         ? z.string().url({ message: 'URL da frente do EID inválida.' }).min(1, { message: 'URL da frente do EID é obrigatória.' })
         : importUrlSchema,
-      emiratesIdBackUrl: config.emiratesIdBack
+      emirates_id_back_url: config.emiratesIdBack
         ? z.string().url({ message: 'URL do verso do EID inválida.' }).min(1, { message: 'URL do verso do EID é obrigatória.' })
         : importUrlSchema,
-      paymentProofUrl: config.paymentProof
+      payment_proof_url: config.paymentProof
         ? z.string().url({ message: 'URL do comprovante de pagamento inválida.' }).min(1, { message: 'URL do comprovante de pagamento é obrigatória.' })
         : importUrlSchema,
     };
@@ -234,7 +234,7 @@ const BatchAthleteImport: React.FC = () => {
   const validateMapping = () => {
     for (const field of Object.keys(baseRequiredAthleteFields) as RequiredAthleteField[]) {
       // Campos que são sempre obrigatórios para importação (conforme solicitação do usuário e lógica existente)
-      const alwaysMandatoryForImport = ['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'];
+      const alwaysMandatoryForImport = ['fullName', 'date_of_birth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'];
       const isMandatory = alwaysMandatoryForImport.includes(field);
 
       if (isMandatory && !columnMapping[field]) {
@@ -271,50 +271,50 @@ const BatchAthleteImport: React.FC = () => {
           return;
         }
 
-        const { fullName, dateOfBirth, belt, weight, phone, email, idNumber, club, gender, nationality, photoUrl, emiratesIdFrontUrl, emiratesIdBackUrl, paymentProofUrl } = parsed.data as AthleteImportOutput;
+        const { fullName, date_of_birth, belt, weight, phone, email, idNumber, club, gender, nationality, photo_url, emirates_id_front_url, emirates_id_back_url, payment_proof_url } = parsed.data as AthleteImportOutput;
 
         const nameParts = fullName.split(' ').filter(Boolean);
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' '); // O restante do nome como sobrenome
+        const first_name = nameParts[0];
+        const last_name = nameParts.slice(1).join(' '); // O restante do nome como sobrenome
 
-        const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-        const ageDivision = getAgeDivision(age);
-        const weightDivision = getWeightDivision(weight);
+        const age = new Date().getFullYear() - date_of_birth.getFullYear();
+        const age_division = getAgeDivision(age);
+        const weight_division = getWeightDivision(weight);
 
         const athleteId = `ath-${Date.now()}-${index}`; // Gerar um ID de atleta único
-        const registrationQrCodeId = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
+        const registration_qr_code_id = `EV_${eventId}_ATH_${athleteId}`; // Gerar o ID do QR Code
 
         const newAthlete: Athlete = {
           id: athleteId, // Unique ID
-          eventId: eventId!,
-          registrationQrCodeId, // Adicionar o ID do QR Code
-          firstName,
-          lastName,
-          dateOfBirth,
+          event_id: eventId!,
+          registration_qr_code_id, // Adicionar o ID do QR Code
+          first_name,
+          last_name,
+          date_of_birth,
           age,
           club,
           gender,
           belt,
           weight,
           nationality,
-          ageDivision,
-          weightDivision,
+          age_division,
+          weight_division,
           email: email || '', // Garante que email é string, mesmo se opcional
           phone: phone || '', // Garante que phone é string, mesmo se opcional
-          emiratesId: idNumber, // Assumindo que ID mapeia para emiratesId por enquanto
-          schoolId: undefined, // Não explicitamente mapeado
-          photoUrl: photoUrl || undefined,
-          emiratesIdFrontUrl: emiratesIdFrontUrl || undefined,
-          emiratesIdBackUrl: emiratesIdBackUrl || undefined,
-          consentAccepted: true, // Assumindo consentimento para importação em lote
-          consentDate: new Date(),
-          consentVersion: '1.0',
-          paymentProofUrl: paymentProofUrl || undefined,
-          registrationStatus: 'under_approval',
-          checkInStatus: 'pending',
-          registeredWeight: undefined,
-          weightAttempts: [],
-          attendanceStatus: 'pending', // Default attendance status
+          emirates_id: idNumber, // Assumindo que ID mapeia para emirates_id por enquanto
+          school_id: undefined, // Não explicitamente mapeado
+          photo_url: photo_url || undefined,
+          emirates_id_front_url: emirates_id_front_url || undefined,
+          emirates_id_back_url: emirates_id_back_url || undefined,
+          consent_accepted: true, // Assumindo consentimento para importação em lote
+          consent_date: new Date(),
+          consent_version: '1.0',
+          payment_proof_url: payment_proof_url || undefined,
+          registration_status: 'under_approval',
+          check_in_status: 'pending',
+          registered_weight: undefined,
+          weight_attempts: [],
+          attendance_status: 'pending', // Default attendance status
         };
         successfulAthletes.push(newAthlete);
       } catch (error: any) {
@@ -381,6 +381,7 @@ const BatchAthleteImport: React.FC = () => {
           <CardDescription>
             {step === 'upload' && 'Faça upload de um arquivo CSV para iniciar a importação de atletas.'}
             {step === 'map' && 'Mapeie as colunas do seu arquivo CSV para os campos de atleta.'}
+            {step === 'review' && 'Revise os dados antes de finalizar a importação.'}
             {step === 'results' && 'Resultados da importação.'}
           </CardDescription>
         </CardHeader>
@@ -406,7 +407,7 @@ const BatchAthleteImport: React.FC = () => {
                   <div key={fieldKey} className="flex flex-col space-y-1.5">
                     <Label htmlFor={`map-${fieldKey}`}>
                       {fieldLabel}
-                      {(['fullName', 'dateOfBirth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
+                      {(['fullName', 'date_of_birth', 'belt', 'weight', 'idNumber', 'club', 'gender', 'nationality'].includes(fieldKey)) && <span className="text-red-500">*</span>}
                     </Label>
                     <Select
                       onValueChange={(value) => handleMappingChange(fieldKey as RequiredAthleteField, value)}
