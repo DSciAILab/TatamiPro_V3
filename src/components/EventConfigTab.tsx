@@ -19,6 +19,7 @@ import { useTranslations } from '@/hooks/use-translations';
 import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import { useLayoutSettings } from '@/context/layout-settings-context'; // NOVO: Importar useLayoutSettings
+import { Textarea } from '@/components/ui/textarea'; // Importar Textarea
 
 interface EventConfigTabProps {
   event: Event;
@@ -57,6 +58,11 @@ interface EventConfigTabProps {
   countWalkoverSingleFightCategories: boolean;
   setCountWalkoverSingleFightCategories: (value: boolean) => void;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
+  // NOVO: Props para nome e descrição do evento
+  eventName: string;
+  setEventName: (name: string) => void;
+  eventDescription: string;
+  setEventDescription: (description: string) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -96,6 +102,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   countWalkoverSingleFightCategories,
   setCountWalkoverSingleFightCategories,
   userRole,
+  eventName, // NOVO
+  setEventName, // NOVO
+  eventDescription, // NOVO
+  setEventDescription, // NOVO
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings(); // NOVO: Usar isWideLayout e setIsWideLayout
@@ -127,6 +137,28 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     <LanguageToggle />
                   </h3>
                   <p className="text-muted-foreground">{t('languageDemo')}</p>
+                  
+                  {/* NOVO: Campos de edição para Nome e Descrição do Evento */}
+                  <div className="mt-4">
+                    <Label htmlFor="eventName">Nome do Evento</Label>
+                    <Input
+                      id="eventName"
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      placeholder="Ex: Campeonato Aberto de Verão"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="eventDescription">Descrição</Label>
+                    <Textarea
+                      id="eventDescription"
+                      value={eventDescription}
+                      onChange={(e) => setEventDescription(e.target.value)}
+                      placeholder="Uma breve descrição do evento..."
+                      rows={3}
+                    />
+                  </div>
+
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
                       id="event-active"

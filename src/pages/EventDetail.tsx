@@ -37,6 +37,8 @@ const EventDetail: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
 
   // Component State derived from event state
+  const [eventName, setEventName] = useState(''); // NOVO
+  const [eventDescription, setEventDescription] = useState(''); // NOVO
   const [checkInStartTime, setCheckInStartTime] = useState<Date | undefined>();
   const [checkInEndTime, setCheckInEndTime] = useState<Date | undefined>();
   const [numFightAreas, setNumFightAreas] = useState<number>(1);
@@ -86,6 +88,8 @@ const EventDetail: React.FC = () => {
 
     if (eventData) {
       setEvent(eventData);
+      setEventName(eventData.name); // NOVO
+      setEventDescription(eventData.description); // NOVO
       setCheckInStartTime(eventData.checkInStartTime ? parseISO(eventData.checkInStartTime) : undefined);
       setCheckInEndTime(eventData.checkInEndTime ? parseISO(eventData.checkInEndTime) : undefined);
       setNumFightAreas(eventData.numFightAreas || 1);
@@ -111,6 +115,8 @@ const EventDetail: React.FC = () => {
     if (event) {
       const eventDataToSave = {
         ...event,
+        name: eventName, // NOVO
+        description: eventDescription, // NOVO
         checkInStartTime: checkInStartTime?.toISOString(),
         checkInEndTime: checkInEndTime?.toISOString(),
         numFightAreas,
@@ -135,13 +141,17 @@ const EventDetail: React.FC = () => {
           let eventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = JSON.parse(eventsListRaw);
           const eventIndex = eventsList.findIndex(e => e.id === id);
           if (eventIndex > -1) {
-            eventsList[eventIndex].isActive = isActive; // Update isActive in the events list
+            eventsList[eventIndex] = { // Atualiza o objeto completo do evento na lista
+              ...eventsList[eventIndex],
+              name: eventName,
+              isActive: isActive,
+            };
             localStorage.setItem('events', JSON.stringify(eventsList));
           } else {
             // If event is not in the list (e.g., a base event not yet modified), add it
             eventsList.push({
               id: event.id,
-              name: event.name,
+              name: eventName, // Usa o nome atualizado
               status: event.status,
               date: event.date,
               isActive: isActive,
@@ -155,14 +165,14 @@ const EventDetail: React.FC = () => {
         // If no 'events' list exists yet, create it with the current event
         localStorage.setItem('events', JSON.stringify([{
           id: event.id,
-          name: event.name,
+          name: eventName, // Usa o nome atualizado
           status: event.status,
           date: event.date,
           isActive: isActive,
         }]));
       }
     }
-  }, [event, id, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
+  }, [event, id, eventName, eventDescription, checkInStartTime, checkInEndTime, numFightAreas, isAttendanceMandatory, isWeightCheckEnabled, checkInScanMode, isBeltGroupingEnabled, isOverweightAutoMoveEnabled, includeThirdPlace, isActive, championPoints, runnerUpPoints, thirdPlacePoints, countSingleClubCategories, countWalkoverSingleFightCategories]);
 
   // Handler Functions
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
@@ -299,8 +309,8 @@ const EventDetail: React.FC = () => {
 
   return (
     <Layout>
-      <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
-      <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
+      <h1 className="text-4xl font-bold mb-4">{eventName}</h1> {/* Usar o estado eventName */}
+      <p className="text-lg text-muted-foreground mb-8">{eventDescription}</p> {/* Usar o estado eventDescription */}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full">
@@ -325,7 +335,7 @@ const EventDetail: React.FC = () => {
             numFightAreas={numFightAreas}
             setNumFightAreas={setNumFightAreas}
             isAttendanceMandatory={isAttendanceMandatory}
-                        setIsAttendanceMandatory={setIsAttendanceMandatory}
+            setIsAttendanceMandatory={setIsAttendanceMandatory}
             isWeightCheckEnabled={isWeightCheckEnabled}
             setIsWeightCheckEnabled={setIsWeightCheckEnabled}
             isBeltGroupingEnabled={isBeltGroupingEnabled}
@@ -348,6 +358,10 @@ const EventDetail: React.FC = () => {
             countWalkoverSingleFightCategories={countWalkoverSingleFightCategories}
             setCountWalkoverSingleFightCategories={setCountWalkoverSingleFightCategories}
             userRole={userRole} // Pass userRole down
+            eventName={eventName} // NOVO
+            setEventName={setEventName} // NOVO
+            eventDescription={eventDescription} // NOVO
+            setEventDescription={setEventDescription} // NOVO
           />
         </TabsContent>
 
