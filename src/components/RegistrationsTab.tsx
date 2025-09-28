@@ -8,13 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 interface RegistrationsTabProps {
   event: Event;
@@ -67,6 +67,13 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   handleApproveSelected,
   handleRejectSelected,
 }) => {
+
+  const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
+    // Calcula o novo valor do filtro e passa diretamente para a prop setRegistrationStatusFilter
+    const newFilter = (registrationStatusFilter === filterType ? 'all' : filterType);
+    setRegistrationStatusFilter(newFilter);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -83,6 +90,58 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
           </TabsList>
 
           <TabsContent value="registered-athletes" className="mt-6">
+            {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
+              <div className="mb-6 space-y-4">
+                <h3 className="text-xl font-semibold">{userRole === 'admin' ? 'Todas as Inscrições' : `Minhas Inscrições (${userClub})`}</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div
+                    className={cn(
+                      "p-3 border rounded-md cursor-pointer transition-colors",
+                      registrationStatusFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
+                      'hover:bg-blue-100 dark:hover:bg-blue-900'
+                    )}
+                    onClick={() => handleRegistrationBoxClick('all')}
+                  >
+                    <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
+                    <p className="text-sm text-muted-foreground">Total</p>
+                  </div>
+                  <div
+                    className={cn(
+                      "p-3 border rounded-md cursor-pointer transition-colors",
+                      registrationStatusFilter === 'approved' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+                      'hover:bg-green-100 dark:hover:bg-green-900'
+                    )}
+                    onClick={() => handleRegistrationBoxClick('approved')}
+                  >
+                    <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
+                    <p className="text-sm text-muted-foreground">Aprovadas</p>
+                  </div>
+                  <div
+                    className={cn(
+                      "p-3 border rounded-md cursor-pointer transition-colors",
+                      registrationStatusFilter === 'under_approval' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
+                      'hover:bg-orange-100 dark:hover:bg-orange-900'
+                    )}
+                    onClick={() => handleRegistrationBoxClick('under_approval')}
+                  >
+                    <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
+                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                  </div>
+                  <div
+                    className={cn(
+                      "p-3 border rounded-md cursor-pointer transition-colors",
+                      registrationStatusFilter === 'rejected' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
+                      registrationStatusFilter === 'rejected' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
+                    )}
+                    onClick={() => handleRegistrationBoxClick('rejected')}
+                  >
+                    <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
+                    <p className="text-sm text-muted-foreground">Recusadas</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {userRole && !editingAthlete && (
               <div className="mb-6 space-y-2">
                 <Link to={`/events/${event.id}/registration-options`}>
@@ -93,49 +152,6 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                 <Link to={`/events/${event.id}/import-athletes`}>
                   <Button className="w-full" variant="secondary">Importar Atletas em Lote</Button>
                 </Link>
-              </div>
-            )}
-
-            {userRole === 'coach' && userClub && (
-              <div className="mb-6 space-y-4">
-                <h3 className="text-xl font-semibold">Minhas Inscrições ({userClub})</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
-                    <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
-                    <p className="text-sm text-muted-foreground">Total</p>
-                  </div>
-                  <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
-                    <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
-                    <p className="text-sm text-muted-foreground">Aprovadas</p>
-                  </div>
-                  <div className="p-3 border rounded-md bg-orange-50 dark:bg-orange-950">
-                    <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
-                    <p className="text-sm text-muted-foreground">Pendentes</p>
-                  </div>
-                  <div className="p-3 border rounded-md bg-red-50 dark:bg-red-950">
-                    <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
-                    <p className="text-sm text-muted-foreground">Recusadas</p>
-                  </div>
-                </div>
-
-                {userRole && (
-                  <div className="mb-4 flex justify-center">
-                    <ToggleGroup type="single" value={registrationStatusFilter} onValueChange={(value: 'all' | 'approved' | 'under_approval' | 'rejected') => value && setRegistrationStatusFilter(value)}>
-                      <ToggleGroupItem value="all" aria-label="Mostrar todos">
-                        Todos ({coachTotalRegistrations})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="approved" aria-label="Mostrar aprovados">
-                        Aprovados ({coachTotalApproved})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="under_approval" aria-label="Mostrar pendentes">
-                        Pendentes ({coachTotalPending})
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="rejected" aria-label="Mostrar recusados">
-                        Recusados ({coachTotalRejected})
-                      </ToggleGroupItem>
-                    </ToggleGroup>
-                  </div>
-                )}
               </div>
             )}
 
