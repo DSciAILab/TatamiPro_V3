@@ -5,39 +5,54 @@ import { useNavigate } from 'react-router-dom';
 import { Event, Bracket, Division } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; // Importar Tabs
-import { LayoutGrid, Swords, Printer } from 'lucide-react'; // 'ArrowLeft' removido
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { LayoutGrid, Swords, Printer } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
-// import { cn } from '@/lib/utils'; // 'cn' removido
-import { generateBracketForDivision } from '@/utils/bracket-generator'; // Importar gerador de bracket
-import { generateMatFightOrder } from '@/utils/fight-order-generator'; // Importar gerador de ordem de luta
+import { generateBracketForDivision } from '@/utils/bracket-generator';
+import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import FightList from '@/components/FightList';
 import MatCategoryList from '@/components/MatCategoryList';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BracketsTabProps {
   event: Event;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
   handleUpdateMatAssignments: (assignments: Record<string, string[]>) => void;
-  bracketsSubTab: string; // NOVO: Receber o estado da sub-aba
-  setBracketsSubTab: (value: string) => void; // NOVO: Receber a função de atualização
+  bracketsSubTab: string;
+  setBracketsSubTab: (value: string) => void;
 }
 
 const BracketsTab: React.FC<BracketsTabProps> = ({
   event,
   userRole,
   handleUpdateMatAssignments,
-  bracketsSubTab, // Usar o estado recebido
-  setBracketsSubTab, // Usar a função recebida
+  bracketsSubTab,
+  setBracketsSubTab,
 }) => {
   const navigate = useNavigate();
 
-  // --- Estados e Memos para a sub-aba "Gerar Brackets" ---
+  // --- Estados para a sub-aba "Gerar Brackets" ---
   const [selectedDivisionIdForBracket, setSelectedDivisionIdForBracket] = useState<string | 'all'>('all');
   const [generatedBrackets, setGeneratedBrackets] = useState<Record<string, Bracket>>(() => event.brackets || {});
+
+  // Estados para os diálogos de confirmação/aviso
+  const [showRegenerateConfirmDialog, setShowRegenerateConfirmDialog] = useState(false);
+  const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
+  const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
+  const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
 
   useEffect(() => {
     setGeneratedBrackets(event.brackets || {});
@@ -55,36 +70,24 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     });
   }, [event]);
 
-  const handleGenerateBrackets = () => {
+  // Helper para verificar se uma divisão tem lutas em andamento
+  const hasOngoingFights = (divisionId: string): boolean => {
+    const bracket = event.brackets?.[divisionId];
+    if (!bracket || !bracket.rounds) return false;
+    return bracket.rounds.flat().some(match => match.winnerId !== undefined);
+  };
+
+  const executeBracketGeneration = (divisionsToGenerate: Division[]) => {
     if (!event) {
       showError("Evento não carregado.");
       return;
     }
 
     const newBrackets: Record<string, Bracket> = {};
-    let divisionsToProcess: Division[] = [];
-
-    if (selectedDivisionIdForBracket === 'all') {
-      divisionsToProcess = availableDivisionsForBracketGeneration;
-    } else {
-      const division = availableDivisionsForBracketGeneration.find(d => d.id === selectedDivisionIdForBracket);
-      if (division) {
-        divisionsToProcess.push(division);
-      } else {
-        showError("Divisão selecionada não encontrada ou não tem atletas suficientes.");
-        return;
-      }
-    }
-
-    if (divisionsToProcess.length === 0) {
-      showError("Nenhuma divisão com atletas suficientes para gerar brackets.");
-      return;
-    }
+    const includeThirdPlaceFromEvent = event.includeThirdPlace || false;
 
     try {
-      const includeThirdPlaceFromEvent = event.includeThirdPlace || false;
-
-      divisionsToProcess.forEach(div => {
+      divisionsToGenerate.forEach(div => {
         const bracket = generateBracketForDivision(div, event.athletes, { thirdPlace: includeThirdPlaceFromEvent });
         newBrackets[div.id] = bracket;
       });
@@ -99,11 +102,76 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       setGeneratedBrackets(finalBrackets);
       const updatedEvent = { ...event, brackets: finalBrackets, matFightOrder: newMatFightOrder };
       localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
-      showSuccess(`${divisionsToProcess.length} bracket(s) gerado(s) com sucesso!`);
+      showSuccess(`${divisionsToGenerate.length} bracket(s) gerado(s) com sucesso!`);
     } catch (error: any) {
       console.error("Error generating brackets:", error);
       showError("Erro ao gerar brackets: " + error.message);
     }
+  };
+
+  const handleGenerateBrackets = () => {
+    if (!event) {
+      showError("Evento não carregado.");
+      return;
+    }
+
+    let divisionsToConsider: Division[] = [];
+    if (selectedDivisionIdForBracket === 'all') {
+      divisionsToConsider = availableDivisionsForBracketGeneration;
+    } else {
+      const division = availableDivisionsForBracketGeneration.find(d => d.id === selectedDivisionIdForBracket);
+      if (division) {
+        divisionsToConsider.push(division);
+      } else {
+        showError("Divisão selecionada não encontrada ou não tem atletas suficientes.");
+        return;
+      }
+    }
+
+    if (divisionsToConsider.length === 0) {
+      showError("Nenhuma divisão com atletas suficientes para gerar brackets.");
+      return;
+    }
+
+    // Removido: const divisionsWithExistingBrackets = divisionsToConsider.filter(div => event.brackets?.[div.id]);
+    const divisionsWithOngoingFights = divisionsToConsider.filter(div => hasOngoingFights(div.id));
+
+    if (selectedDivisionIdForBracket !== 'all' && divisionsWithOngoingFights.length > 0) {
+      // Caso 1: Uma única divisão em andamento foi selecionada manualmente
+      if (userRole === 'admin') {
+        setDivisionToRegenerateOngoing(divisionsWithOngoingFights[0]);
+        setShowOngoingWarningDialog(true);
+      } else {
+        showError("Você não tem permissão para regerar brackets de categorias em andamento.");
+      }
+      return;
+    }
+
+    // Caso 2: "Todas as Divisões" ou uma única divisão NÃO em andamento
+    const divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
+    const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => event.brackets?.[div.id]);
+
+    if (divisionsThatWillBeRegenerated.length > 0) {
+      setDivisionsToConfirmRegenerate(divisionsThatWillBeRegenerated);
+      setShowRegenerateConfirmDialog(true);
+    } else {
+      // Nenhuma divisão existente ou em andamento, pode gerar diretamente
+      executeBracketGeneration(divisionsToActuallyGenerate);
+    }
+  };
+
+  const confirmRegenerateAction = () => {
+    executeBracketGeneration(divisionsToConfirmRegenerate);
+    setShowRegenerateConfirmDialog(false);
+    setDivisionsToConfirmRegenerate([]);
+  };
+
+  const confirmRegenerateOngoingAction = () => {
+    if (divisionToRegenerateOngoing) {
+      executeBracketGeneration([divisionToRegenerateOngoing]);
+    }
+    setShowOngoingWarningDialog(false);
+    setDivisionToRegenerateOngoing(null);
   };
 
   // --- Estados e Memos para a sub-aba "Gerenciar Lutas" ---
@@ -122,9 +190,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   const handleUpdateBracket = (divisionId: string, updatedBracket: Bracket) => {
-    // Esta função agora precisa atualizar o estado do evento no EventDetail
-    // Para simplificar, vamos recarregar o evento ou ter uma prop para isso.
-    // Por enquanto, vamos apenas atualizar o localStorage e o estado local de brackets.
     const updatedBrackets = {
       ...event.brackets,
       [divisionId]: updatedBracket,
@@ -137,7 +202,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
     setGeneratedBrackets(finalBrackets); // Atualiza o estado local para re-renderizar
   };
-
 
   return (
     <Card>
@@ -275,6 +339,59 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           </Tabs>
         )}
       </CardContent>
+
+      {/* Diálogo de Confirmação para Regerar Brackets Existentes */}
+      <AlertDialog open={showRegenerateConfirmDialog} onOpenChange={setShowRegenerateConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regerar Brackets Existentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você selecionou divisões que já possuem brackets gerados. Regerá-los irá apagar os brackets atuais e quaisquer resultados de lutas não iniciadas.
+              {divisionsToConfirmRegenerate.length > 0 && (
+                <ul className="list-disc list-inside mt-2">
+                  {divisionsToConfirmRegenerate.map(div => (
+                    <li key={div.id} className="font-medium">{div.name}</li>
+                  ))}
+                </ul>
+              )}
+              Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowRegenerateConfirmDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRegenerateAction}>Regerar Brackets</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de Aviso para Categoria em Andamento (com opção de Admin) */}
+      <AlertDialog open={showOngoingWarningDialog} onOpenChange={setShowOngoingWarningDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aviso: Categoria em Andamento!</AlertDialogTitle>
+            <AlertDialogDescription>
+              A divisão "{divisionToRegenerateOngoing?.name}" já possui lutas com resultados registrados.
+              Regerar o bracket desta divisão irá apagar todos os resultados existentes e o progresso das lutas.
+              {userRole === 'admin' ? (
+                <>
+                  <p className="mt-2 font-semibold text-red-600">Esta é uma ação crítica e irreversível.</p>
+                  <p className="mt-1">Tem certeza que deseja continuar como administrador?</p>
+                </>
+              ) : (
+                <p className="mt-2 font-semibold text-red-600">Você não tem permissão para regerar brackets de categorias em andamento.</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowOngoingWarningDialog(false)}>Cancelar</AlertDialogCancel>
+            {userRole === 'admin' && (
+              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-red-600 hover:bg-red-700">
+                Regerar (Admin Override)
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

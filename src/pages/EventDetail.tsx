@@ -16,7 +16,7 @@ import { baseEvents } from '@/data/base-events';
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
 import CheckInTab from '@/components/CheckInTab';
-import BracketsTab from '@/components/BracketsTab'; // Caminho corrigido
+import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -188,13 +188,27 @@ const EventDetail: React.FC = () => {
   };
 
   const handleApproveSelected = () => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'approved' } : a));
+    handleUpdateEventProperty(
+      'athletes',
+      event!.athletes.map(a =>
+        selectedAthletesForApproval.includes(a.id)
+          ? { ...a, registrationStatus: 'approved' as Athlete['registrationStatus'] } // Type assertion aqui
+          : a
+      )
+    );
     showSuccess(`${selectedAthletesForApproval.length} inscrições aprovadas.`);
     setSelectedAthletesForApproval([]);
   };
 
   const handleRejectSelected = () => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => selectedAthletesForApproval.includes(a.id) ? { ...a, registrationStatus: 'rejected' } : a));
+    handleUpdateEventProperty(
+      'athletes',
+      event!.athletes.map(a =>
+        selectedAthletesForApproval.includes(a.id)
+          ? { ...a, registrationStatus: 'rejected' as Athlete['registrationStatus'] } // Type assertion aqui
+          : a
+      )
+    );
     showSuccess(`${selectedAthletesForApproval.length} inscrições rejeitadas.`);
     setSelectedAthletesForApproval([]);
   };
