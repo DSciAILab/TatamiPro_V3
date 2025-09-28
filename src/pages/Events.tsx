@@ -10,20 +10,54 @@ import { useAuth } from '@/context/auth-context';
 import { baseEvents } from '@/data/base-events';
 import { Trash2 } from 'lucide-react';
 import DeleteEventDialog from '@/components/DeleteEventDialog';
-import { Event } from '@/types/index'; // Importar o tipo Event
-import { showSuccess } from '@/utils/toast'; // 'showError' removido, pois não é utilizado neste arquivo
+import { Event } from '@/types/index';
+import { showSuccess } from '@/utils/toast';
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
-  const [events, setEvents] = useState<Event[]>([]); // Mudar para Event[]
-  const [eventToDelete, setEventToDelete] = useState<Event | null>(null); // Armazena o evento completo
+  const [events, setEvents] = useState<Event[]>([]);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
 
   useEffect(() => {
-    const loadedEvents = getEvents();
-    setEvents(loadedEvents);
+    initializeAndLoadEvents();
   }, []);
 
-  const getEvents = (): Event[] => {
+  const initializeAndLoadEvents = () => {
+    const isInitialized = localStorage.getItem('events_initialized');
+
+    if (!isInitialized) {
+      // Seed base events into localStorage if not already initialized
+      const initialEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
+      baseEvents.forEach(baseEvent => {
+        // Ensure dates are converted to ISO strings for storage
+        const eventToStore = {
+          ...baseEvent,
+          checkInStartTime: baseEvent.checkInStartTime instanceof Date ? baseEvent.checkInStartTime.toISOString() : baseEvent.checkInStartTime,
+          checkInEndTime: baseEvent.checkInEndTime instanceof Date ? baseEvent.checkInEndTime.toISOString() : baseEvent.checkInEndTime,
+          athletes: baseEvent.athletes.map(a => ({
+            ...a,
+            dateOfBirth: a.dateOfBirth instanceof Date ? a.dateOfBirth.toISOString() : a.dateOfBirth,
+            consentDate: a.consentDate instanceof Date ? a.consentDate.toISOString() : a.consentDate,
+          })),
+        };
+        localStorage.setItem(`event_${baseEvent.id}`, JSON.stringify(eventToStore));
+        initialEventsList.push({
+          id: baseEvent.id,
+          name: baseEvent.name,
+          status: baseEvent.status,
+          date: baseEvent.date,
+          isActive: baseEvent.isActive,
+        });
+      });
+      localStorage.setItem('events', JSON.stringify(initialEventsList));
+      localStorage.setItem('events_initialized', 'true');
+    }
+
+    // Always load from localStorage after initialization
+    loadEventsFromLocalStorage();
+  };
+
+  const loadEventsFromLocalStorage = () => {
     const storedEventsListRaw = localStorage.getItem('events');
     let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
     if (storedEventsListRaw) {
@@ -35,33 +69,28 @@ const Events: React.FC = () => {
     }
 
     const finalEvents: Event[] = [];
-    const storedEventIds = new Set<string>();
-
-    // Prioriza eventos do localStorage, carregando os detalhes completos
     storedEventsList.forEach(eventSummary => {
       const fullEventDataRaw = localStorage.getItem(`event_${eventSummary.id}`);
       if (fullEventDataRaw) {
         try {
           const fullEvent: Event = JSON.parse(fullEventDataRaw);
+          // Ensure dates are parsed correctly from ISO strings for display/use
+          fullEvent.checkInStartTime = fullEvent.checkInStartTime ? new Date(fullEvent.checkInStartTime) : undefined;
+          fullEvent.checkInEndTime = fullEvent.checkInEndTime ? new Date(fullEvent.checkInEndTime) : undefined;
+          fullEvent.athletes = fullEvent.athletes.map(a => ({
+            ...a,
+            dateOfBirth: new Date(a.dateOfBirth),
+            consentDate: new Date(a.consentDate),
+          }));
           finalEvents.push(fullEvent);
-          storedEventIds.add(fullEvent.id);
         } catch (e) {
           console.error(`Failed to parse full event data for ${eventSummary.id}`, e);
         }
       }
     });
 
-    // Adiciona eventos base que não estão no localStorage
-    baseEvents.forEach(baseEvent => {
-      if (!storedEventIds.has(baseEvent.id)) {
-        finalEvents.push(baseEvent);
-      }
-    });
-
-    // Sort events for consistent display, e.g., by name
     finalEvents.sort((a, b) => a.name.localeCompare(b.name));
-
-    return finalEvents;
+    setEvents(finalEvents);
   };
 
   const handleDeleteClick = (event: Event) => {
@@ -69,10 +98,9 @@ const Events: React.FC = () => {
   };
 
   const handleConfirmDelete = (eventId: string) => {
-    // Remove o evento do localStorage
     localStorage.removeItem(`event_${eventId}`);
 
-    // Atualiza a lista de eventos no localStorage
+    // Filter the current events state to get the updated list
     const updatedEventsList = events.filter(e => e.id !== eventId).map(e => ({
       id: e.id,
       name: e.name,
@@ -82,8 +110,8 @@ const Events: React.FC = () => {
     }));
     localStorage.setItem('events', JSON.stringify(updatedEventsList));
 
-    // Atualiza o estado local para re-renderizar
-    setEvents(prevEvents => prevEvents.filter(e => e.id !== eventId));
+    // After deleting, reload the events from localStorage to ensure consistency
+    loadEventsFromLocalStorage();
     setEventToDelete(null);
     showSuccess(`Evento "${eventToDelete?.name}" deletado com sucesso.`);
   };
