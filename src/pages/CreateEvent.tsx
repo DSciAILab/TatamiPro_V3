@@ -13,116 +13,101 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Event } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 const CreateEvent: React.FC = () => {
   const navigate = useNavigate();
   const [eventName, setEventName] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
+  const [loading, setLoading] = useState(false);
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     if (!eventName || !eventDescription || !eventDate) {
-      showError('Por favor, preencha todos os campos.');
+      showError('Please fill in all fields.');
+      setLoading(false);
       return;
     }
 
-    const newEventId = `event-${Date.now()}`;
-    const newEvent: Event = {
+    const newEventId = uuidv4();
+    const newEventForDB = {
       id: newEventId,
       name: eventName,
       description: eventDescription,
-      status: 'Aberto', // Default status
+      status: 'Aberto',
       date: format(eventDate, 'yyyy-MM-dd'),
-      athletes: [],
-      divisions: [],
-      isActive: true,
-      championPoints: 9,
-      runnerUpPoints: 3,
-      thirdPlacePoints: 1,
-      countSingleClubCategories: true,
-      countWalkoverSingleFightCategories: true,
-      checkInStartTime: undefined,
-      checkInEndTime: undefined,
-      numFightAreas: 1,
-      isAttendanceMandatoryBeforeCheckIn: false,
-      isWeightCheckEnabled: true,
-      matAssignments: {},
-      isBeltGroupingEnabled: true,
-      isOverweightAutoMoveEnabled: false,
+      is_active: true,
+      // Default values for new columns
+      champion_points: 9,
+      runner_up_points: 3,
+      third_place_points: 1,
+      count_single_club_categories: true,
+      count_walkover_single_fight_categories: true,
+      mat_assignments: {},
       brackets: {},
-      matFightOrder: {},
-      includeThirdPlace: false,
+      mat_fight_order: {},
+      is_belt_grouping_enabled: true,
+      is_overweight_auto_move_enabled: false,
+      include_third_place: false,
+      is_attendance_mandatory_before_check_in: false,
+      is_weight_check_enabled: true,
+      check_in_scan_mode: 'qr',
+      num_fight_areas: 1,
     };
 
-    // Load existing events from localStorage
-    const existingEventsRaw = localStorage.getItem('events');
-    let existingEvents: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
-    if (existingEventsRaw) {
-      try {
-        existingEvents = JSON.parse(existingEventsRaw);
-      } catch (e) {
-        console.error("Failed to parse existing events from localStorage", e);
-      }
+    const { error } = await supabase.from('events').insert(newEventForDB);
+
+    if (error) {
+      showError(`Failed to create event: ${error.message}`);
+    } else {
+      showSuccess(`Event "${eventName}" created successfully!`);
+      navigate('/events');
     }
-
-    // Add the new event to the list of events
-    const updatedEventsList = [...existingEvents, {
-      id: newEvent.id,
-      name: newEvent.name,
-      status: newEvent.status,
-      date: newEvent.date,
-      isActive: newEvent.isActive,
-    }];
-    localStorage.setItem('events', JSON.stringify(updatedEventsList));
-
-    // Save the full new event object separately
-    localStorage.setItem(`event_${newEvent.id}`, JSON.stringify(newEvent));
-
-    showSuccess(`Evento "${eventName}" criado com sucesso!`);
-    navigate('/events');
+    setLoading(false);
   };
 
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Criar Novo Evento</h1>
-        <Button onClick={() => navigate('/events')} variant="outline">Voltar para Eventos</Button>
+        <h1 className="text-3xl font-bold">Create New Event</h1>
+        <Button onClick={() => navigate('/events')} variant="outline">Back to Events</Button>
       </div>
 
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Detalhes do Novo Evento</CardTitle>
-          <CardDescription>Preencha as informações para criar um novo campeonato.</CardDescription>
+          <CardTitle>New Event Details</CardTitle>
+          <CardDescription>Fill in the information to create a new championship.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreateEvent} className="space-y-4">
             <div>
-              <Label htmlFor="eventName">Nome do Evento</Label>
+              <Label htmlFor="eventName">Event Name</Label>
               <Input
                 id="eventName"
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
-                placeholder="Ex: Campeonato Aberto de Verão"
+                placeholder="e.g., Summer Open Championship"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="eventDescription">Descrição</Label>
+              <Label htmlFor="eventDescription">Description</Label>
               <Textarea
                 id="eventDescription"
                 value={eventDescription}
                 onChange={(e) => setEventDescription(e.target.value)}
-                placeholder="Uma breve descrição do evento..."
+                placeholder="A brief description of the event..."
                 rows={3}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="eventDate">Data do Evento</Label>
+              <Label htmlFor="eventDate">Event Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -133,7 +118,7 @@ const CreateEvent: React.FC = () => {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {eventDate ? format(eventDate, "PPP") : <span>Selecione uma data</span>}
+                    {eventDate ? format(eventDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -146,7 +131,9 @@ const CreateEvent: React.FC = () => {
                 </PopoverContent>
               </Popover>
             </div>
-            <Button type="submit" className="w-full">Criar Evento</Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Event'}
+            </Button>
           </form>
         </CardContent>
       </Card>

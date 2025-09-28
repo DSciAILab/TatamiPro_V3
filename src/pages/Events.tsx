@@ -7,116 +7,62 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
-import { baseEvents } from '@/data/base-events';
 import { Trash2 } from 'lucide-react';
 import DeleteEventDialog from '@/components/DeleteEventDialog';
 import { Event } from '@/types/index';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { isPast, isFuture, parseISO } from 'date-fns'; // Importar funções de data
+import { isPast, isFuture, parseISO } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
-  const [activeTab, setActiveTab] = useState('upcoming'); // Default para 'Próximos'
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initializeAndLoadEvents();
+    loadEventsFromSupabase();
   }, []);
 
-  const initializeAndLoadEvents = () => {
-    const isInitialized = localStorage.getItem('events_initialized');
+  const loadEventsFromSupabase = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('events')
+      .select('*');
 
-    if (!isInitialized) {
-      // Seed base events into localStorage if not already initialized
-      const initialEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
-      baseEvents.forEach(baseEvent => {
-        // Ensure dates are converted to ISO strings for storage
-        const eventToStore = {
-          ...baseEvent,
-          checkInStartTime: baseEvent.checkInStartTime instanceof Date ? baseEvent.checkInStartTime.toISOString() : baseEvent.checkInStartTime,
-          checkInEndTime: baseEvent.checkInEndTime instanceof Date ? baseEvent.checkInEndTime.toISOString() : baseEvent.checkInEndTime,
-          athletes: baseEvent.athletes.map(a => ({
-            ...a,
-            dateOfBirth: a.dateOfBirth instanceof Date ? a.dateOfBirth.toISOString() : a.dateOfBirth,
-            consentDate: a.consentDate instanceof Date ? a.consentDate.toISOString() : a.consentDate,
-          })),
-        };
-        localStorage.setItem(`event_${baseEvent.id}`, JSON.stringify(eventToStore));
-        initialEventsList.push({
-          id: baseEvent.id,
-          name: baseEvent.name,
-          status: baseEvent.status,
-          date: baseEvent.date,
-          isActive: baseEvent.isActive,
-        });
-      });
-      localStorage.setItem('events', JSON.stringify(initialEventsList));
-      localStorage.setItem('events_initialized', 'true');
+    if (error) {
+      showError('Failed to load events: ' + error.message);
+    } else {
+      // We fetch full event data here for simplicity, though a summary would be more efficient
+      const eventsWithRelations = await Promise.all(data.map(async (event) => {
+        const { data: athletes } = await supabase.from('athletes').select('*').eq('event_id', event.id);
+        const { data: divisions } = await supabase.from('divisions').select('*').eq('event_id', event.id);
+        return { ...event, athletes: athletes || [], divisions: divisions || [] };
+      }));
+      setEvents(eventsWithRelations as Event[]);
     }
-
-    // Always load from localStorage after initialization
-    loadEventsFromLocalStorage();
-  };
-
-  const loadEventsFromLocalStorage = () => {
-    const storedEventsListRaw = localStorage.getItem('events');
-    let storedEventsList: { id: string; name: string; status: string; date: string; isActive: boolean }[] = [];
-    if (storedEventsListRaw) {
-      try {
-        storedEventsList = JSON.parse(storedEventsListRaw);
-      } catch (e) {
-        console.error("Failed to parse events list from localStorage", e);
-      }
-    }
-
-    const finalEvents: Event[] = [];
-    storedEventsList.forEach(eventSummary => {
-      const fullEventDataRaw = localStorage.getItem(`event_${eventSummary.id}`);
-      if (fullEventDataRaw) {
-        try {
-          const fullEvent: Event = JSON.parse(fullEventDataRaw);
-          // Ensure dates are parsed correctly from ISO strings for display/use
-          fullEvent.checkInStartTime = fullEvent.checkInStartTime ? new Date(fullEvent.checkInStartTime) : undefined;
-          fullEvent.checkInEndTime = fullEvent.checkInEndTime ? new Date(fullEvent.checkInEndTime) : undefined;
-          fullEvent.athletes = fullEvent.athletes.map(a => ({
-            ...a,
-            dateOfBirth: new Date(a.dateOfBirth),
-            consentDate: new Date(a.consentDate),
-          }));
-          finalEvents.push(fullEvent);
-        } catch (e) {
-          console.error(`Failed to parse full event data for ${eventSummary.id}`, e);
-        }
-      }
-    });
-
-    finalEvents.sort((a, b) => a.name.localeCompare(b.name));
-    setEvents(finalEvents);
+    setLoading(false);
   };
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
   };
 
-  const handleConfirmDelete = (eventId: string) => {
-    localStorage.removeItem(`event_${eventId}`);
+  const handleConfirmDelete = async (eventId: string) => {
+    const loadingToast = showLoading('Deleting event...');
+    // In a real app, you'd also delete related athletes, divisions, etc., or use CASCADE delete.
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    dismissToast(loadingToast);
 
-    // Filter the current events state to get the updated list
-    const updatedEventsList = events.filter(e => e.id !== eventId).map(e => ({
-      id: e.id,
-      name: e.name,
-      status: e.status,
-      date: e.date,
-      isActive: e.isActive,
-    }));
-    localStorage.setItem('events', JSON.stringify(updatedEventsList));
-
-    // After deleting, reload the events from localStorage to ensure consistency
-    loadEventsFromLocalStorage();
-    setEventToDelete(null);
-    showSuccess(`Evento "${eventToDelete?.name}" deletado com sucesso.`);
+    if (error) {
+      showError(`Failed to delete event: ${error.message}`);
+    } else {
+      showSuccess(`Event "${eventToDelete?.name}" deleted successfully.`);
+      setEventToDelete(null);
+      loadEventsFromSupabase(); // Refresh the list
+    }
   };
 
   const filterEvents = (filterType: 'past' | 'upcoming' | 'all') => {
@@ -134,21 +80,23 @@ const Events: React.FC = () => {
 
   const renderEventCards = (eventList: Event[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {eventList.length === 0 ? (
-        <p className="text-muted-foreground col-span-full">Nenhum evento encontrado nesta categoria.</p>
+      {loading ? (
+        <p className="text-muted-foreground col-span-full">Loading events...</p>
+      ) : eventList.length === 0 ? (
+        <p className="text-muted-foreground col-span-full">No events found in this category.</p>
       ) : (
         eventList.map((event) => (
           <div key={event.id} className="relative">
             <Link
               to={`/events/${event.id}`}
-              className={cn("block", { 'pointer-events-none': !event.isActive })}
-              aria-disabled={!event.isActive}
+              className={cn("block", { 'pointer-events-none': !event.is_active })}
+              aria-disabled={!event.is_active}
             >
               <Card
                 className={cn(
                   "h-full transition-colors",
-                  { 'opacity-50 grayscale': !event.isActive },
-                  event.isActive && "hover:bg-accent"
+                  { 'opacity-50 grayscale': !event.is_active },
+                  event.is_active && "hover:bg-accent"
                 )}
               >
                 <CardHeader>
@@ -157,7 +105,7 @@ const Events: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {event.isActive ? "Clique para ver os detalhes" : "Este evento está inativo"}
+                    {event.is_active ? "Click to see details" : "This event is inactive"}
                   </p>
                 </CardContent>
               </Card>
@@ -168,7 +116,7 @@ const Events: React.FC = () => {
                 size="icon"
                 className="absolute top-2 right-2 z-10"
                 onClick={() => handleDeleteClick(event)}
-                aria-label={`Deletar evento ${event.name}`}
+                aria-label={`Delete event ${event.name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -182,19 +130,19 @@ const Events: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Eventos</h1>
+        <h1 className="text-3xl font-bold">Events</h1>
         {profile?.role === 'admin' && (
           <Link to="/events/create">
-            <Button>Criar Novo Evento</Button>
+            <Button>Create New Event</Button>
           </Link>
         )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upcoming">Próximos</TabsTrigger>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="past">Passados</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="past">Past</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="mt-6">
