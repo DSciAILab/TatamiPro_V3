@@ -12,11 +12,14 @@ import { Trash2 } from 'lucide-react';
 import DeleteEventDialog from '@/components/DeleteEventDialog';
 import { Event } from '@/types/index';
 import { showSuccess } from '@/utils/toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { isPast, isFuture, parseISO } from 'date-fns'; // Importar funções de data
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+  const [activeTab, setActiveTab] = useState('upcoming'); // Default para 'Próximos'
 
   useEffect(() => {
     initializeAndLoadEvents();
@@ -116,19 +119,25 @@ const Events: React.FC = () => {
     showSuccess(`Evento "${eventToDelete?.name}" deletado com sucesso.`);
   };
 
-  return (
-    <Layout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Eventos</h1>
-        {profile?.role === 'admin' && (
-          <Link to="/events/create">
-            <Button>Criar Novo Evento</Button>
-          </Link>
-        )}
-      </div>
+  const filterEvents = (filterType: 'past' | 'upcoming' | 'all') => {
+    const today = new Date();
+    return events.filter(event => {
+      const eventDate = parseISO(event.date);
+      if (filterType === 'past') {
+        return isPast(eventDate) && eventDate.toDateString() !== today.toDateString();
+      } else if (filterType === 'upcoming') {
+        return isFuture(eventDate) || eventDate.toDateString() === today.toDateString();
+      }
+      return true; // 'all' filter
+    });
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
+  const renderEventCards = (eventList: Event[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {eventList.length === 0 ? (
+        <p className="text-muted-foreground col-span-full">Nenhum evento encontrado nesta categoria.</p>
+      ) : (
+        eventList.map((event) => (
           <div key={event.id} className="relative">
             <Link
               to={`/events/${event.id}`}
@@ -165,8 +174,39 @@ const Events: React.FC = () => {
               </Button>
             )}
           </div>
-        ))}
+        ))
+      )}
+    </div>
+  );
+
+  return (
+    <Layout>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Eventos</h1>
+        {profile?.role === 'admin' && (
+          <Link to="/events/create">
+            <Button>Criar Novo Evento</Button>
+          </Link>
+        )}
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="upcoming">Próximos</TabsTrigger>
+          <TabsTrigger value="all">Todos</TabsTrigger>
+          <TabsTrigger value="past">Passados</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upcoming" className="mt-6">
+          {renderEventCards(filterEvents('upcoming'))}
+        </TabsContent>
+        <TabsContent value="all" className="mt-6">
+          {renderEventCards(filterEvents('all'))}
+        </TabsContent>
+        <TabsContent value="past" className="mt-6">
+          {renderEventCards(filterEvents('past'))}
+        </TabsContent>
+      </Tabs>
 
       {eventToDelete && (
         <DeleteEventDialog
