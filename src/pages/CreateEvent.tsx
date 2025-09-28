@@ -34,15 +34,13 @@ const CreateEvent: React.FC = () => {
       return;
     }
 
-    const newEventId = uuidv4();
     const newEventForDB = {
-      id: newEventId,
+      id: uuidv4(),
       name: eventName,
       description: eventDescription,
       status: 'Aberto',
       date: format(eventDate, 'yyyy-MM-dd'),
       is_active: true,
-      // Default values for new columns
       champion_points: 9,
       runner_up_points: 3,
       third_place_points: 1,

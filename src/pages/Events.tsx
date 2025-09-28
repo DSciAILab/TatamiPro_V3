@@ -30,18 +30,13 @@ const Events: React.FC = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('events')
-      .select('*');
+      .select('*')
+      .order('date', { ascending: false });
 
     if (error) {
       showError('Failed to load events: ' + error.message);
     } else {
-      // We fetch full event data here for simplicity, though a summary would be more efficient
-      const eventsWithRelations = await Promise.all(data.map(async (event) => {
-        const { data: athletes } = await supabase.from('athletes').select('*').eq('event_id', event.id);
-        const { data: divisions } = await supabase.from('divisions').select('*').eq('event_id', event.id);
-        return { ...event, athletes: athletes || [], divisions: divisions || [] };
-      }));
-      setEvents(eventsWithRelations as Event[]);
+      setEvents(data || []);
     }
     setLoading(false);
   };
@@ -52,7 +47,8 @@ const Events: React.FC = () => {
 
   const handleConfirmDelete = async (eventId: string) => {
     const loadingToast = showLoading('Deleting event...');
-    // In a real app, you'd also delete related athletes, divisions, etc., or use CASCADE delete.
+    // Note: This only deletes the event row. Associated athletes/divisions are not deleted
+    // unless you have CASCADE delete set up in your database schema.
     const { error } = await supabase.from('events').delete().eq('id', eventId);
     dismissToast(loadingToast);
 

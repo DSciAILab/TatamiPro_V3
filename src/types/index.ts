@@ -104,8 +104,8 @@ export interface Event {
   description: string;
   status: 'Aberto' | 'Fechado';
   date: string;
-  athletes: Athlete[];
-  divisions: Division[];
+  athletes?: Athlete[];
+  divisions?: Division[];
   check_in_start_time?: Date;
   check_in_end_time?: Date;
   num_fight_areas?: number;

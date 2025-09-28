@@ -13,16 +13,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Trash2, Download } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { exportEventDataToCsv } from '@/utils/event-utils';
 import { Event } from '@/types/index';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DeleteEventDialogProps {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
   eventName: string;
-  eventData: Event | null; // O objeto Event completo para backup
+  eventData: Event | null;
   onConfirmDelete: (eventId: string) => void;
 }
 
@@ -34,13 +35,36 @@ const DeleteEventDialog: React.FC<DeleteEventDialogProps> = ({
   eventData,
   onConfirmDelete,
 }) => {
-  const handleDownloadBackup = (dataType: 'athletes' | 'divisions') => {
+  const handleDownloadBackup = async (dataType: 'athletes' | 'divisions') => {
     if (!eventData) {
       showError('Dados do evento não disponíveis para backup.');
       return;
     }
+
+    let fullEventData = { ...eventData };
+
+    // If athlete/division data is missing, fetch it on-demand
+    if (!fullEventData.athletes || !fullEventData.divisions) {
+      const loadingToast = showLoading('Carregando dados para backup...');
+      try {
+        const { data: athletes, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        if (athletesError) throw athletesError;
+
+        const { data: divisions, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        if (divisionsError) throw divisionsError;
+
+        fullEventData.athletes = athletes || [];
+        fullEventData.divisions = divisions || [];
+        dismissToast(loadingToast);
+      } catch (error: any) {
+        dismissToast(loadingToast);
+        showError(`Falha ao carregar dados para backup: ${error.message}`);
+        return;
+      }
+    }
+
     try {
-      const blob = exportEventDataToCsv(eventData, dataType);
+      const blob = exportEventDataToCsv(fullEventData as Required<Event>, dataType);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
