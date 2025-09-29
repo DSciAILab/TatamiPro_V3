@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -10,61 +10,60 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { Event } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import PrintableBracket from '@/components/PrintableBracket';
-import { processAthleteData } from '@/utils/athlete-utils'; // Importar processAthleteData
+import { processAthleteData } from '@/utils/athlete-utils';
+import { generateBracketPdf } from '@/utils/pdf-bracket-generator';
+import { supabase } from '@/integrations/supabase/client';
+import { parseISO } from 'date-fns';
 
 const PrintBrackets: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
-  const printableRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("PrintBrackets: useEffect triggered for eventId:", eventId);
-    if (eventId) {
-      const existingEventData = localStorage.getItem(`event_${eventId}`);
-      if (existingEventData) {
-        try {
-          const parsedEvent: Event = JSON.parse(existingEventData);
-          console.log("PrintBrackets: Parsed event data:", parsedEvent);
+    const fetchEventData = async () => {
+      if (!eventId) return;
+      setLoading(true);
+      try {
+        const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
+        if (eventError) throw eventError;
 
-          // Re-parse dates and assign _division for Athlete objects
-          const processedAthletes = (parsedEvent.athletes || []).map(athlete =>
-            processAthleteData(athlete, parsedEvent.divisions || [])
-          );
-          console.log("PrintBrackets: Processed athletes:", processedAthletes);
+        const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        if (athletesError) throw athletesError;
+        
+        const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        if (divisionsError) throw divisionsError;
 
-          setEvent({ ...parsedEvent, athletes: processedAthletes });
-          console.log("PrintBrackets: Event state updated.");
-        } catch (e) {
-          console.error("PrintBrackets: Failed to parse event data from localStorage", e);
-          showError("Erro ao carregar dados do evento.");
-          setEvent(null); // Ensure event is null if parsing fails
-        }
-      } else {
-        console.log("PrintBrackets: No event data found in localStorage for eventId:", eventId);
-        showError("Evento não encontrado.");
-        setEvent(null); // Ensure event is null if not found
+        const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
+        
+        const fullEventData: Event = {
+          ...eventData,
+          athletes: processedAthletes,
+          divisions: divisionsData || [],
+          check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
+          check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
+        };
+        setEvent(fullEventData);
+      } catch (error: any) {
+        showError(`Failed to load event data: ${error.message}`);
+        setEvent(null);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      console.log("PrintBrackets: eventId is undefined.");
-      setEvent(null); // Ensure event is null if eventId is missing
-    }
+    };
+    fetchEventData();
   }, [eventId]);
 
   const availableDivisions = useMemo(() => {
-    if (!event || !event.brackets) {
-      console.log("PrintBrackets: No event or brackets available for divisions.");
-      return [];
-    }
-    // Filter divisions that have generated brackets
-    const divisionsWithBrackets = (event.divisions || []).filter(div => event.brackets?.[div.id]);
-    console.log("PrintBrackets: Available divisions with brackets:", divisionsWithBrackets);
-    return divisionsWithBrackets;
+    if (!event || !event.brackets) return [];
+    return (event.divisions || []).filter(div => event.brackets?.[div.id]);
   }, [event]);
+
+  const athletesMap = useMemo(() => {
+    return new Map((event?.athletes || []).map(athlete => [athlete.id, athlete]));
+  }, [event?.athletes]);
 
   const handleToggleDivision = (divisionId: string, checked: boolean) => {
     setSelectedDivisions(prev =>
@@ -80,65 +79,35 @@ const PrintBrackets: React.FC = () => {
     }
   };
 
-  const generatePdf = async () => {
+  const handleGeneratePdf = async () => {
     if (selectedDivisions.length === 0) {
       showError('Por favor, selecione pelo menos uma divisão para imprimir.');
       return;
     }
-
-    if (!event || !event.brackets) {
+    if (!event || !event.brackets || !event.divisions) {
       showError('Dados do evento ou brackets não disponíveis.');
       return;
     }
 
     const loadingToastId = showLoading('Gerando PDF dos brackets...');
-
-    const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' for A4 size
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = 297; // A4 height in mm
-
-    for (let i = 0; i < selectedDivisions.length; i++) {
-      const divisionId = selectedDivisions[i];
-      const divRef = printableRefs.current[divisionId];
-
-      if (divRef) {
-        try {
-          const canvas = await html2canvas(divRef, {
-            scale: 2, // Increase scale for better resolution
-            useCORS: true, // Important for images from external URLs
-            windowWidth: divRef.scrollWidth, // Capture full width
-            windowHeight: divRef.scrollHeight, // Capture full height
-          });
-          const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use JPEG for smaller file size
-
-          if (i > 0) {
-            pdf.addPage();
-          }
-          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-        } catch (error) {
-          console.error(`Erro ao gerar imagem para a divisão ${divisionId}:`, error);
-          showError(`Falha ao gerar PDF para a divisão ${divisionId}.`);
-          dismissToast(loadingToastId);
-          return;
-        }
-      } else {
-        showError(`Referência de impressão não encontrada para a divisão ${divisionId}.`);
-        dismissToast(loadingToastId);
-        return;
-      }
+    try {
+      const divisionsToPrint = event.divisions.filter(d => selectedDivisions.includes(d.id));
+      generateBracketPdf(event, divisionsToPrint, athletesMap);
+      dismissToast(loadingToastId);
+      showSuccess('PDF dos brackets gerado com sucesso!');
+    } catch (error: any) {
+      dismissToast(loadingToastId);
+      showError(`Falha ao gerar PDF: ${error.message}`);
+      console.error("PDF Generation Error:", error);
     }
-
-    pdf.save(`brackets_evento_${eventId}.pdf`);
-    dismissToast(loadingToastId);
-    showSuccess('PDF dos brackets gerado com sucesso!');
   };
 
+  if (loading) {
+    return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
+  }
+
   if (!event) {
-    return (
-      <Layout>
-        <div className="text-center text-xl mt-8">Carregando evento...</div>
-      </Layout>
-    );
+    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado.</div></Layout>;
   }
 
   return (
@@ -164,7 +133,7 @@ const PrintBrackets: React.FC = () => {
                 <Checkbox
                   id="selectAllDivisions"
                   checked={selectedDivisions.length === availableDivisions.length && availableDivisions.length > 0}
-                  onCheckedChange={(checked: boolean) => handleSelectAllDivisions(checked)}
+                  onCheckedChange={(checked: boolean) => handleSelectAllDivisions(checked as boolean)}
                 />
                 <Label htmlFor="selectAllDivisions">Selecionar Todas as Divisões</Label>
               </div>
@@ -180,33 +149,13 @@ const PrintBrackets: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <Button onClick={generatePdf} className="w-full mt-6" disabled={selectedDivisions.length === 0}>
+              <Button onClick={handleGeneratePdf} className="w-full mt-6" disabled={selectedDivisions.length === 0}>
                 <Printer className="mr-2 h-4 w-4" /> Gerar PDF para Impressão
               </Button>
             </>
           )}
         </CardContent>
       </Card>
-
-      {/* Hidden container for rendering brackets for PDF generation */}
-      <div className="absolute left-[-9999px] top-[-9999px]">
-        {selectedDivisions.map(divisionId => {
-          const division = event?.divisions?.find(d => d.id === divisionId);
-          const bracket = event?.brackets?.[divisionId];
-          if (division && bracket) {
-            return (
-              <div key={divisionId} ref={el => (printableRefs.current[divisionId] = el)}>
-                <PrintableBracket
-                  bracket={bracket}
-                  allAthletes={event.athletes || []}
-                  division={division}
-                />
-              </div>
-            );
-          }
-          return null;
-        })}
-      </div>
     </Layout>
   );
 };
