@@ -19,7 +19,7 @@ import CheckInTab from '@/components/CheckInTab';
 import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
-import ResultsTab from '@/components/ResultsTab'; // Import the new ResultsTab
+import ResultsTab from '@/components/ResultsTab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
@@ -47,9 +47,9 @@ const EventDetail: React.FC = () => {
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
-  const fetchEventData = useCallback(async () => {
+  const fetchEventData = useCallback(async (source?: string) => {
     if (!eventId) return;
-    setLoading(true);
+    if (source !== 'subscription') setLoading(true);
     try {
       const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
       if (eventError) throw eventError;
@@ -75,14 +75,25 @@ const EventDetail: React.FC = () => {
       showError(`Failed to load event data: ${error.message}`);
       setEvent(null);
     } finally {
-      setLoading(false);
+      if (source !== 'subscription') setLoading(false);
       setHasUnsavedChanges(false);
     }
   }, [eventId]);
 
   useEffect(() => {
     fetchEventData();
-  }, [fetchEventData]);
+
+    const channel = supabase
+      .channel(`event-${eventId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'athletes', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'divisions', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, fetchEventData]);
 
   const handleSaveChanges = async () => {
     if (!event || !eventId || !hasUnsavedChanges) return;
@@ -134,7 +145,7 @@ const EventDetail: React.FC = () => {
         })
         .eq('id', updatedAthlete.id);
       if (error) throw error;
-      await fetchEventData(); // Refetch all data to ensure consistency
+      // No need to call fetchEventData here, subscription will handle it.
       setEditingAthlete(null);
       dismissToast(toastId);
       showSuccess("Athlete updated successfully.");
@@ -150,7 +161,7 @@ const EventDetail: React.FC = () => {
       showError(error.message);
     } else {
       showSuccess('Athlete deleted.');
-      fetchEventData();
+      // No need to call fetchEventData here, subscription will handle it.
     }
   };
 
@@ -165,13 +176,13 @@ const EventDetail: React.FC = () => {
       })
       .eq('id', updatedAthlete.id);
     if (error) showError(error.message);
-    else fetchEventData();
+    // No need to call fetchEventData here, subscription will handle it.
   };
 
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
     const { error } = await supabase.from('athletes').update({ attendance_status: status }).eq('id', athleteId);
     if (error) showError(error.message);
-    else fetchEventData();
+    // No need to call fetchEventData here, subscription will handle it.
   };
 
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
@@ -184,15 +195,13 @@ const EventDetail: React.FC = () => {
     } else {
       showSuccess(`${selectedAthletesForApproval.length} athletes ${status}.`);
       setSelectedAthletesForApproval([]);
-      fetchEventData();
+      // No need to call fetchEventData here, subscription will handle it.
     }
   };
 
   const handleUpdateDivisions = async (updatedDivisions: Division[]) => {
     const toastId = showLoading('Updating divisions...');
     try {
-      // This is a simplified approach: delete all and insert all.
-      // A more robust solution would diff the arrays.
       const { error: deleteError } = await supabase.from('divisions').delete().eq('event_id', eventId);
       if (deleteError) throw deleteError;
       if (updatedDivisions.length > 0) {
@@ -201,7 +210,7 @@ const EventDetail: React.FC = () => {
       }
       dismissToast(toastId);
       showSuccess('Divisions updated successfully.');
-      fetchEventData();
+      // No need to call fetchEventData here, subscription will handle it.
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to update divisions: ${error.message}`);
@@ -214,7 +223,7 @@ const EventDetail: React.FC = () => {
       showError(`Failed to save brackets: ${error.message}`);
     } else {
       showSuccess('Brackets and fight order saved successfully.');
-      fetchEventData();
+      // No need to call fetchEventData here, subscription will handle it.
     }
   };
 
