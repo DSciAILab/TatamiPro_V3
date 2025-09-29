@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import PublicLayout from '@/components/PublicLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,54 +22,82 @@ const PublicEvent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('brackets');
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('');
 
-  useEffect(() => {
-    const fetchEventData = async () => {
-      if (!eventId) {
-        setError("Event ID is missing.");
-        setLoading(false);
-        return;
+  const fetchEventData = useCallback(async (isInitialLoad = false) => {
+    if (!eventId) {
+      setError("Event ID is missing.");
+      setLoading(false);
+      return;
+    }
+    if (isInitialLoad) setLoading(true);
+    try {
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .eq('is_active', true)
+        .single();
+
+      if (eventError || !eventData) {
+        throw new Error("Event not found or is not active.");
       }
-      setLoading(true);
-      try {
-        const { data: eventData, error: eventError } = await supabase
-          .from('events')
-          .select('*')
-          .eq('id', eventId)
-          .eq('is_active', true)
-          .single();
 
-        if (eventError || !eventData) {
-          throw new Error("Event not found or is not active.");
-        }
+      const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+      if (athletesError) throw athletesError;
+      
+      const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+      if (divisionsError) throw divisionsError;
 
-        const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
-        if (athletesError) throw athletesError;
-        
-        const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
-        if (divisionsError) throw divisionsError;
-
-        const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
-        
-        const fullEventData: Event = {
-          ...eventData,
-          athletes: processedAthletes,
-          divisions: divisionsData || [],
-          check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
-          check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
-        };
-        setEvent(fullEventData);
+      const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
+      
+      const fullEventData: Event = {
+        ...eventData,
+        athletes: processedAthletes,
+        divisions: divisionsData || [],
+        check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
+        check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
+      };
+      setEvent(fullEventData);
+      if (isInitialLoad) {
         const firstDivisionWithBracket = fullEventData.divisions?.find(div => fullEventData.brackets?.[div.id]);
         if (firstDivisionWithBracket) {
           setSelectedDivisionId(firstDivisionWithBracket.id);
         }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchEventData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      if (isInitialLoad) setLoading(false);
+    }
   }, [eventId]);
+
+  useEffect(() => {
+    fetchEventData(true);
+  }, [fetchEventData]);
+
+  useEffect(() => {
+    if (!eventId) return;
+
+    const channel = supabase
+      .channel(`public-event-${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${eventId}`,
+        },
+        (payload) => {
+          console.log('Realtime event update received:', payload);
+          fetchEventData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, fetchEventData]);
 
   if (loading) {
     return <PublicLayout><div className="text-center text-xl mt-8">Carregando evento...</div></PublicLayout>;
