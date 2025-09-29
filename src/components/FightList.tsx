@@ -44,7 +44,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   }, [brackets]);
 
   const athletesMap = useMemo(() => {
-    return new Map(athletes.map(athlete => [athlete.id, athlete]));
+    return new Map((athletes || []).map(athlete => [athlete.id, athlete]));
   }, [athletes]);
 
   const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
@@ -121,14 +121,14 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
   const currentBracket = brackets?.[selectedDivisionId];
   const totalRoundsInBracket = currentBracket?.rounds.length || 0;
-  const division = event.divisions.find(d => d.id === selectedDivisionId);
+  const division = event.divisions?.find(d => d.id === selectedDivisionId);
 
   if (fightViewMode === 'bracket') {
     if (currentBracket && division) {
       return (
         <BracketView
           bracket={currentBracket}
-          allAthletes={athletes}
+          allAthletes={athletes || []}
           division={division}
           eventId={event.id}
         />

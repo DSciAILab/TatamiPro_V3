@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Athlete, Event } from '@/types/index';
+import { Athlete, Event, Division } from '@/types/index';
 import { UserRound, CheckCircle, XCircle, Car, Search, Clock, Edit } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { findAthleteDivision, getAthleteDisplayString } from '@/utils/athlete-utils';
@@ -13,7 +13,7 @@ import { useAuth } from '@/context/auth-context'; // Import useAuth
 
 interface AttendanceManagementProps {
   eventId: string;
-  eventDivisions: Event['divisions'];
+  eventDivisions: Division[];
   onUpdateAthleteAttendance: (athleteId: string, status: Athlete['attendance_status']) => void;
   isAttendanceMandatory: boolean;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
@@ -38,9 +38,10 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
     if (existingEventData) {
       try {
         const parsedEvent: Event = JSON.parse(existingEventData);
+        const eventAthletes = parsedEvent.athletes || [];
         const filteredAthletes = userRole === 'admin'
-          ? parsedEvent.athletes.filter(a => a.registration_status === 'approved')
-          : parsedEvent.athletes.filter(
+          ? eventAthletes.filter(a => a.registration_status === 'approved')
+          : eventAthletes.filter(
               a => a.club === userClub && a.registration_status === 'approved'
             );
         setAthletes(filteredAthletes);
@@ -193,7 +194,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ eventId, ev
             ) : (
               <ul className="space-y-4">
                 {filteredAthletes.map((athlete) => {
-                  const division = findAthleteDivision(athlete, eventDivisions);
+                  const division = findAthleteDivision(athlete, eventDivisions || []);
                   const hasAttendanceStatus = athlete.attendance_status !== 'pending';
                   const isCurrentlyEditing = editingAthleteId === athlete.id;
 

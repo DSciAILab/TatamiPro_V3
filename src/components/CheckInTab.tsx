@@ -259,7 +259,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                         divisionMaxWeight={athlete._division?.max_weight}
                         isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
                         isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
-                        eventDivisions={event.divisions}
+                        eventDivisions={event.divisions || []}
                         isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
                       />
                     </div>

@@ -39,7 +39,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
     const groupsMap = new Map<string, CategoryGroup>();
 
     // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
-    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
+    (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
       // Usar a _division já calculada e anexada em EventDetail
       const division = athlete._division; 
       if (!division) return; // Se não houver divisão (o que não deveria acontecer para atletas aprovados/check-in), pular

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { Event, DivisionGender, AgeCategory, DivisionBelt } from '@/types/index';
+import { Event, DivisionGender, AgeCategory, DivisionBelt, Athlete } from '@/types/index';
 import { cn } from '@/lib/utils';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -28,7 +28,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
   const categoriesOnSelectedMat = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
 
-    const processAthlete = (athlete: Event['athletes'][0]) => {
+    const processAthlete = (athlete: Athlete) => {
       const division = athlete._division;
       if (!division) return;
 
@@ -64,7 +64,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       }
     };
 
-    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(processAthlete);
+    (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(processAthlete);
 
     const finalGroups: CategoryGroup[] = [];
     groupsMap.forEach(group => {

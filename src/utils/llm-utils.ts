@@ -34,7 +34,7 @@ export const createEventSummaryForLLM = (eventData: Event): string => {
   }
 
   if (eventData.brackets && Object.keys(eventData.brackets).length > 0) {
-    const bracketedDivisions = Object.keys(eventData.brackets).map(divId => eventData.divisions.find(d => d.id === divId)?.name || divId);
+    const bracketedDivisions = Object.keys(eventData.brackets).map(divId => (eventData.divisions || []).find(d => d.id === divId)?.name || divId);
     summary.push(`- Brackets: Gerados para ${bracketedDivisions.length} divisões: ${bracketedDivisions.join(', ')}.`);
   } else {
     summary.push("- Brackets: Nenhum bracket gerado ainda.");

@@ -43,7 +43,7 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
 
     // Reconstroi os grupos de categoria para ordenar corretamente
     const groupsMap = new Map<string, CategoryGroup>();
-    event.athletes.filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
+    (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
       const division = athlete._division;
       if (!division) return;
 

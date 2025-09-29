@@ -56,7 +56,7 @@ const FightDetail: React.FC = () => {
         try {
           const parsedEvent: Event = JSON.parse(existingEventData);
           // Re-parse dates for Athlete objects
-          const processedAthletes = parsedEvent.athletes.map(athlete => ({
+          const processedAthletes = (parsedEvent.athletes || []).map(athlete => ({
             ...athlete,
             date_of_birth: new Date(athlete.date_of_birth),
             consent_date: new Date(athlete.consent_date),
@@ -96,7 +96,7 @@ const FightDetail: React.FC = () => {
   }, [eventId, divisionId, matchId, navigate]);
 
   const athletesMap = useMemo(() => {
-    return new Map(event?.athletes.map(athlete => [athlete.id, athlete]) || []);
+    return new Map(event?.athletes?.map(athlete => [athlete.id, athlete]) || []);
   }, [event?.athletes]);
 
   const getFighterDisplay = (fighter: Athlete | 'BYE' | undefined) => {

@@ -32,7 +32,7 @@ const PrintBrackets: React.FC = () => {
           console.log("PrintBrackets: Parsed event data:", parsedEvent);
 
           // Re-parse dates and assign _division for Athlete objects
-          const processedAthletes = parsedEvent.athletes.map(athlete =>
+          const processedAthletes = (parsedEvent.athletes || []).map(athlete =>
             processAthleteData(athlete, parsedEvent.divisions || [])
           );
           console.log("PrintBrackets: Processed athletes:", processedAthletes);
@@ -61,7 +61,7 @@ const PrintBrackets: React.FC = () => {
       return [];
     }
     // Filter divisions that have generated brackets
-    const divisionsWithBrackets = event.divisions.filter(div => event.brackets?.[div.id]);
+    const divisionsWithBrackets = (event.divisions || []).filter(div => event.brackets?.[div.id]);
     console.log("PrintBrackets: Available divisions with brackets:", divisionsWithBrackets);
     return divisionsWithBrackets;
   }, [event]);
@@ -191,14 +191,14 @@ const PrintBrackets: React.FC = () => {
       {/* Hidden container for rendering brackets for PDF generation */}
       <div className="absolute left-[-9999px] top-[-9999px]">
         {selectedDivisions.map(divisionId => {
-          const division = event?.divisions.find(d => d.id === divisionId);
+          const division = event?.divisions?.find(d => d.id === divisionId);
           const bracket = event?.brackets?.[divisionId];
           if (division && bracket) {
             return (
               <div key={divisionId} ref={el => (printableRefs.current[divisionId] = el)}>
                 <PrintableBracket
                   bracket={bracket}
-                  allAthletes={event.athletes}
+                  allAthletes={event.athletes || []}
                   division={division}
                 />
               </div>

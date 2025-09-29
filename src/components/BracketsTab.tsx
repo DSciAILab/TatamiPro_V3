@@ -58,8 +58,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
   const availableDivisionsForBracketGeneration = useMemo(() => {
     if (!event) return [];
-    return event.divisions.filter(div => {
-      const athletesInDivision = event.athletes.filter(a =>
+    return (event.divisions || []).filter(div => {
+      const athletesInDivision = (event.athletes || []).filter(a =>
         a.registration_status === 'approved' &&
         a.check_in_status === 'checked_in' &&
         a._division?.id === div.id
@@ -85,7 +85,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
     try {
       divisionsToGenerate.forEach(div => {
-        const bracket = generateBracketForDivision(div, event.athletes, { thirdPlace: includeThirdPlaceFromEvent });
+        const bracket = generateBracketForDivision(div, event.athletes || [], { thirdPlace: includeThirdPlaceFromEvent });
         newBrackets[div.id] = bracket;
       });
 
@@ -278,13 +278,13 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               ) : (
                 <div className="space-y-8">
                   {Object.values(generatedBrackets).map(bracket => {
-                    const division = event?.divisions.find(d => d.id === bracket.division_id);
+                    const division = event?.divisions?.find(d => d.id === bracket.division_id);
                     if (!division) return null;
                     return (
                       <BracketView
                         key={bracket.id}
                         bracket={bracket}
-                        allAthletes={event.athletes}
+                        allAthletes={event.athletes || []}
                         division={division}
                         eventId={event.id}
                       />

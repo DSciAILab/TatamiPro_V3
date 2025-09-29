@@ -122,7 +122,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
           <Tabs value={configSubTab} onValueChange={setConfigSubTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="event-settings">Configurações Gerais</TabsTrigger>
-              <TabsTrigger value="divisions">Divisões ({event.divisions.length})</TabsTrigger>
+              <TabsTrigger value="divisions">Divisões ({event.divisions?.length || 0})</TabsTrigger>
               <TabsTrigger value="check-in-settings">Check-in</TabsTrigger>
               <TabsTrigger value="results-settings">Resultados</TabsTrigger>
             </TabsList>
@@ -186,7 +186,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
               <Link to={`/events/${event.id}/import-divisions`}>
                 <Button className="w-full mb-4">Importar Divisões em Lote</Button>
               </Link>
-              <DivisionTable divisions={event.divisions} onUpdateDivisions={handleUpdateDivisions} />
+              <DivisionTable divisions={event.divisions || []} onUpdateDivisions={handleUpdateDivisions} />
             </TabsContent>
 
             <TabsContent value="check-in-settings" className="mt-6">

@@ -56,7 +56,7 @@ const EventDetail: React.FC = () => {
     if (existingEventData) {
       try {
         const parsedEvent = JSON.parse(existingEventData);
-        const processedAthletes = parsedEvent.athletes.map((a: any) => processAthleteData(a, parsedEvent.divisions || []));
+        const processedAthletes = (parsedEvent.athletes || []).map((a: any) => processAthleteData(a, parsedEvent.divisions || []));
         eventData = { 
           ...parsedEvent, 
           athletes: processedAthletes,
@@ -82,7 +82,7 @@ const EventDetail: React.FC = () => {
         ...event,
         check_in_start_time: event.check_in_start_time instanceof Date ? event.check_in_start_time.toISOString() : event.check_in_start_time,
         check_in_end_time: event.check_in_end_time instanceof Date ? event.check_in_end_time.toISOString() : event.check_in_end_time,
-        athletes: event.athletes.map(a => ({
+        athletes: (event.athletes || []).map(a => ({
           ...a,
           date_of_birth: a.date_of_birth instanceof Date ? a.date_of_birth.toISOString() : a.date_of_birth,
           consent_date: a.consent_date instanceof Date ? a.consent_date.toISOString() : a.consent_date,
@@ -142,21 +142,21 @@ const EventDetail: React.FC = () => {
   };
 
   const handleAthleteUpdate = (updatedAthlete: Athlete) => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
+    handleUpdateEventProperty('athletes', (event!.athletes || []).map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
     setEditingAthlete(null);
   };
 
   const handleDeleteAthlete = (athleteId: string) => {
-    handleUpdateEventProperty('athletes', event!.athletes.filter(a => a.id !== athleteId));
+    handleUpdateEventProperty('athletes', (event!.athletes || []).filter(a => a.id !== athleteId));
     showSuccess('Inscrição removida.');
   };
 
   const handleCheckInAthlete = (updatedAthlete: Athlete) => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
+    handleUpdateEventProperty('athletes', (event!.athletes || []).map(a => a.id === updatedAthlete.id ? updatedAthlete : a));
   };
 
   const handleUpdateAthleteAttendance = (athleteId: string, status: Athlete['attendance_status']) => {
-    handleUpdateEventProperty('athletes', event!.athletes.map(a => a.id === athleteId ? { ...a, attendance_status: status } : a));
+    handleUpdateEventProperty('athletes', (event!.athletes || []).map(a => a.id === athleteId ? { ...a, attendance_status: status } : a));
   };
 
   const handleToggleAthleteSelection = (athleteId: string) => {
@@ -165,7 +165,7 @@ const EventDetail: React.FC = () => {
 
   const handleSelectAllAthletes = (checked: boolean) => {
     if (event) {
-      const athletesUnderApproval = event.athletes.filter(a => a.registration_status === 'under_approval');
+      const athletesUnderApproval = (event.athletes || []).filter(a => a.registration_status === 'under_approval');
       setSelectedAthletesForApproval(checked ? athletesUnderApproval.map(a => a.id) : []);
     }
   };
@@ -173,7 +173,7 @@ const EventDetail: React.FC = () => {
   const handleApproveSelected = () => {
     handleUpdateEventProperty(
       'athletes',
-      event!.athletes.map(a =>
+      (event!.athletes || []).map(a =>
         selectedAthletesForApproval.includes(a.id)
           ? { ...a, registration_status: 'approved' as Athlete['registration_status'] }
           : a
@@ -186,7 +186,7 @@ const EventDetail: React.FC = () => {
   const handleRejectSelected = () => {
     handleUpdateEventProperty(
       'athletes',
-      event!.athletes.map(a =>
+      (event!.athletes || []).map(a =>
         selectedAthletesForApproval.includes(a.id)
           ? { ...a, registration_status: 'rejected' as Athlete['registration_status'] }
           : a
@@ -199,7 +199,7 @@ const EventDetail: React.FC = () => {
   const handleUpdateDivisions = (updatedDivisions: Division[]) => {
     setEvent(prev => {
       if (!prev) return null;
-      const updatedAthletes = prev.athletes.map(a => processAthleteData(a, updatedDivisions));
+      const updatedAthletes = (prev.athletes || []).map(a => processAthleteData(a, updatedDivisions));
       const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...prev, divisions: updatedDivisions, athletes: updatedAthletes });
       setHasUnsavedChanges(true);
       return { ...prev, divisions: updatedDivisions, athletes: updatedAthletes, brackets: updatedBrackets, mat_fight_order: matFightOrder };
@@ -231,8 +231,8 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const athletesUnderApproval = useMemo(() => event?.athletes.filter(a => a.registration_status === 'under_approval') || [], [event]);
-  const approvedAthletes = useMemo(() => event?.athletes.filter(a => a.registration_status === 'approved') || [], [event]);
+  const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
+  const approvedAthletes = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'approved'), [event]);
   const processedApprovedAthletes = useMemo(() => approvedAthletes.map(a => processAthleteData(a, event?.divisions || [])), [approvedAthletes, event?.divisions]);
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event?.athletes || [];
@@ -374,7 +374,7 @@ const EventDetail: React.FC = () => {
         <TabsContent value="attendance" className="mt-6">
           <AttendanceManagement
             eventId={event.id}
-            eventDivisions={event.divisions}
+            eventDivisions={event.divisions || []}
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
             isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
             userRole={userRole}

@@ -14,7 +14,7 @@ export const exportEventDataToCsv = (event: Event, dataType: 'athletes' | 'divis
   // A variável 'filename' não é usada dentro desta função, pois o nome do arquivo é gerado no componente que chama.
 
   if (dataType === 'athletes') {
-    dataToExport = event.athletes.map(athlete => ({
+    dataToExport = (event.athletes || []).map(athlete => ({
       id: athlete.id,
       event_id: athlete.event_id,
       registration_qr_code_id: athlete.registration_qr_code_id,
@@ -50,7 +50,7 @@ export const exportEventDataToCsv = (event: Event, dataType: 'athletes' | 'divis
       seed: athlete.seed,
     }));
   } else if (dataType === 'divisions') {
-    dataToExport = event.divisions.map(division => ({
+    dataToExport = (event.divisions || []).map(division => ({
       id: division.id,
       name: division.name,
       min_age: division.min_age,
