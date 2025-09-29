@@ -19,6 +19,7 @@ import CheckInTab from '@/components/CheckInTab';
 import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
+import ResultsTab from '@/components/ResultsTab'; // Import the new ResultsTab
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
@@ -409,15 +410,7 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="resultados" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resultados</CardTitle>
-              <CardDescription>Marque vencedores e exporte resultados.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Conteúdo da aba Resultados para o evento {event.name}.</p>
-            </CardContent>
-          </Card>
+          <ResultsTab event={event} />
         </TabsContent>
 
         <TabsContent value="llm" className="mt-6">
