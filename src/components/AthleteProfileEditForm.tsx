@@ -17,12 +17,13 @@ import { cn } from '@/lib/utils';
 import { Athlete, Belt, Gender } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
+import { uploadFile } from '@/integrations/supabase/storage';
 
 interface AthleteProfileEditFormProps {
   athlete: Athlete;
   onSave: (updatedAthlete: Athlete) => Promise<void>;
   onCancel: () => void;
-  mandatoryFieldsConfig?: Record<string, boolean>; // Nova prop para configuração de campos obrigatórios
+  mandatoryFieldsConfig?: Record<string, boolean>;
 }
 
 // Define os esquemas base para campos comuns
@@ -107,6 +108,17 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
     setIsSaving(true);
     try {
+      const storagePath = `${athlete.event_id}/${athlete.id}`;
+
+      // Upload files in parallel
+      const uploadPromises = [
+        values.photo?.[0] ? uploadFile(values.photo[0], 'athlete-photos', storagePath) : Promise.resolve(athlete.photo_url),
+        values.emiratesIdFront?.[0] ? uploadFile(values.emiratesIdFront[0], 'athlete-documents', storagePath) : Promise.resolve(athlete.emirates_id_front_url),
+        values.emiratesIdBack?.[0] ? uploadFile(values.emiratesIdBack[0], 'athlete-documents', storagePath) : Promise.resolve(athlete.emirates_id_back_url),
+      ];
+
+      const [photo_url, emirates_id_front_url, emirates_id_back_url] = await Promise.all(uploadPromises);
+
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
       const age_division = getAgeDivision(age);
       const weight_division = getWeightDivision(values.weight!);
@@ -130,21 +142,6 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       if (athlete.registration_status === 'approved' && hasChangesRequiringReapproval) {
         newRegistrationStatus = 'under_approval';
         showSuccess('Perfil atualizado. A aprovação anterior foi cancelada e requer nova aprovação.');
-      }
-
-      let photo_url = athlete.photo_url;
-      if (values.photo && values.photo.length > 0) {
-        photo_url = `mock-photo-url/${values.photo[0].name}`;
-      }
-
-      let emirates_id_front_url = athlete.emirates_id_front_url;
-      if (values.emiratesIdFront && values.emiratesIdFront.length > 0) {
-        emirates_id_front_url = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
-      }
-
-      let emirates_id_back_url = athlete.emirates_id_back_url;
-      if (values.emiratesIdBack && values.emiratesIdBack.length > 0) {
-        emirates_id_back_url = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
       }
 
       const updatedAthlete: Athlete = {

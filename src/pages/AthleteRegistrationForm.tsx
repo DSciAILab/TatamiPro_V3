@@ -21,6 +21,7 @@ import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadFile } from '@/integrations/supabase/storage';
 
 // Define os esquemas base para campos comuns
 const firstNameSchema = z.string().min(2, { message: 'Nome é obrigatório.' });
@@ -117,32 +118,25 @@ const AthleteRegistrationForm: React.FC = () => {
       showError('ID do evento não encontrado.');
       return;
     }
-    const loadingToast = showLoading('Registrando atleta...');
+    const loadingToast = showLoading('Registrando atleta e fazendo upload de arquivos...');
 
     try {
+      const athleteId = uuidv4();
+      const storagePath = `${eventId}/${athleteId}`;
+
+      // Upload files in parallel
+      const uploadPromises = [
+        values.photo?.[0] ? uploadFile(values.photo[0], 'athlete-photos', storagePath) : Promise.resolve(undefined),
+        values.emiratesIdFront?.[0] ? uploadFile(values.emiratesIdFront[0], 'athlete-documents', storagePath) : Promise.resolve(undefined),
+        values.emiratesIdBack?.[0] ? uploadFile(values.emiratesIdBack[0], 'athlete-documents', storagePath) : Promise.resolve(undefined),
+        values.paymentProof?.[0] ? uploadFile(values.paymentProof[0], 'athlete-documents', storagePath) : Promise.resolve(undefined),
+      ];
+
+      const [photo_url, emirates_id_front_url, emirates_id_back_url, payment_proof_url] = await Promise.all(uploadPromises);
+
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
       const age_division = getAgeDivision(age);
       const weight_division = getWeightDivision(values.weight!);
-
-      // TODO: Implementar upload de arquivos para Supabase Storage
-      let payment_proof_url: string | undefined;
-      if (values.paymentProof && values.paymentProof.length > 0) {
-        payment_proof_url = `mock-payment-proof-url/${values.paymentProof[0].name}`;
-      }
-      let photo_url: string | undefined;
-      if (values.photo && values.photo.length > 0) {
-        photo_url = `mock-photo-url/${values.photo[0].name}`;
-      }
-      let emirates_id_front_url: string | undefined;
-      if (values.emiratesIdFront && values.emiratesIdFront.length > 0) {
-        emirates_id_front_url = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
-      }
-      let emirates_id_back_url: string | undefined;
-      if (values.emiratesIdBack && values.emiratesIdBack.length > 0) {
-        emirates_id_back_url = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
-      }
-
-      const athleteId = uuidv4();
       const registration_qr_code_id = `EV_${eventId}_ATH_${athleteId}`;
 
       const newAthleteForDb = {
