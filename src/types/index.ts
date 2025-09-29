@@ -26,9 +26,9 @@ export interface Division {
 export interface Athlete {
   id: string;
   event_id: string;
-  user_id?: string;
-  registration_qr_code_id?: string;
-  photo_url?: string;
+  user_id?: string | null;
+  registration_qr_code_id?: string | null;
+  photo_url?: string | null;
   first_name: string;
   last_name: string;
   date_of_birth: Date;
@@ -42,24 +42,24 @@ export interface Athlete {
   weight_division: string;
   email: string;
   phone: string;
-  emirates_id?: string;
-  school_id?: string;
-  emirates_id_front_url?: string;
-  emirates_id_back_url?: string;
-  signature_url?: string;
+  emirates_id?: string | null;
+  school_id?: string | null;
+  emirates_id_front_url?: string | null;
+  emirates_id_back_url?: string | null;
+  signature_url?: string | null;
   consent_accepted: boolean;
   consent_date: Date;
   consent_version: string;
-  payment_proof_url?: string;
+  payment_proof_url?: string | null;
   registration_status: 'under_approval' | 'approved' | 'rejected';
   check_in_status: 'pending' | 'checked_in' | 'overweight';
-  registered_weight?: number;
+  registered_weight?: number | null;
   weight_attempts: WeightAttempt[];
   attendance_status: 'pending' | 'present' | 'absent' | 'private_transportation';
-  moved_to_division_id?: string;
-  move_reason?: string;
+  moved_to_division_id?: string | null;
+  move_reason?: string | null;
   _division?: Division;
-  seed?: number;
+  seed?: number | null;
 }
 
 export type FightResultType = 'submission' | 'points' | 'decision' | 'disqualification' | 'walkover';

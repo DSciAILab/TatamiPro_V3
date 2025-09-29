@@ -93,8 +93,8 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       nationality: athlete.nationality,
       email: athlete.email,
       phone: athlete.phone,
-      emirates_id: athlete.emirates_id,
-      school_id: athlete.school_id,
+      emirates_id: athlete.emirates_id ?? '',
+      school_id: athlete.school_id ?? '',
     },
   });
 
