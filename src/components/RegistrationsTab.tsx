@@ -24,7 +24,7 @@ interface RegistrationsTabProps {
   setInscricoesSubTab: (value: string) => void;
   editingAthlete: Athlete | null;
   setEditingAthlete: (athlete: Athlete | null) => void;
-  handleAthleteUpdate: (athlete: Athlete) => void;
+  handleAthleteUpdate: (athlete: Athlete) => Promise<void>;
   mandatoryFieldsConfig: Record<string, boolean>;
   filteredAthletesForDisplay: Athlete[];
   registrationStatusFilter: 'all' | 'approved' | 'under_approval' | 'rejected';

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,7 +20,7 @@ import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 interface AthleteProfileEditFormProps {
   athlete: Athlete;
-  onSave: (updatedAthlete: Athlete) => void;
+  onSave: (updatedAthlete: Athlete) => Promise<void>;
   onCancel: () => void;
   mandatoryFieldsConfig?: Record<string, boolean>; // Nova prop para configuração de campos obrigatórios
 }
@@ -43,6 +43,7 @@ const schoolIdOptionalSchema = z.string().optional();
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
 const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig }) => {
+  const [isSaving, setIsSaving] = useState(false);
   // Função para criar o esquema dinamicamente
   const createDynamicSchema = (config?: Record<string, boolean>) => {
     const schemaDefinition = {
@@ -83,7 +84,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
     defaultValues: {
       first_name: athlete.first_name,
       last_name: athlete.last_name,
-      date_of_birth: athlete.date_of_birth,
+      date_of_birth: new Date(athlete.date_of_birth),
       club: athlete.club,
       gender: athlete.gender,
       belt: athlete.belt,
@@ -104,6 +105,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const emiratesIdBack = watch('emiratesIdBack');
 
   const onSubmit = async (values: z.infer<typeof currentSchema>) => {
+    setIsSaving(true);
     try {
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
       const age_division = getAgeDivision(age);
@@ -111,11 +113,10 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       let newRegistrationStatus = athlete.registration_status;
 
-      // Check if any significant field has changed that would require re-approval
       const hasChangesRequiringReapproval =
         values.first_name !== athlete.first_name ||
         values.last_name !== athlete.last_name ||
-        values.date_of_birth!.getTime() !== athlete.date_of_birth.getTime() ||
+        values.date_of_birth!.getTime() !== new Date(athlete.date_of_birth).getTime() ||
         values.club !== athlete.club ||
         values.gender !== athlete.gender ||
         values.belt !== athlete.belt ||
@@ -129,31 +130,27 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       if (athlete.registration_status === 'approved' && hasChangesRequiringReapproval) {
         newRegistrationStatus = 'under_approval';
         showSuccess('Perfil atualizado. A aprovação anterior foi cancelada e requer nova aprovação.');
-      } else {
-        showSuccess('Perfil atualizado com sucesso!');
       }
 
       let photo_url = athlete.photo_url;
       if (values.photo && values.photo.length > 0) {
         photo_url = `mock-photo-url/${values.photo[0].name}`;
-        showSuccess(`Nova foto de perfil ${values.photo[0].name} anexada.`);
       }
 
       let emirates_id_front_url = athlete.emirates_id_front_url;
       if (values.emiratesIdFront && values.emiratesIdFront.length > 0) {
         emirates_id_front_url = `mock-eid-front-url/${values.emiratesIdFront[0].name}`;
-        showSuccess(`Nova foto da frente do EID ${values.emiratesIdFront[0].name} anexada.`);
       }
 
       let emirates_id_back_url = athlete.emirates_id_back_url;
       if (values.emiratesIdBack && values.emiratesIdBack.length > 0) {
         emirates_id_back_url = `mock-eid-back-url/${values.emiratesIdBack[0].name}`;
-        showSuccess(`Nova foto do verso do EID ${values.emiratesIdBack[0].name} anexada.`);
       }
 
       const updatedAthlete: Athlete = {
         ...athlete,
         ...values,
+        date_of_birth: values.date_of_birth!,
         age,
         age_division,
         weight_division,
@@ -163,17 +160,17 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         emirates_id_back_url,
       };
 
-      onSave(updatedAthlete);
+      await onSave(updatedAthlete);
     } catch (error: any) {
       showError('Erro ao atualizar atleta: ' + error.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const isFieldMandatory = (fieldName: string) => {
-    // Campos sempre obrigatórios
     const alwaysMandatory = ['first_name', 'last_name', 'date_of_birth', 'club', 'gender', 'belt', 'weight', 'nationality', 'email', 'phone'];
     if (alwaysMandatory.includes(fieldName)) return true;
-    // Campos configuráveis
     return mandatoryFieldsConfig?.[fieldName] === true;
   };
 
@@ -338,7 +335,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
 
       <div className="flex justify-end space-x-2 mt-6">
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit">Salvar Alterações</Button>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+        </Button>
       </div>
     </form>
   );
