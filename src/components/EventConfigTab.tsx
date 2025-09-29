@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CalendarIcon, Download, QrCodeIcon, Barcode } from 'lucide-react';
+import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
@@ -20,6 +20,7 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { Textarea } from '@/components/ui/textarea';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface EventConfigTabProps {
   event: Event;
@@ -109,6 +110,15 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
 
+  const handleShare = () => {
+    const publicUrl = `${window.location.origin}/public/events/${event.id}`;
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      showSuccess("Link público copiado para a área de transferência!");
+    }, (err) => {
+      showError('Falha ao copiar o link: ' + err);
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -162,7 +172,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       checked={is_active}
                       onCheckedChange={set_is_active}
                     />
-                    <Label htmlFor="event-active">Evento Ativo</Label>
+                    <Label htmlFor="event-active">Evento Ativo (Visível Publicamente)</Label>
                   </div>
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
@@ -172,10 +182,14 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     />
                     <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 flex space-x-2">
                     <Button onClick={handleExportJson} variant="outline">
                       <Download className="mr-2 h-4 w-4" />
                       Exportar Dados (JSON)
+                    </Button>
+                    <Button onClick={handleShare} variant="secondary">
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Compartilhar Link Público
                     </Button>
                   </div>
                 </div>

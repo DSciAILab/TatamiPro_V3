@@ -15,14 +15,12 @@ import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
 import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
 import DivisionImport from "./pages/DivisionImport";
-// import GenerateBrackets from "./pages/GenerateBrackets"; // REMOVIDO
-// import ManageFights from "./pages/ManageFights"; // REMOVIDO
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
 import CreateEvent from "./pages/CreateEvent";
 import AccountSecurity from "./pages/AccountSecurity";
-// import MatDistributionPage from "./pages/MatDistributionPage"; // REMOVIDO
 import NotFound from "./pages/NotFound";
+import PublicEvent from "./pages/PublicEvent";
 
 const queryClient = new QueryClient();
 
@@ -52,13 +50,10 @@ const App = () => (
                   <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
                   <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
                   <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-                  {/* Rotas abaixo foram integradas no EventDetail/BracketsTab */}
-                  {/* <Route path="/events/:id/generate-brackets" element={<GenerateBrackets />} /> */}
-                  {/* <Route path="/events/:id/manage-fights" element={<ManageFights />} /> */}
                   <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
                   <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
-                  {/* <Route path="/events/:id/distribute-mats" element={<MatDistributionPage />} /> */}
                   <Route path="/account-security" element={<AccountSecurity />} />
+                  <Route path="/public/events/:id" element={<PublicEvent />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
