@@ -31,6 +31,7 @@ interface BracketsTabProps {
   event: Event;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
   handleUpdateMatAssignments: (assignments: Record<string, string[]>) => void;
+  onUpdateBrackets: (brackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => void;
   bracketsSubTab: string;
   setBracketsSubTab: (value: string) => void;
 }
@@ -39,6 +40,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   event,
   userRole,
   handleUpdateMatAssignments,
+  onUpdateBrackets,
   bracketsSubTab,
   setBracketsSubTab,
 }) => {
@@ -96,9 +98,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         brackets: mergedBrackets,
       });
 
-      setGeneratedBrackets(finalBrackets);
-      const updatedEvent = { ...event, brackets: finalBrackets, mat_fight_order: newMatFightOrder };
-      localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
+      onUpdateBrackets(finalBrackets, newMatFightOrder);
       showSuccess(`${divisionsToGenerate.length} bracket(s) gerado(s) com sucesso!`);
     } catch (error: any) {
       console.error("Error generating brackets:", error);
@@ -191,9 +191,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       ...event,
       brackets: updatedBrackets,
     });
-    const updatedEvent = { ...event, brackets: finalBrackets, mat_fight_order: newMatFightOrder };
-    localStorage.setItem(`event_${event.id}`, JSON.stringify(updatedEvent));
-    setGeneratedBrackets(finalBrackets);
+    onUpdateBrackets(finalBrackets, newMatFightOrder);
   };
 
   const toggleFightView = () => {

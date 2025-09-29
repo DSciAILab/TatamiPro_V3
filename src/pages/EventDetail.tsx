@@ -402,6 +402,7 @@ const EventDetail: React.FC = () => {
               handleUpdateEventProperty('mat_assignments', assignments);
               handleUpdateBracketsAndFightOrder(updatedBrackets, matFightOrder);
             }}
+            onUpdateBrackets={handleUpdateBracketsAndFightOrder}
             bracketsSubTab={bracketsSubTab}
             setBracketsSubTab={setBracketsSubTab}
           />
