@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
@@ -79,8 +79,9 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   };
 
   const currentSchema = useMemo(() => createDynamicSchema(mandatoryFieldsConfig), [mandatoryFieldsConfig]);
+  type FormValues = z.infer<typeof currentSchema>;
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof currentSchema>>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
       first_name: athlete.first_name,
@@ -105,7 +106,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   const emiratesIdFront = watch('emiratesIdFront');
   const emiratesIdBack = watch('emiratesIdBack');
 
-  const onSubmit = async (values: z.infer<typeof currentSchema>) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values) => {
     setIsSaving(true);
     try {
       const storagePath = `${athlete.event_id}/${athlete.id}`;
