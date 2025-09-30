@@ -1,131 +1,68 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Auth as SupabaseAuth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import Layout from '@/components/Layout';
-import { showSuccess, showError } from '@/utils/toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/auth-context';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const Auth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState<'admin' | 'coach' | 'staff' | 'athlete'>('athlete');
-  const [loading, setLoading] = useState(false);
+  const { session } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess('Login successful!');
+  useEffect(() => {
+    if (session) {
       navigate('/events');
     }
-    setLoading(false);
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          role: role,
-        },
-      },
-    });
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess('Registration successful! Please check your email to verify your account.');
-      setIsLogin(true);
-    }
-    setLoading(false);
-  };
+  }, [session, navigate]);
 
   return (
     <Layout>
       <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
-        <Card className="w-[400px]">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">{isLogin ? 'Entrar' : 'Registrar'}</CardTitle>
-            <CardDescription>
-              {isLogin ? 'Acesse sua conta TatamiPro' : 'Crie sua conta TatamiPro'}
-            </CardDescription>
+            <CardTitle className="text-3xl">Bem-vindo ao TatamiPro</CardTitle>
+            <CardDescription>Acesse sua conta ou crie uma nova para continuar</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={isLogin ? handleLogin : handleRegister}>
-              <div className="grid w-full items-center gap-4">
-                {!isLogin && (
-                  <>
-                    <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="firstName">Primeiro Nome</Label>
-                      <Input id="firstName" placeholder="Seu primeiro nome" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-                    </div>
-                    <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="lastName">Sobrenome</Label>
-                      <Input id="lastName" placeholder="Seu sobrenome" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-                    </div>
-                  </>
-                )}
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                </div>
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input id="password" type="password" placeholder="Sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-                {!isLogin && (
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="role">Papel</Label>
-                    <Select value={role} onValueChange={(value: 'admin' | 'coach' | 'staff' | 'athlete') => setRole(value)}>
-                      <SelectTrigger id="role"><SelectValue placeholder="Selecione seu papel" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="athlete">Atleta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <Button type="submit" className="w-full mt-4" disabled={loading}>
-                  {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Registrar')}
-                </Button>
-              </div>
-            </form>
-            <div className="mt-4 text-center text-sm">
-              {isLogin ? (
-                <>
-                  Não tem uma conta?{' '}
-                  <Button variant="link" onClick={() => setIsLogin(false)} className="p-0 h-auto">
-                    Registre-se
-                  </Button>
-                </>
-              ) : (
-                <>
-                  Já tem uma conta?{' '}
-                  <Button variant="link" onClick={() => setIsLogin(true)} className="p-0 h-auto">
-                    Entrar
-                  </Button>
-                </>
-              )}
-            </div>
+            <SupabaseAuth
+              supabaseClient={supabase}
+              appearance={{ theme: ThemeSupa }}
+              providers={[]}
+              theme="light"
+              localization={{
+                variables: {
+                  sign_in: {
+                    email_label: 'Endereço de e-mail',
+                    password_label: 'Senha',
+                    email_input_placeholder: 'Seu endereço de e-mail',
+                    password_input_placeholder: 'Sua senha',
+                    button_label: 'Entrar',
+                    social_provider_text: 'Entrar com {{provider}}',
+                    link_text: 'Já tem uma conta? Entre',
+                  },
+                  sign_up: {
+                    email_label: 'Endereço de e-mail',
+                    password_label: 'Crie uma senha',
+                    email_input_placeholder: 'Seu endereço de e-mail',
+                    password_input_placeholder: 'Sua senha',
+                    button_label: 'Registrar',
+                    social_provider_text: 'Registrar com {{provider}}',
+                    link_text: 'Não tem uma conta? Registre-se',
+                    user_details_label: 'Por favor, insira seus detalhes abaixo',
+                  },
+                  forgotten_password: {
+                    email_label: 'Endereço de e-mail',
+                    email_input_placeholder: 'Seu endereço de e-mail',
+                    button_label: 'Enviar instruções',
+                    link_text: 'Esqueceu sua senha?',
+                  },
+                },
+              }}
+            />
           </CardContent>
         </Card>
       </div>
