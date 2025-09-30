@@ -13,7 +13,7 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import BatchAthleteImport from "./pages/BatchAthleteImport";
 import RegistrationOptions from "./pages/RegistrationOptions";
-import AthleteRegistrationForm from "./components/AthleteRegistrationForm";
+import AthleteRegistrationForm from "./pages/AthleteRegistrationForm";
 import DivisionImport from "./pages/DivisionImport";
 import FightDetail from "./pages/FightDetail";
 import PrintBrackets from "./pages/PrintBrackets";
