@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Athlete, WeightAttempt, Division } from '@/types/index';
-import { showSuccess, showError } from '@/utils/toast';
+import { showError } from '@/utils/toast';
 import { format } from 'date-fns';
 import { Edit } from 'lucide-react';
 import { findNextHigherWeightDivision, getWeightDivision } from '@/utils/athlete-utils'; // Importar funções utilitárias
@@ -74,7 +74,6 @@ const CheckInForm: React.FC<CheckInFormProps> = ({
       newRegisteredWeight = values.weight!; 
       if (divisionMaxWeight !== undefined && newRegisteredWeight <= divisionMaxWeight) {
         newCheckInStatus = 'checked_in';
-        showSuccess(`Atleta ${athlete.first_name} ${athlete.last_name} fez check-in com sucesso!`);
       } else if (divisionMaxWeight === undefined) {
         showError('Não foi possível determinar o limite de peso da divisão. Check-in manual necessário.');
         return;
@@ -100,21 +99,17 @@ const CheckInForm: React.FC<CheckInFormProps> = ({
               move_reason: `Movido automaticamente para ${nextHigherDivision.name} por excesso de peso (${newRegisteredWeight}kg).`,
             };
             newCheckInStatus = 'checked_in';
-            showSuccess(`Atleta ${athlete.first_name} ${athlete.last_name} acima do peso, movido para a divisão ${nextHigherDivision.name}!`);
           } else {
             newCheckInStatus = 'overweight';
-            showError(`Atleta ${athlete.first_name} ${athlete.last_name} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg) e não há categoria superior disponível.`);
           }
         } else {
           newCheckInStatus = 'overweight';
-          showError(`Atleta ${athlete.first_name} ${athlete.last_name} está acima do peso (${newRegisteredWeight}kg) para sua divisão (limite: ${divisionMaxWeight}kg).`);
         }
       }
     } else {
       // Check-in without weight verification: assume on weight
       newRegisteredWeight = athlete.weight; // Use athlete's registered weight from their profile
       newCheckInStatus = 'checked_in';
-      showSuccess(`Atleta ${athlete.first_name} ${athlete.last_name} fez check-in com sucesso (verificação de peso desabilitada)!`);
     }
 
     const newAttempt: WeightAttempt = {

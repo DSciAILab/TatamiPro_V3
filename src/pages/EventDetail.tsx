@@ -166,17 +166,31 @@ const EventDetail: React.FC = () => {
   };
 
   const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
-    const { _division, ...athleteForDb } = updatedAthlete;
+    const toastId = showLoading("Registrando check-in...");
+    
+    const updatePayload = {
+      check_in_status: updatedAthlete.check_in_status,
+      registered_weight: updatedAthlete.registered_weight,
+      weight_attempts: updatedAthlete.weight_attempts,
+      age_division: updatedAthlete.age_division,
+      weight_division: updatedAthlete.weight_division,
+      belt: updatedAthlete.belt,
+      gender: updatedAthlete.gender,
+      moved_to_division_id: updatedAthlete.moved_to_division_id,
+      move_reason: updatedAthlete.move_reason,
+    };
+
     const { error } = await supabase
       .from('athletes')
-      .update({
-        ...athleteForDb,
-        date_of_birth: athleteForDb.date_of_birth.toISOString(),
-        consent_date: athleteForDb.consent_date.toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', updatedAthlete.id);
-    if (error) showError(error.message);
-    // No need to call fetchEventData here, subscription will handle it.
+
+    dismissToast(toastId);
+    if (error) {
+      showError(`Falha ao fazer check-in: ${error.message}`);
+    } else {
+      showSuccess("Check-in do atleta atualizado com sucesso!");
+    }
   };
 
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
