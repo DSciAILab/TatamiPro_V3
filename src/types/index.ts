@@ -8,7 +8,14 @@ export type Belt = 'Branca' | 'Cinza' | 'Amarela' | 'Laranja' | 'Verde' | 'Azul'
 export type Gender = 'Masculino' | 'Feminino' | 'Outro';
 export type DivisionGender = 'Masculino' | 'Feminino' | 'Ambos';
 export type DivisionBelt = Belt | 'Todas';
-export type AgeCategory = 'Kids 1' | 'Kids 2' | 'Kids 3' | 'Infant' | 'Junior' | 'Teen' | 'Juvenile' | 'Adult' | 'Master' | 'Indefinido';
+export type AgeCategory = string; // Alterado de enum para string para suportar nomes customizados
+
+// NOVO: Interface para as configurações de divisão de idade
+export interface AgeDivisionSetting {
+  id: string;
+  name: string;
+  min_age: number;
+}
 
 export interface Division {
   id: string;
@@ -106,6 +113,7 @@ export interface Event {
   date: string;
   athletes?: Athlete[];
   divisions?: Division[];
+  age_division_settings?: AgeDivisionSetting[]; // NOVO
   check_in_start_time?: Date;
   check_in_end_time?: Date;
   num_fight_areas?: number;

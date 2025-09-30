@@ -1,17 +1,28 @@
 "use client";
 
-import { Athlete, Division, AgeCategory, Belt } from '@/types/index';
+import { Athlete, Division, AgeCategory, Belt, AgeDivisionSetting } from '@/types/index';
 
-export const getAgeDivision = (age: number): AgeCategory => {
-  if (age >= 4 && age <= 6) return "Kids 1";
-  if (age >= 7 && age <= 8) return "Kids 2";
-  if (age >= 9 && age <= 10) return "Kids 3";
-  if (age >= 11 && age <= 12) return "Infant";
-  if (age >= 13 && age <= 14) return "Junior";
-  if (age >= 15 && age <= 15) return "Teen";
-  if (age >= 16 && age <= 17) return "Juvenile";
-  if (age >= 18 && age <= 29) return "Adult";
-  if (age >= 30) return "Master";
+export const getAgeDivision = (age: number, ageSettings: AgeDivisionSetting[]): AgeCategory => {
+  if (!ageSettings || ageSettings.length === 0) {
+    // Fallback para a lógica antiga se nenhuma configuração for fornecida
+    if (age >= 4 && age <= 6) return "Kids 1";
+    if (age >= 7 && age <= 8) return "Kids 2";
+    if (age >= 9 && age <= 10) return "Kids 3";
+    if (age >= 11 && age <= 12) return "Infant";
+    if (age >= 13 && age <= 14) return "Junior";
+    if (age >= 15 && age <= 15) return "Teen";
+    if (age >= 16 && age <= 17) return "Juvenile";
+    if (age >= 18 && age <= 29) return "Adult";
+    if (age >= 30) return "Master";
+    return "Indefinido";
+  }
+
+  const sortedSettings = [...ageSettings].sort((a, b) => b.min_age - a.min_age);
+  for (const setting of sortedSettings) {
+    if (age >= setting.min_age) {
+      return setting.name;
+    }
+  }
   return "Indefinido";
 };
 
@@ -33,9 +44,6 @@ export const getWeightDivision = (weight: number): string => {
 // Ordem das faixas para comparação
 const beltOrder: Belt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
 
-// Ordem das categorias de idade para comparação
-const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
-
 // Nova função para encontrar a divisão de um atleta
 export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Division | undefined => {
   // Filtrar divisões habilitadas e que correspondem ao gênero e faixa
@@ -56,10 +64,8 @@ export const findAthleteDivision = (athlete: Athlete, divisions: Division[]): Di
       if (b.gender === 'Feminino') return 1;
     }
 
-    // 2. Categoria de Idade
-    const ageAIndex = ageCategoryOrder.indexOf(a.age_category_name);
-    const ageBIndex = ageCategoryOrder.indexOf(b.age_category_name);
-    if (ageAIndex !== ageBIndex) return ageAIndex - ageBIndex;
+    // 2. Categoria de Idade (aqui usamos a idade mínima para ordenar, já que os nomes são customizáveis)
+    if (a.min_age !== b.min_age) return a.min_age - b.min_age;
 
     // 3. Faixa
     const beltAIndex = beltOrder.indexOf(a.belt as Belt);
@@ -140,10 +146,10 @@ export const getAthleteDisplayString = (athlete: Athlete, division?: Division): 
 };
 
 // NOVO: Função para processar dados do atleta
-export const processAthleteData = (athleteData: any, divisions: Division[]): Athlete => {
+export const processAthleteData = (athleteData: any, divisions: Division[], ageSettings: AgeDivisionSetting[] = []): Athlete => {
   const date_of_birth = new Date(athleteData.date_of_birth);
   const age = new Date().getFullYear() - date_of_birth.getFullYear();
-  const age_division = getAgeDivision(age);
+  const age_division = getAgeDivision(age, ageSettings);
   const weight_division = getWeightDivision(athleteData.weight);
 
   const athleteWithCalculatedProps: Athlete = {

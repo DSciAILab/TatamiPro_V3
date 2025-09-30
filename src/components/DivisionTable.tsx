@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Edit, Save, XCircle, Search } from 'lucide-react';
-import { Division, DivisionBelt, DivisionGender, AgeCategory } from '@/types/index';
+import { Division, DivisionBelt, DivisionGender, AgeCategory, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -26,9 +26,10 @@ import {
 interface DivisionTableProps {
   divisions: Division[];
   onUpdateDivisions: (updatedDivisions: Division[]) => void;
+  ageDivisionSettings: AgeDivisionSetting[]; // NOVO
 }
 
-const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions }) => {
+const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions, ageDivisionSettings }) => {
   const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
   const [newDivision, setNewDivision] = useState<Omit<Division, 'id' | 'is_enabled'>>({
     name: '',
@@ -37,12 +38,29 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     max_weight: 999,
     gender: 'Ambos',
     belt: 'Todas',
-    age_category_name: 'Adult',
+    age_category_name: '',
   });
   const [currentEdit, setCurrentEdit] = useState<Division | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedDivisionIds, setSelectedDivisionIds] = useState<string[]>([]);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+
+  const sortedAgeSettings = useMemo(() => [...ageDivisionSettings].sort((a, b) => a.min_age - b.min_age), [ageDivisionSettings]);
+
+  const handleAgeCategoryChange = (
+    ageCategoryName: AgeCategory,
+    setter: React.Dispatch<React.SetStateAction<any>>
+  ) => {
+    const selectedSettingIndex = sortedAgeSettings.findIndex(s => s.name === ageCategoryName);
+    if (selectedSettingIndex === -1) return;
+
+    const min_age = sortedAgeSettings[selectedSettingIndex].min_age;
+    const max_age = (selectedSettingIndex + 1 < sortedAgeSettings.length)
+      ? sortedAgeSettings[selectedSettingIndex + 1].min_age - 1
+      : 99;
+
+    setter((prev: any) => ({ ...prev, age_category_name: ageCategoryName, min_age, max_age }));
+  };
 
   const filteredDivisions = useMemo(() => {
     if (!searchTerm) {
@@ -74,7 +92,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     const updatedDivisions = [...divisions, { ...newDivision, id, is_enabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
-    setNewDivision({ name: '', min_age: 0, max_age: 99, max_weight: 999, gender: 'Ambos', belt: 'Todas', age_category_name: 'Adult' });
+    setNewDivision({ name: '', min_age: 0, max_age: 99, max_weight: 999, gender: 'Ambos', belt: 'Todas', age_category_name: '' });
   };
 
   const handleEditDivision = (division: Division) => {
@@ -180,7 +198,6 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
   const beltOptions: DivisionBelt[] = ['Todas', 'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'];
   const genderOptions: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
-  const ageCategoryOptions: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master'];
 
   const isAllSelected = filteredDivisions.length > 0 && selectedDivisionIds.length === filteredDivisions.length;
 
@@ -197,20 +214,20 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         </div>
         <div>
           <Label htmlFor="newAgeCategoryName">Categoria de Idade</Label>
-          <Select value={newDivision.age_category_name} onValueChange={(value: AgeCategory) => setNewDivision(prev => ({ ...prev, age_category_name: value }))}>
+          <Select value={newDivision.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setNewDivision)}>
             <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder="Categoria de Idade" /></SelectTrigger>
             <SelectContent>
-              {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              {sortedAgeSettings.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="newMinAge">Idade Mínima</Label>
-          <Input id="newMinAge" type="number" value={newDivision.min_age} onChange={(e) => setNewDivision(prev => ({ ...prev, min_age: Number(e.target.value) }))} />
+          <Input id="newMinAge" type="number" value={newDivision.min_age} onChange={(e) => setNewDivision(prev => ({ ...prev, min_age: Number(e.target.value) }))} disabled />
         </div>
         <div>
           <Label htmlFor="newMaxAge">Idade Máxima</Label>
-          <Input id="newMaxAge" type="number" value={newDivision.max_age} onChange={(e) => setNewDivision(prev => ({ ...prev, max_age: Number(e.target.value) }))} />
+          <Input id="newMaxAge" type="number" value={newDivision.max_age} onChange={(e) => setNewDivision(prev => ({ ...prev, max_age: Number(e.target.value) }))} disabled />
         </div>
         <div>
           <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
@@ -308,15 +325,15 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                     <TableCell /> {/* Empty cell for checkbox in edit mode */}
                     <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
                     <TableCell>
-                      <Select value={currentEdit.age_category_name} onValueChange={(value: AgeCategory) => setCurrentEdit(prev => prev ? { ...prev, age_category_name: value } : null)}>
+                      <Select value={currentEdit.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setCurrentEdit as React.Dispatch<React.SetStateAction<any>>)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {ageCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                          {sortedAgeSettings.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <div className="flex space-x-1 mt-1">
-                        <Input type="number" value={currentEdit.min_age} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, min_age: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Min Age" />
-                        <Input type="number" value={currentEdit.max_age} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, max_age: Number(e.target.value) } : null)} className="w-1/2 text-xs" placeholder="Max Age" />
+                        <Input type="number" value={currentEdit.min_age} disabled className="w-1/2 text-xs" />
+                        <Input type="number" value={currentEdit.max_age} disabled className="w-1/2 text-xs" />
                       </div>
                     </TableCell>
                     <TableCell>

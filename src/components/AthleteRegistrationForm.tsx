@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,10 +15,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Athlete, Belt, Gender, Event } from '@/types/index';
+import { Athlete, Belt, Gender, Event, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define os esquemas base para campos comuns
 const firstNameSchema = z.string().min(2, { message: 'Nome é obrigatório.' });
@@ -41,6 +42,25 @@ const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(Fi
 const AthleteRegistrationForm: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!eventId) return;
+      const { data, error } = await supabase
+        .from('events')
+        .select('age_division_settings')
+        .eq('id', eventId)
+        .single();
+      
+      if (error) {
+        showError('Failed to load age division settings.');
+      } else if (data && data.age_division_settings) {
+        setAgeSettings(data.age_division_settings);
+      }
+    };
+    fetchSettings();
+  }, [eventId]);
 
   // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
@@ -128,7 +148,7 @@ const AthleteRegistrationForm: React.FC = () => {
 
     try {
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear(); // date_of_birth é obrigatório
-      const age_division = getAgeDivision(age);
+      const age_division = getAgeDivision(age, ageSettings);
       const weight_division = getWeightDivision(values.weight!); // weight é obrigatório
 
       let payment_proof_url: string | undefined;

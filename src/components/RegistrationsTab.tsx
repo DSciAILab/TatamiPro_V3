@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Event, Athlete } from '@/types/index';
+import { Event, Athlete, AgeDivisionSetting } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ interface RegistrationsTabProps {
   handleSelectAllAthletes: (checked: boolean) => void;
   handleApproveSelected: () => void;
   handleRejectSelected: () => void;
+  ageDivisionSettings: AgeDivisionSetting[];
 }
 
 const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
@@ -66,6 +67,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   handleSelectAllAthletes,
   handleApproveSelected,
   handleRejectSelected,
+  ageDivisionSettings,
 }) => {
 
   const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
@@ -161,6 +163,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                 onSave={handleAthleteUpdate}
                 onCancel={() => setEditingAthlete(null)}
                 mandatoryFieldsConfig={mandatoryFieldsConfig}
+                ageDivisionSettings={ageDivisionSettings}
               />
             )}
 

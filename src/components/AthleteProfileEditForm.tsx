@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Athlete, Belt, Gender } from '@/types/index';
+import { Athlete, Belt, Gender, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { uploadFile } from '@/integrations/supabase/storage';
@@ -34,6 +34,7 @@ interface AthleteProfileEditFormProps {
   onSave: (updatedAthlete: Athlete) => Promise<void>;
   onCancel: () => void;
   mandatoryFieldsConfig?: Record<string, boolean>;
+  ageDivisionSettings: AgeDivisionSetting[];
 }
 
 // Define os esquemas base para campos comuns
@@ -53,7 +54,7 @@ const schoolIdOptionalSchema = z.string().optional();
 
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
-const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig }) => {
+const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig, ageDivisionSettings }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formValues, setFormValues] = useState<FormValues | null>(null);
@@ -133,7 +134,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       const [photo_url, emirates_id_front_url, emirates_id_back_url] = await Promise.all(uploadPromises);
 
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
-      const age_division = getAgeDivision(age);
+      const age_division = getAgeDivision(age, ageDivisionSettings);
       const weight_division = getWeightDivision(values.weight!);
 
       const updatedAthlete: Athlete = {

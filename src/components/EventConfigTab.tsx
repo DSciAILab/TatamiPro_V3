@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Event, Division } from '@/types/index';
+import { Event, Division, AgeDivisionSetting } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsCon
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { Textarea } from '@/components/ui/textarea';
 import { showSuccess, showError } from '@/utils/toast';
+import AgeDivisionConfig from './AgeDivisionConfig'; // NOVO
 
 interface EventConfigTabProps {
   event: Event;
@@ -48,6 +49,7 @@ interface EventConfigTabProps {
   check_in_scan_mode: 'qr' | 'barcode' | 'none';
   set_check_in_scan_mode: (value: 'qr' | 'barcode' | 'none') => void;
   handleUpdateDivisions: (divisions: Division[]) => void;
+  handleUpdateAgeDivisionSettings: (settings: AgeDivisionSetting[]) => void; // NOVO
   champion_points: number;
   set_champion_points: (value: number) => void;
   runner_up_points: number;
@@ -91,6 +93,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   check_in_scan_mode,
   set_check_in_scan_mode,
   handleUpdateDivisions,
+  handleUpdateAgeDivisionSettings, // NOVO
   champion_points,
   set_champion_points,
   runner_up_points,
@@ -196,11 +199,20 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
               </div>
             </TabsContent>
 
-            <TabsContent value="divisions" className="mt-6">
+            <TabsContent value="divisions" className="mt-6 space-y-8">
+              <AgeDivisionConfig
+                settings={event.age_division_settings || []}
+                onUpdateSettings={handleUpdateAgeDivisionSettings}
+              />
+              <hr />
               <Link to={`/events/${event.id}/import-divisions`}>
                 <Button className="w-full mb-4">Importar Divisões em Lote</Button>
               </Link>
-              <DivisionTable divisions={event.divisions || []} onUpdateDivisions={handleUpdateDivisions} />
+              <DivisionTable
+                divisions={event.divisions || []}
+                onUpdateDivisions={handleUpdateDivisions}
+                ageDivisionSettings={event.age_division_settings || []}
+              />
             </TabsContent>
 
             <TabsContent value="check-in-settings" className="mt-6">

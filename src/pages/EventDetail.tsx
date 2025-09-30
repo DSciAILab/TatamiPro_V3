@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Athlete, Event, Division, Bracket } from '../types/index';
+import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '../types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
@@ -61,7 +61,7 @@ const EventDetail: React.FC = () => {
       const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
       if (divisionsError) throw divisionsError;
 
-      const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
+      const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || [], eventData.age_division_settings || []));
       
       const fullEventData: Event = {
         ...eventData,
@@ -130,6 +130,10 @@ const EventDetail: React.FC = () => {
       setHasUnsavedChanges(true);
       return { ...prev, [key]: value };
     });
+  };
+
+  const handleUpdateAgeDivisionSettings = (settings: AgeDivisionSetting[]) => {
+    handleUpdateEventProperty('age_division_settings', settings);
   };
 
   const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
@@ -337,6 +341,7 @@ const EventDetail: React.FC = () => {
             check_in_scan_mode={event.check_in_scan_mode || 'qr'}
             set_check_in_scan_mode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
             handleUpdateDivisions={handleUpdateDivisions}
+            handleUpdateAgeDivisionSettings={handleUpdateAgeDivisionSettings}
             champion_points={event.champion_points || 9}
             set_champion_points={(value) => handleUpdateEventProperty('champion_points', value)}
             runner_up_points={event.runner_up_points || 3}
@@ -380,6 +385,7 @@ const EventDetail: React.FC = () => {
             handleSelectAllAthletes={(checked) => setSelectedAthletesForApproval(checked ? athletesUnderApproval.map(a => a.id) : [])}
             handleApproveSelected={() => handleApproveReject('approved')}
             handleRejectSelected={() => handleApproveReject('rejected')}
+            ageDivisionSettings={event.age_division_settings || []}
           />
         </TabsContent>
 

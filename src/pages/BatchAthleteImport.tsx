@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import { parseISO } from 'date-fns';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showError, showLoading, dismissToast } from '@/utils/toast';
-import { Belt, Gender } from '@/types/index';
+import { Belt, Gender, AgeDivisionSetting } from '@/types/index';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -107,6 +107,25 @@ const BatchAthleteImport: React.FC = () => {
   const [columnMapping, setColumnMapping] = useState<Record<RequiredAthleteField, string | undefined>>(() => ({} as any));
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: ImportResult[] } | null>(null);
   const [step, setStep] = useState<'upload' | 'map' | 'results'>('upload');
+  const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!eventId) return;
+      const { data, error } = await supabase
+        .from('events')
+        .select('age_division_settings')
+        .eq('id', eventId)
+        .single();
+      
+      if (error) {
+        showError('Failed to load age division settings.');
+      } else if (data && data.age_division_settings) {
+        setAgeSettings(data.age_division_settings);
+      }
+    };
+    fetchSettings();
+  }, [eventId]);
 
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
@@ -199,6 +218,7 @@ const BatchAthleteImport: React.FC = () => {
         const data = parsed.data as AthleteImportOutput;
         const nameParts = data.fullName.split(' ');
         const athleteId = uuidv4();
+        const age = new Date().getFullYear() - data.date_of_birth.getFullYear();
         successfulAthletesForDb.push({
           id: athleteId,
           event_id: eventId!,
@@ -206,13 +226,13 @@ const BatchAthleteImport: React.FC = () => {
           first_name: nameParts[0],
           last_name: nameParts.slice(1).join(' '),
           date_of_birth: data.date_of_birth.toISOString(),
-          age: new Date().getFullYear() - data.date_of_birth.getFullYear(),
+          age: age,
           club: data.club,
           gender: data.gender,
           belt: data.belt,
           weight: data.weight,
           nationality: data.nationality,
-          age_division: getAgeDivision(new Date().getFullYear() - data.date_of_birth.getFullYear()),
+          age_division: getAgeDivision(age, ageSettings),
           weight_division: getWeightDivision(data.weight),
           email: data.email || '',
           phone: data.phone || '',

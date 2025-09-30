@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Belt, Gender } from '@/types/index';
+import { Belt, Gender, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -44,6 +44,25 @@ const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(Fi
 const AthleteRegistrationForm: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!eventId) return;
+      const { data, error } = await supabase
+        .from('events')
+        .select('age_division_settings')
+        .eq('id', eventId)
+        .single();
+      
+      if (error) {
+        showError('Failed to load age division settings.');
+      } else if (data && data.age_division_settings) {
+        setAgeSettings(data.age_division_settings);
+      }
+    };
+    fetchSettings();
+  }, [eventId]);
 
   // Configuração de campos obrigatórios para check-in
   const mandatoryFieldsConfig = useMemo(() => {
@@ -135,7 +154,7 @@ const AthleteRegistrationForm: React.FC = () => {
       const [photo_url, emirates_id_front_url, emirates_id_back_url, payment_proof_url] = await Promise.all(uploadPromises);
 
       const age = new Date().getFullYear() - values.date_of_birth!.getFullYear();
-      const age_division = getAgeDivision(age);
+      const age_division = getAgeDivision(age, ageSettings);
       const weight_division = getWeightDivision(values.weight!);
       const registration_qr_code_id = `EV_${eventId}_ATH_${athleteId}`;
 
