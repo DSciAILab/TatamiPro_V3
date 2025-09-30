@@ -52,7 +52,6 @@ const Auth: React.FC = () => {
                     button_label: 'Registrar',
                     social_provider_text: 'Registrar com {{provider}}',
                     link_text: 'Não tem uma conta? Registre-se',
-                    user_details_label: 'Por favor, insira seus detalhes abaixo',
                   },
                   forgotten_password: {
                     email_label: 'Endereço de e-mail',
