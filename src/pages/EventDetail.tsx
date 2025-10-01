@@ -194,6 +194,14 @@ const EventDetail: React.FC = () => {
       showError(`Falha ao fazer check-in: ${error.message}`);
     } else {
       showSuccess("Check-in do atleta atualizado com sucesso!");
+      // ATUALIZAÇÃO: Atualizar o estado local para refletir a mudança imediatamente
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes?.map(ath => 
+          ath.id === updatedAthlete.id ? updatedAthlete : ath
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
     }
   };
 
