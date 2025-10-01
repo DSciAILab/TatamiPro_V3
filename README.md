@@ -53,11 +53,11 @@ Variáveis sensíveis (ex: chaves de API, segredos) devem ser armazenadas como V
     *   **Diretório de publicação**: `dist`
 4.  **Deploy do site**: Clique em "Deploy site". O Netlify detectará e fará o deploy automaticamente de suas funções do diretório `netlify/functions`.
 
-## Persistência de Dados (MVP)
+## Persistência de Dados
 
-Para este MVP, os dados (eventos, atletas, brackets gerados) são gerenciados principalmente no estado do React no lado do cliente. Quando a aplicação é recarregada, esses dados serão redefinidos.
+Esta aplicação utiliza o **Supabase** como backend para persistência de dados. Todas as informações, incluindo eventos, atletas, divisões e brackets, são armazenadas em um banco de dados PostgreSQL gerenciado pelo Supabase.
 
-Em um ambiente de produção, você integraria um banco de dados (ex: PostgreSQL, MongoDB, Supabase, FaunaDB) e uma camada de API (que poderia ser implementada usando Netlify Functions) para persistir esses dados. Variáveis de ambiente seriam usadas para armazenar strings de conexão e credenciais do banco de dados de forma segura.
+A comunicação com o banco de dados é feita diretamente do cliente React usando a biblioteca `supabase-js`, com políticas de segurança de nível de linha (RLS) para garantir que os usuários só possam acessar e modificar os dados permitidos. A aplicação também utiliza as assinaturas em tempo real do Supabase para manter os dados atualizados entre múltiplos usuários.
 
 ## Dados de Demonstração (Seed Demo Data)
 

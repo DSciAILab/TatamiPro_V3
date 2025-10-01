@@ -48,6 +48,10 @@ const EventDetail: React.FC = () => {
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
   const fetchEventData = useCallback(async (source?: string) => {
+    if (hasUnsavedChanges && source === 'subscription') {
+      showError("Você tem alterações não salvas. Salve-as para ver os dados mais recentes.");
+      return;
+    }
     if (!eventId) return;
     if (source !== 'subscription') setLoading(true);
     try {
@@ -78,7 +82,7 @@ const EventDetail: React.FC = () => {
       if (source !== 'subscription') setLoading(false);
       setHasUnsavedChanges(false);
     }
-  }, [eventId]);
+  }, [eventId, hasUnsavedChanges]);
 
   useEffect(() => {
     fetchEventData();
