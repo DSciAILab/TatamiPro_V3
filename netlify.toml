@@ -1,8 +1,3 @@
-[build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions" # Especifica o diretório para Netlify Functions
-
 [[redirects]]
   from = "/*"
   to = "/index.html"
