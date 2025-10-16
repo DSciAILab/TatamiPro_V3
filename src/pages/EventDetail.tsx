@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,14 +42,20 @@ const EventDetail: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Ref to hold the latest state of hasUnsavedChanges to avoid stale closures in callbacks
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
   // Sub-tab states
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
   const fetchEventData = useCallback(async (source?: string) => {
-    if (hasUnsavedChanges && source === 'subscription') {
-      showError("Você tem alterações não salvas. Salve-as para ver os dados mais recentes.");
+    if (hasUnsavedChangesRef.current && source === 'subscription') {
+      console.warn("Real-time update ignored due to unsaved local changes. Please save your changes.");
       return;
     }
     if (!eventId) return;
@@ -79,10 +85,12 @@ const EventDetail: React.FC = () => {
       showError(`Failed to load event data: ${error.message}`);
       setEvent(null);
     } finally {
-      if (source !== 'subscription') setLoading(false);
-      setHasUnsavedChanges(false);
+      if (source !== 'subscription') {
+        setLoading(false);
+        setHasUnsavedChanges(false);
+      }
     }
-  }, [eventId, hasUnsavedChanges]);
+  }, [eventId]);
 
   useEffect(() => {
     fetchEventData();
