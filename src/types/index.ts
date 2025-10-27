@@ -15,6 +15,7 @@ export interface AgeDivisionSetting {
   id: string;
   name: string;
   min_age: number;
+  fight_duration: number; // in minutes
 }
 
 export interface Division {

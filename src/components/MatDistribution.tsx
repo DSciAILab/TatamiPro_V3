@@ -14,13 +14,14 @@ interface MatDistributionProps {
 }
 
 interface CategoryGroup {
-  key: string; // e.g., "Masculino/Adult/Preta" or "Masculino/Adult"
-  display: string; // e.g., "Masculino / Adult / Preta"
-  gender: DivisionGender; // Usar DivisionGender para ser consistente com a divisão
+  key: string;
+  display: string;
+  gender: DivisionGender;
   ageCategoryName: AgeCategory;
-  belt?: DivisionBelt; // Optional if belt grouping is disabled, use DivisionBelt
+  belt?: DivisionBelt;
   athleteCount: number;
-  divisionIds: string[]; // IDs of divisions that match this group
+  divisionIds: string[];
+  totalFightTime: number;
 }
 
 const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAssignments, isBeltGroupingEnabled }) => {
@@ -37,12 +38,11 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
 
   const allCategoryGroups = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
+    const ageSettingsMap = new Map(event.age_division_settings?.map(s => [s.name, s]));
 
-    // Filtrar atletas que fizeram check-in com sucesso e estão aprovados
     (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
-      // Usar a _division já calculada e anexada em EventDetail
-      const division = athlete._division; 
-      if (!division) return; // Se não houver divisão (o que não deveria acontecer para atletas aprovados/check-in), pular
+      const division = athlete._division;
+      if (!division) return;
 
       const key = division.id;
       const display = division.name;
@@ -56,13 +56,20 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
           belt: division.belt,
           athleteCount: 0,
           divisionIds: [division.id],
+          totalFightTime: 0,
         });
       }
       const group = groupsMap.get(key)!;
       group.athleteCount++;
     });
 
-    // Sort order: Gender (Masculino, Feminino, Ambos), AgeCategory, Belt (Branca...Todas)
+    groupsMap.forEach(group => {
+      const numFights = group.athleteCount >= 2 ? group.athleteCount - 1 : 0;
+      const ageSetting = ageSettingsMap.get(group.ageCategoryName);
+      const fightDuration = ageSetting?.fight_duration || 5;
+      group.totalFightTime = numFights * fightDuration;
+    });
+
     const genderOrder: DivisionGender[] = ['Masculino', 'Feminino', 'Ambos'];
     const ageCategoryOrder: AgeCategory[] = ['Kids 1', 'Kids 2', 'Kids 3', 'Infant', 'Junior', 'Teen', 'Juvenile', 'Adult', 'Master', 'Indefinido'];
     const beltOrder: DivisionBelt[] = ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Todas'];
@@ -82,7 +89,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
 
       return 0;
     });
-  }, [event.athletes, isBeltGroupingEnabled]); // event.divisions não é mais necessário aqui
+  }, [event.athletes, event.age_division_settings, isBeltGroupingEnabled]);
 
   const unassignedCategories = useMemo(() => {
     const assignedKeys = new Set<string>();
@@ -93,7 +100,6 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
   }, [allCategoryGroups, matAssignments]);
 
   useEffect(() => {
-    // Ensure matAssignments state is in sync with event.mat_assignments on initial load or event change
     const initialAssignments: Record<string, string[]> = {};
     matNames.forEach(mat => {
       initialAssignments[mat] = event.mat_assignments?.[mat] || [];
@@ -106,24 +112,22 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Allow drop
+    e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent, targetMat: string) => {
     e.preventDefault();
     const categoryKey = e.dataTransfer.getData('text/plain');
 
-    // Remove from previous mat if assigned
     const newAssignments = { ...matAssignments };
     for (const mat in newAssignments) {
       newAssignments[mat] = newAssignments[mat].filter(key => key !== categoryKey);
     }
 
-    // Add to target mat
     newAssignments[targetMat] = [...(newAssignments[targetMat] || []), categoryKey];
     setMatAssignments(newAssignments);
     onUpdateMatAssignments(newAssignments);
-    showSuccess(`Categoria ${categoryKey} movida para ${targetMat}.`);
+    showSuccess(`Categoria movida para ${targetMat}.`);
   };
 
   const handleRemoveFromMat = (matName: string, categoryKey: string) => {
@@ -131,27 +135,22 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
     newAssignments[matName] = newAssignments[matName].filter(key => key !== categoryKey);
     setMatAssignments(newAssignments);
     onUpdateMatAssignments(newAssignments);
-    showSuccess(`Categoria ${categoryKey} removida do ${matName}.`);
+    showSuccess(`Categoria removida do ${matName}.`);
   };
 
   const handleAutoDistribute = () => {
     const newAssignments: Record<string, string[]> = {};
     matNames.forEach(mat => (newAssignments[mat] = []));
 
-    // Create a list of all categories, including those already assigned
     const allCategoriesToDistribute = [...allCategoryGroups];
+    allCategoriesToDistribute.sort((a, b) => b.totalFightTime - a.totalFightTime);
 
-    // Sort categories by athlete count (descending) to try and balance larger groups first
-    allCategoriesToDistribute.sort((a, b) => b.athleteCount - a.athleteCount);
-
-    // Initialize mat loads (e.g., total athletes assigned to each mat)
     const matLoads = new Map<string, number>();
     matNames.forEach(mat => matLoads.set(mat, 0));
 
     allCategoriesToDistribute.forEach(category => {
-      // Find the mat with the minimum current load
       let minLoad = Infinity;
-      let targetMat = matNames[0]; // Default to first mat
+      let targetMat = matNames[0];
 
       for (const mat of matNames) {
         const currentLoad = matLoads.get(mat) || 0;
@@ -161,9 +160,8 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
         }
       }
 
-      // Assign category to targetMat
       newAssignments[targetMat].push(category.key);
-      matLoads.set(targetMat, (matLoads.get(targetMat) || 0) + category.athleteCount);
+      matLoads.set(targetMat, (matLoads.get(targetMat) || 0) + category.totalFightTime);
     });
 
     setMatAssignments(newAssignments);
@@ -171,10 +169,10 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
     showSuccess('Categorias distribuídas automaticamente entre os mats.');
   };
 
-  const getTotalAthletesOnMat = (matName: string) => {
+  const getTotalFightTimeOnMat = (matName: string) => {
     return matAssignments[matName].reduce((total, categoryKey) => {
       const group = allCategoryGroups.find(g => g.key === categoryKey);
-      return total + (group?.athleteCount || 0);
+      return total + (group?.totalFightTime || 0);
     }, 0);
   };
 
@@ -197,7 +195,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium">{matName}</CardTitle>
-              <span className="text-sm text-muted-foreground">Atletas: {getTotalAthletesOnMat(matName)}</span>
+              <span className="text-sm text-muted-foreground">Tempo: {getTotalFightTimeOnMat(matName)} min</span>
             </CardHeader>
             <CardContent className="flex-1 pt-0">
               {matAssignments[matName].length === 0 ? (
@@ -213,7 +211,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
                         onDragStart={(e) => handleDragStart(e, categoryKey)}
                         className="flex items-center justify-between p-2 border rounded-md bg-secondary/50 cursor-grab"
                       >
-                        <span className="text-sm">{group?.display} ({group?.athleteCount || 0} atletas)</span>
+                        <span className="text-sm">{group?.display} ({group?.athleteCount || 0} atletas / {group?.totalFightTime || 0} min)</span>
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveFromMat(matName, categoryKey)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -239,7 +237,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
               onDragStart={(e) => handleDragStart(e, group.key)}
               className="p-3 flex items-center justify-between bg-card hover:bg-accent cursor-grab"
             >
-              <span className="font-medium">{group.display} ({group.athleteCount} atletas)</span>
+              <span className="font-medium">{group.display} ({group.athleteCount} atletas / {group.totalFightTime} min)</span>
               <GripVertical className="h-5 w-5 text-muted-foreground" />
             </Card>
           ))}
