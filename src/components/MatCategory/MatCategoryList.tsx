@@ -10,7 +10,6 @@ interface MatCategoryListProps {
   selectedMat: string | 'all-mats';
   selectedCategoryKey: string | null;
   onSelectCategory: (categoryKey: string, divisionId: string) => void;
-  hasOngoingFights: (divisionId: string) => boolean;
 }
 
 interface CategoryGroup {
@@ -21,10 +20,10 @@ interface CategoryGroup {
   belt?: DivisionBelt;
   athleteCount: number;
   divisionIds: string[];
-  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Sem Atletas';
+  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Encerrado' | 'Sem Atletas';
 }
 
-const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory, hasOngoingFights }) => {
+const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory }) => {
   const categoriesOnSelectedMat = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
 
@@ -60,12 +59,15 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       if (isAssignedToSelectedMat) {
         let status: CategoryGroup['bracketStatus'];
         const firstDivisionId = group.divisionIds[0];
+        const bracket = event.brackets?.[firstDivisionId];
 
         if (group.athleteCount < 2) {
           status = 'Sem Atletas';
-        } else if (!event.brackets?.[firstDivisionId]) {
+        } else if (!bracket) {
           status = 'Não Gerado';
-        } else if (hasOngoingFights(firstDivisionId)) {
+        } else if (bracket.winner_id) {
+          status = 'Encerrado';
+        } else if (bracket.rounds.flat().some(match => match.winner_id !== undefined)) {
           status = 'Em Andamento';
         } else {
           status = 'Gerado';
@@ -75,10 +77,11 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
     });
 
     return finalGroups.sort((a, b) => a.display.localeCompare(b.display));
-  }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets, hasOngoingFights]);
+  }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets]);
 
   const getStatusColor = (status: CategoryGroup['bracketStatus']) => {
     switch (status) {
+      case 'Encerrado': return 'text-purple-600';
       case 'Gerado': return 'text-green-600';
       case 'Em Andamento': return 'text-blue-600';
       case 'Sem Atletas': return 'text-gray-500';

@@ -295,7 +295,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       selectedMat={selectedMat}
                       selectedCategoryKey={null}
                       onSelectCategory={handleSelectCategory}
-                      hasOngoingFights={hasOngoingFights}
                     />
                   )}
                 </CardContent>
