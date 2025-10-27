@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import FightOverview from '@/components/FightOverview';
 
 interface BracketsTabProps {
   event: Event;
@@ -186,7 +187,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       <CardContent>
         {userRole && (
           <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="mat-distribution">Distribuição dos Mats</TabsTrigger>
               <TabsTrigger value="generate-brackets">
                 <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
@@ -194,6 +195,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               <TabsTrigger value="manage-fights">
                 <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
               </TabsTrigger>
+              <TabsTrigger value="fight-overview">Visão Geral</TabsTrigger>
             </TabsList>
 
             <TabsContent value="mat-distribution" className="mt-6">
@@ -290,6 +292,18 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       hasOngoingFights={hasOngoingFights}
                     />
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="fight-overview" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Visão Geral das Lutas</CardTitle>
+                  <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os atletas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FightOverview event={event} />
                 </CardContent>
               </Card>
             </TabsContent>
