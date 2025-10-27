@@ -22,7 +22,6 @@ import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 import PublicEvent from "./pages/PublicEvent";
 import Profile from "./pages/Profile";
-import DivisionAthletes from "./pages/DivisionAthletes";
 
 const queryClient = new QueryClient();
 
@@ -54,7 +53,6 @@ const App = () => (
                   <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
                   <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
                   <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
-                  <Route path="/events/:eventId/divisions/:divisionId/athletes" element={<DivisionAthletes />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/account-security" element={<AccountSecurity />} />
                   <Route path="/public/events/:id" element={<PublicEvent />} />

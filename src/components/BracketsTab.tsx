@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import FightOverview from '@/components/FightOverview';
+import DivisionDetailView from './DivisionDetailView'; // Import the new component
 
 interface BracketsTabProps {
   event: Event;
@@ -52,6 +53,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
   const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
   const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
+  const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
 
   useEffect(() => {
     setGeneratedBrackets(event.brackets || {});
@@ -175,7 +177,11 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   }, [event?.num_fight_areas]);
 
   const handleSelectCategory = (_categoryKey: string, divisionId: string) => {
-    navigate(`/events/${event.id}/divisions/${divisionId}/athletes`);
+    const division = event.divisions?.find(d => d.id === divisionId);
+    if (division) {
+      setSelectedDivisionForDetail(division);
+      setBracketsSubTab('fight-overview');
+    }
   };
 
   return (
@@ -264,7 +270,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Seleção de Mat e Categoria</CardTitle>
-                  <CardDescription>Selecione uma área de luta e clique em uma categoria para ver os atletas inscritos.</CardDescription>
+                  <CardDescription>Selecione uma área de luta e clique em uma categoria para ver os detalhes.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -300,10 +306,21 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle>Visão Geral das Lutas</CardTitle>
-                  <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os atletas.</CardDescription>
+                  <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os detalhes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <FightOverview event={event} />
+                  {selectedDivisionForDetail ? (
+                    <DivisionDetailView
+                      event={event}
+                      division={selectedDivisionForDetail}
+                      onBack={() => setSelectedDivisionForDetail(null)}
+                    />
+                  ) : (
+                    <FightOverview
+                      event={event}
+                      onDivisionSelect={(division) => setSelectedDivisionForDetail(division)}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

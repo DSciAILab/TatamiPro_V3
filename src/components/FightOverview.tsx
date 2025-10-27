@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Event, Division } from '@/types/index';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface FightOverviewProps {
   event: Event;
+  onDivisionSelect: (division: Division) => void;
 }
 
 interface DivisionMatInfo {
@@ -16,9 +16,7 @@ interface DivisionMatInfo {
   athleteCount: number;
 }
 
-const FightOverview: React.FC<FightOverviewProps> = ({ event }) => {
-  const navigate = useNavigate();
-
+const FightOverview: React.FC<FightOverviewProps> = ({ event, onDivisionSelect }) => {
   const divisionMatList = useMemo(() => {
     if (!event.divisions || !event.brackets) return [];
 
@@ -58,10 +56,6 @@ const FightOverview: React.FC<FightOverviewProps> = ({ event }) => {
     return list;
   }, [event]);
 
-  const handleRowClick = (divisionId: string) => {
-    navigate(`/events/${event.id}/divisions/${divisionId}/athletes`);
-  };
-
   if (divisionMatList.length === 0) {
     return <p className="text-muted-foreground">Nenhuma categoria com bracket gerado encontrada.</p>;
   }
@@ -81,7 +75,7 @@ const FightOverview: React.FC<FightOverviewProps> = ({ event }) => {
             {divisionMatList.map(({ division, matName, athleteCount }) => (
               <TableRow
                 key={division.id}
-                onClick={() => handleRowClick(division.id)}
+                onClick={() => onDivisionSelect(division)}
                 className="cursor-pointer hover:bg-muted/50"
               >
                 <TableCell className="font-medium">{matName}</TableCell>
