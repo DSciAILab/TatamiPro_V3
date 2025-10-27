@@ -261,7 +261,15 @@ const EventDetail: React.FC = () => {
       showError(`Failed to save brackets: ${error.message}`);
     } else {
       showSuccess('Brackets and fight order saved successfully.');
-      // No need to call fetchEventData here, subscription will handle it.
+      // Manually update the local state to reflect the change immediately
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        return {
+          ...prevEvent,
+          brackets: updatedBrackets,
+          mat_fight_order: matFightOrder,
+        };
+      });
     }
   };
 
