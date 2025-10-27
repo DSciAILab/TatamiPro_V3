@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '../types/index';
@@ -25,6 +25,7 @@ import SaveChangesButton from '@/components/SaveChangesButton';
 
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
+  const location = useLocation();
   const { profile } = useAuth();
   const userRole = profile?.role;
   const userClub = profile?.club;
@@ -52,6 +53,15 @@ const EventDetail: React.FC = () => {
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+    if (location.state?.bracketsSubTab) {
+      setBracketsSubTab(location.state.bracketsSubTab);
+    }
+  }, [location.state]);
 
   const fetchEventData = useCallback(async (source?: string) => {
     if (hasUnsavedChangesRef.current && source === 'subscription') {
