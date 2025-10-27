@@ -32,18 +32,8 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
       const division = athlete._division;
       if (!division) return;
 
-      let key: string;
-      let display: string;
-      let belt: DivisionBelt | undefined;
-
-      if (event.is_belt_grouping_enabled) {
-        key = `${division.gender}/${division.age_category_name}/${division.belt}`;
-        display = `${division.gender} / ${division.age_category_name} / ${division.belt}`;
-        belt = division.belt;
-      } else {
-        key = `${division.gender}/${division.age_category_name}`;
-        display = `${division.gender} / ${division.age_category_name}`;
-      }
+      const key = division.id;
+      const display = division.name;
 
       if (!groupsMap.has(key)) {
         groupsMap.set(key, {
@@ -51,17 +41,14 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
           display,
           gender: division.gender,
           ageCategoryName: division.age_category_name,
-          belt,
+          belt: division.belt,
           athleteCount: 0,
-          divisionIds: [],
+          divisionIds: [division.id],
           bracketStatus: 'Não Gerado', // Default
         });
       }
       const group = groupsMap.get(key)!;
       group.athleteCount++;
-      if (!group.divisionIds.includes(division.id)) {
-        group.divisionIds.push(division.id);
-      }
     };
 
     (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(processAthlete);

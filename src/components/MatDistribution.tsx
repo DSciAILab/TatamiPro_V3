@@ -44,18 +44,8 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
       const division = athlete._division; 
       if (!division) return; // Se não houver divisão (o que não deveria acontecer para atletas aprovados/check-in), pular
 
-      let key: string;
-      let display: string;
-      let belt: DivisionBelt | undefined;
-
-      if (isBeltGroupingEnabled) {
-        key = `${division.gender}/${division.age_category_name}/${division.belt}`;
-        display = `${division.gender} / ${division.age_category_name} / ${division.belt}`;
-        belt = division.belt;
-      } else {
-        key = `${division.gender}/${division.age_category_name}`;
-        display = `${division.gender} / ${division.age_category_name}`;
-      }
+      const key = division.id;
+      const display = division.name;
 
       if (!groupsMap.has(key)) {
         groupsMap.set(key, {
@@ -63,16 +53,13 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
           display,
           gender: division.gender,
           ageCategoryName: division.age_category_name,
-          belt,
+          belt: division.belt,
           athleteCount: 0,
-          divisionIds: [],
+          divisionIds: [division.id],
         });
       }
       const group = groupsMap.get(key)!;
       group.athleteCount++;
-      if (!group.divisionIds.includes(division.id)) {
-        group.divisionIds.push(division.id);
-      }
     });
 
     // Sort order: Gender (Masculino, Feminino, Ambos), AgeCategory, Belt (Branca...Todas)
