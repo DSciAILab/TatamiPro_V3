@@ -28,6 +28,14 @@ const CreateEvent: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError('You must be logged in to create an event.');
+      setLoading(false);
+      navigate('/auth');
+      return;
+    }
+
     if (!eventName || !eventDescription || !eventDate) {
       showError('Please fill in all fields.');
       setLoading(false);
@@ -36,10 +44,11 @@ const CreateEvent: React.FC = () => {
 
     const newEventForDB = {
       id: uuidv4(),
+      user_id: user.id,
       name: eventName,
       description: eventDescription,
       status: 'Aberto',
-      date: format(eventDate, 'yyyy-MM-dd'),
+      event_date: format(eventDate, 'yyyy-MM-dd'),
       is_active: true,
       champion_points: 9,
       runner_up_points: 3,

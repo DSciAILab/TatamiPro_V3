@@ -31,7 +31,7 @@ const Events: React.FC = () => {
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .order('date', { ascending: false });
+      .order('event_date', { ascending: false });
 
     if (error) {
       showError('Failed to load events: ' + error.message);
@@ -64,7 +64,7 @@ const Events: React.FC = () => {
   const filterEvents = (filterType: 'past' | 'upcoming' | 'all') => {
     const today = new Date();
     return events.filter(event => {
-      const eventDate = parseISO(event.date);
+      const eventDate = parseISO(event.event_date);
       if (filterType === 'past') {
         return isPast(eventDate) && eventDate.toDateString() !== today.toDateString();
       } else if (filterType === 'upcoming') {
@@ -97,7 +97,7 @@ const Events: React.FC = () => {
               >
                 <CardHeader>
                   <CardTitle>{event.name}</CardTitle>
-                  <CardDescription>Status: {event.status} | Data: {event.date}</CardDescription>
+                  <CardDescription>Status: {event.status} | Data: {event.event_date}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">

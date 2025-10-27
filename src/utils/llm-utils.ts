@@ -5,7 +5,7 @@ import { Event } from '@/types/index';
 export const createEventSummaryForLLM = (eventData: Event): string => {
   const summary = [];
   summary.push(`- Nome do Evento: ${eventData.name}`);
-  summary.push(`- Data: ${eventData.date}`);
+  summary.push(`- Data: ${eventData.event_date}`);
   summary.push(`- Status: ${eventData.status}`);
   summary.push(`- Descrição: ${eventData.description}`);
 

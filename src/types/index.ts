@@ -109,8 +109,8 @@ export interface Event {
   id: string;
   name: string;
   description: string;
-  status: 'Aberto' | 'Fechado';
-  date: string;
+  status: string;
+  event_date: string;
   athletes?: Athlete[];
   divisions?: Division[];
   age_division_settings?: AgeDivisionSetting[]; // NOVO
