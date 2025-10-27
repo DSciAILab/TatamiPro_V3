@@ -189,6 +189,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       )}
                       <div>
                         <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
+                        <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
                         <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                         <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registration_status === 'under_approval' ? 'Aguardando Aprovação' : athlete.registration_status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
                         {athlete.move_reason && (
@@ -290,6 +291,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                               )}
                               <div className="flex-grow">
                                 <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
+                                <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
                                 <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
                                 {athlete.payment_proof_url && (
                                   <p className="text-xs text-blue-500">
