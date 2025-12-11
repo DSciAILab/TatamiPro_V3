@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { db, PendingChange } from '@/lib/local-db';
+import { db } from '@/lib/local-db';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';

@@ -26,6 +26,8 @@ import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
+import { useOffline } from '@/context/offline-context'; // Import offline context
+import { db } from '@/lib/local-db'; // Import local DB
 
 const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch: boolean = false): string => {
   if (isThirdPlaceMatch) return 'Luta pelo 3º Lugar';
@@ -42,6 +44,8 @@ const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
   const navigate = useNavigate();
+  const { isOfflineMode, trackChange } = useOffline(); // Use offline hook
+  
   const [event, setEvent] = useState<Event | null>(null);
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
   const [currentBracket, setCurrentBracket] = useState<Bracket | null>(null);
@@ -57,14 +61,29 @@ const FightDetail: React.FC = () => {
     if (!eventId || !divisionId || !matchId) return;
     setLoading(true);
     try {
-      const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
-      if (eventError) throw eventError;
+      let eventData, athletesData, divisionsData;
 
-      const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
-      if (athletesError) throw athletesError;
-      
-      const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
-      if (divisionsError) throw divisionsError;
+      if (isOfflineMode) {
+        // FETCH FROM LOCAL DB
+        eventData = await db.events.get(eventId);
+        if (!eventData) throw new Error("Event not found locally. Please sync online first.");
+        
+        athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
+        divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
+      } else {
+        // FETCH FROM SUPABASE
+        const { data: eData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
+        if (eventError) throw eventError;
+        eventData = eData;
+
+        const { data: aData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        if (athletesError) throw athletesError;
+        athletesData = aData;
+        
+        const { data: dData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        if (divisionsError) throw divisionsError;
+        divisionsData = dData;
+      }
 
       const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
       const fullEventData: Event = {
@@ -98,7 +117,7 @@ const FightDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [eventId, divisionId, matchId, navigate]);
+  }, [eventId, divisionId, matchId, navigate, isOfflineMode]);
 
   useEffect(() => {
     loadFightData();
@@ -145,15 +164,29 @@ const FightDetail: React.FC = () => {
       brackets: updatedBrackets,
     });
 
-    const { error } = await supabase.from('events').update({ brackets: finalBrackets, mat_fight_order: newMatFightOrder }).eq('id', eventId);
-    
-    dismissToast(toastId);
-    if (error) {
-      showError(`Falha ao salvar o resultado: ${error.message}`);
-    } else {
-      showSuccess(`Resultado da luta ${currentMatch?.mat_fight_number} registrado!`);
-      // Refresh local state after successful save
+    const updateData = { brackets: finalBrackets, mat_fight_order: newMatFightOrder };
+
+    try {
+      if (isOfflineMode) {
+        // SAVE LOCALLY
+        await trackChange('events', 'update', { id: eventId, ...updateData });
+        const localEvent = await db.events.get(eventId);
+        if (localEvent) {
+          await db.events.put({ ...localEvent, ...updateData });
+        }
+        showSuccess(isOfflineMode ? "Resultado salvo localmente." : "Resultado registrado!");
+      } else {
+        // SAVE ONLINE
+        const { error } = await supabase.from('events').update(updateData).eq('id', eventId);
+        if (error) throw error;
+        showSuccess(`Resultado da luta ${currentMatch?.mat_fight_number} registrado!`);
+      }
+      
       await loadFightData();
+    } catch (error: any) {
+      showError(`Falha ao salvar o resultado: ${error.message}`);
+    } finally {
+      dismissToast(toastId);
     }
   };
 
