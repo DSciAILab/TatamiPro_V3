@@ -8,9 +8,8 @@ export type Belt = 'Branca' | 'Cinza' | 'Amarela' | 'Laranja' | 'Verde' | 'Azul'
 export type Gender = 'Masculino' | 'Feminino' | 'Outro';
 export type DivisionGender = 'Masculino' | 'Feminino' | 'Ambos';
 export type DivisionBelt = Belt | 'Todas';
-export type AgeCategory = string; // Alterado de enum para string para suportar nomes customizados
+export type AgeCategory = string;
 
-// NOVO: Interface para as configurações de divisão de idade
 export interface AgeDivisionSetting {
   id: string;
   name: string;
@@ -114,7 +113,7 @@ export interface Event {
   event_date: string;
   athletes?: Athlete[];
   divisions?: Division[];
-  age_division_settings?: AgeDivisionSetting[]; // NOVO
+  age_division_settings?: AgeDivisionSetting[];
   check_in_start_time?: Date;
   check_in_end_time?: Date;
   num_fight_areas?: number;
@@ -133,4 +132,5 @@ export interface Event {
   third_place_points: number;
   count_single_club_categories: boolean;
   count_walkover_single_fight_categories: boolean;
+  check_in_config?: Record<string, boolean>; // New field for JSON config
 }

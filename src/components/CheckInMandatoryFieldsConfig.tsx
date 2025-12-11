@@ -3,58 +3,74 @@
 import React, { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { showSuccess } from '@/utils/toast';
+import { Button } from '@/components/ui/button';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CheckInMandatoryFieldsConfigProps {
   eventId: string;
+  initialConfig?: Record<string, boolean>;
 }
 
 const defaultMandatoryFields = {
-  club: true,
-  firstName: true,
-  lastName: true,
-  dateOfBirth: true,
-  belt: true,
-  weight: true,
-  idNumber: true, // Representa Emirates ID ou School ID
-  gender: true,
-  nationality: true,
-  email: true,
-  phone: true,
-  photo: false, // Photo de perfil
+  photo: false,
   emiratesIdFront: false,
   emiratesIdBack: false,
   paymentProof: false,
 };
 
-const CheckInMandatoryFieldsConfig: React.FC<CheckInMandatoryFieldsConfigProps> = ({ eventId }) => {
-  const [config, setConfig] = useState<Record<string, boolean>>(() => {
-    const storedConfig = localStorage.getItem(`mandatoryCheckInFields_${eventId}`);
-    return storedConfig ? JSON.parse(storedConfig) : defaultMandatoryFields;
-  });
+const CheckInMandatoryFieldsConfig: React.FC<CheckInMandatoryFieldsConfigProps> = ({ eventId, initialConfig }) => {
+  const [config, setConfig] = useState<Record<string, boolean>>(initialConfig || defaultMandatoryFields);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(`mandatoryCheckInFields_${eventId}`, JSON.stringify(config));
-  }, [config, eventId]);
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
 
   const handleToggle = (field: string, checked: boolean) => {
     setConfig(prev => ({ ...prev, [field]: checked }));
-    showSuccess('Configuração salva!');
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    const loadingToast = showLoading('Saving check-in configuration...');
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ check_in_config: config })
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      dismissToast(loadingToast);
+      showSuccess('Configuration saved to database!');
+      setHasChanges(false);
+    } catch (error: any) {
+      dismissToast(loadingToast);
+      showError('Failed to save configuration: ' + error.message);
+    }
   };
 
   const fieldsToConfigure = [
-    { key: 'photo', label: 'Foto de Perfil' },
-    { key: 'emiratesIdFront', label: 'Emirates ID (Frente)' },
-    { key: 'emiratesIdBack', label: 'Emirates ID (Verso)' },
-    { key: 'paymentProof', label: 'Comprovante de Pagamento' },
+    { key: 'photo', label: 'Profile Photo' },
+    { key: 'emiratesIdFront', label: 'ID Front (Emirates/School)' },
+    { key: 'emiratesIdBack', label: 'ID Back (Emirates/School)' },
+    { key: 'paymentProof', label: 'Payment Proof' },
   ];
 
   return (
     <div className="space-y-4 p-4 border rounded-md bg-muted/20">
-      <h4 className="text-lg font-semibold">Configurar Campos Obrigatórios para Check-in</h4>
+      <div className="flex justify-between items-center">
+        <h4 className="text-lg font-semibold">Check-in Mandatory Fields</h4>
+        {hasChanges && (
+          <Button size="sm" onClick={handleSave}>Save Config</Button>
+        )}
+      </div>
       <p className="text-sm text-muted-foreground">
-        Os campos "Equipe", "Nome", "ID", "Data de Nascimento", "Faixa", "Peso", "Gênero", "Nacionalidade", "Email" e "Telefone" são sempre obrigatórios.
-        Marque abaixo os campos adicionais que devem ser obrigatórios para o check-in.
+        Core fields (Name, ID Number, Weight, etc.) are always mandatory. 
+        Select additional fields required for check-in validation.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {fieldsToConfigure.map(field => (

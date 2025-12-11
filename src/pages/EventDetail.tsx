@@ -12,7 +12,6 @@ import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
 
-// Import the new tab components
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
 import CheckInTab from '@/components/CheckInTab';
@@ -20,7 +19,7 @@ import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import ResultsTab from '@/components/ResultsTab';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
 const EventDetail: React.FC = () => {
@@ -43,13 +42,11 @@ const EventDetail: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Ref to hold the latest state of hasUnsavedChanges to avoid stale closures in callbacks
   const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
   useEffect(() => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
 
-  // Sub-tab states
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
@@ -65,7 +62,7 @@ const EventDetail: React.FC = () => {
 
   const fetchEventData = useCallback(async (source?: string) => {
     if (hasUnsavedChangesRef.current && source === 'subscription') {
-      console.warn("Real-time update ignored due to unsaved local changes. Please save your changes.");
+      console.warn("Real-time update ignored due to unsaved local changes.");
       return;
     }
     if (!eventId) return;
@@ -171,7 +168,6 @@ const EventDetail: React.FC = () => {
         })
         .eq('id', updatedAthlete.id);
       if (error) throw error;
-      // No need to call fetchEventData here, subscription will handle it.
       setEditingAthlete(null);
       dismissToast(toastId);
       showSuccess("Athlete updated successfully.");
@@ -187,13 +183,11 @@ const EventDetail: React.FC = () => {
       showError(error.message);
     } else {
       showSuccess('Athlete deleted.');
-      // No need to call fetchEventData here, subscription will handle it.
     }
   };
 
   const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
     const toastId = showLoading("Registrando check-in...");
-    
     const updatePayload = {
       check_in_status: updatedAthlete.check_in_status,
       registered_weight: updatedAthlete.registered_weight,
@@ -216,7 +210,6 @@ const EventDetail: React.FC = () => {
       showError(`Falha ao fazer check-in: ${error.message}`);
     } else {
       showSuccess("Check-in do atleta atualizado com sucesso!");
-      // ATUALIZAÇÃO: Atualizar o estado local para refletir a mudança imediatamente
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes?.map(ath => 
@@ -230,7 +223,6 @@ const EventDetail: React.FC = () => {
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
     const { error } = await supabase.from('athletes').update({ attendance_status: status }).eq('id', athleteId);
     if (error) showError(error.message);
-    // No need to call fetchEventData here, subscription will handle it.
   };
 
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
@@ -243,7 +235,6 @@ const EventDetail: React.FC = () => {
     } else {
       showSuccess(`${selectedAthletesForApproval.length} athletes ${status}.`);
       setSelectedAthletesForApproval([]);
-      // No need to call fetchEventData here, subscription will handle it.
     }
   };
 
@@ -258,7 +249,6 @@ const EventDetail: React.FC = () => {
       }
       dismissToast(toastId);
       showSuccess('Divisions updated successfully.');
-      // No need to call fetchEventData here, subscription will handle it.
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to update divisions: ${error.message}`);
@@ -271,14 +261,9 @@ const EventDetail: React.FC = () => {
       showError(`Failed to save brackets: ${error.message}`);
     } else {
       showSuccess('Brackets and fight order saved successfully.');
-      // Manually update the local state to reflect the change immediately
       setEvent(prevEvent => {
         if (!prevEvent) return null;
-        return {
-          ...prevEvent,
-          brackets: updatedBrackets,
-          mat_fight_order: matFightOrder,
-        };
+        return { ...prevEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
       });
     }
   };
@@ -333,12 +318,8 @@ const EventDetail: React.FC = () => {
     { value: 'llm', label: 'LLM (Q&A)' },
   ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, event?.is_attendance_mandatory_before_check_in]);
 
-  if (loading) {
-    return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
-  }
-  if (!event) {
-    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado.</div></Layout>;
-  }
+  if (loading) return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
+  if (!event) return <Layout><div className="text-center text-xl mt-8">Evento não encontrado.</div></Layout>;
 
   return (
     <Layout>
@@ -408,7 +389,7 @@ const EventDetail: React.FC = () => {
             editingAthlete={editingAthlete}
             setEditingAthlete={setEditingAthlete}
             handleAthleteUpdate={handleAthleteUpdate}
-            mandatoryFieldsConfig={{}}
+            mandatoryFieldsConfig={event.check_in_config || {}} // Changed to use event config
             filteredAthletesForDisplay={filteredAthletesForDisplayInscricoes}
             registrationStatusFilter={registrationStatusFilter}
             setRegistrationStatusFilter={setRegistrationStatusFilter}
@@ -429,11 +410,11 @@ const EventDetail: React.FC = () => {
 
         <TabsContent value="attendance" className="mt-6">
           <AttendanceManagement
-            eventId={event.id}
             eventDivisions={event.divisions || []}
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
             isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
             userRole={userRole}
+            athletes={event.athletes || []} // Pass athletes directly
           />
         </TabsContent>
 
@@ -461,6 +442,7 @@ const EventDetail: React.FC = () => {
           />
         </TabsContent>
 
+        {/* Other tabs remain the same */}
         <TabsContent value="brackets" className="mt-6">
           <BracketsTab
             event={event}
