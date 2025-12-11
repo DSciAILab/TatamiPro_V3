@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import OfflineIndicator from '@/components/OfflineIndicator';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -58,6 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
           </div>
           <div className="flex items-center space-x-2">
+            <OfflineIndicator />
             <ModeToggle />
             {session && profile ? (
               <DropdownMenu>

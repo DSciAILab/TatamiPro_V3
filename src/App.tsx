@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider } from "@/context/auth-context";
 import { LayoutSettingsProvider } from "@/context/layout-settings-context";
+import { OfflineProvider } from "@/context/offline-context"; // Import Provider
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
@@ -36,32 +37,34 @@ const App = () => (
     >
       <LanguageProvider>
         <AuthProvider>
-          <LayoutSettingsProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Welcome />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/events" element={<Events />} />
-                  <Route path="/events/create" element={<CreateEvent />} />
-                  <Route path="/events/:id" element={<EventDetail />} />
-                  <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
-                  <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
-                  <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
-                  <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
-                  <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
-                  <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/account-security" element={<AccountSecurity />} />
-                  <Route path="/public/events/:id" element={<PublicEvent />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </LayoutSettingsProvider>
+          <OfflineProvider> 
+            <LayoutSettingsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Welcome />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/events" element={<Events />} />
+                    <Route path="/events/create" element={<CreateEvent />} />
+                    <Route path="/events/:id" element={<EventDetail />} />
+                    <Route path="/events/:id/registration-options" element={<RegistrationOptions />} />
+                    <Route path="/events/:id/register-athlete" element={<AthleteRegistrationForm />} />
+                    <Route path="/events/:id/import-athletes" element={<BatchAthleteImport />} />
+                    <Route path="/events/:id/import-divisions" element={<DivisionImport />} />
+                    <Route path="/events/:eventId/fights/:divisionId/:matchId" element={<FightDetail />} />
+                    <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/account-security" element={<AccountSecurity />} />
+                    <Route path="/public/events/:id" element={<PublicEvent />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </LayoutSettingsProvider>
+          </OfflineProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

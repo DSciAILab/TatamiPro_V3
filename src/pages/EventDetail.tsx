@@ -12,6 +12,8 @@ import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
+import { useOffline } from '@/context/offline-context'; // Import useOffline
+import { db } from '@/lib/local-db'; // Import Dexie DB
 
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -27,6 +29,7 @@ const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const location = useLocation();
   const { profile } = useAuth();
+  const { isOfflineMode, trackChange } = useOffline(); // Use Offline Context
   const userRole = profile?.role;
   const userClub = profile?.club;
   const [activeTab, setActiveTab] = useState('inscricoes');
@@ -70,29 +73,44 @@ const EventDetail: React.FC = () => {
     if (source !== 'subscription') setLoading(true);
     try {
       const appId = await getAppId();
+      let eventData, athletesData, divisionsData;
 
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', eventId)
-        .eq('app_id', appId)
-        .single();
-      if (eventError) throw eventError;
+      if (isOfflineMode) {
+        // FETCH FROM LOCAL DB (DEXIE)
+        eventData = await db.events.get(eventId);
+        if (!eventData) throw new Error("Event not found locally. Please sync online first.");
+        
+        athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
+        divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
+      } else {
+        // FETCH FROM SUPABASE
+        const { data: eData, error: eventError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', eventId)
+          .eq('app_id', appId)
+          .single();
+        if (eventError) throw eventError;
+        eventData = eData;
+
+        const { data: aData, error: athletesError } = await supabase
+          .from('athletes')
+          .select('*')
+          .eq('event_id', eventId)
+          .eq('app_id', appId);
+        if (athletesError) throw athletesError;
+        athletesData = aData;
+
+        const { data: dData, error: divisionsError } = await supabase
+          .from('divisions')
+          .select('*')
+          .eq('event_id', eventId)
+          .eq('app_id', appId);
+        if (divisionsError) throw divisionsError;
+        divisionsData = dData;
+      }
+
       if (!eventData) throw new Error("Event not found.");
-
-      const { data: athletesData, error: athletesError } = await supabase
-        .from('athletes')
-        .select('*')
-        .eq('event_id', eventId)
-        .eq('app_id', appId);
-      if (athletesError) throw athletesError;
-
-      const { data: divisionsData, error: divisionsError } = await supabase
-        .from('divisions')
-        .select('*')
-        .eq('event_id', eventId)
-        .eq('app_id', appId);
-      if (divisionsError) throw divisionsError;
 
       const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || [], eventData.age_division_settings || []));
       
@@ -113,22 +131,26 @@ const EventDetail: React.FC = () => {
         setHasUnsavedChanges(false);
       }
     }
-  }, [eventId]);
+  }, [eventId, isOfflineMode]);
 
   useEffect(() => {
     fetchEventData();
 
-    const channel = supabase
-      .channel(`event-${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchEventData('subscription'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'athletes', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'divisions', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
-      .subscribe();
+    // Only subscribe to realtime if online
+    let channel: any;
+    if (!isOfflineMode) {
+      channel = supabase
+        .channel(`event-${eventId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchEventData('subscription'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'athletes', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'divisions', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+        .subscribe();
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
-  }, [eventId, fetchEventData]);
+  }, [eventId, fetchEventData, isOfflineMode]);
 
   const handleSaveChanges = async () => {
     if (!event || !eventId || !hasUnsavedChanges) return;
@@ -139,21 +161,29 @@ const EventDetail: React.FC = () => {
       const appId = await getAppId();
       const { athletes, divisions, ...eventToUpdate } = event;
       
-      const { error } = await supabase
-        .from('events')
-        .update({
-          ...eventToUpdate,
-          check_in_start_time: event.check_in_start_time?.toISOString(),
-          check_in_end_time: event.check_in_end_time?.toISOString(),
-        })
-        .eq('id', eventId)
-        .eq('app_id', appId);
+      const updateData = {
+        ...eventToUpdate,
+        check_in_start_time: event.check_in_start_time?.toISOString(),
+        check_in_end_time: event.check_in_end_time?.toISOString(),
+      };
 
-      if (error) throw error;
+      if (isOfflineMode) {
+        // Track change locally
+        await trackChange('events', 'update', updateData);
+        // Update local state in DB to reflect UI immediately
+        await db.events.put(updateData as Event);
+      } else {
+        const { error } = await supabase
+          .from('events')
+          .update(updateData)
+          .eq('id', eventId)
+          .eq('app_id', appId);
+        if (error) throw error;
+      }
 
       setHasUnsavedChanges(false);
       dismissToast(toastId);
-      showSuccess("Event settings saved successfully!");
+      showSuccess(isOfflineMode ? "Settings saved locally (Offline)." : "Event settings saved successfully!");
     } catch (error: any) {
       dismissToast(toastId);
       showError("Failed to save event settings: " + error.message);
@@ -179,19 +209,25 @@ const EventDetail: React.FC = () => {
     try {
       const appId = await getAppId();
       const { _division, ...athleteForDb } = updatedAthlete;
-      const { error } = await supabase
-        .from('athletes')
-        .update({
-          ...athleteForDb,
-          date_of_birth: athleteForDb.date_of_birth.toISOString(),
-          consent_date: athleteForDb.consent_date.toISOString(),
-        })
-        .eq('id', updatedAthlete.id)
-        .eq('app_id', appId);
-
-      if (error) throw error;
       
-      // Update local state immediately
+      const athleteData = {
+        ...athleteForDb,
+        date_of_birth: athleteForDb.date_of_birth.toISOString(),
+        consent_date: athleteForDb.consent_date.toISOString(),
+      };
+
+      if (isOfflineMode) {
+        await trackChange('athletes', 'update', athleteData);
+        await db.athletes.put(athleteData as Athlete);
+      } else {
+        const { error } = await supabase
+          .from('athletes')
+          .update(athleteData)
+          .eq('id', updatedAthlete.id)
+          .eq('app_id', appId);
+        if (error) throw error;
+      }
+      
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes?.map(ath => 
@@ -202,7 +238,7 @@ const EventDetail: React.FC = () => {
 
       setEditingAthlete(null);
       dismissToast(toastId);
-      showSuccess("Athlete updated successfully.");
+      showSuccess(isOfflineMode ? "Athlete updated locally." : "Athlete updated successfully.");
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to update athlete: ${error.message}`);
@@ -211,23 +247,30 @@ const EventDetail: React.FC = () => {
 
   const handleDeleteAthlete = async (athleteId: string) => {
     const appId = await getAppId();
-    const { error } = await supabase
-      .from('athletes')
-      .delete()
-      .eq('id', athleteId)
-      .eq('app_id', appId);
-
-    if (error) {
-      showError(error.message);
+    
+    if (isOfflineMode) {
+      await trackChange('athletes', 'delete', { id: athleteId });
+      await db.athletes.delete(athleteId);
+      showSuccess('Athlete deleted locally.');
     } else {
-      // Update local state immediately
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes?.filter(ath => ath.id !== athleteId);
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+      const { error } = await supabase
+        .from('athletes')
+        .delete()
+        .eq('id', athleteId)
+        .eq('app_id', appId);
+
+      if (error) {
+        showError(error.message);
+        return;
+      }
       showSuccess('Athlete deleted.');
     }
+
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      const updatedAthletes = prevEvent.athletes?.filter(ath => ath.id !== athleteId);
+      return { ...prevEvent, athletes: updatedAthletes };
+    });
   };
 
   const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
@@ -245,17 +288,35 @@ const EventDetail: React.FC = () => {
       move_reason: updatedAthlete.move_reason,
     };
 
-    const { error } = await supabase
-      .from('athletes')
-      .update(updatePayload)
-      .eq('id', updatedAthlete.id)
-      .eq('app_id', appId);
+    try {
+      if (isOfflineMode) {
+        // Need to merge with full athlete object for local DB update
+        const fullAthlete = event?.athletes?.find(a => a.id === updatedAthlete.id);
+        if (fullAthlete) {
+           const mergedAthlete = {
+             ...fullAthlete,
+             ...updatePayload,
+             // Ensure dates are strings for IndexedDB if stored as raw objects
+             date_of_birth: fullAthlete.date_of_birth.toISOString(),
+             consent_date: fullAthlete.consent_date.toISOString(),
+             // Remove volatile props
+             _division: undefined
+           };
+           await trackChange('athletes', 'update', { id: updatedAthlete.id, ...updatePayload });
+           await db.athletes.put(mergedAthlete as any);
+        }
+      } else {
+        const { error } = await supabase
+          .from('athletes')
+          .update(updatePayload)
+          .eq('id', updatedAthlete.id)
+          .eq('app_id', appId);
+        if (error) throw error;
+      }
 
-    dismissToast(toastId);
-    if (error) {
-      showError(`Falha ao fazer check-in: ${error.message}`);
-    } else {
-      showSuccess("Check-in do atleta atualizado com sucesso!");
+      dismissToast(toastId);
+      showSuccess(isOfflineMode ? "Check-in salvo localmente." : "Check-in atualizado com sucesso!");
+      
       setEvent(prevEvent => {
         if (!prevEvent) return null;
         const updatedAthletes = prevEvent.athletes?.map(ath => 
@@ -263,54 +324,91 @@ const EventDetail: React.FC = () => {
         );
         return { ...prevEvent, athletes: updatedAthletes };
       });
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Falha ao fazer check-in: ${error.message}`);
     }
   };
 
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
     const appId = await getAppId();
-    const { error } = await supabase
-      .from('athletes')
-      .update({ attendance_status: status })
-      .eq('id', athleteId)
-      .eq('app_id', appId);
     
-    if (error) {
-      showError(error.message);
+    if (isOfflineMode) {
+       const fullAthlete = event?.athletes?.find(a => a.id === athleteId);
+       if(fullAthlete) {
+         const mergedAthlete = { 
+           ...fullAthlete, 
+           attendance_status: status,
+           date_of_birth: fullAthlete.date_of_birth.toISOString(),
+           consent_date: fullAthlete.consent_date.toISOString(),
+           _division: undefined
+         };
+         await trackChange('athletes', 'update', { id: athleteId, attendance_status: status });
+         await db.athletes.put(mergedAthlete as any);
+       }
     } else {
-      // Update local state
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes?.map(ath => 
-          ath.id === athleteId ? { ...ath, attendance_status: status } : ath
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+      const { error } = await supabase
+        .from('athletes')
+        .update({ attendance_status: status })
+        .eq('id', athleteId)
+        .eq('app_id', appId);
+      if (error) {
+        showError(error.message);
+        return;
+      }
     }
+
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      const updatedAthletes = prevEvent.athletes?.map(ath => 
+        ath.id === athleteId ? { ...ath, attendance_status: status } : ath
+      );
+      return { ...prevEvent, athletes: updatedAthletes };
+    });
   };
 
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
     const appId = await getAppId();
-    const { error } = await supabase
-      .from('athletes')
-      .update({ registration_status: status })
-      .in('id', selectedAthletesForApproval)
-      .eq('app_id', appId);
-
-    if (error) {
-      showError(error.message);
+    
+    if (isOfflineMode) {
+      // Loop through selected and update/track each one
+      for (const id of selectedAthletesForApproval) {
+        const fullAthlete = event?.athletes?.find(a => a.id === id);
+        if (fullAthlete) {
+           const mergedAthlete = { 
+             ...fullAthlete, 
+             registration_status: status,
+             date_of_birth: fullAthlete.date_of_birth.toISOString(),
+             consent_date: fullAthlete.consent_date.toISOString(),
+             _division: undefined
+           };
+           await trackChange('athletes', 'update', { id, registration_status: status });
+           await db.athletes.put(mergedAthlete as any);
+        }
+      }
+      showSuccess(`${selectedAthletesForApproval.length} athletes ${status} locally.`);
     } else {
-      // Update local state immediately for instant feedback
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        const updatedAthletes = prevEvent.athletes?.map(ath => 
-          selectedAthletesForApproval.includes(ath.id) ? { ...ath, registration_status: status } : ath
-        );
-        return { ...prevEvent, athletes: updatedAthletes };
-      });
+      const { error } = await supabase
+        .from('athletes')
+        .update({ registration_status: status })
+        .in('id', selectedAthletesForApproval)
+        .eq('app_id', appId);
 
+      if (error) {
+        showError(error.message);
+        return;
+      }
       showSuccess(`${selectedAthletesForApproval.length} athletes ${status}.`);
-      setSelectedAthletesForApproval([]);
     }
+
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      const updatedAthletes = prevEvent.athletes?.map(ath => 
+        selectedAthletesForApproval.includes(ath.id) ? { ...ath, registration_status: status } : ath
+      );
+      return { ...prevEvent, athletes: updatedAthletes };
+    });
+    setSelectedAthletesForApproval([]);
   };
 
   const handleUpdateDivisions = async (updatedDivisions: Division[]) => {
@@ -318,26 +416,54 @@ const EventDetail: React.FC = () => {
     try {
       const appId = await getAppId();
       
-      const { error: deleteError } = await supabase
-        .from('divisions')
-        .delete()
-        .eq('event_id', eventId)
-        .eq('app_id', appId);
+      if (isOfflineMode) {
+        // This is complex in offline mode (bulk update). 
+        // Strategy: We just overwrite the divisions in local DB and track a "bulk update" or simple creates/updates?
+        // Simplifying: Track delete of all for event, then insert all.
+        // For simplicity in this demo, let's just update local DB and assume sync will handle the "latest state" logic later or user syncs before big changes.
+        // Actually, creating individual tracking events is safer.
+        
+        // 1. Find deleted
+        const existingDivs = await db.divisions.where('event_id').equals(eventId).toArray();
+        const newIds = updatedDivisions.map(d => d.id);
+        const deletedIds = existingDivs.filter(d => !newIds.includes(d.id)).map(d => d.id);
+        
+        for (const id of deletedIds) {
+          await trackChange('divisions', 'delete', { id });
+          await db.divisions.delete(id);
+        }
 
-      if (deleteError) throw deleteError;
-      
-      if (updatedDivisions.length > 0) {
-        const { error: insertError } = await supabase
+        for (const div of updatedDivisions) {
+          // Check if exists to determine 'create' vs 'update'
+          const exists = existingDivs.find(d => d.id === div.id);
+          const action = exists ? 'update' : 'create';
+          const divPayload = { ...div, event_id: eventId, app_id: appId };
+          await trackChange('divisions', action, divPayload);
+          await db.divisions.put(divPayload);
+        }
+        
+      } else {
+        const { error: deleteError } = await supabase
           .from('divisions')
-          .insert(updatedDivisions.map(d => ({ ...d, event_id: eventId, app_id: appId })));
-        if (insertError) throw insertError;
+          .delete()
+          .eq('event_id', eventId)
+          .eq('app_id', appId);
+
+        if (deleteError) throw deleteError;
+        
+        if (updatedDivisions.length > 0) {
+          const { error: insertError } = await supabase
+            .from('divisions')
+            .insert(updatedDivisions.map(d => ({ ...d, event_id: eventId, app_id: appId })));
+          if (insertError) throw insertError;
+        }
       }
       
       // Update local state
       setEvent(prev => prev ? ({ ...prev, divisions: updatedDivisions }) : null);
 
       dismissToast(toastId);
-      showSuccess('Divisions updated successfully.');
+      showSuccess(isOfflineMode ? 'Divisions updated locally.' : 'Divisions updated successfully.');
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to update divisions: ${error.message}`);
@@ -346,21 +472,35 @@ const EventDetail: React.FC = () => {
 
   const handleUpdateBracketsAndFightOrder = async (updatedBrackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => {
     const appId = await getAppId();
-    const { error } = await supabase
-      .from('events')
-      .update({ brackets: updatedBrackets, mat_fight_order: matFightOrder })
-      .eq('id', eventId!)
-      .eq('app_id', appId);
-
-    if (error) {
-      showError(`Failed to save brackets: ${error.message}`);
+    
+    if (isOfflineMode) {
+      const updateData = { brackets: updatedBrackets, mat_fight_order: matFightOrder };
+      await trackChange('events', 'update', { id: eventId, ...updateData });
+      
+      // Update local event record
+      const localEvent = await db.events.get(eventId);
+      if (localEvent) {
+        await db.events.put({ ...localEvent, ...updateData });
+      }
+      showSuccess('Brackets saved locally.');
     } else {
+      const { error } = await supabase
+        .from('events')
+        .update({ brackets: updatedBrackets, mat_fight_order: matFightOrder })
+        .eq('id', eventId!)
+        .eq('app_id', appId);
+
+      if (error) {
+        showError(`Failed to save brackets: ${error.message}`);
+        return;
+      }
       showSuccess('Brackets and fight order saved successfully.');
-      setEvent(prevEvent => {
-        if (!prevEvent) return null;
-        return { ...prevEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
-      });
     }
+
+    setEvent(prevEvent => {
+      if (!prevEvent) return null;
+      return { ...prevEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
+    });
   };
 
   const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
