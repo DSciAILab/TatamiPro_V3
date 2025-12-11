@@ -90,16 +90,28 @@ const PrintBrackets: React.FC = () => {
     }
 
     const loadingToastId = showLoading('Gerando PDF dos brackets...');
-    try {
-      const divisionsToPrint = event.divisions.filter(d => selectedDivisions.includes(d.id));
-      generateBracketPdf(event, divisionsToPrint, athletesMap);
-      dismissToast(loadingToastId);
-      showSuccess('PDF dos brackets gerado com sucesso!');
-    } catch (error: any) {
-      dismissToast(loadingToastId);
-      showError(`Falha ao gerar PDF: ${error.message}`);
-      console.error("PDF Generation Error:", error);
-    }
+    
+    // Pequeno timeout para permitir que a UI atualize antes do trabalho pesado do PDF
+    setTimeout(() => {
+      try {
+        console.log("Iniciando geração de PDF para as divisões:", selectedDivisions);
+        // Use default empty array to satisfy TypeScript if event.divisions is undefined
+        const divisionsToPrint = (event.divisions || []).filter(d => selectedDivisions.includes(d.id));
+        
+        if (divisionsToPrint.length === 0) {
+            throw new Error("Nenhuma divisão válida encontrada para imprimir.");
+        }
+
+        generateBracketPdf(event, divisionsToPrint, athletesMap);
+        
+        dismissToast(loadingToastId);
+        showSuccess('PDF dos brackets gerado com sucesso!');
+      } catch (error: any) {
+        console.error("Erro na geração do PDF:", error);
+        dismissToast(loadingToastId);
+        showError(`Falha ao gerar PDF: ${error.message}`);
+      }
+    }, 100);
   };
 
   if (loading) {
@@ -114,7 +126,7 @@ const PrintBrackets: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Imprimir Brackets para {event.name}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}/generate-brackets`)} variant="outline">
+        <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets' } })} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerar Brackets
         </Button>
       </div>

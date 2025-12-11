@@ -1,6 +1,6 @@
 "use client";
 
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { Event, Division, Bracket, Athlete, Match } from '@/types/index';
 
 // --- Drawing Constants ---
@@ -18,7 +18,7 @@ const WINNER_BG_COLOR = '#e0f2fe'; // Light blue
 
 const drawText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
   // jsPDF doesn't handle some unicode characters well, so we replace them.
-  const sanitizedText = text.replace(/’/g, "'").replace(/“/g, '"').replace(/”/g, '"');
+  const sanitizedText = (text || '').replace(/’/g, "'").replace(/“/g, '"').replace(/”/g, '"');
   doc.text(sanitizedText, x, y, options);
 };
 
@@ -45,9 +45,12 @@ const drawMatch = (
     doc.rect(x, y, CARD_WIDTH, CARD_HEIGHT / 2, 'F');
   }
   doc.setFontSize(FONT_SIZE_NORMAL);
-  drawText(doc, fighter1 ? (fighter1 === 'BYE' ? 'BYE' : `${fighter1.first_name} ${fighter1.last_name}`) : 'Aguardando', x + 2, y + 4);
+  const f1Name = fighter1 ? (fighter1 === 'BYE' ? 'BYE' : `${fighter1.first_name} ${fighter1.last_name}`) : 'Aguardando';
+  drawText(doc, f1Name, x + 2, y + 4);
+  
   doc.setFontSize(FONT_SIZE_SMALL);
-  drawText(doc, fighter1 && fighter1 !== 'BYE' ? fighter1.club : '', x + 2, y + 7);
+  const f1Club = (fighter1 && fighter1 !== 'BYE') ? fighter1.club : '';
+  drawText(doc, f1Club, x + 2, y + 7);
 
   // Separator line
   doc.line(x, y + CARD_HEIGHT / 2, x + CARD_WIDTH, y + CARD_HEIGHT / 2);
@@ -58,9 +61,12 @@ const drawMatch = (
     doc.rect(x, y + CARD_HEIGHT / 2, CARD_WIDTH, CARD_HEIGHT / 2, 'F');
   }
   doc.setFontSize(FONT_SIZE_NORMAL);
-  drawText(doc, fighter2 ? (fighter2 === 'BYE' ? 'BYE' : `${fighter2.first_name} ${fighter2.last_name}`) : 'Aguardando', x + 2, y + 4 + CARD_HEIGHT / 2);
+  const f2Name = fighter2 ? (fighter2 === 'BYE' ? 'BYE' : `${fighter2.first_name} ${fighter2.last_name}`) : 'Aguardando';
+  drawText(doc, f2Name, x + 2, y + 4 + CARD_HEIGHT / 2);
+  
   doc.setFontSize(FONT_SIZE_SMALL);
-  drawText(doc, fighter2 && fighter2 !== 'BYE' ? fighter2.club : '', x + 2, y + 7 + CARD_HEIGHT / 2);
+  const f2Club = (fighter2 && fighter2 !== 'BYE') ? fighter2.club : '';
+  drawText(doc, f2Club, x + 2, y + 7 + CARD_HEIGHT / 2);
 };
 
 const drawBracketLines = (
@@ -74,34 +80,46 @@ const drawBracketLines = (
   bracket.rounds.forEach(round => {
     round.forEach(match => {
       if (match.next_match_id) {
-        const currentPos = matchPositions.get(match.id)!;
-        const nextPos = matchPositions.get(match.next_match_id)!;
+        const currentPos = matchPositions.get(match.id);
+        const nextPos = matchPositions.get(match.next_match_id);
 
-        const startX = currentPos.x + CARD_WIDTH;
-        const startY = currentPos.y + CARD_HEIGHT / 2;
-        const endX = nextPos.x;
-        const midX = startX + ROUND_GAP / 2;
+        if (currentPos && nextPos) {
+            const startX = currentPos.x + CARD_WIDTH;
+            const startY = currentPos.y + CARD_HEIGHT / 2;
+            const endX = nextPos.x;
+            const midX = startX + ROUND_GAP / 2;
 
-        doc.line(startX, startY, midX, startY); // Horizontal line from current match
+            doc.line(startX, startY, midX, startY); // Horizontal line from current match
 
-        const isTopParent = nextPos.y > currentPos.y;
-        const endY = nextPos.y + (isTopParent ? CARD_HEIGHT / 4 : (CARD_HEIGHT * 3) / 4);
+            const isTopParent = nextPos.y > currentPos.y;
+            const endY = nextPos.y + (isTopParent ? CARD_HEIGHT / 4 : (CARD_HEIGHT * 3) / 4);
 
-        doc.line(midX, startY, midX, endY); // Vertical line
-        doc.line(midX, endY, endX, endY); // Horizontal line to next match
+            doc.line(midX, startY, midX, endY); // Vertical line
+            doc.line(midX, endY, endX, endY); // Horizontal line to next match
+        }
       }
     });
   });
 };
 
 export const generateBracketPdf = (event: Event, selectedDivisions: Division[], athletesMap: Map<string, Athlete>) => {
-  const doc = new jsPDF('p', 'mm', 'a4');
+  // Use 'new jsPDF' directly. The import change above fixes the constructor issue.
+  const doc = new jsPDF({
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a4'
+  });
 
-  selectedDivisions.forEach((division, index) => {
-    if (index > 0) doc.addPage();
+  let pageAdded = false;
 
+  selectedDivisions.forEach((division) => {
     const bracket = event.brackets?.[division.id];
-    if (!bracket) return;
+    
+    // Skip if bracket is invalid or empty
+    if (!bracket || !bracket.rounds || bracket.rounds.length === 0) return;
+
+    if (pageAdded) doc.addPage();
+    pageAdded = true;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
@@ -109,12 +127,11 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
     doc.setFont('helvetica', 'normal');
 
     const matchPositions = new Map<string, { x: number; y: number }>();
-    const roundColumnHeights = new Array(bracket.rounds.length).fill(0);
-
-    // Calculate total height of the first round column
-    roundColumnHeights[0] = bracket.rounds[0].length * (CARD_HEIGHT + MATCH_V_GAP) - MATCH_V_GAP;
-    const totalHeight = roundColumnHeights[0];
-    const startY = (A4_HEIGHT - totalHeight) / 2;
+    
+    // Safe calculation for startY
+    const firstRound = bracket.rounds[0];
+    const totalHeight = firstRound.length * (CARD_HEIGHT + MATCH_V_GAP) - MATCH_V_GAP;
+    const startY = Math.max(MARGIN + 15, (A4_HEIGHT - totalHeight) / 2); // Ensure it doesn't overlap header
 
     // Pass 1: Calculate all match positions
     bracket.rounds.forEach((round, roundIndex) => {
@@ -124,10 +141,22 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
         if (roundIndex === 0) {
           y = startY + matchIndex * (CARD_HEIGHT + MATCH_V_GAP);
         } else {
-          const prevMatch1Pos = matchPositions.get(match.prev_match_ids![0]!)!;
-          const prevMatch2Pos = matchPositions.get(match.prev_match_ids![1]!)!;
-          const midPointY = (prevMatch1Pos.y + prevMatch2Pos.y) / 2;
-          y = midPointY;
+          // Calculate Y based on parents (previous matches)
+          const p1Id = match.prev_match_ids?.[0];
+          const p2Id = match.prev_match_ids?.[1];
+          
+          if (p1Id && p2Id) {
+             const prevMatch1Pos = matchPositions.get(p1Id);
+             const prevMatch2Pos = matchPositions.get(p2Id);
+             
+             if (prevMatch1Pos && prevMatch2Pos) {
+                 y = (prevMatch1Pos.y + prevMatch2Pos.y) / 2;
+             } else {
+                 y = startY; // Fallback
+             }
+          } else {
+              y = startY + matchIndex * (CARD_HEIGHT + MATCH_V_GAP) * 2; // Rough fallback
+          }
         }
         matchPositions.set(match.id, { x, y });
       });
@@ -150,5 +179,5 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
     }
   });
 
-  doc.save(`brackets_${event.id}.pdf`);
+  doc.save(`brackets_${event.name.replace(/\s+/g, '_')}.pdf`);
 };
