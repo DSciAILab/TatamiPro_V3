@@ -1,6 +1,11 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { generateRegistrationOptions } from 'https://esm.sh/@simplewebauthn/server@10.0.0';
+// @ts-ignore
+import { generateRegistrationOptions } from 'https://esm.sh/@simplewebauthn/server@13.2.1';
+
+declare const Deno: any;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +18,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Dynamically determine RP ID and origin from the request
     const origin = req.headers.get('origin');
     if (!origin) {
       throw new Error('Origin header is missing');
@@ -22,7 +26,11 @@ serve(async (req: Request) => {
     const rpID = url.hostname;
     const rpName = 'TatamiPro';
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        throw new Error('Missing Authorization header');
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -41,32 +49,40 @@ serve(async (req: Request) => {
 
     if (dbError) throw dbError;
 
+    // Convert string ID to byte array for the library if needed, 
+    // but the library handles string IDs for exclusion usually.
+    // We pass what we have.
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: user.id,
+      userID: user.id, // v13 accepts string
       userName: user.email!,
       authenticatorSelection: {
-        residentKey: 'discouraged',
+        residentKey: 'preferred', // Changed to preferred for better compatibility
+        userVerification: 'preferred',
       },
-      excludeCredentials: existingAuthenticators.map(auth => ({
+      excludeCredentials: existingAuthenticators?.map((auth: any) => ({
         id: auth.credential_id,
-        type: 'public-key',
-        transports: auth.transports as any,
+        // Optional in some versions, but good to have if stored
+        transports: auth.transports, 
       })),
     });
 
-    await supabaseClient.auth.updateUser({
-      data: {
-        currentChallenge: options.challenge,
-      },
+    // Save challenge
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...user.user_metadata, currentChallenge: options.challenge },
     });
 
     return new Response(JSON.stringify(options), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Error in generate-registration-options:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

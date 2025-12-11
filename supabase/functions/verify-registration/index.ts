@@ -1,7 +1,11 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { verifyRegistrationResponse } from 'https://esm.sh/@simplewebauthn/server@10.0.0';
-import type { VerifiedRegistrationResponse } from 'https://esm.sh/@simplewebauthn/server@10.0.0';
+// @ts-ignore
+import { verifyRegistrationResponse } from 'https://esm.sh/@simplewebauthn/server@13.2.1';
+
+declare const Deno: any;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +25,11 @@ serve(async (req: Request) => {
     const url = new URL(origin);
     const rpID = url.hostname;
 
-    const authHeader = req.headers.get('Authorization')!;
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-    
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        throw new Error('Missing Authorization header');
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -39,14 +42,20 @@ serve(async (req: Request) => {
     }
 
     const body = await req.json();
+    const { credential, friendlyName } = body;
+
+    if (!credential) {
+        throw new Error('Credential missing in body');
+    }
+
     const expectedChallenge = user.user_metadata.currentChallenge;
 
     if (!expectedChallenge) {
-      throw new Error('Challenge not found for user');
+      throw new Error('Challenge not found for user. Please restart registration.');
     }
 
-    const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse({
-      response: body.credential,
+    const verification = await verifyRegistrationResponse({
+      response: credential,
       expectedChallenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
@@ -58,18 +67,30 @@ serve(async (req: Request) => {
     if (verified && registrationInfo) {
       const { credentialPublicKey, credentialID, counter } = registrationInfo;
 
+      // Need admin rights to insert into user_authenticators if RLS restricts it 
+      // or to ensure we can write byte arrays properly if needed.
+      // Usually RLS allows authenticated insert with their own user_id.
+      // But let's use Admin client for reliability here as we are bypassing RLS checks for safety on server side logic often.
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+
       const { error: insertError } = await supabaseAdmin
         .from('user_authenticators')
         .insert({
           user_id: user.id,
           credential_id: credentialID,
-          public_key: new Uint8Array(credentialPublicKey),
+          public_key: Array.from(new Uint8Array(credentialPublicKey)), // Store as array for JSON compatibility
           counter,
-          transports: body.credential.response.transports,
-          friendly_name: body.friendlyName,
+          transports: credential.response.transports || [],
+          friendly_name: friendlyName || 'Unknown Device',
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+          console.error("Insert error:", insertError);
+          throw insertError;
+      }
 
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
         user_metadata: { ...user.user_metadata, currentChallenge: null },
@@ -79,8 +100,8 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ verified }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Error in verify-registration:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
