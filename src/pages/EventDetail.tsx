@@ -190,6 +190,16 @@ const EventDetail: React.FC = () => {
         .eq('app_id', appId);
 
       if (error) throw error;
+      
+      // Update local state immediately
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes?.map(ath => 
+          ath.id === updatedAthlete.id ? updatedAthlete : ath
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+
       setEditingAthlete(null);
       dismissToast(toastId);
       showSuccess("Athlete updated successfully.");
@@ -210,6 +220,12 @@ const EventDetail: React.FC = () => {
     if (error) {
       showError(error.message);
     } else {
+      // Update local state immediately
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes?.filter(ath => ath.id !== athleteId);
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
       showSuccess('Athlete deleted.');
     }
   };
@@ -258,7 +274,18 @@ const EventDetail: React.FC = () => {
       .eq('id', athleteId)
       .eq('app_id', appId);
     
-    if (error) showError(error.message);
+    if (error) {
+      showError(error.message);
+    } else {
+      // Update local state
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes?.map(ath => 
+          ath.id === athleteId ? { ...ath, attendance_status: status } : ath
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+    }
   };
 
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
@@ -272,6 +299,15 @@ const EventDetail: React.FC = () => {
     if (error) {
       showError(error.message);
     } else {
+      // Update local state immediately for instant feedback
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        const updatedAthletes = prevEvent.athletes?.map(ath => 
+          selectedAthletesForApproval.includes(ath.id) ? { ...ath, registration_status: status } : ath
+        );
+        return { ...prevEvent, athletes: updatedAthletes };
+      });
+
       showSuccess(`${selectedAthletesForApproval.length} athletes ${status}.`);
       setSelectedAthletesForApproval([]);
     }
@@ -296,6 +332,10 @@ const EventDetail: React.FC = () => {
           .insert(updatedDivisions.map(d => ({ ...d, event_id: eventId, app_id: appId })));
         if (insertError) throw insertError;
       }
+      
+      // Update local state
+      setEvent(prev => prev ? ({ ...prev, divisions: updatedDivisions }) : null);
+
       dismissToast(toastId);
       showSuccess('Divisions updated successfully.');
     } catch (error: any) {
@@ -322,8 +362,6 @@ const EventDetail: React.FC = () => {
       });
     }
   };
-
-  // ... (rest of the component remains largely the same, logic only affects visual filtering which is handled by 'event' state)
 
   const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
   const processedApprovedAthletes = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'approved'), [event]);
