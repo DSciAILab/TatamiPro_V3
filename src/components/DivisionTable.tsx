@@ -22,11 +22,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { v4 as uuidv4 } from 'uuid';
 
 interface DivisionTableProps {
   divisions: Division[];
   onUpdateDivisions: (updatedDivisions: Division[]) => void;
-  ageDivisionSettings: AgeDivisionSetting[]; // NOVO
+  ageDivisionSettings: AgeDivisionSetting[];
 }
 
 const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions, ageDivisionSettings }) => {
@@ -88,7 +89,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       return;
     }
 
-    const id = `division-${Date.now()}`;
+    const id = uuidv4(); // Gera um UUID válido
     const updatedDivisions = [...divisions, { ...newDivision, id, is_enabled: true }];
     onUpdateDivisions(updatedDivisions);
     showSuccess('Divisão adicionada com sucesso!');
