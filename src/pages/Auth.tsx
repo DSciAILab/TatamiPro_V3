@@ -8,6 +8,7 @@ import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import BiometricLogin from '@/components/BiometricLogin';
 
 const Auth: React.FC = () => {
   const { session } = useAuth();
@@ -62,6 +63,9 @@ const Auth: React.FC = () => {
                 },
               }}
             />
+            
+            <BiometricLogin />
+            
           </CardContent>
         </Card>
       </div>
