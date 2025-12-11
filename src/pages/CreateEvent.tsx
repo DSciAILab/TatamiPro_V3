@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { getAppId } from '@/lib/app-id';
 
 const CreateEvent: React.FC = () => {
   const navigate = useNavigate();
@@ -42,9 +43,12 @@ const CreateEvent: React.FC = () => {
       return;
     }
 
+    const appId = await getAppId();
+
     const newEventForDB = {
       id: uuidv4(),
       user_id: user.id,
+      app_id: appId, // Add App ID
       name: eventName,
       description: eventDescription,
       status: 'Aberto',

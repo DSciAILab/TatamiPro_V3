@@ -11,6 +11,7 @@ import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
+import { getAppId } from '@/lib/app-id';
 
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -68,14 +69,29 @@ const EventDetail: React.FC = () => {
     if (!eventId) return;
     if (source !== 'subscription') setLoading(true);
     try {
-      const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
+      const appId = await getAppId();
+
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .eq('app_id', appId)
+        .single();
       if (eventError) throw eventError;
       if (!eventData) throw new Error("Event not found.");
 
-      const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+      const { data: athletesData, error: athletesError } = await supabase
+        .from('athletes')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('app_id', appId);
       if (athletesError) throw athletesError;
 
-      const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+      const { data: divisionsData, error: divisionsError } = await supabase
+        .from('divisions')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('app_id', appId);
       if (divisionsError) throw divisionsError;
 
       const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || [], eventData.age_division_settings || []));
@@ -120,7 +136,9 @@ const EventDetail: React.FC = () => {
     const toastId = showLoading("Saving event settings...");
 
     try {
+      const appId = await getAppId();
       const { athletes, divisions, ...eventToUpdate } = event;
+      
       const { error } = await supabase
         .from('events')
         .update({
@@ -128,7 +146,8 @@ const EventDetail: React.FC = () => {
           check_in_start_time: event.check_in_start_time?.toISOString(),
           check_in_end_time: event.check_in_end_time?.toISOString(),
         })
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .eq('app_id', appId);
 
       if (error) throw error;
 
@@ -158,6 +177,7 @@ const EventDetail: React.FC = () => {
   const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
     const toastId = showLoading("Updating athlete...");
     try {
+      const appId = await getAppId();
       const { _division, ...athleteForDb } = updatedAthlete;
       const { error } = await supabase
         .from('athletes')
@@ -166,7 +186,9 @@ const EventDetail: React.FC = () => {
           date_of_birth: athleteForDb.date_of_birth.toISOString(),
           consent_date: athleteForDb.consent_date.toISOString(),
         })
-        .eq('id', updatedAthlete.id);
+        .eq('id', updatedAthlete.id)
+        .eq('app_id', appId);
+
       if (error) throw error;
       setEditingAthlete(null);
       dismissToast(toastId);
@@ -178,7 +200,13 @@ const EventDetail: React.FC = () => {
   };
 
   const handleDeleteAthlete = async (athleteId: string) => {
-    const { error } = await supabase.from('athletes').delete().eq('id', athleteId);
+    const appId = await getAppId();
+    const { error } = await supabase
+      .from('athletes')
+      .delete()
+      .eq('id', athleteId)
+      .eq('app_id', appId);
+
     if (error) {
       showError(error.message);
     } else {
@@ -188,6 +216,7 @@ const EventDetail: React.FC = () => {
 
   const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
     const toastId = showLoading("Registrando check-in...");
+    const appId = await getAppId();
     const updatePayload = {
       check_in_status: updatedAthlete.check_in_status,
       registered_weight: updatedAthlete.registered_weight,
@@ -203,7 +232,8 @@ const EventDetail: React.FC = () => {
     const { error } = await supabase
       .from('athletes')
       .update(updatePayload)
-      .eq('id', updatedAthlete.id);
+      .eq('id', updatedAthlete.id)
+      .eq('app_id', appId);
 
     dismissToast(toastId);
     if (error) {
@@ -221,15 +251,24 @@ const EventDetail: React.FC = () => {
   };
 
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
-    const { error } = await supabase.from('athletes').update({ attendance_status: status }).eq('id', athleteId);
+    const appId = await getAppId();
+    const { error } = await supabase
+      .from('athletes')
+      .update({ attendance_status: status })
+      .eq('id', athleteId)
+      .eq('app_id', appId);
+    
     if (error) showError(error.message);
   };
 
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
+    const appId = await getAppId();
     const { error } = await supabase
       .from('athletes')
       .update({ registration_status: status })
-      .in('id', selectedAthletesForApproval);
+      .in('id', selectedAthletesForApproval)
+      .eq('app_id', appId);
+
     if (error) {
       showError(error.message);
     } else {
@@ -241,10 +280,20 @@ const EventDetail: React.FC = () => {
   const handleUpdateDivisions = async (updatedDivisions: Division[]) => {
     const toastId = showLoading('Updating divisions...');
     try {
-      const { error: deleteError } = await supabase.from('divisions').delete().eq('event_id', eventId);
+      const appId = await getAppId();
+      
+      const { error: deleteError } = await supabase
+        .from('divisions')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('app_id', appId);
+
       if (deleteError) throw deleteError;
+      
       if (updatedDivisions.length > 0) {
-        const { error: insertError } = await supabase.from('divisions').insert(updatedDivisions.map(d => ({ ...d, event_id: eventId })));
+        const { error: insertError } = await supabase
+          .from('divisions')
+          .insert(updatedDivisions.map(d => ({ ...d, event_id: eventId, app_id: appId })));
         if (insertError) throw insertError;
       }
       dismissToast(toastId);
@@ -256,7 +305,13 @@ const EventDetail: React.FC = () => {
   };
 
   const handleUpdateBracketsAndFightOrder = async (updatedBrackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => {
-    const { error } = await supabase.from('events').update({ brackets: updatedBrackets, mat_fight_order: matFightOrder }).eq('id', eventId!);
+    const appId = await getAppId();
+    const { error } = await supabase
+      .from('events')
+      .update({ brackets: updatedBrackets, mat_fight_order: matFightOrder })
+      .eq('id', eventId!)
+      .eq('app_id', appId);
+
     if (error) {
       showError(`Failed to save brackets: ${error.message}`);
     } else {
@@ -267,6 +322,8 @@ const EventDetail: React.FC = () => {
       });
     }
   };
+
+  // ... (rest of the component remains largely the same, logic only affects visual filtering which is handled by 'event' state)
 
   const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
   const processedApprovedAthletes = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'approved'), [event]);
@@ -389,7 +446,7 @@ const EventDetail: React.FC = () => {
             editingAthlete={editingAthlete}
             setEditingAthlete={setEditingAthlete}
             handleAthleteUpdate={handleAthleteUpdate}
-            mandatoryFieldsConfig={event.check_in_config || {}} // Changed to use event config
+            mandatoryFieldsConfig={event.check_in_config || {}} 
             filteredAthletesForDisplay={filteredAthletesForDisplayInscricoes}
             registrationStatusFilter={registrationStatusFilter}
             setRegistrationStatusFilter={setRegistrationStatusFilter}
@@ -414,7 +471,7 @@ const EventDetail: React.FC = () => {
             onUpdateAthleteAttendance={handleUpdateAthleteAttendance}
             isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false}
             userRole={userRole}
-            athletes={event.athletes || []} // Pass athletes directly
+            athletes={event.athletes || []} 
           />
         </TabsContent>
 
@@ -442,7 +499,6 @@ const EventDetail: React.FC = () => {
           />
         </TabsContent>
 
-        {/* Other tabs remain the same */}
         <TabsContent value="brackets" className="mt-6">
           <BracketsTab
             event={event}

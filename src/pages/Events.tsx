@@ -14,6 +14,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { isPast, isFuture, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { getAppId } from '@/lib/app-id';
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
@@ -28,9 +29,12 @@ const Events: React.FC = () => {
 
   const loadEventsFromSupabase = async () => {
     setLoading(true);
+    const appId = await getAppId();
+    
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .eq('app_id', appId) // Filter by App ID
       .order('event_date', { ascending: false });
 
     if (error) {
@@ -47,9 +51,14 @@ const Events: React.FC = () => {
 
   const handleConfirmDelete = async (eventId: string) => {
     const loadingToast = showLoading('Deleting event...');
-    // Note: This only deletes the event row. Associated athletes/divisions are not deleted
-    // unless you have CASCADE delete set up in your database schema.
-    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    const appId = await getAppId();
+
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId)
+      .eq('app_id', appId); // Ensure delete targets only this app's data
+
     dismissToast(loadingToast);
 
     if (error) {
