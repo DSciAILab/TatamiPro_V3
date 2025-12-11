@@ -15,6 +15,7 @@ import { showError, showLoading, dismissToast } from '@/utils/toast';
 import { AgeCategory, DivisionBelt, DivisionGender } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { getAppId } from '@/lib/app-id';
 
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
   'kids 1': { min: 4, max: 6 }, 'kids 2': { min: 7, max: 8 }, 'kids 3': { min: 9, max: 10 },
@@ -109,6 +110,7 @@ const DivisionImport: React.FC = () => {
     if (!validateMapping()) return;
     const loadingToast = showLoading('Processando importação...');
 
+    const appId = await getAppId();
     const successfulDivisionsForDb: any[] = [];
     const failedImports: ImportResult[] = [];
 
@@ -127,6 +129,7 @@ const DivisionImport: React.FC = () => {
         successfulDivisionsForDb.push({
           id: uuidv4(),
           event_id: eventId,
+          app_id: appId, // Required field
           name: data.name,
           min_age: ageBounds.min,
           max_age: ageBounds.max,

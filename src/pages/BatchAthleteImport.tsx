@@ -17,6 +17,7 @@ import { Belt, Gender, AgeDivisionSetting } from '@/types/index';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { getAppId } from '@/lib/app-id';
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
@@ -202,6 +203,7 @@ const BatchAthleteImport: React.FC = () => {
     if (!validateMapping()) return;
     const loadingToast = showLoading('Processando importação...');
 
+    const appId = await getAppId();
     const successfulAthletesForDb: any[] = [];
     const failedImports: ImportResult[] = [];
 
@@ -222,6 +224,7 @@ const BatchAthleteImport: React.FC = () => {
         successfulAthletesForDb.push({
           id: athleteId,
           event_id: eventId!,
+          app_id: appId, // Required field
           registration_qr_code_id: `EV_${eventId}_ATH_${athleteId}`,
           first_name: nameParts[0],
           last_name: nameParts.slice(1).join(' '),
