@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, UserPlus, Shield, FileUp } from 'lucide-react';
+import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { usePermission } from '@/hooks/use-permission';
 import Papa from 'papaparse';
@@ -32,8 +32,18 @@ interface StaffMember {
 const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Dialog States
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Editing State
+  const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [newGeneratedPassword, setNewGeneratedPassword] = useState('');
   
   // Use RBAC Hook
   const { can } = usePermission();
@@ -71,18 +81,18 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setLoading(false);
   };
 
-  const generateTempPassword = () => {
+  const generateRandomPasswordString = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
     let pass = "";
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       pass += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    setTempPassword(pass);
+    return pass;
   };
 
   useEffect(() => {
-    if (isDialogOpen) generateTempPassword();
-  }, [isDialogOpen]);
+    if (isAddDialogOpen) setTempPassword(generateRandomPasswordString());
+  }, [isAddDialogOpen]);
 
   const handleAddStaff = async () => {
     const toastId = showLoading('Criando usuário e vinculando ao evento...');
@@ -91,10 +101,10 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
       await createUserAndAssign(newUserEmail, tempPassword, newUserFirstName, newUserLastName, newUserRole);
 
       dismissToast(toastId);
-      showSuccess(`Usuário adicionado! Senha temporária: ${tempPassword}`);
+      showSuccess(`Usuário adicionado!`);
       alert(`IMPORTANTE: Copie a senha temporária para enviar ao usuário:\n\nEmail: ${newUserEmail}\nSenha: ${tempPassword}`);
       
-      setIsDialogOpen(false);
+      setIsAddDialogOpen(false);
       resetForm();
       fetchStaff();
     } catch (err: any) {
@@ -139,7 +149,80 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     }
   };
 
-  // CSV Import Handler
+  // Edit Handlers
+  const handleOpenEdit = (member: StaffMember) => {
+    setEditingMember(member);
+    setEditFirstName(member.profile?.first_name || '');
+    setEditLastName(member.profile?.last_name || '');
+    setEditRole(member.role);
+    setNewGeneratedPassword('');
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMember) return;
+    const toastId = showLoading('Salvando alterações...');
+
+    try {
+      // 1. Update Role in event_staff
+      if (editRole !== editingMember.role) {
+        const { error: roleError } = await supabase
+          .from('event_staff')
+          .update({ role: editRole })
+          .eq('id', editingMember.id);
+        if (roleError) throw roleError;
+      }
+
+      // 2. Update Profile Name
+      if (editFirstName !== editingMember.profile?.first_name || editLastName !== editingMember.profile?.last_name) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            first_name: editFirstName,
+            last_name: editLastName
+          })
+          .eq('id', editingMember.user_id);
+        if (profileError) throw profileError;
+      }
+
+      dismissToast(toastId);
+      showSuccess('Membro atualizado com sucesso!');
+      setIsEditDialogOpen(false);
+      fetchStaff();
+    } catch (err: any) {
+      dismissToast(toastId);
+      showError('Erro ao atualizar: ' + err.message);
+    }
+  };
+
+  const handleRegeneratePassword = async () => {
+    if (!editingMember) return;
+    const newPass = generateRandomPasswordString();
+    setNewGeneratedPassword(newPass);
+
+    const toastId = showLoading('Redefinindo senha...');
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: { userId: editingMember.user_id, newPassword: newPass }
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      dismissToast(toastId);
+      showSuccess('Senha redefinida com sucesso.');
+    } catch (err: any) {
+      dismissToast(toastId);
+      showError('Erro ao redefinir senha: ' + err.message);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showSuccess('Copiado!');
+  };
+
+  // CSV Import Handler (kept same)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -153,7 +236,6 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           return;
         }
         
-        // Expected columns: email, firstName, lastName, role
         const rows = results.data as any[];
         if (rows.length === 0) {
           showError('O arquivo CSV está vazio.');
@@ -167,11 +249,6 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         const toastId = showLoading(`Processando 0/${rows.length} usuários...`);
         let successCount = 0;
         let failCount = 0;
-        const generatedPasswords: string[] = [];
-
-        // Generate a standard base password for the batch if desired, or random for each
-        // Let's use random for security, but maybe we should export a CSV with passwords?
-        // For simplicity now, we'll alert the results.
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -185,25 +262,20 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
             continue;
           }
 
-          const password = "Mudar123!"; // Default temp password for batch import to make onboarding easier
+          const password = "Mudar123!";
           
           try {
             await createUserAndAssign(email, password, firstName, lastName, role);
             successCount++;
-            generatedPasswords.push(`${email}: ${password}`);
           } catch (err) {
             console.error(`Falha ao importar ${email}:`, err);
             failCount++;
           }
-          
-          // Update toast
-          // Note: standard sonner/toast might not support dynamic update easily without ID, 
-          // but we can just let it spin or try to update if the lib supports it.
         }
 
         dismissToast(toastId);
         showSuccess(`Importação concluída! Sucesso: ${successCount}, Falhas: ${failCount}`);
-        alert(`Importação em lote finalizada.\n\nSenha padrão definida para todos os novos usuários: "Mudar123!"\n\nPor favor, instrua os usuários a trocarem a senha no primeiro acesso.`);
+        alert(`Importação em lote finalizada.\n\nSenha padrão definida para todos os novos usuários: "Mudar123!"`);
         fetchStaff();
       }
     });
@@ -240,7 +312,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                   </DialogContent>
                 </Dialog>
 
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button><UserPlus className="mr-2 h-4 w-4" /> Adicionar Membro</Button>
                   </DialogTrigger>
@@ -279,7 +351,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                         <Label>Senha Temporária (Gerada Automaticamente)</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <code className="bg-background px-2 py-1 rounded border flex-1">{tempPassword}</code>
-                          <Button type="button" variant="ghost" size="sm" onClick={generateTempPassword}>Regerar</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setTempPassword(generateRandomPasswordString())}>Regerar</Button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">O usuário deverá trocar esta senha no primeiro login.</p>
                       </div>
@@ -321,6 +393,9 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                   <TableCell className="capitalize">{member.role}</TableCell>
                   {canManageStaff && (
                     <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(member)} className="mr-2">
+                        <Edit className="h-4 w-4 text-gray-500" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleRemoveStaff(member.id)}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -332,6 +407,63 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           </TableBody>
         </Table>
       </CardContent>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Membro da Equipe</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Nome</Label>
+                <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
+              </div>
+              <div>
+                <Label>Sobrenome</Label>
+                <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Função</Label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff Geral</SelectItem>
+                  <SelectItem value="referee">Árbitro</SelectItem>
+                  <SelectItem value="table">Mesário</SelectItem>
+                  <SelectItem value="medical">Médico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-t pt-4 mt-2">
+              <Label className="flex items-center gap-2 mb-2"><KeyRound className="h-4 w-4" /> Acesso e Segurança</Label>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleRegeneratePassword} className="w-full">
+                  <RefreshCw className="mr-2 h-3 w-3" /> Regerar Senha
+                </Button>
+              </div>
+              {newGeneratedPassword && (
+                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 rounded-md">
+                  <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 mb-1">Nova Senha Temporária:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-lg font-mono bg-background px-2 rounded border flex-1">{newGeneratedPassword}</code>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => copyToClipboard(newGeneratedPassword)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Envie esta senha para o usuário imediatamente.</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
