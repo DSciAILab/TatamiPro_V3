@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -17,44 +17,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
 
 const Events: React.FC = () => {
-  const { profile, session, loading: authLoading } = useAuth();
+  const { profile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [loading, setLoading] = useState(true);
 
-  const loadEventsFromSupabase = useCallback(async () => {
-    // Não faz nada se o usuário não estiver logado
-    if (!session?.user?.id) {
-      setEvents([]);
-      setLoading(false);
-      return;
-    }
-    
+  useEffect(() => {
+    loadEventsFromSupabase();
+  }, []);
+
+  const loadEventsFromSupabase = async () => {
     setLoading(true);
     const appId = await getAppId();
     
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .eq('app_id', appId)
+      .eq('app_id', appId) // Filter by App ID
       .order('event_date', { ascending: false });
 
     if (error) {
       showError('Failed to load events: ' + error.message);
-      setEvents([]);
     } else {
       setEvents(data || []);
     }
     setLoading(false);
-  }, [session?.user?.id]);
-
-  useEffect(() => {
-    // Este efeito agora é acionado de forma confiável quando o estado de autenticação muda.
-    if (!authLoading) {
-      loadEventsFromSupabase();
-    }
-  }, [authLoading, session, loadEventsFromSupabase]);
+  };
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
@@ -68,7 +57,7 @@ const Events: React.FC = () => {
       .from('events')
       .delete()
       .eq('id', eventId)
-      .eq('app_id', appId);
+      .eq('app_id', appId); // Ensure delete targets only this app's data
 
     dismissToast(loadingToast);
 
@@ -77,7 +66,7 @@ const Events: React.FC = () => {
     } else {
       showSuccess(`Event "${eventToDelete?.name}" deleted successfully.`);
       setEventToDelete(null);
-      loadEventsFromSupabase(); // Recarrega a lista após a exclusão
+      loadEventsFromSupabase(); // Refresh the list
     }
   };
 
@@ -90,7 +79,7 @@ const Events: React.FC = () => {
       } else if (filterType === 'upcoming') {
         return isFuture(eventDate) || eventDate.toDateString() === today.toDateString();
       }
-      return true;
+      return true; // 'all' filter
     });
   };
 

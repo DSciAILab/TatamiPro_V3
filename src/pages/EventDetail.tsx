@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '../types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { processAthleteData } from '@/utils/athlete-utils';
+import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
-import { usePermission } from '@/hooks/use-permission';
+import { usePermission } from '@/hooks/use-permission'; // Import Permission Hook
 import { supabase } from '@/integrations/supabase/client';
-import { useEventData } from '@/hooks/use-event-data';
+import { useOffline } from '@/context/offline-context';
+import { db } from '@/lib/local-db';
+// getAppId removed (unused)
 
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -28,7 +32,8 @@ const EventDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, loading: authLoading } = useAuth();
-  const { can, role: userRole } = usePermission();
+  const { can, role: userRole } = usePermission(); // Use RBAC Hook
+  const { isOfflineMode } = useOffline();
   
   const userClub = profile?.club;
   
@@ -39,28 +44,6 @@ const EventDetail: React.FC = () => {
     }
   }, [profile, authLoading, navigate]);
 
-  // --- Data Fetching via Hook ---
-  const { data: serverEvent, isLoading: isLoadingData, error: loadError } = useEventData(eventId);
-  
-  // Local state for event (to allow optimistic updates / unsaved changes)
-  const [event, setEvent] = useState<Event | null>(null);
-  
-  // Sync local state when server data arrives (only if no unsaved changes)
-  const hasUnsavedChangesRef = useRef(false);
-  
-  useEffect(() => {
-    if (serverEvent && !hasUnsavedChangesRef.current) {
-      setEvent(serverEvent);
-    }
-  }, [serverEvent]);
-
-  useEffect(() => {
-    if (loadError) {
-      showError(`Failed to load event data: ${loadError.message}`);
-    }
-  }, [loadError]);
-
-  // --- UI State ---
   const [activeTab, setActiveTab] = useState('inscricoes');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
@@ -70,10 +53,12 @@ const EventDetail: React.FC = () => {
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   
+  const [event, setEvent] = useState<Event | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Sync ref
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
   useEffect(() => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
@@ -90,6 +75,84 @@ const EventDetail: React.FC = () => {
       setBracketsSubTab(location.state.bracketsSubTab);
     }
   }, [location.state]);
+
+  const fetchEventData = useCallback(async (source?: string) => {
+    if (hasUnsavedChangesRef.current && source === 'subscription') {
+      console.warn("Real-time update ignored due to unsaved local changes.");
+      return;
+    }
+    if (!eventId) return;
+    if (source !== 'subscription') setLoading(true);
+    try {
+      let eventData, athletesData, divisionsData;
+
+      if (isOfflineMode) {
+        eventData = await db.events.get(eventId);
+        if (!eventData) throw new Error("Event not found locally. Please sync online first.");
+        
+        athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
+        divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
+      } else {
+        const { data: eData, error: eventError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', eventId)
+          .single();
+        if (eventError) throw eventError;
+        eventData = eData;
+
+        const { data: aData, error: athletesError } = await supabase
+          .from('athletes')
+          .select('*')
+          .eq('event_id', eventId);
+        if (athletesError) throw athletesError;
+        athletesData = aData;
+
+        const { data: dData, error: divisionsError } = await supabase
+          .from('divisions')
+          .select('*')
+          .eq('event_id', eventId);
+        if (divisionsError) throw divisionsError;
+        divisionsData = dData;
+      }
+
+      if (!eventData) throw new Error("Event not found.");
+
+      const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || [], eventData.age_division_settings || []));
+      
+      const fullEventData: Event = {
+        ...eventData,
+        athletes: processedAthletes,
+        divisions: divisionsData || [],
+        check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
+        check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
+      };
+      setEvent(fullEventData);
+    } catch (error: any) {
+      showError(`Failed to load event data: ${error.message}`);
+      setEvent(null);
+    } finally {
+      if (source !== 'subscription') {
+        setLoading(false);
+        setHasUnsavedChanges(false);
+      }
+    }
+  }, [eventId, isOfflineMode]);
+
+  useEffect(() => {
+    fetchEventData();
+
+    const channel = supabase
+      .channel(`event-${eventId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'athletes', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'divisions', filter: `event_id=eq.${eventId}` }, () => fetchEventData('subscription'))
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, fetchEventData]);
 
   const handleSaveChanges = async () => {
     if (!event || !eventId || !hasUnsavedChanges) return;
@@ -205,7 +268,7 @@ const EventDetail: React.FC = () => {
     { value: 'llm', label: 'IA Chat' },
   ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in]);
 
-  if (isLoadingData && !event) return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
+  if (loading) return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
   if (!event) return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou acesso negado.</div></Layout>;
 
   return (
@@ -258,7 +321,7 @@ const EventDetail: React.FC = () => {
             set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
             count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
             set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
-            userRole={userRole as any}
+            userRole={userRole as any} // Cast to keep compat until strict typing everywhere
             event_name={event.name}
             set_event_name={(value) => handleUpdateEventProperty('name', value)}
             event_description={event.description}

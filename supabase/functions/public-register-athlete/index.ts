@@ -10,10 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple Regex for validation
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
-
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -25,7 +21,6 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const body = await req.json();
     const { 
       eventId, 
       firstName, 
@@ -38,29 +33,13 @@ serve(async (req: Request) => {
       gender,
       belt,
       weight
-    } = body;
+    } = await req.json();
 
-    // --- Strict Validation ---
-    if (!eventId || typeof eventId !== 'string') throw new Error("Event ID is missing or invalid.");
-    if (!firstName || firstName.length < 2) throw new Error("First name is too short.");
-    if (!lastName || lastName.length < 2) throw new Error("Last name is too short.");
-    if (!email || !EMAIL_REGEX.test(email)) throw new Error("Invalid email format.");
-    if (!phone || !PHONE_REGEX.test(phone)) throw new Error("Invalid phone format.");
-    if (!dateOfBirth || isNaN(Date.parse(dateOfBirth))) throw new Error("Invalid date of birth.");
-    if (!divisionId || typeof divisionId !== 'string') throw new Error("Division ID is missing.");
-    if (!weight || weight < 1 || weight > 300) throw new Error("Invalid weight.");
+    if (!eventId || !firstName || !lastName || !email || !dateOfBirth || !divisionId) {
+      throw new Error("Campos obrigatórios faltando.");
+    }
 
-    // Check if event exists and is active
-    const { data: eventData, error: eventError } = await supabaseAdmin
-      .from('events')
-      .select('app_id, is_active')
-      .eq('id', eventId)
-      .single();
-
-    if (eventError || !eventData) throw new Error("Event not found.");
-    if (!eventData.is_active) throw new Error("Registration for this event is closed.");
-
-    // Check Division
+    // Buscar detalhes da divisão selecionada para preencher os dados redundantes do atleta
     const { data: division, error: divError } = await supabaseAdmin
       .from('divisions')
       .select('*')
@@ -68,47 +47,40 @@ serve(async (req: Request) => {
       .single();
 
     if (divError || !division) {
-      throw new Error("Invalid division selected.");
+      throw new Error("Divisão selecionada inválida.");
     }
 
-    // Duplicate Check (Simple prevention of spam)
-    const { count } = await supabaseAdmin
-      .from('athletes')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .eq('email', email);
-    
-    if (count && count > 0) {
-      // Allow re-registration? Typically no, update instead. For now, block.
-      throw new Error("This email is already registered for this event.");
-    }
-
-    // Calculate Age
+    // Calcular idade
     const dob = new Date(dateOfBirth);
     const age = new Date().getFullYear() - dob.getFullYear();
     const athleteId = crypto.randomUUID();
 
+    // Buscar App ID do evento
+    const { data: eventData } = await supabaseAdmin.from('events').select('app_id').eq('id', eventId).single();
+    const appId = eventData?.app_id;
+
     const newAthlete = {
       id: athleteId,
       event_id: eventId,
-      app_id: eventData.app_id,
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
+      app_id: appId,
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      phone: phone,
       date_of_birth: dateOfBirth,
       age: age,
-      club: club ? club.trim() : 'Sem Equipe',
+      // Usar dados da divisão se o usuário não forneceu (dropdown simplificado) ou o que veio do form
+      club: club || 'Sem Equipe',
       gender: gender || division.gender, 
       belt: belt || division.belt,
-      weight: weight,
-      nationality: 'BR', // Default
+      weight: weight || 0, // Peso pode ser verificado no check-in
+      nationality: 'BR', // Default, pode adicionar campo se quiser
       
-      // Computed Fields
+      // Campos calculados/sistema
       age_division: division.age_category_name,
       weight_division: `${division.max_weight}kg`,
       registration_qr_code_id: `EV_${eventId}_ATH_${athleteId}`,
-      registration_status: 'under_approval',
+      registration_status: 'under_approval', // SEMPRE entra como pendente
       check_in_status: 'pending',
       attendance_status: 'pending',
       consent_accepted: true,

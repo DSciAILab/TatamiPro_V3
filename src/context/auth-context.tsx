@@ -28,16 +28,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true); // Only for the initial app load
+  const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
+    // Select all necessary fields to avoid missing data issues
     const { data, error } = await supabase
       .from('profiles')
       .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
       .eq('id', userId)
       .single();
     
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
     } else {
@@ -46,29 +47,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error("Error during initial auth setup:", error);
-      } finally {
-        setLoading(false);
+    const fetchSessionAndProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
       }
+      setLoading(false);
     };
 
-    initializeAuth();
+    fetchSessionAndProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        if (_event !== 'USER_UPDATED') { // Avoid re-fetching on simple metadata updates
+          setLoading(true);
+          await fetchProfile(session.user.id);
+          setLoading(false);
+        }
       } else {
         setProfile(null);
       }
@@ -86,7 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
