@@ -30,19 +30,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error fetching profile:', error);
-      setProfile(null);
-    } else {
-      setProfile(data);
+  const fetchProfile = useCallback(async (userId: string, retries = 1, delay = 300) => {
+    for (let i = 0; i < retries; i++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
+        .eq('id', userId)
+        .single();
+      
+      if (data) {
+        setProfile(data);
+        return; // Success
+      }
+
+      if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
+        console.error('Error fetching profile:', error);
+        setProfile(null);
+        return; // Hard error, stop retrying
+      }
+
+      // If row not found, wait and retry
+      if (i < retries - 1) await new Promise(res => setTimeout(res, delay));
     }
+    console.error('Profile not found after retries.');
+    setProfile(null);
   }, []);
 
   useEffect(() => {
@@ -59,11 +70,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     fetchSessionAndProfile();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        // On first sign-in, the profile might not be created yet. Retry fetching.
+        const retryCount = event === 'SIGNED_IN' ? 5 : 1;
+        await fetchProfile(session.user.id, retryCount);
       } else {
         setProfile(null);
       }
