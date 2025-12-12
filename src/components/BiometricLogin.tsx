@@ -11,14 +11,14 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 const BiometricLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleBiometricLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      showError("Por favor, digite seu e-mail.");
+    if (!identifier) {
+      showError("Por favor, digite seu e-mail ou nome de usuário.");
       return;
     }
     setLoading(true);
@@ -26,7 +26,7 @@ const BiometricLogin: React.FC = () => {
     try {
       // 1. Get options
       const { data: options, error: optError } = await supabase.functions.invoke('generate-authentication-options', {
-        body: { email }
+        body: { identifier }
       });
 
       if (optError) throw new Error(optError.message || 'Erro ao iniciar Face ID.');
@@ -36,15 +36,15 @@ const BiometricLogin: React.FC = () => {
 
       // 3. Verify
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-authentication', {
-        body: { email, credential }
+        body: { identifier, credential }
       });
 
       if (verifyError) throw new Error(verifyError.message || 'Falha na verificação.');
 
-      if (verifyData?.verified && verifyData?.token) {
+      if (verifyData?.verified && verifyData?.token && verifyData?.email) {
         // 4. Complete Login
         const { error: loginError } = await supabase.auth.verifyOtp({
-          email,
+          email: verifyData.email,
           token: verifyData.token,
           type: 'magiclink'
         });
@@ -75,13 +75,13 @@ const BiometricLogin: React.FC = () => {
       </div>
       <form onSubmit={handleBiometricLogin} className="space-y-3">
         <div className="space-y-1">
-          <Label htmlFor="bio-email">E-mail</Label>
+          <Label htmlFor="bio-identifier">E-mail ou Nome de Usuário</Label>
           <Input 
-            id="bio-email" 
-            type="email" 
-            placeholder="seu@email.com" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="bio-identifier" 
+            type="text" 
+            placeholder="seu@email.com ou seu_usuario" 
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             disabled={loading}
           />
         </div>

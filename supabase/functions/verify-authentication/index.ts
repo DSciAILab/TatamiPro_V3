@@ -19,9 +19,9 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { email, credential } = body;
+    const { identifier, credential } = body;
     
-    if (!email || !credential) throw new Error('Email and credential are required');
+    if (!identifier || !credential) throw new Error('Identifier and credential are required');
 
     const origin = req.headers.get('origin')!;
     const rpID = new URL(origin).hostname;
@@ -31,15 +31,31 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 1. Get User
-    const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (userError) throw userError;
-    
-    const user = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    let user;
+    const isEmail = identifier.includes('@');
+
+    if (isEmail) {
+      const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (userError) throw userError;
+      user = users.find((u: any) => u.email?.toLowerCase() === identifier.toLowerCase());
+    } else {
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('username', identifier)
+        .single();
+      
+      if (profileError || !profile) {
+        throw new Error('User not found with that username.');
+      }
+
+      const { data: { user: userById }, error: userByIdError } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+      if (userByIdError) throw userByIdError;
+      user = userById;
+    }
 
     if (!user) throw new Error('User not found');
 
-    // 2. Get Authenticator
     const { data: authenticator } = await supabaseAdmin
       .from('user_authenticators')
       .select('*')
@@ -48,7 +64,6 @@ serve(async (req: Request) => {
 
     if (!authenticator) throw new Error('Authenticator not found or not associated with this credential');
 
-    // 3. Verify
     const expectedChallenge = user.user_metadata.currentChallenge;
     if (!expectedChallenge) throw new Error('No authentication challenge found for user');
     
@@ -68,18 +83,15 @@ serve(async (req: Request) => {
     const { verified, authenticationInfo } = verification;
 
     if (verified && authenticationInfo) {
-      // Update counter
       await supabaseAdmin
         .from('user_authenticators')
         .update({ counter: authenticationInfo.newCounter })
         .eq('credential_id', credential.id);
 
-      // Clear challenge
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
         user_metadata: { ...user.user_metadata, currentChallenge: null },
       });
 
-      // 4. GENERATE SESSION
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email: user.email!,
@@ -92,13 +104,12 @@ serve(async (req: Request) => {
       
       if (actionLink) {
         const url = new URL(actionLink);
-        // Look for 'token' or 'hashed_token' (Supabase versions vary, usually 'token' in API response properties)
         token = url.searchParams.get('token') || '';
       }
 
       if (!token) throw new Error('Failed to generate session token');
 
-      return new Response(JSON.stringify({ verified: true, token }), {
+      return new Response(JSON.stringify({ verified: true, token, email: user.email }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
