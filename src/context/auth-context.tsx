@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true); // This now only tracks the initial session load
+  const [loading, setLoading] = useState(true); // Only for the initial app load
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -46,27 +46,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    // 1. Handle initial session load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+    // This effect runs only once on mount to handle the initial session.
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error during initial auth setup:", error);
+      } finally {
+        // Mark initial loading as complete, regardless of outcome. This only happens once.
+        setLoading(false);
       }
-      setLoading(false); // Initial load is complete
-    }).catch(error => {
-      console.error("Error fetching initial session:", error);
-      setLoading(false); // Ensure loading is false even on error
-    });
+    };
 
-    // 2. Listen for subsequent auth changes
+    initializeAuth();
+
+    // Set up a listener for subsequent auth changes (login/logout).
+    // This will NOT trigger the global loading state again.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchProfile(session.user.id);
       } else {
-        setProfile(null); // Clear profile on logout
+        setProfile(null);
       }
     });
 
