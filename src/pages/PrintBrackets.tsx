@@ -16,7 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
 
 const PrintBrackets: React.FC = () => {
-  const { id: eventId } = useParams<{ id: string }>();
+  // CORREÇÃO: O parâmetro na rota é definido como :eventId, não :id
+  const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
@@ -24,7 +25,11 @@ const PrintBrackets: React.FC = () => {
 
   useEffect(() => {
     const fetchEventData = async () => {
-      if (!eventId) return;
+      if (!eventId) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       try {
         const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
@@ -47,6 +52,7 @@ const PrintBrackets: React.FC = () => {
         };
         setEvent(fullEventData);
       } catch (error: any) {
+        console.error("Erro ao carregar evento:", error);
         showError(`Failed to load event data: ${error.message}`);
         setEvent(null);
       } finally {
@@ -119,7 +125,7 @@ const PrintBrackets: React.FC = () => {
   }
 
   if (!event) {
-    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado.</div></Layout>;
+    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou ID inválido.</div></Layout>;
   }
 
   return (
