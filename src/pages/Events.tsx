@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
 
 const Events: React.FC = () => {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -42,12 +42,10 @@ const Events: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // This effect runs once when the component mounts and auth is no longer loading.
-    // It handles both logged-in and logged-out states.
-    if (!authLoading) {
-      loadEventsFromSupabase();
-    }
-  }, [authLoading, loadEventsFromSupabase]);
+    // Load events on component mount. The supabase client will automatically
+    // use the auth token if the user is logged in.
+    loadEventsFromSupabase();
+  }, [loadEventsFromSupabase]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
