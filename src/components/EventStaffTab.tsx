@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy } from 'lucide-react';
+import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy, Phone } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { usePermission } from '@/hooks/use-permission';
 import Papa from 'papaparse';
@@ -27,6 +27,7 @@ interface StaffMember {
     last_name: string;
     email: string;
     username?: string;
+    phone?: string;
   };
 }
 
@@ -45,6 +46,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [editLastName, setEditLastName] = useState('');
   const [editRole, setEditRole] = useState('');
   const [editUsername, setEditUsername] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [newGeneratedPassword, setNewGeneratedPassword] = useState('');
   
   // Use RBAC Hook
@@ -56,6 +58,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [newUserFirstName, setNewUserFirstName] = useState('');
   const [newUserLastName, setNewUserLastName] = useState('');
   const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserRole, setNewUserRole] = useState('staff');
   const [tempPassword, setTempPassword] = useState('');
 
@@ -72,7 +75,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         id,
         user_id,
         role,
-        profile:profiles(first_name, last_name, username)
+        profile:profiles(first_name, last_name, username, phone)
       `)
       .eq('event_id', eventId);
 
@@ -101,7 +104,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     const toastId = showLoading('Criando usuário e vinculando ao evento...');
     
     try {
-      await createUserAndAssign(newUserEmail, tempPassword, newUserFirstName, newUserLastName, newUserUsername, newUserRole);
+      await createUserAndAssign(newUserEmail, tempPassword, newUserFirstName, newUserLastName, newUserUsername, newUserPhone, newUserRole);
 
       dismissToast(toastId);
       showSuccess(`Usuário adicionado!`);
@@ -116,7 +119,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     }
   };
 
-  const createUserAndAssign = async (email: string, password: string, firstName: string, lastName: string, username: string, role: string) => {
+  const createUserAndAssign = async (email: string, password: string, firstName: string, lastName: string, username: string, phone: string, role: string) => {
     const { data, error } = await supabase.functions.invoke('admin-create-user', {
       body: {
         email,
@@ -124,6 +127,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         firstName,
         lastName,
         username,
+        phone,
         eventId: eventId,
         role
       }
@@ -139,6 +143,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setNewUserFirstName('');
     setNewUserLastName('');
     setNewUserUsername('');
+    setNewUserPhone('');
     setNewUserRole('staff');
   };
 
@@ -160,6 +165,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setEditFirstName(member.profile?.first_name || '');
     setEditLastName(member.profile?.last_name || '');
     setEditUsername(member.profile?.username || '');
+    setEditPhone(member.profile?.phone || '');
     setEditRole(member.role);
     setNewGeneratedPassword('');
     setIsEditDialogOpen(true);
@@ -179,14 +185,20 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         if (roleError) throw roleError;
       }
 
-      // 2. Update Profile Name and Username
-      if (editFirstName !== editingMember.profile?.first_name || editLastName !== editingMember.profile?.last_name || editUsername !== editingMember.profile?.username) {
+      // 2. Update Profile Name, Username, and Phone
+      if (
+        editFirstName !== editingMember.profile?.first_name ||
+        editLastName !== editingMember.profile?.last_name ||
+        editUsername !== editingMember.profile?.username ||
+        editPhone !== editingMember.profile?.phone
+      ) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ 
             first_name: editFirstName,
             last_name: editLastName,
-            username: editUsername || null
+            username: editUsername || null,
+            phone: editPhone || null
           })
           .eq('id', editingMember.user_id);
         if (profileError) throw profileError;
@@ -263,6 +275,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           const firstName = row.firstName || row.Nome || '';
           const lastName = row.lastName || row.Sobrenome || '';
           const username = row.username || row.Usuario || '';
+          const phone = row.phone || row.Telefone || '';
           const role = row.role || row.Funcao || 'staff';
           
           if (!email) {
@@ -273,7 +286,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           const password = "Mudar123!";
           
           try {
-            await createUserAndAssign(email, password, firstName, lastName, username, role);
+            await createUserAndAssign(email, password, firstName, lastName, username, phone, role);
             successCount++;
           } catch (err) {
             console.error(`Falha ao importar ${email}:`, err);
@@ -317,10 +330,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        Carregue um arquivo CSV com as colunas: <strong>email, firstName, lastName, username, role</strong>.
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        A senha padrão temporária para todos os usuários importados será <code>Mudar123!</code>.
+                        Carregue um arquivo CSV com as colunas: <strong>email, firstName, lastName, username, phone, role</strong>.
                       </p>
                       <div className="grid w-full max-w-sm items-center gap-1.5">
                         <Label htmlFor="csv-upload">Arquivo CSV</Label>
@@ -349,9 +359,15 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                           <Input id="lastName" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} />
                         </div>
                       </div>
-                      <div>
-                        <Label htmlFor="username">Usuário (Opcional)</Label>
-                        <Input id="username" value={newUserUsername} onChange={e => setNewUserUsername(e.target.value)} placeholder="ex: joao.silva" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="username">Usuário (Opcional)</Label>
+                          <Input id="username" value={newUserUsername} onChange={e => setNewUserUsername(e.target.value)} placeholder="ex: joao.silva" />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone">WhatsApp (Opcional)</Label>
+                          <Input id="phone" value={newUserPhone} onChange={e => setNewUserPhone(e.target.value)} placeholder="+55 11 99999-9999" />
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="email">E-mail</Label>
@@ -367,12 +383,11 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                         </Select>
                       </div>
                       <div className="bg-muted p-3 rounded-md">
-                        <Label>Senha Temporária (Gerada Automaticamente)</Label>
+                        <Label>Senha Temporária</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <code className="bg-background px-2 py-1 rounded border flex-1">{tempPassword}</code>
                           <Button type="button" variant="ghost" size="sm" onClick={() => setTempPassword(generateRandomPasswordString())}>Regerar</Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">O usuário deverá trocar esta senha no primeiro login.</p>
                       </div>
                     </div>
                     <DialogFooter>
@@ -391,15 +406,16 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome / Usuário</TableHead>
+              <TableHead>Contato</TableHead>
               <TableHead>Função</TableHead>
               {canManageStaff && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={canManageStaff ? 3 : 2} className="text-center">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canManageStaff ? 4 : 3} className="text-center">Carregando...</TableCell></TableRow>
             ) : staff.length === 0 ? (
-              <TableRow><TableCell colSpan={canManageStaff ? 3 : 2} className="text-center text-muted-foreground">Nenhum membro adicional na equipe.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canManageStaff ? 4 : 3} className="text-center text-muted-foreground">Nenhum membro adicional na equipe.</TableCell></TableRow>
             ) : (
               staff.map(member => (
                 <TableRow key={member.id}>
@@ -411,6 +427,13 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                         {member.profile?.username && <div className="text-xs text-muted-foreground">@{member.profile.username}</div>}
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {member.profile?.phone ? (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Phone className="h-3 w-3" /> {member.profile.phone}
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="capitalize">{member.role}</TableCell>
                   {canManageStaff && (
@@ -446,9 +469,15 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                 <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
               </div>
             </div>
-            <div>
-              <Label>Usuário</Label>
-              <Input value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="Opcional" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Usuário</Label>
+                <Input value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="Opcional" />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+55 11 99999-9999" />
+              </div>
             </div>
             <div>
               <Label>Função</Label>

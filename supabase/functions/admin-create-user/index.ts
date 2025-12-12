@@ -21,7 +21,7 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { email, password, firstName, lastName, username, eventId, role } = await req.json();
+    const { email, password, firstName, lastName, username, phone, eventId, role } = await req.json();
 
     if (!email || !password || !eventId) {
       throw new Error("Missing required fields");
@@ -56,9 +56,8 @@ serve(async (req: Request) => {
         must_change_password: true
       };
       
-      if (username) {
-        updateData.username = username;
-      }
+      if (username) updateData.username = username;
+      if (phone) updateData.phone = phone;
 
       await supabaseAdmin.from('profiles').upsert(updateData);
     }
