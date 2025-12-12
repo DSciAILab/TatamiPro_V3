@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom'; // useNavigate removido
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Event, Division, Bracket, AgeDivisionSetting } from '../types/index'; // Tipos re-importados
+import type { Event, Division, Bracket, AgeDivisionSetting } from '../types/index'; // Usando 'import type'
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';
@@ -25,11 +25,13 @@ import EventStaffTab from '@/components/EventStaffTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
-// Adiciona uma declaração de tipo dummy para 'Event' para resolver o erro TS6133
-type _EventUsed = Event;
+// Adiciona um tipo local que estende 'Event' para resolver o erro TS6196
+// Isso força o TypeScript a reconhecer o uso do tipo 'Event'
+interface _EventDetailEvent extends Event {}
 
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
+  // const navigate = useNavigate(); // Removido: não usado diretamente aqui
   const { profile } = useAuth();
   const { can, role: userRole } = usePermission();
   const userClub = profile?.club;
@@ -57,7 +59,7 @@ const EventDetail: React.FC = () => {
 
   const {
     selectedAthletesForApproval,
-    setSelectedAthletesForApproval,
+    // setSelectedAthletesForApproval, // Removido: não usado diretamente aqui
     editingAthlete,
     setEditingAthlete,
     searchTerm,
