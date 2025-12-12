@@ -28,72 +28,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // This now only tracks the initial session load
 
-  const fetchProfile = useCallback(async (userId: string, retries = 1, delay = 300) => {
-    for (let i = 0; i < retries; i++) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
-        .eq('id', userId)
-        .single();
-      
-      if (data) {
-        setProfile(data);
-        return; // Success
-      }
-
-      if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
-        console.error('Error fetching profile:', error);
-        setProfile(null);
-        return; // Hard error, stop retrying
-      }
-
-      // If row not found, wait and retry
-      if (i < retries - 1) await new Promise(res => setTimeout(res, delay));
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
+      .eq('id', userId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    } else {
+      setProfile(data);
     }
-    console.error('Profile not found after retries.');
-    setProfile(null);
   }, []);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error("Error fetching initial session:", error);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-      } finally {
-        setLoading(false);
+    // 1. Handle initial session load
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
       }
-    };
+      setLoading(false); // Initial load is complete
+    }).catch(error => {
+      console.error("Error fetching initial session:", error);
+      setLoading(false); // Ensure loading is false even on error
+    });
 
-    fetchSessionAndProfile();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        setLoading(true);
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const retryCount = event === 'SIGNED_IN' ? 5 : 1;
-          await fetchProfile(session.user.id, retryCount);
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error("Error on auth state change:", error);
-        setProfile(null); // Clear profile on error
-      } finally {
-        setLoading(false);
+    // 2. Listen for subsequent auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null); // Clear profile on logout
       }
     });
 
