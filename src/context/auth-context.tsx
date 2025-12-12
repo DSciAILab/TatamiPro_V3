@@ -10,9 +10,6 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'coach' | 'staff' | 'athlete';
   club: string | null;
-  username?: string | null;
-  phone?: string | null;
-  must_change_password?: boolean;
 }
 
 interface AuthContextType {
@@ -31,10 +28,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    // Select all necessary fields to avoid missing data issues
     const { data, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
+      .select('first_name, last_name, role, club, avatar_url')
       .eq('id', userId)
       .single();
     

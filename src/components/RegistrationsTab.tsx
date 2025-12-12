@@ -10,12 +10,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Share2 } from 'lucide-react';
+import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
-import { cn } from '@/lib/utils';
-import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
 
 interface RegistrationsTabProps {
   event: Event;
@@ -72,27 +71,15 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
 }) => {
 
   const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
+    // Calcula o novo valor do filtro e passa diretamente para a prop setRegistrationStatusFilter
     const newFilter = (registrationStatusFilter === filterType ? 'all' : filterType);
     setRegistrationStatusFilter(newFilter);
-  };
-
-  const copyPublicLink = () => {
-    const url = `${window.location.origin}/public/events/${event.id}/register`;
-    navigator.clipboard.writeText(url);
-    showSuccess("Link de inscrição copiado!");
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Gerenciar Inscrições</span>
-          {userRole === 'admin' && (
-            <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100">
-              <Share2 className="h-4 w-4" /> Link para Atletas
-            </Button>
-          )}
-        </CardTitle>
+        <CardTitle>Gerenciar Inscrições</CardTitle>
         <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -161,7 +148,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
               <div className="mb-6 space-y-2">
                 <Link to={`/events/${event.id}/registration-options`}>
                   <Button className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta (Manual)
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
                   </Button>
                 </Link>
                 <Link to={`/events/${event.id}/import-athletes`}>
