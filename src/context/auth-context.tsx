@@ -63,15 +63,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Claim unassigned events for the new user to ensure visibility
-        await supabase.rpc('claim_events_for_user');
-        await fetchProfile(session.user.id);
-      } else if (session?.user) {
+      if (session?.user) {
         await fetchProfile(session.user.id);
       } else {
         setProfile(null);
