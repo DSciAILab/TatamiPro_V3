@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider } from "@/context/auth-context";
 import { LayoutSettingsProvider } from "@/context/layout-settings-context";
-import { OfflineProvider } from "@/context/offline-context"; // Import Provider
+import { OfflineProvider } from "@/context/offline-context";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import Events from "./pages/Events";
@@ -23,6 +23,7 @@ import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 import PublicEvent from "./pages/PublicEvent";
 import Profile from "./pages/Profile";
+import ChangePassword from "./pages/ChangePassword"; // New Import
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,7 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/account-security" element={<AccountSecurity />} />
                     <Route path="/public/events/:id" element={<PublicEvent />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="/change-password" element={<ChangePassword />} /> 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
