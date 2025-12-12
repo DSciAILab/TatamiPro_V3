@@ -1,18 +1,24 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Auth as SupabaseAuth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { showError, showSuccess } from '@/utils/toast';
 import BiometricLogin from '@/components/BiometricLogin';
+import { Loader2, LogIn } from 'lucide-react';
 
 const Auth: React.FC = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -20,50 +26,83 @@ const Auth: React.FC = () => {
     }
   }, [session, navigate]);
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginIdentifier || !password) {
+      showError("Por favor, preencha todos os campos.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Call Edge Function to handle Username -> Email resolution if needed
+      const { data, error } = await supabase.functions.invoke('login', {
+        body: { login: loginIdentifier, password: password }
+      });
+
+      if (error) throw new Error(error.message || 'Falha ao conectar com o servidor.');
+      if (data?.error) throw new Error(data.error || 'Credenciais inválidas.');
+
+      if (data?.session) {
+        // Set the session in the client
+        const { error: sessionError } = await supabase.auth.setSession(data.session);
+        if (sessionError) throw sessionError;
+
+        showSuccess("Bem-vindo de volta!");
+        navigate('/events');
+      } else {
+        throw new Error('Falha ao obter sessão de login.');
+      }
+
+    } catch (error: any) {
+      console.error(error);
+      showError(error.message || "Erro ao fazer login.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Bem-vindo ao TatamiPro</CardTitle>
-            <CardDescription>Acesse sua conta ou crie uma nova para continuar</CardDescription>
+            <CardTitle className="text-3xl">TatamiPro</CardTitle>
+            <CardDescription>Entre com seu E-mail ou Nome de Usuário</CardDescription>
           </CardHeader>
-          <CardContent>
-            <SupabaseAuth
-              supabaseClient={supabase}
-              appearance={{ theme: ThemeSupa }}
-              providers={[]}
-              theme="light"
-              localization={{
-                variables: {
-                  sign_in: {
-                    email_label: 'Endereço de e-mail',
-                    password_label: 'Senha',
-                    email_input_placeholder: 'Seu endereço de e-mail',
-                    password_input_placeholder: 'Sua senha',
-                    button_label: 'Entrar',
-                    social_provider_text: 'Entrar com {{provider}}',
-                    link_text: 'Já tem uma conta? Entre',
-                  },
-                  sign_up: {
-                    email_label: 'Endereço de e-mail',
-                    password_label: 'Crie uma senha',
-                    email_input_placeholder: 'Seu endereço de e-mail',
-                    password_input_placeholder: 'Sua senha',
-                    button_label: 'Registrar',
-                    social_provider_text: 'Registrar com {{provider}}',
-                    link_text: 'Não tem uma conta? Registre-se',
-                  },
-                  forgotten_password: {
-                    email_label: 'Endereço de e-mail',
-                    email_input_placeholder: 'Seu endereço de e-mail',
-                    button_label: 'Enviar instruções',
-                    link_text: 'Esqueceu sua senha?',
-                  },
-                },
-              }}
-            />
-            
+          <CardContent className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login">E-mail ou Usuário</Label>
+                <Input
+                  id="login"
+                  type="text"
+                  placeholder="ex: nome.sobrenome ou email@exemplo.com"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                Entrar
+              </Button>
+            </form>
+
             <BiometricLogin />
             
           </CardContent>

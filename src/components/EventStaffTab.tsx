@@ -26,6 +26,7 @@ interface StaffMember {
     first_name: string;
     last_name: string;
     email: string;
+    username?: string;
   };
 }
 
@@ -43,6 +44,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editUsername, setEditUsername] = useState('');
   const [newGeneratedPassword, setNewGeneratedPassword] = useState('');
   
   // Use RBAC Hook
@@ -53,6 +55,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserFirstName, setNewUserFirstName] = useState('');
   const [newUserLastName, setNewUserLastName] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserRole, setNewUserRole] = useState('staff');
   const [tempPassword, setTempPassword] = useState('');
 
@@ -69,7 +72,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         id,
         user_id,
         role,
-        profile:profiles(first_name, last_name)
+        profile:profiles(first_name, last_name, username)
       `)
       .eq('event_id', eventId);
 
@@ -98,11 +101,11 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     const toastId = showLoading('Criando usuário e vinculando ao evento...');
     
     try {
-      await createUserAndAssign(newUserEmail, tempPassword, newUserFirstName, newUserLastName, newUserRole);
+      await createUserAndAssign(newUserEmail, tempPassword, newUserFirstName, newUserLastName, newUserUsername, newUserRole);
 
       dismissToast(toastId);
       showSuccess(`Usuário adicionado!`);
-      alert(`IMPORTANTE: Copie a senha temporária para enviar ao usuário:\n\nEmail: ${newUserEmail}\nSenha: ${tempPassword}`);
+      alert(`IMPORTANTE: Copie a senha temporária para enviar ao usuário:\n\nEmail: ${newUserEmail}\nUsuário: ${newUserUsername || 'N/A'}\nSenha: ${tempPassword}`);
       
       setIsAddDialogOpen(false);
       resetForm();
@@ -113,13 +116,14 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     }
   };
 
-  const createUserAndAssign = async (email: string, password: string, firstName: string, lastName: string, role: string) => {
+  const createUserAndAssign = async (email: string, password: string, firstName: string, lastName: string, username: string, role: string) => {
     const { data, error } = await supabase.functions.invoke('admin-create-user', {
       body: {
         email,
         password,
         firstName,
         lastName,
+        username,
         eventId: eventId,
         role
       }
@@ -134,6 +138,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setNewUserEmail('');
     setNewUserFirstName('');
     setNewUserLastName('');
+    setNewUserUsername('');
     setNewUserRole('staff');
   };
 
@@ -154,6 +159,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setEditingMember(member);
     setEditFirstName(member.profile?.first_name || '');
     setEditLastName(member.profile?.last_name || '');
+    setEditUsername(member.profile?.username || '');
     setEditRole(member.role);
     setNewGeneratedPassword('');
     setIsEditDialogOpen(true);
@@ -173,13 +179,14 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         if (roleError) throw roleError;
       }
 
-      // 2. Update Profile Name
-      if (editFirstName !== editingMember.profile?.first_name || editLastName !== editingMember.profile?.last_name) {
+      // 2. Update Profile Name and Username
+      if (editFirstName !== editingMember.profile?.first_name || editLastName !== editingMember.profile?.last_name || editUsername !== editingMember.profile?.username) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ 
             first_name: editFirstName,
-            last_name: editLastName
+            last_name: editLastName,
+            username: editUsername || null
           })
           .eq('id', editingMember.user_id);
         if (profileError) throw profileError;
@@ -222,7 +229,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     showSuccess('Copiado!');
   };
 
-  // CSV Import Handler (kept same)
+  // CSV Import Handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -255,6 +262,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           const email = row.email || row.Email;
           const firstName = row.firstName || row.Nome || '';
           const lastName = row.lastName || row.Sobrenome || '';
+          const username = row.username || row.Usuario || '';
           const role = row.role || row.Funcao || 'staff';
           
           if (!email) {
@@ -265,7 +273,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
           const password = "Mudar123!";
           
           try {
-            await createUserAndAssign(email, password, firstName, lastName, role);
+            await createUserAndAssign(email, password, firstName, lastName, username, role);
             successCount++;
           } catch (err) {
             console.error(`Falha ao importar ${email}:`, err);
@@ -309,7 +317,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        Carregue um arquivo CSV com as colunas: <strong>email, firstName, lastName, role</strong>.
+                        Carregue um arquivo CSV com as colunas: <strong>email, firstName, lastName, username, role</strong>.
                       </p>
                       <p className="text-sm text-muted-foreground">
                         A senha padrão temporária para todos os usuários importados será <code>Mudar123!</code>.
@@ -340,6 +348,10 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                           <Label htmlFor="lastName">Sobrenome</Label>
                           <Input id="lastName" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} />
                         </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="username">Usuário (Opcional)</Label>
+                        <Input id="username" value={newUserUsername} onChange={e => setNewUserUsername(e.target.value)} placeholder="ex: joao.silva" />
                       </div>
                       <div>
                         <Label htmlFor="email">E-mail</Label>
@@ -378,7 +390,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>Nome / Usuário</TableHead>
               <TableHead>Função</TableHead>
               {canManageStaff && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
@@ -394,7 +406,10 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-blue-500" />
-                      <span>{member.profile?.first_name} {member.profile?.last_name}</span>
+                      <div>
+                        <div className="font-medium">{member.profile?.first_name} {member.profile?.last_name}</div>
+                        {member.profile?.username && <div className="text-xs text-muted-foreground">@{member.profile.username}</div>}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="capitalize">{member.role}</TableCell>
@@ -430,6 +445,10 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                 <Label>Sobrenome</Label>
                 <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
               </div>
+            </div>
+            <div>
+              <Label>Usuário</Label>
+              <Input value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="Opcional" />
             </div>
             <div>
               <Label>Função</Label>

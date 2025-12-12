@@ -21,7 +21,7 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { email, password, firstName, lastName, eventId, role } = await req.json();
+    const { email, password, firstName, lastName, username, eventId, role } = await req.json();
 
     if (!email || !password || !eventId) {
       throw new Error("Missing required fields");
@@ -29,36 +29,38 @@ serve(async (req: Request) => {
 
     // 1. Check if user exists or create
     let userId;
-    const { data: listUsers } = await supabaseAdmin.auth.admin.listUsers();
-    // Simple search (in production with thousands of users, allow filtering by email directly via API if available)
+    const { data: listUsers } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 10000 });
     const existingUser = listUsers.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
 
     if (existingUser) {
       userId = existingUser.id;
-      // We do NOT update password for existing users to avoid locking them out of other events
     } else {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: true, // Auto-confirm since admin created it
-        user_metadata: { first_name: firstName, last_name: lastName }
+        email_confirm: true,
+        user_metadata: { first_name: firstName, last_name: lastName, username: username }
       });
       
       if (createError) throw createError;
       userId = newUser.user.id;
 
-      // Update profile to enforce password change and set name
-      // Note: Trigger usually creates profile, but we need to update the flag specifically
-      // We wait a bit to ensure trigger fired or upsert
-      await new Promise(r => setTimeout(r, 1000));
+      // Wait a bit for triggers
+      await new Promise(r => setTimeout(r, 500));
       
-      await supabaseAdmin.from('profiles').upsert({
+      const updateData: any = {
         id: userId,
         first_name: firstName,
         last_name: lastName,
-        role: 'staff', // Default global role, event access is specific
+        role: 'staff',
         must_change_password: true
-      });
+      };
+      
+      if (username) {
+        updateData.username = username;
+      }
+
+      await supabaseAdmin.from('profiles').upsert(updateData);
     }
 
     // 2. Assign to Event
@@ -68,7 +70,6 @@ serve(async (req: Request) => {
       role: role
     });
 
-    // Ignore duplicate key error (already assigned)
     if (assignError && !assignError.message.includes('duplicate key')) {
       throw assignError;
     }
