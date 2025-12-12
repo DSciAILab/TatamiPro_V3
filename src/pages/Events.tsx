@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ const Events: React.FC = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [loading, setLoading] = useState(true);
 
-  const loadEventsFromSupabase = async () => {
+  const loadEventsFromSupabase = useCallback(async () => {
     setLoading(true);
     const appId = await getAppId();
     
@@ -39,13 +39,17 @@ const Events: React.FC = () => {
       setEvents(data || []);
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
-    if (!authLoading) {
+    // We wait for auth to be done AND profile to be available before loading events
+    if (!authLoading && profile) {
       loadEventsFromSupabase();
+    } else if (!authLoading && !profile) {
+      // If auth is done but there's no profile (e.g., not logged in), stop loading.
+      setLoading(false);
     }
-  }, [authLoading]);
+  }, [authLoading, profile, loadEventsFromSupabase]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
