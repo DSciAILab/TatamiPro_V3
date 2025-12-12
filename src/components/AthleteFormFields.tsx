@@ -2,17 +2,12 @@
 
 import React from 'react';
 import { UseFormRegister, FieldErrors, UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Belt, Gender, AgeDivisionSetting } from '@/types/index';
+import { DatePicker } from './ui/date-picker';
 
 interface AthleteFormFieldsProps {
   register: UseFormRegister<any>;
@@ -36,7 +31,6 @@ const AthleteFormFields: React.FC<AthleteFormFieldsProps> = ({
   existingEmiratesIdFrontUrl,
   existingEmiratesIdBackUrl,
 }) => {
-  const date_of_birth = watch('date_of_birth');
   const currentGender = watch('gender');
   const currentBelt = watch('belt');
   const photo = watch('photo');
@@ -60,28 +54,10 @@ const AthleteFormFields: React.FC<AthleteFormFieldsProps> = ({
 
       <div>
         <Label htmlFor="date_of_birth">Data de Nascimento {isFieldMandatory('date_of_birth') && <span className="text-red-500">*</span>}</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !date_of_birth && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date_of_birth ? format(date_of_birth, "PPP") : <span>Selecione uma data</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date_of_birth}
-              onSelect={(date) => setValue('date_of_birth', date!, { shouldValidate: true })}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <DatePicker
+          value={watch('date_of_birth')}
+          onChange={(date) => setValue('date_of_birth', date!, { shouldValidate: true })}
+        />
         {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message as string}</p>}
       </div>
 

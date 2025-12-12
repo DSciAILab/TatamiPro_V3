@@ -15,13 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { showSuccess, showError } from '@/utils/toast';
 import { Event, Division, Belt, Gender } from '@/types/index';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const registrationSchema = z.object({
   first_name: z.string().min(2, 'Nome é obrigatório.'),
@@ -107,10 +105,22 @@ const PublicAthleteRegistration: React.FC = () => {
     const athleteId = uuidv4();
     const age = new Date().getFullYear() - data.date_of_birth.getFullYear();
 
+    let generatedIdSuffix = '';
+    const phoneDigits = data.phone.replace(/\D/g, '');
+    if (phoneDigits.length >= 4) {
+        generatedIdSuffix = phoneDigits.slice(-4);
+    } else {
+        const namePart = data.first_name.substring(0, 4).toLowerCase();
+        const datePart = format(data.date_of_birth, 'ddMMyyyy');
+        generatedIdSuffix = `${namePart}_${datePart}`;
+    }
+    const registration_qr_code_id = `EV_${eventId}_ATH_${generatedIdSuffix}`;
+
     const newAthleteData = {
       id: athleteId,
       event_id: eventId,
       app_id: appId,
+      registration_qr_code_id,
       first_name: data.first_name,
       last_name: data.last_name,
       date_of_birth: data.date_of_birth.toISOString(),
@@ -172,15 +182,10 @@ const PublicAthleteRegistration: React.FC = () => {
 
             <div>
               <Label>Data de Nascimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !watch('date_of_birth') && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {watch('date_of_birth') ? format(watch('date_of_birth'), "PPP") : <span>Selecione uma data</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={watch('date_of_birth')} onSelect={(date) => setValue('date_of_birth', date!)} initialFocus /></PopoverContent>
-              </Popover>
+              <DatePicker
+                value={watch('date_of_birth')}
+                onChange={(date) => setValue('date_of_birth', date!, { shouldValidate: true })}
+              />
               {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
             </div>
 
