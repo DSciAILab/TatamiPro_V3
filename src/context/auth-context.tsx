@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
+      setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
@@ -63,11 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        if (_event !== 'USER_UPDATED') { // Avoid re-fetching on simple metadata updates
-          setLoading(true);
-          await fetchProfile(session.user.id);
-          setLoading(false);
-        }
+        await fetchProfile(session.user.id);
       } else {
         setProfile(null);
       }

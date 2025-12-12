@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { showSuccess } from '@/utils/toast';
@@ -28,9 +28,18 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslations();
-  const { session, profile } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const { isWideLayout } = useLayoutSettings();
+
+  useEffect(() => {
+    if (!authLoading && profile && profile.must_change_password) {
+      if (location.pathname !== '/change-password') {
+        navigate('/change-password');
+      }
+    }
+  }, [profile, authLoading, navigate, location.pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
