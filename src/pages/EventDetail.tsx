@@ -10,9 +10,11 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
+import { usePermission } from '@/hooks/use-permission'; // Import Permission Hook
 import { supabase } from '@/integrations/supabase/client';
 import { useOffline } from '@/context/offline-context';
 import { db } from '@/lib/local-db';
+// getAppId removed (unused)
 
 import EventConfigTab from '@/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -21,7 +23,7 @@ import BracketsTab from '@/components/BracketsTab';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import ResultsTab from '@/components/ResultsTab';
-import EventStaffTab from '@/components/EventStaffTab'; // Import Staff Tab
+import EventStaffTab from '@/components/EventStaffTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
@@ -30,9 +32,9 @@ const EventDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, loading: authLoading } = useAuth();
+  const { can, role: userRole } = usePermission(); // Use RBAC Hook
   const { isOfflineMode } = useOffline();
   
-  const userRole = profile?.role;
   const userClub = profile?.club;
   
   // Security Guard for Password Change
@@ -256,15 +258,15 @@ const EventDetail: React.FC = () => {
   }, [processedApprovedAthletes, event?.is_attendance_mandatory_before_check_in, scannedAthleteId, searchTerm, checkInFilter]);
 
   const visibleTabs = useMemo(() => [
-    userRole === 'admin' && { value: 'config', label: 'Config' },
-    userRole === 'admin' && { value: 'staff', label: 'Equipe' },
+    can('event.settings') && { value: 'config', label: 'Config' },
+    can('staff.view') && { value: 'staff', label: 'Equipe' },
     { value: 'inscricoes', label: 'Inscrições' },
-    event?.is_attendance_mandatory_before_check_in && { value: 'attendance', label: 'Attendance' },
-    userRole && { value: 'checkin', label: 'Check-in' },
+    (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: 'Attendance' },
+    can('checkin.manage') && { value: 'checkin', label: 'Check-in' },
     { value: 'brackets', label: 'Brackets' },
     { value: 'resultados', label: 'Resultados' },
     { value: 'llm', label: 'IA Chat' },
-  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [userRole, event?.is_attendance_mandatory_before_check_in]);
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in]);
 
   if (loading) return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
   if (!event) return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou acesso negado.</div></Layout>;
@@ -319,7 +321,7 @@ const EventDetail: React.FC = () => {
             set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
             count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
             set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
-            userRole={userRole}
+            userRole={userRole as any} // Cast to keep compat until strict typing everywhere
             event_name={event.name}
             set_event_name={(value) => handleUpdateEventProperty('name', value)}
             event_description={event.description}
@@ -334,7 +336,7 @@ const EventDetail: React.FC = () => {
         <TabsContent value="inscricoes" className="mt-6">
           <RegistrationsTab
             event={event}
-            userRole={userRole}
+            userRole={userRole as any}
             userClub={userClub}
             inscricoesSubTab={inscricoesSubTab}
             setInscricoesSubTab={setInscricoesSubTab}
@@ -361,13 +363,13 @@ const EventDetail: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
-          <AttendanceManagement eventDivisions={event.divisions || []} onUpdateAthleteAttendance={handleUpdateAthleteAttendance} isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} userRole={userRole} athletes={event.athletes || []} />
+          <AttendanceManagement eventDivisions={event.divisions || []} onUpdateAthleteAttendance={handleUpdateAthleteAttendance} isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} userRole={userRole as any} athletes={event.athletes || []} />
         </TabsContent>
         <TabsContent value="checkin" className="mt-6">
-          <CheckInTab event={event} userRole={userRole} check_in_start_time={event.check_in_start_time} check_in_end_time={event.check_in_end_time} checkInFilter={checkInFilter} handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)} setCheckInFilter={setCheckInFilter} totalCheckedInOk={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length} totalOverweights={processedApprovedAthletes.filter(a => a.check_in_status === 'overweight').length} totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length} totalApprovedAthletes={processedApprovedAthletes.length} isScannerOpen={isScannerOpen} setIsScannerOpen={setIsScannerOpen} processedApprovedAthletes={processedApprovedAthletes} setScannedAthleteId={setScannedAthleteId} setSearchTerm={setSearchTerm} searchTerm={searchTerm} filteredAthletesForCheckIn={filteredAthletesForCheckIn} handleCheckInAthlete={handleCheckInAthlete} />
+          <CheckInTab event={event} userRole={userRole as any} check_in_start_time={event.check_in_start_time} check_in_end_time={event.check_in_end_time} checkInFilter={checkInFilter} handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)} setCheckInFilter={setCheckInFilter} totalCheckedInOk={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length} totalOverweights={processedApprovedAthletes.filter(a => a.check_in_status === 'overweight').length} totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length} totalApprovedAthletes={processedApprovedAthletes.length} isScannerOpen={isScannerOpen} setIsScannerOpen={setIsScannerOpen} processedApprovedAthletes={processedApprovedAthletes} setScannedAthleteId={setScannedAthleteId} setSearchTerm={setSearchTerm} searchTerm={searchTerm} filteredAthletesForCheckIn={filteredAthletesForCheckIn} handleCheckInAthlete={handleCheckInAthlete} />
         </TabsContent>
         <TabsContent value="brackets" className="mt-6">
-          <BracketsTab event={event} userRole={userRole} handleUpdateMatAssignments={(assignments) => { const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...event, mat_assignments: assignments }); handleUpdateEventProperty('mat_assignments', assignments); handleUpdateBracketsAndFightOrder(updatedBrackets, matFightOrder); }} onUpdateBrackets={handleUpdateBracketsAndFightOrder} bracketsSubTab={bracketsSubTab} setBracketsSubTab={setBracketsSubTab} />
+          <BracketsTab event={event} userRole={userRole as any} handleUpdateMatAssignments={(assignments) => { const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...event, mat_assignments: assignments }); handleUpdateEventProperty('mat_assignments', assignments); handleUpdateBracketsAndFightOrder(updatedBrackets, matFightOrder); }} onUpdateBrackets={handleUpdateBracketsAndFightOrder} bracketsSubTab={bracketsSubTab} setBracketsSubTab={setBracketsSubTab} />
         </TabsContent>
         <TabsContent value="resultados" className="mt-6">
           <ResultsTab event={event} />

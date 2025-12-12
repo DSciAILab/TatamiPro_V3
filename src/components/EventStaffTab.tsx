@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Trash2, UserPlus, Shield } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { usePermission } from '@/hooks/use-permission';
 
 interface EventStaffTabProps {
   eventId: string;
@@ -23,9 +24,7 @@ interface StaffMember {
   profile?: {
     first_name: string;
     last_name: string;
-    email: string; // Note: We might need a secure way to get email if not in profile, usually RLS blocks accessing auth.users. 
-                   // Ideally, profile should have email or we assume admin knows it.
-                   // For this demo, let's assume we can fetch names from profile.
+    email: string;
   };
 }
 
@@ -34,6 +33,10 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  // Use RBAC Hook
+  const { can } = usePermission();
+  const canManageStaff = can('staff.manage');
+
   // New User Form State
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserFirstName, setNewUserFirstName] = useState('');
@@ -130,55 +133,57 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <span>Equipe do Evento</span>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><UserPlus className="mr-2 h-4 w-4" /> Adicionar Membro</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Novo Membro da Equipe</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">Nome</Label>
-                    <Input id="firstName" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} />
+          {canManageStaff && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><UserPlus className="mr-2 h-4 w-4" /> Adicionar Membro</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Novo Membro da Equipe</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">Nome</Label>
+                      <Input id="firstName" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Sobrenome</Label>
+                      <Input id="lastName" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} />
+                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Sobrenome</Label>
-                    <Input id="lastName" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} />
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input id="email" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="role">Função</Label>
+                    <Select value={newUserRole} onValueChange={setNewUserRole}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff">Staff Geral</SelectItem>
+                        <SelectItem value="referee">Árbitro</SelectItem>
+                        <SelectItem value="table">Mesário</SelectItem>
+                        <SelectItem value="medical">Médico</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="bg-muted p-3 rounded-md">
+                    <Label>Senha Temporária (Gerada Automaticamente)</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="bg-background px-2 py-1 rounded border flex-1">{tempPassword}</code>
+                      <Button type="button" variant="ghost" size="sm" onClick={generateTempPassword}>Regerar</Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">O usuário deverá trocar esta senha no primeiro login.</p>
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="role">Função</Label>
-                  <Select value={newUserRole} onValueChange={setNewUserRole}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="staff">Staff Geral</SelectItem>
-                      <SelectItem value="referee">Árbitro</SelectItem>
-                      <SelectItem value="table">Mesário</SelectItem>
-                      <SelectItem value="medical">Médico</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="bg-muted p-3 rounded-md">
-                  <Label>Senha Temporária (Gerada Automaticamente)</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="bg-background px-2 py-1 rounded border flex-1">{tempPassword}</code>
-                    <Button type="button" variant="ghost" size="sm" onClick={generateTempPassword}>Regerar</Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">O usuário deverá trocar esta senha no primeiro login.</p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddStaff} disabled={!newUserEmail || !newUserFirstName}>Criar e Adicionar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button onClick={handleAddStaff} disabled={!newUserEmail || !newUserFirstName}>Criar e Adicionar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </CardTitle>
         <CardDescription>Gerencie quem tem acesso administrativo a este evento específico.</CardDescription>
       </CardHeader>
@@ -188,14 +193,14 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Função</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              {canManageStaff && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={3} className="text-center">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canManageStaff ? 3 : 2} className="text-center">Carregando...</TableCell></TableRow>
             ) : staff.length === 0 ? (
-              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Nenhum membro adicional na equipe.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canManageStaff ? 3 : 2} className="text-center text-muted-foreground">Nenhum membro adicional na equipe.</TableCell></TableRow>
             ) : (
               staff.map(member => (
                 <TableRow key={member.id}>
@@ -206,11 +211,13 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                     </div>
                   </TableCell>
                   <TableCell className="capitalize">{member.role}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveStaff(member.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
+                  {canManageStaff && (
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveStaff(member.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
