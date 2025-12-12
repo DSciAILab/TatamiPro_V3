@@ -281,6 +281,16 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     });
   };
 
+  const renderRoleOptions = () => (
+    <>
+      <SelectItem value="admin">Admin</SelectItem>
+      <SelectItem value="scoreboard">Scoreboard (Placar)</SelectItem>
+      <SelectItem value="bracket_manager">Bracket (Chaves)</SelectItem>
+      <SelectItem value="checkin">Check-in</SelectItem>
+      <SelectItem value="results">Results (Resultados)</SelectItem>
+    </>
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -340,10 +350,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
                         <Select value={newUserRole} onValueChange={setNewUserRole}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="staff">Staff Geral</SelectItem>
-                            <SelectItem value="referee">Árbitro</SelectItem>
-                            <SelectItem value="table">Mesário</SelectItem>
-                            <SelectItem value="medical">Médico</SelectItem>
+                            {renderRoleOptions()}
                           </SelectContent>
                         </Select>
                       </div>
@@ -429,10 +436,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
               <Select value={editRole} onValueChange={setEditRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="staff">Staff Geral</SelectItem>
-                  <SelectItem value="referee">Árbitro</SelectItem>
-                  <SelectItem value="table">Mesário</SelectItem>
-                  <SelectItem value="medical">Médico</SelectItem>
+                  {renderRoleOptions()}
                 </SelectContent>
               </Select>
             </div>

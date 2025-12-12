@@ -1,4 +1,15 @@
-export type Role = 'admin' | 'staff' | 'coach' | 'athlete' | 'referee' | 'table' | 'medical';
+export type Role = 
+  | 'admin' 
+  | 'staff' 
+  | 'coach' 
+  | 'athlete' 
+  | 'referee' 
+  | 'table' 
+  | 'medical'
+  | 'scoreboard'
+  | 'bracket_manager'
+  | 'checkin'
+  | 'results';
 
 export type Permission = 
   | 'event.manage'       // Create/Delete events, change global settings
@@ -31,6 +42,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'attendance.manage',
     'financial.view',
   ],
+  // Legacy roles (kept for compatibility)
   staff: [
     'staff.view',
     'athlete.create',
@@ -53,5 +65,29 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   medical: [
     'athlete.update',
+  ],
+  
+  // New Requested Roles
+  scoreboard: [
+    'fight.score',
+    'staff.view'
+  ],
+  bracket_manager: [
+    'bracket.manage',
+    'fight.score',
+    'athlete.update', // Often needed to fix bracket issues
+    'staff.view'
+  ],
+  checkin: [
+    'checkin.manage',
+    'athlete.update', // To update weight
+    'athlete.approve',
+    'attendance.manage',
+    'staff.view'
+  ],
+  results: [
+    'fight.score',
+    'bracket.manage', // To view/audit brackets
+    'staff.view'
   ]
 };
