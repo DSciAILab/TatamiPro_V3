@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,40 +15,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { isPast, isFuture, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
+import { useEvents } from '@/hooks/use-events'; // Import the new hook
 
 const Events: React.FC = () => {
-  const { profile, session, loading: authLoading } = useAuth();
-  const [events, setEvents] = useState<Event[]>([]);
+  const { profile } = useAuth();
+  const { data: events, isLoading: loading, error } = useEvents(); // Use the new hook
+
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
-  const [loading, setLoading] = useState(true);
-
-  const loadEventsFromSupabase = useCallback(async () => {
-    setLoading(true);
-    const appId = await getAppId();
-    
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('app_id', appId)
-      .order('event_date', { ascending: false });
-
-    if (error) {
-      showError('Failed to load events: ' + error.message);
-      setEvents([]);
-    } else {
-      setEvents(data || []);
-    }
-    setLoading(false);
-  }, []);
 
   useEffect(() => {
-    // Only fetch after the initial authentication check is complete.
-    // This will also refetch when the user logs in or out (session changes).
-    if (!authLoading) {
-      loadEventsFromSupabase();
+    if (error) {
+      showError('Failed to load events: ' + error.message);
     }
-  }, [loadEventsFromSupabase, session, authLoading]);
+  }, [error]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
@@ -71,13 +51,14 @@ const Events: React.FC = () => {
     } else {
       showSuccess(`Event "${eventToDelete?.name}" deleted successfully.`);
       setEventToDelete(null);
-      loadEventsFromSupabase();
+      // Data will be refetched automatically by react-query, but we can trigger it manually if needed
+      // queryClient.invalidateQueries(['events']);
     }
   };
 
-  const filterEvents = (filterType: 'past' | 'upcoming' | 'all') => {
+  const filterEvents = (filterType: 'past' | 'upcoming' | 'all', eventList: Event[] = []) => {
     const today = new Date();
-    return events.filter(event => {
+    return eventList.filter(event => {
       const eventDate = parseISO(event.event_date);
       if (filterType === 'past') {
         return isPast(eventDate) && eventDate.toDateString() !== today.toDateString();
@@ -156,13 +137,13 @@ const Events: React.FC = () => {
         </TabsList>
 
         <TabsContent value="upcoming" className="mt-6">
-          {renderEventCards(filterEvents('upcoming'))}
+          {renderEventCards(filterEvents('upcoming', events))}
         </TabsContent>
         <TabsContent value="all" className="mt-6">
-          {renderEventCards(filterEvents('all'))}
+          {renderEventCards(filterEvents('all', events))}
         </TabsContent>
         <TabsContent value="past" className="mt-6">
-          {renderEventCards(filterEvents('past'))}
+          {renderEventCards(filterEvents('past', events))}
         </TabsContent>
       </Tabs>
 
