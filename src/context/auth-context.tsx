@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { showError } from '@/utils/toast';
 
 export interface Profile {
   first_name: string;
@@ -10,6 +11,7 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'coach' | 'staff' | 'athlete';
   club: string | null;
+  is_approved: boolean;
 }
 
 interface AuthContextType {
@@ -30,7 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, role, club, avatar_url')
+      .select('first_name, last_name, role, club, avatar_url, is_approved')
       .eq('id', userId)
       .single();
     
@@ -38,6 +40,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Error fetching profile:', error);
       setProfile(null);
     } else {
+      if (!data.is_approved) {
+        showError('Sua conta está aguardando aprovação de um administrador.');
+        supabase.auth.signOut();
+        return; // Don't set profile for unapproved users
+      }
       setProfile(data);
     }
   }, []);
@@ -59,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        if (_event !== 'USER_UPDATED') { // Avoid re-fetching on simple metadata updates
+        if (_event !== 'USER_UPDATED') {
           setLoading(true);
           await fetchProfile(session.user.id);
           setLoading(false);

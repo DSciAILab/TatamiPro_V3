@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { showSuccess } from '@/utils/toast';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Users } from 'lucide-react'; // Import Users icon
 import { useTranslations } from '@/hooks/use-translations';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,6 +79,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {profile.role === 'admin' && (
+                    <DropdownMenuItem onClick={() => navigate('/admin/users')}>
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>User Management</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>

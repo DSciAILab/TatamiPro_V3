@@ -23,7 +23,9 @@ import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 import PublicEvent from "./pages/PublicEvent";
 import Profile from "./pages/Profile";
-import ChangePassword from "./pages/ChangePassword"; // New Import
+import ChangePassword from "./pages/ChangePassword";
+import UserManagement from "./pages/admin/UserManagement"; // New Import
+import AdminRoute from "./components/AdminRoute"; // New Import
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,7 @@ const App = () => (
                     <Route path="/account-security" element={<AccountSecurity />} />
                     <Route path="/public/events/:id" element={<PublicEvent />} />
                     <Route path="/change-password" element={<ChangePassword />} /> 
+                    <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
