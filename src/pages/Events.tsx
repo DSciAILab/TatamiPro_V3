@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
 
 const Events: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, session, loading: authLoading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -30,11 +30,12 @@ const Events: React.FC = () => {
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .eq('app_id', appId) // Filter by App ID
+      .eq('app_id', appId)
       .order('event_date', { ascending: false });
 
     if (error) {
       showError('Failed to load events: ' + error.message);
+      setEvents([]);
     } else {
       setEvents(data || []);
     }
@@ -42,10 +43,12 @@ const Events: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Load events on component mount. The supabase client will automatically
-    // use the auth token if the user is logged in.
-    loadEventsFromSupabase();
-  }, [loadEventsFromSupabase]);
+    // Only fetch after the initial authentication check is complete.
+    // This will also refetch when the user logs in or out (session changes).
+    if (!authLoading) {
+      loadEventsFromSupabase();
+    }
+  }, [loadEventsFromSupabase, session, authLoading]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
@@ -59,7 +62,7 @@ const Events: React.FC = () => {
       .from('events')
       .delete()
       .eq('id', eventId)
-      .eq('app_id', appId); // Ensure delete targets only this app's data
+      .eq('app_id', appId);
 
     dismissToast(loadingToast);
 
@@ -68,7 +71,7 @@ const Events: React.FC = () => {
     } else {
       showSuccess(`Event "${eventToDelete?.name}" deleted successfully.`);
       setEventToDelete(null);
-      loadEventsFromSupabase(); // Refresh the list
+      loadEventsFromSupabase();
     }
   };
 
@@ -81,7 +84,7 @@ const Events: React.FC = () => {
       } else if (filterType === 'upcoming') {
         return isFuture(eventDate) || eventDate.toDateString() === today.toDateString();
       }
-      return true; // 'all' filter
+      return true;
     });
   };
 
