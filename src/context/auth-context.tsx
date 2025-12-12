@@ -31,7 +31,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    // Select all necessary fields to avoid missing data issues
     const { data, error } = await supabase
       .from('profiles')
       .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
@@ -82,7 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

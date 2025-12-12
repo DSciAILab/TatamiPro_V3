@@ -17,15 +17,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
 
 const Events: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadEventsFromSupabase();
-  }, []);
 
   const loadEventsFromSupabase = async () => {
     setLoading(true);
@@ -44,6 +40,12 @@ const Events: React.FC = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadEventsFromSupabase();
+    }
+  }, [authLoading]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
