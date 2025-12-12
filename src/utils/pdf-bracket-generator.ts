@@ -7,15 +7,36 @@ import { Event, Division, Bracket, Athlete, Match } from '@/types/index';
 const PAGE_WIDTH = 297; // A4 Landscape width
 const PAGE_HEIGHT = 210; // A4 Landscape height
 const MARGIN = 10;
-const HEADER_HEIGHT = 20;
-const ROUND_GAP_BASE = 15; // Space between columns
-const MATCH_V_GAP_BASE = 4; // Space between matches in the first round
-const LINE_COLOR = '#888888';
-const WINNER_BG_COLOR = '#e0f2fe'; // Light blue
+const HEADER_HEIGHT = 25; // Increased to accommodate round labels
+const LINE_COLOR = '#444444';
+const WINNER_BG_COLOR = '#e0f2fe';
 
-const drawText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
-  const sanitizedText = (text || '').replace(/’/g, "'").replace(/“/g, '"').replace(/”/g, '"');
-  doc.text(sanitizedText, x, y, options);
+const getRoundName = (roundIndex: number, totalRounds: number): string => {
+  const roundFromEnd = totalRounds - roundIndex;
+  switch (roundFromEnd) {
+    case 1: return 'FINAL';
+    case 2: return 'SEMI-FINAL';
+    case 3: return 'QUARTAS';
+    case 4: return 'OITAVAS';
+    default: return `RODADA ${roundIndex + 1}`;
+  }
+};
+
+// Helper to fit text within a specific width
+const fitText = (doc: jsPDF, text: string, maxWidth: number): string => {
+  if (!text) return '';
+  const sanitized = text.replace(/’/g, "'").replace(/“/g, '"').replace(/”/g, '"');
+  
+  if (doc.getTextWidth(sanitized) <= maxWidth) {
+    return sanitized;
+  }
+
+  // Simple truncation with ellipsis
+  let chopped = sanitized;
+  while (doc.getTextWidth(chopped + '...') > maxWidth && chopped.length > 0) {
+    chopped = chopped.slice(0, -1);
+  }
+  return chopped + '...';
 };
 
 const drawMatch = (
@@ -28,53 +49,84 @@ const drawMatch = (
   athletesMap: Map<string, Athlete>
 ) => {
   doc.setDrawColor(LINE_COLOR);
-  doc.setLineWidth(0.2);
-  doc.rect(x, y, width, height);
+  doc.setLineWidth(0.3);
+  doc.setFillColor(255, 255, 255);
+  doc.rect(x, y, width, height, 'DF'); // Draw filled white box with border
 
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
   const fighter2 = match.fighter2_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2_id || '');
 
-  const fighter1IsWinner = match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter1_id;
-  const fighter2IsWinner = match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter2_id;
+  // Fix: Ensure strict boolean type for drawSlot
+  const fighter1IsWinner = !!(match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter1_id);
+  const fighter2IsWinner = !!(match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter2_id);
 
-  // Font sizes adjusted based on card height
-  const fontSizeName = Math.min(10, height * 0.35); 
-  const fontSizeClub = Math.min(8, height * 0.25);
-  const textPaddingX = 2;
-  const textOffsetY_Name = height * 0.3; // 30% down from top of slot
-  const textOffsetY_Club = height * 0.45; // 45% down
+  // --- Dimensions & Font Sizes ---
+  const slotHeight = height / 2;
+  const paddingX = 2;
+  const matchNumSize = 6;
+  
+  // Dynamic font sizing based on box height
+  const nameFontSize = Math.min(9, height * 0.25);
+  const clubFontSize = Math.min(7, height * 0.18);
 
-  // --- Fighter 1 (Top Slot) ---
-  if (fighter1IsWinner) {
-    doc.setFillColor(WINNER_BG_COLOR);
-    doc.rect(x, y, width, height / 2, 'F');
+  // --- Match Number Indicator (e.g., "2-5") ---
+  // Format: Mat Number - Fight Number
+  let matchLabel = "";
+  if (match.mat_fight_number) {
+    const matNum = match._mat_name ? match._mat_name.replace(/\D/g, '') : '?';
+    matchLabel = `${matNum}-${match.mat_fight_number}`;
+  } else {
+    // Fallback ID part if not scheduled yet
+    matchLabel = match.id.split('-').pop()?.replace('M', '') || '';
   }
-  
-  doc.setFontSize(fontSizeName);
-  // Se não tem fighter e não é BYE, deixa vazio para preenchimento manual
-  const f1Name = fighter1 ? (fighter1 === 'BYE' ? 'BYE' : `${fighter1.first_name} ${fighter1.last_name}`) : ''; 
-  drawText(doc, f1Name, x + textPaddingX, y + textOffsetY_Name);
-  
-  doc.setFontSize(fontSizeClub);
-  const f1Club = (fighter1 && fighter1 !== 'BYE') ? fighter1.club : '';
-  drawText(doc, f1Club, x + textPaddingX, y + textOffsetY_Name + textOffsetY_Club);
 
-  // Separator line
-  doc.line(x, y + height / 2, x + width, y + height / 2);
+  // Draw Match Number (Top Right of box or centered on split line)
+  doc.setFontSize(matchNumSize);
+  doc.setTextColor(100, 100, 100);
+  const labelW = doc.getTextWidth(matchLabel);
+  // Position: slightly above the box or inside top right
+  doc.text(matchLabel, x + width - labelW - 1, y + matchNumSize); 
+  doc.setTextColor(0, 0, 0);
 
-  // --- Fighter 2 (Bottom Slot) ---
-  if (fighter2IsWinner) {
-    doc.setFillColor(WINNER_BG_COLOR);
-    doc.rect(x, y + height / 2, width, height / 2, 'F');
-  }
-  
-  doc.setFontSize(fontSizeName);
-  const f2Name = fighter2 ? (fighter2 === 'BYE' ? 'BYE' : `${fighter2.first_name} ${fighter2.last_name}`) : '';
-  drawText(doc, f2Name, x + textPaddingX, y + height / 2 + textOffsetY_Name);
-  
-  doc.setFontSize(fontSizeClub);
-  const f2Club = (fighter2 && fighter2 !== 'BYE') ? fighter2.club : '';
-  drawText(doc, f2Club, x + textPaddingX, y + height / 2 + textOffsetY_Name + textOffsetY_Club);
+  // --- Helper to draw a single slot ---
+  const drawSlot = (fighter: Athlete | 'BYE' | undefined, slotY: number, isWinner: boolean) => {
+    if (isWinner) {
+      doc.setFillColor(WINNER_BG_COLOR);
+      doc.rect(x, slotY, width, slotHeight, 'F');
+      doc.rect(x, slotY, width, slotHeight); // Redraw border
+    }
+
+    if (!fighter) return; // Leave empty for manual filling
+
+    const name = fighter === 'BYE' ? 'BYE' : `${fighter.first_name} ${fighter.last_name}`;
+    const club = fighter !== 'BYE' ? fighter.club : '';
+
+    // Name
+    doc.setFont('helvetica', isWinner ? 'bold' : 'normal');
+    doc.setFontSize(nameFontSize);
+    const fitName = fitText(doc, name, width - (paddingX * 2));
+    doc.text(fitName, x + paddingX, slotY + (slotHeight * 0.45));
+
+    // Club
+    if (club) {
+      doc.setFont('helvetica', 'normal'); // Club always normal
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(clubFontSize);
+      const fitClub = fitText(doc, club, width - (paddingX * 2));
+      doc.text(fitClub, x + paddingX, slotY + (slotHeight * 0.85));
+      doc.setTextColor(0, 0, 0);
+    }
+  };
+
+  // Draw Slot 1
+  drawSlot(fighter1, y, fighter1IsWinner);
+
+  // Separator Line
+  doc.setDrawColor(LINE_COLOR);
+  doc.line(x, y + slotHeight, x + width, y + slotHeight);
+
+  // Draw Slot 2
+  drawSlot(fighter2, y + slotHeight, fighter2IsWinner);
 };
 
 const drawBracketLines = (
@@ -85,7 +137,7 @@ const drawBracketLines = (
   cardHeight: number,
   roundGap: number
 ) => {
-  doc.setDrawColor(LINE_COLOR);
+  doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.2);
 
   bracket.rounds.forEach(round => {
@@ -102,12 +154,20 @@ const drawBracketLines = (
 
             doc.line(startX, startY, midX, startY); // Horizontal from current
 
-            const endY = nextPos.y + cardHeight / 2; // Connect to center of next match (simplification, usually enters side)
-            // Actually, for a tree, it should enter the side corresponding to the slot.
-            // But centering is cleaner visually for generic trees if we don't track slots strictly.
-            // Let's stick to the previous logic: if top parent, enter top half; bottom parent, enter bottom half.
-            // However, connecting to the vertical center of the next match card's edge is robust.
+            // Calculate entry point Y for the next match
+            // If current is topmost parent (prev_match_ids[0]), enter top half
+            // If bottom parent, enter bottom half
+            const nextMatchObj = bracket.rounds.flat().find(m => m.id === match.next_match_id);
+            let endY = nextPos.y + cardHeight / 2; // Default center
             
+            if (nextMatchObj) {
+                if (nextMatchObj.prev_match_ids?.[0] === match.id) {
+                    endY = nextPos.y + (cardHeight * 0.25); // Enter top quarter
+                } else if (nextMatchObj.prev_match_ids?.[1] === match.id) {
+                    endY = nextPos.y + (cardHeight * 0.75); // Enter bottom quarter
+                }
+            }
+
             doc.line(midX, startY, midX, endY); // Vertical
             doc.line(midX, endY, endX, endY); // Horizontal to next
         }
@@ -135,65 +195,64 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
 
     // --- Dynamic Layout Calculation ---
     const totalRounds = bracket.rounds.length;
-    // Round 0 usually has the most matches.
     const maxMatchesInColumn = Math.max(...bracket.rounds.map(r => r.length));
 
-    // Calculate available space
+    // Available writing area
     const availableWidth = PAGE_WIDTH - (2 * MARGIN);
     const availableHeight = PAGE_HEIGHT - (2 * MARGIN) - HEADER_HEIGHT;
 
-    // Determine dimensions based on fitting to page
-    // Width: (Rounds * CardWidth) + ((Rounds - 1) * Gap) = AvailableWidth
-    // Let Gap be a fraction of CardWidth, e.g., Gap = 0.2 * CardWidth
-    // TotalWidth = R*W + (R-1)*0.2*W = W * (R + 0.2(R-1))
-    // W = Available / (R + 0.2(R-1))
-    const widthFactor = totalRounds + 0.2 * Math.max(0, totalRounds - 1);
+    // 1. Determine Width
+    // Formula: TotalWidth = (Rounds * CardW) + ((Rounds-1) * Gap)
+    // Gap = 0.3 * CardW
+    const widthFactor = totalRounds + 0.3 * Math.max(0, totalRounds - 1);
     let cardWidth = availableWidth / widthFactor;
-    let roundGap = cardWidth * 0.2;
+    
+    // Clamp Max Width (so 2-person brackets don't have massive boxes)
+    const MAX_CARD_WIDTH = 60;
+    if (cardWidth > MAX_CARD_WIDTH) cardWidth = MAX_CARD_WIDTH;
+    
+    const roundGap = cardWidth * 0.3;
 
-    // Height: (Matches * CardHeight) + ((Matches - 1) * Gap) = AvailableHeight
-    // Gap = 0.2 * CardHeight
+    // 2. Determine Height
+    // Formula: TotalHeight = (MaxMatches * CardH) + ((MaxMatches-1) * VGap)
+    // VGap = 0.2 * CardH
     const heightFactor = maxMatchesInColumn + 0.2 * Math.max(0, maxMatchesInColumn - 1);
     let cardHeight = availableHeight / heightFactor;
-    let matchVGap = cardHeight * 0.2;
 
-    // Clamp dimensions to reasonable min/max to avoid looking weird
-    const MAX_CARD_WIDTH = 60;
-    const MAX_CARD_HEIGHT = 25;
-    const MIN_CARD_HEIGHT = 12; // Ensure text remains readable
+    // Clamp Height (readability vs fitting)
+    const MAX_CARD_HEIGHT = 22; // Comfortable size
+    const MIN_CARD_HEIGHT = 14; // Minimum readable size
 
-    if (cardWidth > MAX_CARD_WIDTH) {
-        cardWidth = MAX_CARD_WIDTH;
-        // Recalculate gap to fill space, or just center content
-        // For simplicity, we just use the max width and keep gap proportional or fixed
-        roundGap = ROUND_GAP_BASE; 
-    }
-    if (cardHeight > MAX_CARD_HEIGHT) {
-        cardHeight = MAX_CARD_HEIGHT;
-        matchVGap = MATCH_V_GAP_BASE;
-    }
+    if (cardHeight > MAX_CARD_HEIGHT) cardHeight = MAX_CARD_HEIGHT;
     
-    // Check if height is too small
-    if (cardHeight < MIN_CARD_HEIGHT) {
-        // If it's too small, we might need multiple pages or just squeeze it. 
-        // For this requirement "fill the sheet", we accept it might be small if there are many matches.
-        // But let's respect a hard minimum to avoid overlapping text.
-        cardHeight = MIN_CARD_HEIGHT;
-        // If this exceeds page height, it will clip. Ideally, we would paginate, but that's complex.
-    }
+    // If calculated height is too small, we force minimum and center/clip as best as possible
+    if (cardHeight < MIN_CARD_HEIGHT) cardHeight = MIN_CARD_HEIGHT; 
 
-    // Centering offsets if content is smaller than page
+    const matchVGap = cardHeight * 0.2;
+
+    // Offsets to center content on page
     const totalContentWidth = (cardWidth * totalRounds) + (roundGap * (totalRounds - 1));
     const startXOffset = MARGIN + (availableWidth - totalContentWidth) / 2;
     
     const totalContentHeight = (cardHeight * maxMatchesInColumn) + (matchVGap * (maxMatchesInColumn - 1));
-    const startYOffset = MARGIN + HEADER_HEIGHT + (availableHeight - totalContentHeight) / 2;
+    // Ensure we start after the header
+    const startYOffset = MARGIN + HEADER_HEIGHT + Math.max(0, (availableHeight - totalContentHeight) / 2);
 
-    // --- Header ---
+    // --- Draw Header (Division Name) ---
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    drawText(doc, division.name, PAGE_WIDTH / 2, MARGIN + 10, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.text(division.name, PAGE_WIDTH / 2, MARGIN + 8, { align: 'center' });
+    
+    // --- Draw Round Labels ---
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    for (let r = 0; r < totalRounds; r++) {
+        const roundName = getRoundName(r, totalRounds);
+        const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
+        // Draw label above the column
+        doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
+    }
+    doc.setTextColor(0); // Reset color
 
     const matchPositions = new Map<string, { x: number; y: number }>();
 
@@ -218,7 +277,7 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
              if (prevMatch1Pos && prevMatch2Pos) {
                  y = (prevMatch1Pos.y + prevMatch2Pos.y) / 2;
              } else {
-                 y = startYOffset + matchIndex * (cardHeight + matchVGap) * (2 ** roundIndex); // Fallback estimate
+                 y = startYOffset + matchIndex * (cardHeight + matchVGap) * (2 ** roundIndex);
              }
           } else {
               y = startYOffset; 
@@ -239,15 +298,19 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
       }
     });
 
-    // Pass 4: Third Place
+    // Pass 4: Third Place (Bottom Left or Bottom Right depending on space, usually Bottom Left matches layout)
     if (bracket.third_place_match) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
+        const tpWidth = cardWidth;
+        const tpHeight = cardHeight;
         const tpX = MARGIN;
-        const tpY = PAGE_HEIGHT - MARGIN - cardHeight - 5;
-        drawText(doc, "Disputa de 3º Lugar", tpX, tpY);
+        const tpY = PAGE_HEIGHT - MARGIN - tpHeight - 5;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text("DISPUTA DE 3º LUGAR", tpX, tpY - 2);
         doc.setFont('helvetica', 'normal');
-        drawMatch(doc, tpX, tpY + 2, cardWidth, cardHeight, bracket.third_place_match, athletesMap);
+        
+        drawMatch(doc, tpX, tpY, tpWidth, tpHeight, bracket.third_place_match, athletesMap);
     }
   });
 
