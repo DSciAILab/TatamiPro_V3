@@ -42,9 +42,8 @@ const Events: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // We only need to wait for the initial auth check to complete.
-    // After that, we can load the events. The profile information
-    // is used for rendering UI elements like admin buttons, not for fetching.
+    // This effect runs once when the component mounts and auth is no longer loading.
+    // It handles both logged-in and logged-out states.
     if (!authLoading) {
       loadEventsFromSupabase();
     }
