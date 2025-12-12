@@ -22,8 +22,9 @@ import CreateEvent from "./pages/CreateEvent";
 import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 import PublicEvent from "./pages/PublicEvent";
+import PublicRegistration from "./pages/PublicRegistration"; // New Import
 import Profile from "./pages/Profile";
-import ChangePassword from "./pages/ChangePassword"; // New Import
+import ChangePassword from "./pages/ChangePassword";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/account-security" element={<AccountSecurity />} />
                     <Route path="/public/events/:id" element={<PublicEvent />} />
+                    <Route path="/public/events/:id/register" element={<PublicRegistration />} /> {/* New Route */}
                     <Route path="/change-password" element={<ChangePassword />} /> 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
