@@ -10,11 +10,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon } from 'lucide-react';
+import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Search } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
+import { Input } from '@/components/ui/input'; // Importar Input
 
 interface RegistrationsTabProps {
   event: Event;
@@ -36,11 +37,14 @@ interface RegistrationsTabProps {
   selectedAthletesForApproval: string[];
   handleToggleAthleteSelection: (id: string) => void;
   handleDeleteAthlete: (id: string) => void;
+  handleDeleteSelectedAthletes: () => Promise<void>; // NOVO: Prop para exclusão em lote
   athletesUnderApproval: Athlete[];
-  handleSelectAllAthletes: (checked: boolean) => void;
+  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void; // NOVO: Prop para selecionar todos
   handleApproveSelected: () => void;
   handleRejectSelected: () => void;
   ageDivisionSettings: AgeDivisionSetting[];
+  searchTerm: string; // NOVO: Prop para termo de busca
+  setSearchTerm: (term: string) => void; // NOVO: Prop para atualizar termo de busca
 }
 
 const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
@@ -63,18 +67,22 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   selectedAthletesForApproval,
   handleToggleAthleteSelection,
   handleDeleteAthlete,
+  handleDeleteSelectedAthletes, // NOVO
   athletesUnderApproval,
-  handleSelectAllAthletes,
+  handleSelectAllAthletes, // NOVO
   handleApproveSelected,
   handleRejectSelected,
   ageDivisionSettings,
+  searchTerm, // NOVO
+  setSearchTerm, // NOVO
 }) => {
 
   const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
-    // Calcula o novo valor do filtro e passa diretamente para a prop setRegistrationStatusFilter
     const newFilter = (registrationStatusFilter === filterType ? 'all' : filterType);
     setRegistrationStatusFilter(newFilter);
   };
+
+  const isAllAthletesSelected = filteredAthletesForDisplay.length > 0 && selectedAthletesForApproval.length === filteredAthletesForDisplay.length;
 
   return (
     <Card>
@@ -168,6 +176,53 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
             )}
 
             <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({filteredAthletesForDisplay.length})</h3>
+            
+            {userRole && (
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Input
+                    type="text"
+                    placeholder="Buscar atleta (nome, clube, divisão...)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                {filteredAthletesForDisplay.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="selectAllAthletes"
+                      checked={isAllAthletesSelected}
+                      onCheckedChange={(checked: boolean) => handleSelectAllAthletes(checked, filteredAthletesForDisplay)}
+                    />
+                    <Label htmlFor="selectAllAthletes">Selecionar Todos</Label>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={selectedAthletesForApproval.length === 0}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Deletar Selecionados ({selectedAthletesForApproval.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Tem certeza que deseja deletar os atletas selecionados?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso removerá permanentemente {selectedAthletesForApproval.length} atletas.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteSelectedAthletes} className="bg-red-600 hover:bg-red-700 text-white">
+                            Deletar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+              </div>
+            )}
+
             {filteredAthletesForDisplay.length === 0 ? (
               <p className="text-muted-foreground">Nenhum atleta encontrado com os critérios atuais.</p>
             ) : (
@@ -178,7 +233,9 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       {userRole && <Checkbox
                         checked={selectedAthletesForApproval.includes(athlete.id)}
                         onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                        className={athlete.registration_status !== 'under_approval' ? 'invisible' : ''}
+                        // Checkbox para aprovação/rejeição só visível se o status for 'under_approval'
+                        // Para exclusão em lote, o checkbox deve ser sempre visível para admins/coaches
+                        className={inscricoesSubTab === 'approvals' && athlete.registration_status !== 'under_approval' ? 'invisible' : ''}
                       />}
                       {athlete.photo_url ? (
                         <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
@@ -262,7 +319,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                         <Checkbox
                           id="selectAll"
                           checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
-                          onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean)}
+                          onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
                         />
                         <Label htmlFor="selectAll">Selecionar Todos</Label>
                       </div>

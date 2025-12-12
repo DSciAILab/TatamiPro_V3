@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom'; // useNavigate removido
+import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Event, Division, Bracket, AgeDivisionSetting } from '../types/index'; // Tipos re-importados
@@ -25,14 +25,15 @@ import EventStaffTab from '@/components/EventStaffTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
+// Adiciona uma declaração de tipo dummy para 'Event' para resolver o erro TS6133
+type _EventUsed = Event;
+
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
-  // 'navigate' removido, pois agora é usado dentro dos hooks
   const { profile } = useAuth();
   const { can, role: userRole } = usePermission();
   const userClub = profile?.club;
 
-  // Usar os novos hooks
   const {
     event,
     loading,
@@ -61,7 +62,6 @@ const EventDetail: React.FC = () => {
     setEditingAthlete,
     searchTerm,
     setSearchTerm,
-    // 'scannedAthleteId' removido
     setScannedAthleteId,
     checkInFilter,
     setCheckInFilter,
@@ -72,19 +72,20 @@ const EventDetail: React.FC = () => {
     
     athletesUnderApproval,
     processedApprovedAthletes,
-    // 'allAthletesForInscricoesTab' removido
     coachStats,
     filteredAthletesForDisplayInscricoes,
     filteredAthletesForCheckIn,
 
     handleAthleteUpdate,
     handleDeleteAthlete,
+    handleDeleteSelectedAthletes,
     handleApproveReject,
     handleUpdateAthleteAttendance,
     handleCheckInAthlete,
+    handleToggleAthleteSelection,
+    handleSelectAllAthletes,
   } = useAthleteActions({ event, fetchEventData });
 
-  // Funções de atualização para passar para os componentes filhos
   const handleUpdateAgeDivisionSettings = (settings: AgeDivisionSetting[]) => {
     handleUpdateEventProperty('age_division_settings', settings);
   };
@@ -162,7 +163,7 @@ const EventDetail: React.FC = () => {
             set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
             count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
             set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
-            userRole={userRole as any} // Cast to keep compat until strict typing everywhere
+            userRole={userRole as any}
             event_name={event.name}
             set_event_name={(value) => handleUpdateEventProperty('name', value)}
             event_description={event.description}
@@ -193,13 +194,16 @@ const EventDetail: React.FC = () => {
             coachTotalPending={coachStats.pending}
             coachTotalRejected={coachStats.rejected}
             selectedAthletesForApproval={selectedAthletesForApproval}
-            handleToggleAthleteSelection={(id) => setSelectedAthletesForApproval(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])}
+            handleToggleAthleteSelection={handleToggleAthleteSelection}
             handleDeleteAthlete={handleDeleteAthlete}
+            handleDeleteSelectedAthletes={handleDeleteSelectedAthletes}
             athletesUnderApproval={athletesUnderApproval}
-            handleSelectAllAthletes={(checked) => setSelectedAthletesForApproval(checked ? athletesUnderApproval.map(a => a.id) : [])}
+            handleSelectAllAthletes={handleSelectAllAthletes}
             handleApproveSelected={() => handleApproveReject('approved')}
             handleRejectSelected={() => handleApproveReject('rejected')}
             ageDivisionSettings={event.age_division_settings || []}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
           />
         </TabsContent>
 
@@ -229,7 +233,7 @@ const EventDetail: React.FC = () => {
             setIsScannerOpen={setIsScannerOpen} 
             processedApprovedAthletes={processedApprovedAthletes} 
             setScannedAthleteId={setScannedAthleteId} 
-            setSearchTerm={setSearchTerm} // Corrigido: passando a função setter
+            setSearchTerm={setSearchTerm} 
             searchTerm={searchTerm} 
             filteredAthletesForCheckIn={filteredAthletesForCheckIn} 
             handleCheckInAthlete={handleCheckInAthlete} 

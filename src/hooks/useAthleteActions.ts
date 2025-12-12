@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useOffline } from '@/context/offline-context';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-import { Athlete, Event } from '@/types/index'; // 'Division', 'AgeDivisionSetting', 'Bracket' removidos
+import { Athlete, Event } from '@/types/index';
 import { useAuth } from '@/context/auth-context';
 
 interface UseAthleteActionsProps {
@@ -38,9 +38,12 @@ interface UseAthleteActionsResult {
 
   handleAthleteUpdate: (updatedAthlete: Athlete) => Promise<void>;
   handleDeleteAthlete: (athleteId: string) => Promise<void>;
+  handleDeleteSelectedAthletes: () => Promise<void>; // NOVO: Exclusão em lote
   handleApproveReject: (status: 'approved' | 'rejected') => Promise<void>;
   handleUpdateAthleteAttendance: (athleteId: string, status: Athlete['attendance_status']) => Promise<void>;
   handleCheckInAthlete: (updatedAthlete: Athlete) => Promise<void>;
+  handleToggleAthleteSelection: (athleteId: string) => void; // NOVO: Seleção individual
+  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void; // NOVO: Selecionar todos
 }
 
 export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsProps): UseAthleteActionsResult => {
@@ -150,6 +153,34 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     }
   }, [eventId, isOfflineMode, trackChange, fetchEventData]);
 
+  const handleDeleteSelectedAthletes = useCallback(async () => {
+    if (selectedAthletesForApproval.length === 0) {
+      showError('Nenhum atleta selecionado para exclusão.');
+      return;
+    }
+    const toastId = showLoading(`Deletando ${selectedAthletesForApproval.length} atletas...`);
+    try {
+      if (isOfflineMode) {
+        for (const athleteId of selectedAthletesForApproval) {
+          await trackChange('athletes', 'delete', { id: athleteId, event_id: eventId });
+        }
+      } else {
+        const { error } = await supabase
+          .from('athletes')
+          .delete()
+          .in('id', selectedAthletesForApproval);
+        if (error) throw error;
+      }
+      dismissToast(toastId);
+      showSuccess(`${selectedAthletesForApproval.length} atletas deletados com sucesso!`);
+      setSelectedAthletesForApproval([]);
+      await fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError('Falha ao deletar atletas: ' + error.message);
+    }
+  }, [selectedAthletesForApproval, eventId, isOfflineMode, trackChange, fetchEventData]);
+
   const handleApproveReject = useCallback(async (status: 'approved' | 'rejected') => {
     if (selectedAthletesForApproval.length === 0) {
       showError('Nenhum atleta selecionado para aprovação/rejeição.');
@@ -159,12 +190,15 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     try {
       if (isOfflineMode) {
         for (const athleteId of selectedAthletesForApproval) {
-          await trackChange('athletes', 'update', { id: athleteId, registration_status: status });
-          // Optimistic update for local state
-          // setEvent(prev => ({
-          //   ...prev!,
-          //   athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, registration_status: status } : a) || [],
-          // }));
+          const athlete = event?.athletes?.find(a => a.id === athleteId);
+          if (athlete) {
+            await trackChange('athletes', 'update', { id: athleteId, registration_status: status });
+            // Optimistic update for local state
+            // setEvent(prev => ({
+            //   ...prev!,
+            //   athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, registration_status: status } : a) || [],
+            // }));
+          }
         }
       } else {
         const { error } = await supabase
@@ -238,6 +272,20 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     }
   }, [eventId, fetchEventData]);
 
+  const handleToggleAthleteSelection = useCallback((athleteId: string) => {
+    setSelectedAthletesForApproval(prev =>
+      prev.includes(athleteId) ? prev.filter(id => id !== athleteId) : [...prev, athleteId]
+    );
+  }, []);
+
+  const handleSelectAllAthletes = useCallback((checked: boolean, athletesToSelect: Athlete[]) => {
+    if (checked) {
+      setSelectedAthletesForApproval(athletesToSelect.map(a => a.id));
+    } else {
+      setSelectedAthletesForApproval([]);
+    }
+  }, []);
+
   return {
     selectedAthletesForApproval,
     setSelectedAthletesForApproval,
@@ -263,8 +311,11 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
 
     handleAthleteUpdate,
     handleDeleteAthlete,
+    handleDeleteSelectedAthletes, // NOVO
     handleApproveReject,
     handleUpdateAthleteAttendance,
     handleCheckInAthlete,
+    handleToggleAthleteSelection, // NOVO
+    handleSelectAllAthletes, // NOVO
   };
 };
