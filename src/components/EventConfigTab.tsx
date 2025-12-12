@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2 } from 'lucide-react';
+import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
@@ -113,8 +113,9 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
 
-  const handleShare = () => {
-    const publicUrl = `${window.location.origin}/public/events/${event.id}`;
+  const handleShare = (type: 'public_event' | 'public_registration') => {
+    const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/register/${event.id}`;
+    const publicUrl = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(publicUrl).then(() => {
       showSuccess("Link público copiado para a área de transferência!");
     }, (err) => {
@@ -185,14 +186,18 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     />
                     <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
                   </div>
-                  <div className="mt-4 flex space-x-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={handleExportJson} variant="outline">
                       <Download className="mr-2 h-4 w-4" />
                       Exportar Dados (JSON)
                     </Button>
-                    <Button onClick={handleShare} variant="secondary">
+                    <Button onClick={() => handleShare('public_event')} variant="secondary">
                       <Share2 className="mr-2 h-4 w-4" />
-                      Compartilhar Link Público
+                      Copiar Link Público
+                    </Button>
+                    <Button onClick={() => handleShare('public_registration')} variant="secondary">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Copiar Link de Inscrição
                     </Button>
                   </div>
                 </div>
