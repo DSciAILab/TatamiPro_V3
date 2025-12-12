@@ -71,6 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchSessionAndProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setLoading(true);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -80,6 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setProfile(null);
       }
+      setLoading(false);
     });
 
     return () => {
