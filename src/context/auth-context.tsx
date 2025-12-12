@@ -58,30 +58,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      try {
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error fetching initial session:", error);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchSessionAndProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setLoading(true);
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // On first sign-in, the profile might not be created yet. Retry fetching.
-        const retryCount = event === 'SIGNED_IN' ? 5 : 1;
-        await fetchProfile(session.user.id, retryCount);
-      } else {
-        setProfile(null);
+      try {
+        setLoading(true);
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const retryCount = event === 'SIGNED_IN' ? 5 : 1;
+          await fetchProfile(session.user.id, retryCount);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error on auth state change:", error);
+        setProfile(null); // Clear profile on error
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {

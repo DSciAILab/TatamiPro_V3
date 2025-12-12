@@ -42,14 +42,13 @@ const Events: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // We wait for auth to be done AND profile to be available before loading events
-    if (!authLoading && profile) {
+    // We only need to wait for the initial auth check to complete.
+    // After that, we can load the events. The profile information
+    // is used for rendering UI elements like admin buttons, not for fetching.
+    if (!authLoading) {
       loadEventsFromSupabase();
-    } else if (!authLoading && !profile) {
-      // If auth is done but there's no profile (e.g., not logged in), stop loading.
-      setLoading(false);
     }
-  }, [authLoading, profile, loadEventsFromSupabase]);
+  }, [authLoading, loadEventsFromSupabase]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
