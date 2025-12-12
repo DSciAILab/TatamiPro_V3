@@ -33,7 +33,7 @@ const EventDetail: React.FC = () => {
   const location = useLocation();
   const { profile, loading: authLoading } = useAuth();
   const { can, role: userRole } = usePermission(); // Use RBAC Hook
-  const { isOfflineMode } = useOffline();
+  const { isOfflineMode, trackChange } = useOffline();
   
   const userClub = profile?.club;
   
@@ -207,14 +207,141 @@ const EventDetail: React.FC = () => {
       });
   };
   
-  const handleAthleteUpdate = async (_updatedAthlete: Athlete) => {
-      showSuccess("Athlete updated");
+  const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
+    if (!eventId) return;
+    const toastId = showLoading('Updating athlete...');
+    try {
+      const { _division, ...athleteToUpdate } = updatedAthlete; // Remove _division before saving
+      const { error } = await supabase.from('athletes').update({
+        ...athleteToUpdate,
+        date_of_birth: athleteToUpdate.date_of_birth.toISOString(),
+        consent_date: athleteToUpdate.consent_date.toISOString(),
+        weight_attempts: JSON.stringify(athleteToUpdate.weight_attempts),
+      }).eq('id', updatedAthlete.id);
+
+      if (error) throw error;
+
+      dismissToast(toastId);
+      showSuccess('Athlete updated successfully!');
+      setEditingAthlete(null);
+      fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError('Failed to update athlete: ' + error.message);
+    }
   };
 
-  const handleDeleteAthlete = async (_id: string) => { /* Stub */ };
-  const handleApproveReject = async (_status: any) => { /* Stub */ };
-  const handleUpdateAthleteAttendance = async (_id: string, _status: any) => { /* Stub */ };
-  const handleCheckInAthlete = async (_athlete: Athlete) => { /* Stub */ };
+  const handleDeleteAthlete = async (athleteId: string) => {
+    if (!eventId) return;
+    const toastId = showLoading('Deleting athlete...');
+    try {
+      if (isOfflineMode) {
+        await trackChange('athletes', 'delete', { id: athleteId, event_id: eventId });
+        setEvent(prev => ({
+          ...prev!,
+          athletes: prev!.athletes?.filter(a => a.id !== athleteId) || [],
+        }));
+      } else {
+        const { error } = await supabase.from('athletes').delete().eq('id', athleteId);
+        if (error) throw error;
+      }
+      dismissToast(toastId);
+      showSuccess('Athlete deleted successfully!');
+      fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError('Failed to delete athlete: ' + error.message);
+    }
+  };
+
+  const handleApproveReject = async (status: 'approved' | 'rejected') => {
+    if (selectedAthletesForApproval.length === 0) {
+      showError('Nenhum atleta selecionado para aprovação/rejeição.');
+      return;
+    }
+    const toastId = showLoading(`${status === 'approved' ? 'Aprovando' : 'Rejeitando'} atletas...`);
+    try {
+      if (isOfflineMode) {
+        for (const athleteId of selectedAthletesForApproval) {
+          const athlete = event?.athletes?.find(a => a.id === athleteId);
+          if (athlete) {
+            await trackChange('athletes', 'update', { id: athleteId, registration_status: status });
+            setEvent(prev => ({
+              ...prev!,
+              athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, registration_status: status } : a) || [],
+            }));
+          }
+        }
+      } else {
+        const { error } = await supabase
+          .from('athletes')
+          .update({ registration_status: status })
+          .in('id', selectedAthletesForApproval);
+        if (error) throw error;
+      }
+      dismissToast(toastId);
+      showSuccess(`Atletas ${status === 'approved' ? 'aprovados' : 'rejeitados'} com sucesso!`);
+      setSelectedAthletesForApproval([]);
+      fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Failed to ${status} athletes: ` + error.message);
+    }
+  };
+
+  const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
+    if (!eventId) return;
+    const toastId = showLoading('Updating attendance...');
+    try {
+      if (isOfflineMode) {
+        await trackChange('athletes', 'update', { id: athleteId, attendance_status: status });
+        setEvent(prev => ({
+          ...prev!,
+          athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, attendance_status: status } : a) || [],
+        }));
+      } else {
+        const { error } = await supabase
+          .from('athletes')
+          .update({ attendance_status: status })
+          .eq('id', athleteId);
+        if (error) throw error;
+      }
+      dismissToast(toastId);
+      showSuccess('Attendance updated successfully!');
+      fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError('Failed to update attendance: ' + error.message);
+    }
+  };
+
+  const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
+    if (!eventId) return;
+    const toastId = showLoading('Performing check-in...');
+    try {
+      const { _division, ...athleteToUpdate } = updatedAthlete; // Remove _division before saving
+      const { error } = await supabase.from('athletes').update({
+        check_in_status: athleteToUpdate.check_in_status,
+        registered_weight: athleteToUpdate.registered_weight,
+        weight_attempts: JSON.stringify(athleteToUpdate.weight_attempts),
+        age_division: athleteToUpdate.age_division, // Update if moved
+        weight_division: athleteToUpdate.weight_division, // Update if moved
+        belt: athleteToUpdate.belt, // Update if moved
+        gender: athleteToUpdate.gender, // Update if moved
+        moved_to_division_id: athleteToUpdate.moved_to_division_id,
+        move_reason: athleteToUpdate.move_reason,
+      }).eq('id', updatedAthlete.id);
+
+      if (error) throw error;
+
+      dismissToast(toastId);
+      showSuccess('Check-in successful!');
+      fetchEventData(); // Refresh data
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError('Failed to perform check-in: ' + error.message);
+    }
+  };
 
   // --- Derived State ---
   const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
