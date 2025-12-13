@@ -28,7 +28,7 @@ import { Event, Bracket } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 
 const EventDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // Renomeado para 'id' para evitar TS6133
+  useParams<{ id: string }>(); // Removida a desestruturação de 'id'
   const navigate = useNavigate();
   const { profile, loading: authLoading } = useAuth();
   const { can } = usePermission();
@@ -48,7 +48,7 @@ const EventDetail: React.FC = () => {
     filteredAthletesForDisplayInscricoes, filteredAthletesForCheckIn,
     handleAthleteUpdate, handleDeleteAthlete, handleDeleteSelectedAthletes, handleApproveReject,
     handleUpdateAthleteAttendance, handleCheckInAthlete, handleToggleAthleteSelection, handleSelectAllAthletes,
-    setScannedAthleteId, // <-- Adicionado para corrigir TS2304
+    setScannedAthleteId,
   } = useAthleteActions({ event, fetchEventData });
 
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
