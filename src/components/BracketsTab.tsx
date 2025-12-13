@@ -6,7 +6,7 @@ import { Event, Bracket, Division } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LayoutGrid, Swords, Printer } from 'lucide-react';
+import { LayoutGrid, Swords, Printer, AlertTriangle } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
@@ -40,6 +40,10 @@ interface BracketsTabProps {
   navSelectedDivisionId: string | null;
 }
 
+interface DivisionRegenStatus extends Division {
+  isOngoing: boolean;
+}
+
 const BracketsTab: React.FC<BracketsTabProps> = ({
   event,
   userRole,
@@ -54,10 +58,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
   const [selectedDivisionIdForBracket, setSelectedDivisionIdForBracket] = useState<string | 'all'>('all');
   const [generatedBrackets, setGeneratedBrackets] = useState<Record<string, Bracket>>(() => event.brackets || {});
-  const [showRegenerateConfirmDialog, setShowRegenerateConfirmDialog] = useState(false);
-  const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
-  const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
-  const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
+  
+  // Novo estado para o diálogo de confirmação unificado
+  const [showRegenerationOptionsDialog, setShowRegenerationOptionsDialog] = useState(false);
+  const [divisionsRequiringConfirmation, setDivisionsRequiringConfirmation] = useState<DivisionRegenStatus[]>([]);
   
   // State for managing fights view
   const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
@@ -95,6 +99,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const hasOngoingFights = (divisionId: string): boolean => {
     const bracket = event.brackets?.[divisionId];
     if (!bracket || !bracket.rounds) return false;
+    // Verifica se há pelo menos uma luta com vencedor definido
     return bracket.rounds.flat().some(match => match.winner_id !== undefined);
   };
 
@@ -152,41 +157,66 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       return;
     }
 
-    const divisionsWithOngoingFights = divisionsToConsider.filter(div => hasOngoingFights(div.id));
+    const divisionsToGenerateImmediately: Division[] = [];
+    const divisionsForConfirmation: DivisionRegenStatus[] = [];
 
-    if (selectedDivisionIdForBracket !== 'all' && divisionsWithOngoingFights.length > 0) {
-      if (userRole === 'admin') {
-        setDivisionToRegenerateOngoing(divisionsWithOngoingFights[0]);
-        setShowOngoingWarningDialog(true);
+    divisionsToConsider.forEach(div => {
+      const hasBracket = !!event.brackets?.[div.id];
+      const isOngoing = hasBracket && hasOngoingFights(div.id);
+
+      if (!hasBracket) {
+        divisionsToGenerateImmediately.push(div);
       } else {
-        showError("Você não tem permissão para regerar brackets de categorias em andamento.");
+        divisionsForConfirmation.push({ ...div, isOngoing });
+      }
+    });
+
+    if (divisionsForConfirmation.length === 0) {
+      if (divisionsToGenerateImmediately.length > 0) {
+        executeBracketGeneration(divisionsToGenerateImmediately);
+      } else {
+        showError("Nenhuma ação necessária. Todos os brackets já estão gerados.");
       }
       return;
     }
 
-    const divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
-    const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => event.brackets?.[div.id]);
+    // Se houver divisões que precisam de confirmação
+    setDivisionsRequiringConfirmation(divisionsForConfirmation);
+    setShowRegenerationOptionsDialog(true);
+  };
 
-    if (divisionsThatWillBeRegenerated.length > 0) {
-      setDivisionsToConfirmRegenerate(divisionsThatWillBeRegenerated);
-      setShowRegenerateConfirmDialog(true);
+  const handleConfirmRegeneration = (regenerateAll: boolean) => {
+    setShowRegenerationOptionsDialog(false);
+    
+    const divisionsToGenerate: Division[] = [];
+    const ongoingDivisions = divisionsRequiringConfirmation.filter(d => d.isOngoing);
+    const safeDivisions = divisionsRequiringConfirmation.filter(d => !d.isOngoing);
+
+    // 1. Gerar divisões que não tinham bracket (se houver)
+    const divisionsToGenerateImmediately = availableDivisionsForBracketGeneration.filter(div => !event.brackets?.[div.id]);
+    divisionsToGenerate.push(...divisionsToGenerateImmediately);
+
+    if (regenerateAll) {
+      // Opção 2: Regerar TODOS os selecionados (incluindo os em andamento)
+      if (userRole !== 'admin' && ongoingDivisions.length > 0) {
+        showError("Apenas administradores podem regerar categorias em andamento.");
+        return;
+      }
+      divisionsToGenerate.push(...ongoingDivisions, ...safeDivisions);
     } else {
-      executeBracketGeneration(divisionsToActuallyGenerate);
+      // Opção 1: Gerar SOMENTE os que não estão em andamento
+      divisionsToGenerate.push(...safeDivisions);
+      if (ongoingDivisions.length > 0) {
+        showError(`As seguintes categorias foram ignoradas por estarem em andamento: ${ongoingDivisions.map(d => d.name).join(', ')}`);
+      }
     }
-  };
 
-  const confirmRegenerateAction = () => {
-    executeBracketGeneration(divisionsToConfirmRegenerate);
-    setShowRegenerateConfirmDialog(false);
-    setDivisionsToConfirmRegenerate([]);
-  };
-
-  const confirmRegenerateOngoingAction = () => {
-    if (divisionToRegenerateOngoing) {
-      executeBracketGeneration([divisionToRegenerateOngoing]);
+    if (divisionsToGenerate.length > 0) {
+      executeBracketGeneration(divisionsToGenerate);
+    } else {
+      showError("Nenhuma divisão foi selecionada para regeração.");
     }
-    setShowOngoingWarningDialog(false);
-    setDivisionToRegenerateOngoing(null);
+    setDivisionsRequiringConfirmation([]);
   };
 
   const matNames = useMemo(() => {
@@ -215,7 +245,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     return (
       <Card>
         <CardHeader>
-          {/* FIX 1: Use optional chaining and nullish coalescing */}
+          {/* FIX 2: Using optional chaining and nullish coalescing */}
           <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail?.name ?? 'Detalhes da Divisão'}</CardTitle>
           <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
         </CardHeader>
@@ -229,6 +259,9 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       </Card>
     );
   }
+
+  const ongoingDivisionsCount = divisionsRequiringConfirmation.filter(d => d.isOngoing).length;
+  const safeOverwriteDivisionsCount = divisionsRequiringConfirmation.filter(d => !d.isOngoing).length;
 
   return (
     <Card>
@@ -357,7 +390,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                         <MatCategoryList
                           event={event}
                           selectedMat={selectedMat}
-                          selectedCategoryKey={selectedDivisionForDetail?.id || null} // FIX 2: Use optional chaining
+                          selectedCategoryKey={selectedDivisionForDetail?.id || null}
                           onSelectCategory={handleSelectCategory}
                         />
                       )}
@@ -386,56 +419,57 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         )}
       </CardContent>
 
-      <AlertDialog open={showRegenerateConfirmDialog} onOpenChange={setShowRegenerateConfirmDialog}>
+      {/* NOVO DIÁLOGO DE CONFIRMAÇÃO UNIFICADO */}
+      <AlertDialog open={showRegenerationOptionsDialog} onOpenChange={setShowRegenerationOptionsDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Regerar Brackets Existentes?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              Regerar Brackets Existentes?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Você selecionou divisões que já possuem brackets gerados. Regerá-los irá apagar os brackets atuais e quaisquer resultados de lutas não iniciadas.
-              {divisionsToConfirmRegenerate.length > 0 && (
-                <ul className="list-disc list-inside mt-2">
-                  {divisionsToConfirmRegenerate.map(div => (
-                    <li key={div.id} className="font-medium">{div.name}</li>
-                  ))}
-                </ul>
-              )}
-              Tem certeza que deseja continuar?
+              As seguintes divisões já possuem brackets gerados. Regerá-los irá apagar os brackets atuais e todos os resultados de lutas.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowRegenerateConfirmDialog(false)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRegenerateAction}>Regerar Brackets</AlertDialogAction>
+          
+          <div className="space-y-3 max-h-60 overflow-y-auto p-2 border rounded-md">
+            {divisionsRequiringConfirmation.map(div => (
+              <div key={div.id} className="flex items-center justify-between p-2 rounded-md" style={{ backgroundColor: div.isOngoing ? 'rgba(255, 0, 0, 0.05)' : 'rgba(255, 255, 0, 0.05)' }}>
+                <span className="font-medium">{div.name}</span>
+                <span className={`text-sm font-semibold ${div.isOngoing ? 'text-red-600' : 'text-orange-600'}`}>
+                  {div.isOngoing ? 'EM ANDAMENTO' : 'SOBRESCRITA SEGURA'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <AlertDialogFooter className="flex flex-col space-y-2 pt-4">
+            <AlertDialogCancel onClick={() => setShowRegenerationOptionsDialog(false)} className="w-full">Cancelar</AlertDialogCancel>
+            
+            {/* Opção 1: Gerar somente os seguros */}
+            <Button 
+              onClick={() => handleConfirmRegeneration(false)} 
+              variant="secondary" 
+              className="w-full"
+            >
+              Gerar Somente Seguros ({safeOverwriteDivisionsCount})
+            </Button>
+
+            {/* Opção 2: Regerar todos (requer admin se houver ongoing) */}
+            <Button 
+              onClick={() => handleConfirmRegeneration(true)} 
+              disabled={ongoingDivisionsCount > 0 && userRole !== 'admin'}
+              variant="destructive" 
+              className="w-full"
+            >
+              Regerar TODOS ({divisionsRequiringConfirmation.length})
+              {ongoingDivisionsCount > 0 && userRole !== 'admin' && ' (Admin Requerido)'}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showOngoingWarningDialog} onOpenChange={setShowOngoingWarningDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aviso: Categoria em Andamento!</AlertDialogTitle>
-            <AlertDialogDescription>
-              A divisão "{divisionToRegenerateOngoing?.name}" já possui lutas com resultados registrados.
-              Regerar o bracket desta divisão irá apagar todos os resultados existentes e o progresso das lutas.
-              {userRole === 'admin' ? (
-                <>
-                  <p className="mt-2 font-semibold text-red-600">Esta é uma ação crítica e irreversível.</p>
-                  <p className="mt-1">Tem certeza que deseja continuar como administrador?</p>
-                </>
-              ) : (
-                <p className="mt-2 font-semibold text-red-600">Você não tem permissão para regerar brackets de categorias em andamento.</p>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowOngoingWarningDialog(false)}>Cancelar</AlertDialogCancel>
-            {userRole === 'admin' && (
-              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-red-600 hover:bg-red-700">
-                Regerar (Admin Override)
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* REMOVENDO O JSX OBSOLETO QUE CAUSOU OS ERROS 3, 4, 5, 6 e 7 */}
     </Card>
   );
 };
