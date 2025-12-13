@@ -109,7 +109,7 @@ const drawMatch = (
 
     // Name
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(nameFontSize); // Mantendo o tamanho de fonte aumentado
+    doc.setFontSize(nameFontSize); // Usando o tamanho de fonte aumentado
     doc.setTextColor(0, 0, 0);
     const fitName = fitText(doc, name, width - (paddingX * 2) - idWidth);
     doc.text(fitName, x + paddingX + idWidth, slotY + (slotHeight * 0.45));
@@ -234,25 +234,35 @@ export const generateBracketPdf = (
     const totalMinutes = totalMatches * fightDuration;
     const totalHours = (totalMinutes / 60).toFixed(1);
 
+    // --- HEADER DRAWING ---
+    let currentY = MARGIN + 8;
+    
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(event.name, PAGE_WIDTH / 2, MARGIN + 8, { align: 'center' });
+    doc.text(event.name, PAGE_WIDTH / 2, currentY, { align: 'center' });
+    currentY += 7; // Espaço após o nome do evento
 
     doc.setFontSize(16);
-    doc.text(`${division.name} (${fightDuration} min)`, PAGE_WIDTH / 2, MARGIN + 15, { align: 'center' });
+    doc.text(`${division.name} (${fightDuration} min)`, PAGE_WIDTH / 2, currentY, { align: 'center' });
+    currentY += 7; // Espaço após o nome da divisão
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100);
     const statsText = `${totalAthletes} atletas | ${totalMatches} lutas | Tempo total est.: ${totalMinutes} min (${totalHours}h)`;
-    doc.text(statsText, PAGE_WIDTH / 2, MARGIN + 20, { align: 'center' });
-    doc.setTextColor(0);
+    doc.text(statsText, PAGE_WIDTH / 2, currentY, { align: 'center' });
+    currentY += 7; // Espaço após as estatísticas
 
+    doc.setTextColor(0);
+    // --- END HEADER DRAWING ---
+
+    // Round Labels
     doc.setFontSize(10);
     doc.setTextColor(100);
     for (let r = 0; r < totalRounds; r++) {
         const roundName = getRoundName(r, totalRounds);
         const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
+        // Ajustar a posição Y para ficar abaixo do cabeçalho
         doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
     }
     doc.setTextColor(0);
