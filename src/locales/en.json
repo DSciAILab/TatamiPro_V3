@@ -114,5 +114,11 @@
   "reapprovalNeededDesc": "You edited an athlete who was already approved. Do you want to keep the \"Approved\" status or reset to \"Pending\" for a new review?",
   "cancel": "Cancel",
   "keepApproved": "Keep Approved",
-  "resetToPending": "Reset to Pending"
+  "resetToPending": "Reset to Pending",
+  "status": "Status",
+  "status_under_approval": "Pending Approval",
+  "status_approved": "Approved",
+  "status_rejected": "Rejected",
+  "moved": "Moved",
+  "waitingForApproval": "Waiting for Approval"
 }

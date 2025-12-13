@@ -13,6 +13,7 @@ import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 import { format, differenceInSeconds } from 'date-fns';
 import { showSuccess, showError } from '@/utils/toast';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface CheckInTabProps {
   event: Event;
@@ -58,6 +59,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   handleCheckInAthlete,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { t } = useTranslations();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -223,13 +225,13 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                       )}
                       <div>
                         <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
                         {athlete.registered_weight && (
                           <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
                         )}
                         {athlete.move_reason && (
                           <p className="text-xs text-blue-500">
-                            <span className="font-semibold">Movido:</span> {athlete.move_reason}
+                            <span className="font-semibold">{t('moved')}:</span> {athlete.move_reason}
                           </p>
                         )}
                       </div>

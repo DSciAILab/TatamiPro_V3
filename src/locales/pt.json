@@ -114,5 +114,11 @@
   "reapprovalNeededDesc": "Você editou um atleta que já estava aprovado. Deseja manter o status \"Aprovado\" ou redefinir para \"Pendente\" para uma nova revisão?",
   "cancel": "Cancelar",
   "keepApproved": "Manter Aprovado",
-  "resetToPending": "Redefinir para Pendente"
+  "resetToPending": "Redefinir para Pendente",
+  "status": "Status",
+  "status_under_approval": "Aguardando Aprovação",
+  "status_approved": "Aprovado",
+  "status_rejected": "Rejeitado",
+  "moved": "Movido",
+  "waitingForApproval": "Aguardando Aprovação"
 }

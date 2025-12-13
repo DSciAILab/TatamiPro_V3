@@ -10,6 +10,7 @@ import { showSuccess } from '@/utils/toast';
 import { findAthleteDivision, getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface AttendanceManagementProps {
   eventDivisions: Division[];
@@ -32,6 +33,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({
   const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
   const { profile } = useAuth();
   const userClub = profile?.club;
+  const { t } = useTranslations();
 
   useEffect(() => {
     if (!isAttendanceMandatory) {
@@ -146,7 +148,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({
                       )}
                       <div>
                         <p className="font-medium">{athlete.first_name} {athlete.last_name}</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, findAthleteDivision(athlete, eventDivisions))}</p>
+                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, findAthleteDivision(athlete, eventDivisions), t)}</p>
                       </div>
                     </div>
                     

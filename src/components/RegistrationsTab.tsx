@@ -14,8 +14,9 @@ import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Search } from 'lucide-
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
-import { cn } from '@/lib/utils'; // Importar cn para utilitários de classe
-import { Input } from '@/components/ui/input'; // Importar Input
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface RegistrationsTabProps {
   event: Event;
@@ -37,14 +38,14 @@ interface RegistrationsTabProps {
   selectedAthletesForApproval: string[];
   handleToggleAthleteSelection: (id: string) => void;
   handleDeleteAthlete: (id: string) => void;
-  handleDeleteSelectedAthletes: () => Promise<void>; // NOVO: Prop para exclusão em lote
+  handleDeleteSelectedAthletes: () => Promise<void>;
   athletesUnderApproval: Athlete[];
-  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void; // NOVO: Prop para selecionar todos
+  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void;
   handleApproveSelected: () => void;
   handleRejectSelected: () => void;
   ageDivisionSettings: AgeDivisionSetting[];
-  searchTerm: string; // NOVO: Prop para termo de busca
-  setSearchTerm: (term: string) => void; // NOVO: Prop para atualizar termo de busca
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
 }
 
 const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
@@ -67,15 +68,16 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   selectedAthletesForApproval,
   handleToggleAthleteSelection,
   handleDeleteAthlete,
-  handleDeleteSelectedAthletes, // NOVO
+  handleDeleteSelectedAthletes,
   athletesUnderApproval,
-  handleSelectAllAthletes, // NOVO
+  handleSelectAllAthletes,
   handleApproveSelected,
   handleRejectSelected,
   ageDivisionSettings,
-  searchTerm, // NOVO
-  setSearchTerm, // NOVO
+  searchTerm,
+  setSearchTerm,
 }) => {
+  const { t } = useTranslations();
 
   const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
     const newFilter = (registrationStatusFilter === filterType ? 'all' : filterType);
@@ -87,22 +89,22 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gerenciar Inscrições</CardTitle>
-        <CardDescription>Registre atletas nas divisões do evento.</CardDescription>
+        <CardTitle>{t('registrations')}</CardTitle>
+        <CardDescription>Manage registrations.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={inscricoesSubTab} onValueChange={setInscricoesSubTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="registered-athletes">Atletas Inscritos</TabsTrigger>
+            <TabsTrigger value="registered-athletes">Athletes</TabsTrigger>
             {userRole === 'admin' && (
-              <TabsTrigger value="approvals">Aprovações ({athletesUnderApproval.length})</TabsTrigger>
+              <TabsTrigger value="approvals">Approvals ({athletesUnderApproval.length})</TabsTrigger>
             )}
           </TabsList>
 
           <TabsContent value="registered-athletes" className="mt-6">
             {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
               <div className="mb-6 space-y-4">
-                <h3 className="text-xl font-semibold">{userRole === 'admin' ? 'Todas as Inscrições' : `Minhas Inscrições (${userClub})`}</h3>
+                <h3 className="text-xl font-semibold">{userRole === 'admin' ? 'All Registrations' : `My Registrations (${userClub})`}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div
                     className={cn(
@@ -113,7 +115,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                     onClick={() => handleRegistrationBoxClick('all')}
                   >
                     <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
-                    <p className="text-sm text-muted-foreground">Total</p>
+                    <p className="text-sm text-muted-foreground">{t('all')}</p>
                   </div>
                   <div
                     className={cn(
@@ -124,7 +126,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                     onClick={() => handleRegistrationBoxClick('approved')}
                   >
                     <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
-                    <p className="text-sm text-muted-foreground">Aprovadas</p>
+                    <p className="text-sm text-muted-foreground">{t('status_approved')}</p>
                   </div>
                   <div
                     className={cn(
@@ -135,7 +137,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                     onClick={() => handleRegistrationBoxClick('under_approval')}
                   >
                     <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
-                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                    <p className="text-sm text-muted-foreground">{t('status_under_approval')}</p>
                   </div>
                   <div
                     className={cn(
@@ -146,7 +148,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                     onClick={() => handleRegistrationBoxClick('rejected')}
                   >
                     <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
-                    <p className="text-sm text-muted-foreground">Recusadas</p>
+                    <p className="text-sm text-muted-foreground">{t('status_rejected')}</p>
                   </div>
                 </div>
               </div>
@@ -156,11 +158,11 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
               <div className="mb-6 space-y-2">
                 <Link to={`/events/${event.id}/registration-options`}>
                   <Button className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Atleta
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Athlete
                   </Button>
                 </Link>
                 <Link to={`/events/${event.id}/import-athletes`}>
-                  <Button className="w-full" variant="secondary">Importar Atletas em Lote</Button>
+                  <Button className="w-full" variant="secondary">Batch Import Athletes</Button>
                 </Link>
               </div>
             )}
@@ -175,14 +177,14 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
               />
             )}
 
-            <h3 className="text-xl font-semibold mt-8 mb-4">Atletas Inscritos ({filteredAthletesForDisplay.length})</h3>
+            <h3 className="text-xl font-semibold mt-8 mb-4">Athletes ({filteredAthletesForDisplay.length})</h3>
             
             {userRole && (
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1 relative">
                   <Input
                     type="text"
-                    placeholder="Buscar atleta (nome, clube, divisão...)"
+                    placeholder="Search athlete..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pr-10"
@@ -196,24 +198,24 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       checked={isAllAthletesSelected}
                       onCheckedChange={(checked: boolean) => handleSelectAllAthletes(checked, filteredAthletesForDisplay)}
                     />
-                    <Label htmlFor="selectAllAthletes">Selecionar Todos</Label>
+                    <Label htmlFor="selectAllAthletes">Select All</Label>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm" disabled={selectedAthletesForApproval.length === 0}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Deletar Selecionados ({selectedAthletesForApproval.length})
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Selected ({selectedAthletesForApproval.length})
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Tem certeza que deseja deletar os atletas selecionados?</AlertDialogTitle>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. Isso removerá permanentemente {selectedAthletesForApproval.length} atletas.
+                            This action cannot be undone. This will permanently remove {selectedAthletesForApproval.length} athletes.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction onClick={handleDeleteSelectedAthletes} className="bg-red-600 hover:bg-red-700 text-white">
-                            Deletar
+                            Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -224,7 +226,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
             )}
 
             {filteredAthletesForDisplay.length === 0 ? (
-              <p className="text-muted-foreground">Nenhum atleta encontrado com os critérios atuais.</p>
+              <p className="text-muted-foreground">No athletes found.</p>
             ) : (
               <ul className="space-y-2">
                 {filteredAthletesForDisplay.map((athlete) => (
@@ -233,8 +235,6 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       {userRole && <Checkbox
                         checked={selectedAthletesForApproval.includes(athlete.id)}
                         onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                        // Checkbox para aprovação/rejeição só visível se o status for 'under_approval'
-                        // Para exclusão em lote, o checkbox deve ser sempre visível para admins/coaches
                         className={inscricoesSubTab === 'approvals' && athlete.registration_status !== 'under_approval' ? 'invisible' : ''}
                       />}
                       {athlete.photo_url ? (
@@ -247,11 +247,11 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                       <div>
                         <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                         <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                        <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registration_status === 'under_approval' ? 'Aguardando Aprovação' : athlete.registration_status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span></p>
+                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
+                        <p className="text-xs text-gray-500">{t('status')}: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{t(`status_${athlete.registration_status}` as any)}</span></p>
                         {athlete.move_reason && (
                           <p className="text-xs text-blue-500">
-                            <span className="font-semibold">Movido:</span> {athlete.move_reason}
+                            <span className="font-semibold">{t('moved')}:</span> {athlete.move_reason}
                           </p>
                         )}
                       </div>
@@ -283,14 +283,14 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.first_name} {athlete.last_name}.
+                                    This action cannot be undone. This will permanently remove {athlete.first_name} {athlete.last_name}.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Delete</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -307,12 +307,12 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
             <TabsContent value="approvals" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Aprovações de Inscrição</CardTitle>
-                  <CardDescription>Revise e aprove ou rejeite as inscrições pendentes.</CardDescription>
+                  <CardTitle>Registration Approvals</CardTitle>
+                  <CardDescription>Review and approve pending registrations.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {athletesUnderApproval.length === 0 ? (
-                    <p className="text-muted-foreground">Nenhuma inscrição aguardando aprovação.</p>
+                    <p className="text-muted-foreground">No registrations pending approval.</p>
                   ) : (
                     <>
                       <div className="flex items-center space-x-2 mb-4">
@@ -321,14 +321,14 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                           checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
                           onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
                         />
-                        <Label htmlFor="selectAll">Selecionar Todos</Label>
+                        <Label htmlFor="selectAll">Select All</Label>
                       </div>
                       <div className="flex space-x-2 mb-4">
                         <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
-                          Aprovar Selecionados ({selectedAthletesForApproval.length})
+                          Approve Selected ({selectedAthletesForApproval.length})
                         </Button>
                         <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
-                          Rejeitar Selecionados ({selectedAthletesForApproval.length})
+                          Reject Selected ({selectedAthletesForApproval.length})
                         </Button>
                       </div>
                       <ul className="space-y-2">
@@ -349,16 +349,16 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                               <div className="flex-grow">
                                 <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                                 <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
                                 {athlete.payment_proof_url && (
                                   <p className="text-xs text-blue-500">
-                                    <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">Ver Comprovante</a>
+                                    <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">View Proof</a>
                                   </p>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-sm text-orange-500 font-semibold">Aguardando Aprovação</span>
+                              <span className="text-sm text-orange-500 font-semibold">{t('waitingForApproval')}</span>
                               {userRole === 'admin' && (
                                 <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                                   <Edit className="h-4 w-4" />
@@ -372,14 +372,14 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.first_name} {athlete.last_name}.
+                                      This action cannot be undone. This will permanently remove {athlete.first_name} {athlete.last_name}.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remover</AlertDialogAction>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Delete</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>

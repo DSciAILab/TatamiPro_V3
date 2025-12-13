@@ -137,12 +137,18 @@ export const findNextHigherWeightDivision = (
 
 
 // Função para gerar a string de ordenação/exibição
-export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
+export const getAthleteDisplayString = (athlete: Athlete, division: Division | undefined, t: (key: any) => string): string => {
+  const genderKey = `gender_${division ? division.gender : athlete.gender}`;
+  const beltKey = `belt_${division ? division.belt : athlete.belt}`;
+  
+  const gender = t(genderKey);
+  const belt = t(beltKey);
+
   if (division) {
-    return `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
+    return `${gender} / ${division.age_category_name} / ${belt} / ${division.max_weight}kg`;
   }
   // Fallback se a divisão não for encontrada ou passada
-  return `${athlete.gender} / ${athlete.age_division} / ${athlete.belt} / Divisão não encontrada`;
+  return `${gender} / ${athlete.age_division} / ${belt} / N/A`;
 };
 
 // NOVO: Função para processar dados do atleta
