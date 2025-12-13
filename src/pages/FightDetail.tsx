@@ -242,13 +242,11 @@ const FightDetail: React.FC = () => {
     }
 
     if (matchFound) {
-      // Lógica de finalização do Bracket
       const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
       if (finalRound?.[0]?.winner_id) {
         updatedBracket.winner_id = finalRound[0].winner_id;
         updatedBracket.runner_up_id = finalRound[0].loser_id;
       }
-      
       await handleUpdateBracket(updatedBracket);
       
       const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];

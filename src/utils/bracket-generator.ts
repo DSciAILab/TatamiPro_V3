@@ -72,78 +72,10 @@ export const generateBracketForDivision = (
   );
 
   const N0 = divisionAthletes.length;
-  let globalMatchCounter = 0; // Global counter for match IDs
-
-  // --- LÓGICA DOUBLE ELIMINATION (3 ATLETAS) ---
-  if (N0 === 3) {
-    const [A, B, C] = shuffleArray(divisionAthletes, rng); // Embaralha para ordem justa
-    
-    // Match IDs
-    globalMatchCounter++;
-    const match1Id = `${division.id}-M${globalMatchCounter}`; // A vs B
-    globalMatchCounter++;
-    const match2Id = `${division.id}-M${globalMatchCounter}`; // Repescagem: Loser1 vs C
-    globalMatchCounter++;
-    const match3Id = `${division.id}-M${globalMatchCounter}`; // Final: Winner1 vs Winner2
-
-    const match1: Match = {
-      id: match1Id,
-      round: 1,
-      match_number: 1,
-      fighter1_id: A.id,
-      fighter2_id: B.id,
-      winner_id: undefined,
-      loser_id: undefined,
-      next_match_id: match3Id, // Winner goes to Final
-      prev_match_ids: undefined,
-      _is_double_elimination: true, // Flag para indicar Double Elimination
-    };
-
-    const match2: Match = {
-      id: match2Id,
-      round: 2, // Second round of the bracket structure
-      match_number: 1,
-      fighter1_id: undefined, // Loser of Match 1
-      fighter2_id: C.id,
-      winner_id: undefined,
-      loser_id: undefined,
-      next_match_id: match3Id, // Winner goes to Final
-      prev_match_ids: [match1Id, undefined],
-      _is_double_elimination: true,
-    };
-
-    const match3: Match = {
-      id: match3Id,
-      round: 3, // Final
-      match_number: 1,
-      fighter1_id: undefined, // Winner of Match 1
-      fighter2_id: undefined, // Winner of Match 2
-      winner_id: undefined,
-      loser_id: undefined,
-      next_match_id: undefined,
-      prev_match_ids: [match1Id, match2Id],
-      _is_double_elimination: true,
-    };
-
-    return {
-      id: division.id,
-      division_id: division.id,
-      rounds: [[match1], [match2], [match3]],
-      third_place_match: undefined,
-      bracket_size: 3,
-      participants: divisionAthletes,
-      _is_double_elimination: true,
-    };
-  }
-  // --- FIM LÓGICA DOUBLE ELIMINATION ---
-
-
-  // --- LÓGICA ELIMINAÇÃO SIMPLES (N0 != 3) ---
   const bracketSize = getNextPowerOf2(N0);
   const numByes = bracketSize - N0;
 
   // 2. Separar atletas com seed e sem seed
-  // REMOVIDO: const divisionAthletesForSE = divisionAthletes.filter(a => !a._is_double_elimination);
   const seededAthletes = divisionAthletes.filter(a => a.seed !== undefined).sort((a, b) => a.seed! - b.seed!);
   let unseededAthletes = divisionAthletes.filter(a => a.seed === undefined);
 
@@ -187,9 +119,15 @@ export const generateBracketForDivision = (
   // Garantir que todos os slots foram preenchidos (para tipagem)
   const initialRoundParticipants: (Athlete | 'BYE')[] = finalParticipants as (Athlete | 'BYE')[];
 
+  // 7. Anti-conflito (mesma equipe) - Primeira rodada (melhor esforço)
+  // A distribuição aleatória dos 'fillers' já ajuda a evitar agrupamentos.
+  // Uma implementação robusta de anti-conflito com swaps locais é complexa e pode ser adicionada futuramente.
+  // Por enquanto, a aleatoriedade dos não-seeds e BYEs é o principal mecanismo de balanceamento.
+
   const rounds: Match[][] = [];
   let currentRoundParticipants = initialRoundParticipants;
   let roundNumber = 1;
+  let globalMatchCounter = 0; // Global counter for match IDs
 
   // 8. Construção da árvore do bracket (Primeira Passagem: Criar Matches)
   while (currentRoundParticipants.length > 1) {
