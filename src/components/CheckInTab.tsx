@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserRound, CheckCircle, XCircle, Scale, Search, QrCodeIcon, Barcode } from 'lucide-react';
+import { UserRound, CheckCircle, XCircle, Scale, Search, QrCodeIcon, Barcode, LayoutList, LayoutGrid } from 'lucide-react';
 import CheckInForm from '@/components/CheckInForm';
+import CheckInTable from '@/components/CheckInTable'; // New Import
 import QrScanner from '@/components/QrScanner';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 import { format, differenceInSeconds } from 'date-fns';
 import { showSuccess, showError } from '@/utils/toast';
 import { useTranslations } from '@/hooks/use-translations';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface CheckInTabProps {
   event: Event;
@@ -59,6 +61,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   handleCheckInAthlete,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards'); // New State
   const { t } = useTranslations();
 
   useEffect(() => {
@@ -163,8 +166,8 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
               {event.check_in_scan_mode === 'qr' && (
                 <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR Code
+                    <Button variant="outline" className="w-full md:w-auto">
+                      <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -188,16 +191,16 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 </Dialog>
               )}
               {event.check_in_scan_mode === 'barcode' && (
-                <div className="flex-1">
+                <div className="w-full md:w-auto">
                   <Button variant="outline" className="w-full" disabled>
-                    <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
+                    <Barcode className="mr-2 h-4 w-4" /> Escanear Código
                   </Button>
                 </div>
               )}
               <div className="flex-1 relative">
                 <Input
                   type="text"
-                  placeholder="Buscar atleta (nome, clube, divisão...)"
+                  placeholder="Buscar atleta (nome, clube, divisão, ID...)"
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -207,67 +210,86 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 />
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
+              <div className="flex justify-end">
+                <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'cards' | 'table')}>
+                  <ToggleGroupItem value="cards" aria-label="Visualização em Cards"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+                  <ToggleGroupItem value="table" aria-label="Visualização em Tabela"><LayoutList className="h-4 w-4" /></ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
 
             {filteredAthletesForCheckIn.length === 0 ? (
               <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
             ) : (
-              <ul className="space-y-4">
-                {filteredAthletesForCheckIn.map((athlete) => (
-                  <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
-                    <div className="flex items-center space-x-3 flex-grow">
-                      {athlete.photo_url ? (
-                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <UserRound className="h-5 w-5 text-muted-foreground" />
+              viewMode === 'table' ? (
+                <CheckInTable
+                  athletes={filteredAthletesForCheckIn}
+                  onCheckIn={handleCheckInAthlete}
+                  isCheckInAllowed={isCheckInAllowedGlobally}
+                  eventDivisions={event.divisions || []}
+                  isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
+                  isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
+                  isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
+                />
+              ) : (
+                <ul className="space-y-4">
+                  {filteredAthletesForCheckIn.map((athlete) => (
+                    <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
+                      <div className="flex items-center space-x-3 flex-grow">
+                        {athlete.photo_url ? (
+                          <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                            <UserRound className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
+                          <p className="text-xs font-mono bg-muted px-1.5 rounded w-fit my-0.5">{athlete.emirates_id || athlete.school_id || 'Sem ID'}</p>
+                          <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
+                          {athlete.registered_weight && (
+                            <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
+                          )}
+                          {athlete.move_reason && (
+                            <p className="text-xs text-blue-500">
+                              <span className="font-semibold">{t('moved')}:</span> {athlete.move_reason}
+                            </p>
+                          )}
                         </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
-                        {athlete.registered_weight && (
-                          <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
-                        )}
-                        {athlete.move_reason && (
-                          <p className="text-xs text-blue-500">
-                            <span className="font-semibold">{t('moved')}:</span> {athlete.move_reason}
-                          </p>
-                        )}
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2">
-                        {athlete.check_in_status === 'checked_in' && (
-                          <span className="flex items-center text-green-600 font-semibold text-sm">
-                            <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'overweight' && (
-                          <span className="flex items-center text-red-600 font-semibold text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registered_weight}kg)
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'pending' && (
-                          <span className="flex items-center text-orange-500 font-semibold text-sm">
-                            <Scale className="h-4 w-4 mr-1" /> Pendente
-                          </span>
-                        )}
+                      <div className="flex flex-col items-end space-y-2">
+                        <div className="flex items-center space-x-2">
+                          {athlete.check_in_status === 'checked_in' && (
+                            <span className="flex items-center text-green-600 font-semibold text-sm">
+                              <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
+                            </span>
+                          )}
+                          {athlete.check_in_status === 'overweight' && (
+                            <span className="flex items-center text-red-600 font-semibold text-sm">
+                              <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registered_weight}kg)
+                            </span>
+                          )}
+                          {athlete.check_in_status === 'pending' && (
+                            <span className="flex items-center text-orange-500 font-semibold text-sm">
+                              <Scale className="h-4 w-4 mr-1" /> Pendente
+                            </span>
+                          )}
+                        </div>
+                        <CheckInForm
+                          athlete={athlete}
+                          onCheckIn={handleCheckInAthlete}
+                          isCheckInAllowed={isCheckInAllowedGlobally && (event.is_attendance_mandatory_before_check_in ? athlete.attendance_status === 'present' : true)}
+                          divisionMaxWeight={athlete._division?.max_weight}
+                          isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
+                          isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
+                          eventDivisions={event.divisions || []}
+                          isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
+                        />
                       </div>
-                      <CheckInForm
-                        athlete={athlete}
-                        onCheckIn={handleCheckInAthlete}
-                        isCheckInAllowed={isCheckInAllowedGlobally && (event.is_attendance_mandatory_before_check_in ? athlete.attendance_status === 'present' : true)}
-                        divisionMaxWeight={athlete._division?.max_weight}
-                        isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
-                        isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
-                        eventDivisions={event.divisions || []}
-                        isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )
             )}
           </>
         )}
