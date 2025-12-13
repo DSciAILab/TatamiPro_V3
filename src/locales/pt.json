@@ -147,5 +147,11 @@
   "gold": "Ouro",
   "silver": "Prata",
   "bronze": "Bronze",
-  "points": "Pontos"
+  "points": "Pontos",
+  "backToOverview": "Voltar para Visão Geral",
+  "athleteList": "Lista de Atletas",
+  "bracketView": "Visão do Bracket",
+  "fightOrder": "Ordem das Lutas",
+  "publicCategory": "Categoria",
+  "name": "Nome"
 }

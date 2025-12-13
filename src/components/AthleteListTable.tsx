@@ -2,30 +2,45 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { UserRound } from 'lucide-react';
+import { UserRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Athlete } from '@/types/index';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface AthleteListTableProps {
   athletes: Athlete[];
+  sortConfig?: { key: string; direction: 'asc' | 'desc' };
+  onSort?: (key: string) => void;
 }
 
-const AthleteListTable: React.FC<AthleteListTableProps> = ({ athletes }) => {
+const AthleteListTable: React.FC<AthleteListTableProps> = ({ athletes, sortConfig, onSort }) => {
+  const { t } = useTranslations();
+
+  const getSortIcon = (columnKey: string) => {
+    if (!sortConfig || !onSort) return null;
+    if (sortConfig.key !== columnKey) return <ArrowUpDown className="ml-2 h-4 w-4 inline text-muted-foreground opacity-50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4 inline" /> : <ArrowDown className="ml-2 h-4 w-4 inline" />;
+  };
+
+  const handleHeaderClick = (key: string) => {
+    if (onSort) {
+      onSort(key);
+    }
+  };
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Club</TableHead>
-          <TableHead>Age</TableHead>
-          <TableHead>Weight</TableHead>
-          <TableHead>Belt</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead className={onSort ? "cursor-pointer" : ""} onClick={() => handleHeaderClick('first_name')}>{t('name')} {getSortIcon('first_name')}</TableHead>
+          <TableHead className={onSort ? "cursor-pointer" : ""} onClick={() => handleHeaderClick('club')}>{t('club')} {getSortIcon('club')}</TableHead>
+          <TableHead className={onSort ? "cursor-pointer" : ""} onClick={() => handleHeaderClick('division_name')}>{t('publicCategory')} {getSortIcon('division_name')}</TableHead>
+          <TableHead className={onSort ? "cursor-pointer" : ""} onClick={() => handleHeaderClick('registration_status')}>{t('status')} {getSortIcon('registration_status')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {athletes.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center">No athletes found in this division.</TableCell>
+            <TableCell colSpan={4} className="text-center">No athletes found in this division.</TableCell>
           </TableRow>
         ) : (
           athletes.map(athlete => (
@@ -41,10 +56,8 @@ const AthleteListTable: React.FC<AthleteListTableProps> = ({ athletes }) => {
                 {athlete.first_name} {athlete.last_name}
               </TableCell>
               <TableCell>{athlete.club}</TableCell>
-              <TableCell>{athlete.age}</TableCell>
-              <TableCell>{athlete.weight}kg</TableCell>
-              <TableCell>{athlete.belt}</TableCell>
-              <TableCell>{athlete.registration_status}</TableCell>
+              <TableCell>{athlete._division?.name || 'N/A'}</TableCell>
+              <TableCell>{t(`status_${athlete.registration_status}` as any)}</TableCell>
             </TableRow>
           ))
         )}

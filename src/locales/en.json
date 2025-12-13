@@ -147,5 +147,11 @@
   "gold": "Gold",
   "silver": "Silver",
   "bronze": "Bronze",
-  "points": "Points"
+  "points": "Points",
+  "backToOverview": "Back to Overview",
+  "athleteList": "Athlete List",
+  "bracketView": "Bracket View",
+  "fightOrder": "Fight Order",
+  "publicCategory": "Category",
+  "name": "Name"
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import React from 'react';
-import { Event, Division } from '@/types/index';
+import React, { useState, useMemo } from 'react';
+import { Event, Division, Athlete } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
 import AthleteListTable from './AthleteListTable';
 import BracketView from './BracketView';
 import FightList from './FightList';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -17,8 +18,46 @@ interface DivisionDetailViewProps {
 }
 
 const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, isPublic = false }) => {
+  const { t } = useTranslations();
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'first_name', direction: 'asc' });
+
   const athletesInDivision = (event.athletes || []).filter(a => a._division?.id === division.id);
   const bracket = event.brackets?.[division.id];
+
+  const handleSort = (key: string) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const sortedAthletes = useMemo(() => {
+    const sortableItems = [...athletesInDivision];
+    sortableItems.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      if (sortConfig.key === 'division_name') {
+        aValue = a._division?.name || '';
+        bValue = b._division?.name || '';
+      } else {
+        aValue = a[sortConfig.key as keyof Athlete];
+        bValue = b[sortConfig.key as keyof Athlete];
+      }
+
+      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    return sortableItems;
+  }, [athletesInDivision, sortConfig]);
 
   return (
     <div className="space-y-4">
@@ -28,18 +67,22 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           <p className="text-muted-foreground">{athletesInDivision.length} athletes</p>
         </div>
         <Button onClick={onBack} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Visão Geral
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('backToOverview')}
         </Button>
       </div>
 
       <Tabs defaultValue="athletes" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="athletes">Lista de Atletas</TabsTrigger>
-          <TabsTrigger value="bracket" disabled={!bracket}>Visão do Bracket</TabsTrigger>
-          <TabsTrigger value="fight_order" disabled={!bracket}>Ordem das Lutas</TabsTrigger>
+          <TabsTrigger value="athletes">{t('athleteList')}</TabsTrigger>
+          <TabsTrigger value="bracket" disabled={!bracket}>{t('bracketView')}</TabsTrigger>
+          <TabsTrigger value="fight_order" disabled={!bracket}>{t('fightOrder')}</TabsTrigger>
         </TabsList>
         <TabsContent value="athletes" className="mt-4">
-          <AthleteListTable athletes={athletesInDivision} />
+          <AthleteListTable 
+            athletes={sortedAthletes} 
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
         </TabsContent>
         <TabsContent value="bracket" className="mt-4">
           {bracket ? (
