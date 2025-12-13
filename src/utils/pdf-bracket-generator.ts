@@ -58,60 +58,60 @@ const drawMatch = (
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
   const fighter2 = match.fighter2_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2_id || '');
 
-  // Fix: Ensure strict boolean type for drawSlot
   const fighter1IsWinner = !!(match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter1_id);
   const fighter2IsWinner = !!(match.winner_id && match.winner_id !== 'BYE' && match.winner_id === match.fighter2_id);
 
-  // --- Dimensions & Font Sizes ---
   const slotHeight = height / 2;
   const paddingX = 2;
   const matchNumSize = 6;
   
-  // Dynamic font sizing based on box height
   const nameFontSize = Math.min(9, height * 0.25);
   const clubFontSize = Math.min(7, height * 0.18);
 
-  // --- Match Number Indicator (e.g., "2-5") ---
-  // Format: Mat Number - Fight Number
   let matchLabel = "";
   if (match.mat_fight_number) {
     const matNum = match._mat_name ? match._mat_name.replace(/\D/g, '') : '?';
     matchLabel = `${matNum}-${match.mat_fight_number}`;
   } else {
-    // Fallback ID part if not scheduled yet
     matchLabel = match.id.split('-').pop()?.replace('M', '') || '';
   }
 
-  // Draw Match Number (Top Right of box or centered on split line)
   doc.setFontSize(matchNumSize);
   doc.setTextColor(100, 100, 100);
   const labelW = doc.getTextWidth(matchLabel);
-  // Position: slightly above the box or inside top right
   doc.text(matchLabel, x + width - labelW - 1, y + matchNumSize); 
   doc.setTextColor(0, 0, 0);
 
-  // --- Helper to draw a single slot ---
   const drawSlot = (fighter: Athlete | 'BYE' | undefined, slotY: number, isWinner: boolean) => {
     if (isWinner) {
       doc.setFillColor(WINNER_BG_COLOR);
       doc.rect(x, slotY, width, slotHeight, 'F');
-      doc.rect(x, slotY, width, slotHeight); // Redraw border
+      doc.rect(x, slotY, width, slotHeight);
     }
 
-    if (!fighter) return; // Leave empty for manual filling
+    if (!fighter) return;
 
     const name = fighter === 'BYE' ? 'BYE' : `${fighter.first_name} ${fighter.last_name}`;
     const club = fighter !== 'BYE' ? fighter.club : '';
+    const athleteIdShort = fighter !== 'BYE' && fighter ? `(${fighter.id.slice(-6).toUpperCase()}) ` : '';
+
+    // ID
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(nameFontSize - 2);
+    doc.setTextColor(100, 100, 100);
+    const idWidth = doc.getTextWidth(athleteIdShort);
+    doc.text(athleteIdShort, x + paddingX, slotY + (slotHeight * 0.45));
 
     // Name
-    doc.setFont('helvetica', isWinner ? 'bold' : 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(nameFontSize);
-    const fitName = fitText(doc, name, width - (paddingX * 2));
-    doc.text(fitName, x + paddingX, slotY + (slotHeight * 0.45));
+    doc.setTextColor(0, 0, 0);
+    const fitName = fitText(doc, name, width - (paddingX * 2) - idWidth);
+    doc.text(fitName, x + paddingX + idWidth, slotY + (slotHeight * 0.45));
 
     // Club
     if (club) {
-      doc.setFont('helvetica', 'normal'); // Club always normal
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(80, 80, 80);
       doc.setFontSize(clubFontSize);
       const fitClub = fitText(doc, club, width - (paddingX * 2));
@@ -120,14 +120,9 @@ const drawMatch = (
     }
   };
 
-  // Draw Slot 1
   drawSlot(fighter1, y, fighter1IsWinner);
-
-  // Separator Line
   doc.setDrawColor(LINE_COLOR);
   doc.line(x, y + slotHeight, x + width, y + slotHeight);
-
-  // Draw Slot 2
   drawSlot(fighter2, y + slotHeight, fighter2IsWinner);
 };
 
@@ -154,24 +149,21 @@ const drawBracketLines = (
             const endX = nextPos.x;
             const midX = startX + roundGap / 2;
 
-            doc.line(startX, startY, midX, startY); // Horizontal from current
+            doc.line(startX, startY, midX, startY);
 
-            // Calculate entry point Y for the next match
-            // If current is topmost parent (prev_match_ids[0]), enter top half
-            // If bottom parent, enter bottom half
             const nextMatchObj = bracket.rounds.flat().find(m => m.id === match.next_match_id);
-            let endY = nextPos.y + cardHeight / 2; // Default center
+            let endY = nextPos.y + cardHeight / 2;
             
             if (nextMatchObj) {
                 if (nextMatchObj.prev_match_ids?.[0] === match.id) {
-                    endY = nextPos.y + (cardHeight * 0.25); // Enter top quarter
+                    endY = nextPos.y + (cardHeight * 0.25);
                 } else if (nextMatchObj.prev_match_ids?.[1] === match.id) {
-                    endY = nextPos.y + (cardHeight * 0.75); // Enter bottom quarter
+                    endY = nextPos.y + (cardHeight * 0.75);
                 }
             }
 
-            doc.line(midX, startY, midX, endY); // Vertical
-            doc.line(midX, endY, endX, endY); // Horizontal to next
+            doc.line(midX, startY, midX, endY);
+            doc.line(midX, endY, endX, endY);
         }
       }
     });
@@ -200,7 +192,6 @@ export const generateBracketPdf = (
     if (pageAdded) doc.addPage();
     pageAdded = true;
 
-    // --- Dynamic Layout Calculation ---
     const totalRounds = bracket.rounds.length;
     const maxMatchesInColumn = Math.max(...bracket.rounds.map(r => r.length));
 
@@ -231,12 +222,27 @@ export const generateBracketPdf = (
     const totalContentHeight = (cardHeight * maxMatchesInColumn) + (matchVGap * (maxMatchesInColumn - 1));
     const startYOffset = MARGIN + HEADER_HEIGHT + Math.max(0, (availableHeight - totalContentHeight) / 2);
 
-    // --- Draw Header (Division Name) ---
+    const ageSetting = event.age_division_settings?.find(s => s.name === division.age_category_name);
+    const fightDuration = ageSetting?.fight_duration || 5;
+    const totalAthletes = bracket.participants.filter(p => p !== 'BYE').length;
+    const totalMatches = bracket.rounds.flat().filter(m => m.fighter1_id !== 'BYE' && m.fighter2_id !== 'BYE').length;
+    const totalMinutes = totalMatches * fightDuration;
+    const totalHours = (totalMinutes / 60).toFixed(1);
+
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(event.name, PAGE_WIDTH / 2, MARGIN + 8, { align: 'center' });
+
     doc.setFontSize(16);
-    doc.text(division.name, PAGE_WIDTH / 2, MARGIN + 8, { align: 'center' });
-    
-    // --- Draw Round Labels ---
+    doc.text(`${division.name} (${fightDuration} min)`, PAGE_WIDTH / 2, MARGIN + 15, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    const statsText = `${totalAthletes} atletas | ${totalMatches} lutas | Tempo total est.: ${totalMinutes} min (${totalHours}h)`;
+    doc.text(statsText, PAGE_WIDTH / 2, MARGIN + 20, { align: 'center' });
+    doc.setTextColor(0);
+
     doc.setFontSize(10);
     doc.setTextColor(100);
     for (let r = 0; r < totalRounds; r++) {
@@ -248,7 +254,6 @@ export const generateBracketPdf = (
 
     const matchPositions = new Map<string, { x: number; y: number }>();
 
-    // Pass 1: Calculate Positions
     bracket.rounds.forEach((round, roundIndex) => {
       const x = startXOffset + roundIndex * (cardWidth + roundGap);
       
@@ -277,10 +282,8 @@ export const generateBracketPdf = (
       });
     });
 
-    // Pass 2: Draw Lines
     drawBracketLines(doc, matchPositions, bracket, cardWidth, cardHeight, roundGap);
 
-    // Pass 3: Draw Matches
     bracket.rounds.flat().forEach(match => {
       const pos = matchPositions.get(match.id);
       if (pos) {
@@ -288,7 +291,6 @@ export const generateBracketPdf = (
       }
     });
 
-    // Pass 4: Podium and Validation Box
     const finalMatch = bracket.rounds[totalRounds - 1][0];
     const finalMatchPos = matchPositions.get(finalMatch.id);
 
@@ -330,22 +332,6 @@ export const generateBracketPdf = (
         }
     }
 
-    // Pass 5: Third Place (Bottom Left)
-    if (bracket.third_place_match) {
-        const tpWidth = cardWidth;
-        const tpHeight = cardHeight;
-        const tpX = MARGIN;
-        const tpY = PAGE_HEIGHT - MARGIN - tpHeight - FOOTER_HEIGHT - 5;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text("DISPUTA DE 3º LUGAR", tpX, tpY - 2);
-        doc.setFont('helvetica', 'normal');
-        
-        drawMatch(doc, tpX, tpY, tpWidth, tpHeight, bracket.third_place_match, athletesMap);
-    }
-
-    // Pass 6: Footer
     const now = new Date();
     const printInfo = `Impresso por: ${userName} em ${format(now, 'dd/MM/yyyy HH:mm')}`;
     doc.setFontSize(8);
