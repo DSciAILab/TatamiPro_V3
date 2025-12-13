@@ -3,6 +3,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ModeToggle } from '@/components/mode-toggle';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { cn } from '@/lib/utils';
 
 interface PublicLayoutProps {
@@ -18,6 +19,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
             TatamiPro
           </Link>
           <nav className="flex items-center space-x-2">
+            <LanguageToggle />
             <ModeToggle />
           </nav>
         </div>
