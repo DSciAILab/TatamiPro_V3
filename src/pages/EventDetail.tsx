@@ -183,7 +183,7 @@ const EventDetail: React.FC = () => {
             editingAthlete={editingAthlete}
             setEditingAthlete={setEditingAthlete}
             handleAthleteUpdate={handleAthleteUpdate}
-            mandatoryFieldsConfig={event.check_in_config || {}} 
+            mandatoryFieldsConfig={event.check_in_config?.mandatoryFields || {}} 
             filteredAthletesForDisplay={filteredAthletesForDisplayInscricoes}
             registrationStatusFilter={registrationStatusFilter}
             setRegistrationStatusFilter={setRegistrationStatusFilter}

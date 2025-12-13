@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Event, Division, AgeDivisionSetting } from '@/types/index';
+import { Event, Division, AgeDivisionSetting, CheckInConfig } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2, UserPlus } from 'lucide-react';
+import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2, UserPlus, Printer, Type } from 'lucide-react';
 import { format } from 'date-fns';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
@@ -20,8 +20,9 @@ import DivisionTable from '@/components/DivisionTable';
 import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { Textarea } from '@/components/ui/textarea';
-import { showSuccess, showError } from '@/utils/toast';
-import AgeDivisionConfig from './AgeDivisionConfig'; // NOVO
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import AgeDivisionConfig from './AgeDivisionConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EventConfigTabProps {
   event: Event;
@@ -49,7 +50,7 @@ interface EventConfigTabProps {
   check_in_scan_mode: 'qr' | 'barcode' | 'none';
   set_check_in_scan_mode: (value: 'qr' | 'barcode' | 'none') => void;
   handleUpdateDivisions: (divisions: Division[]) => void;
-  handleUpdateAgeDivisionSettings: (settings: AgeDivisionSetting[]) => void; // NOVO
+  handleUpdateAgeDivisionSettings: (settings: AgeDivisionSetting[]) => void;
   champion_points: number;
   set_champion_points: (value: number) => void;
   runner_up_points: number;
@@ -93,7 +94,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   check_in_scan_mode,
   set_check_in_scan_mode,
   handleUpdateDivisions,
-  handleUpdateAgeDivisionSettings, // NOVO
+  handleUpdateAgeDivisionSettings,
   champion_points,
   set_champion_points,
   runner_up_points,
@@ -112,6 +113,44 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
+
+  // Print Settings State
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [printFontSize, setPrintFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+
+  useEffect(() => {
+    if (event.check_in_config?.printSettings) {
+      setPrintOrientation(event.check_in_config.printSettings.orientation);
+      setPrintFontSize(event.check_in_config.printSettings.fontSize);
+    }
+  }, [event.check_in_config]);
+
+  const handleSavePrintConfig = async () => {
+    const loadingToast = showLoading('Salvando configurações de impressão...');
+    try {
+      const currentConfig: CheckInConfig = event.check_in_config || {};
+      const updatedConfig: CheckInConfig = {
+        ...currentConfig,
+        printSettings: {
+          orientation: printOrientation,
+          fontSize: printFontSize,
+        },
+      };
+
+      const { error } = await supabase
+        .from('events')
+        .update({ check_in_config: updatedConfig })
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      dismissToast(loadingToast);
+      showSuccess('Configurações de impressão salvas!');
+    } catch (error: any) {
+      dismissToast(loadingToast);
+      showError('Erro ao salvar: ' + error.message);
+    }
+  };
 
   const handleShare = (type: 'public_event' | 'public_registration') => {
     const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/register/${event.id}`;
@@ -361,6 +400,33 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     Selecione o método de escaneamento. Se nenhum for selecionado, a opção será desativada.
                   </p>
                 </div>
+
+                <div className="p-4 border rounded-md bg-muted/20">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-lg font-semibold flex items-center gap-2">
+                      <Printer className="h-5 w-5" /> Configuração de Impressão do Check-in
+                    </h4>
+                    <Button size="sm" onClick={handleSavePrintConfig}>Salvar Configuração</Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Orientação</Label>
+                      <ToggleGroup type="single" value={printOrientation} onValueChange={(v) => v && setPrintOrientation(v as any)} className="justify-start mt-2">
+                        <ToggleGroupItem value="portrait" aria-label="Retrato">Retrato</ToggleGroupItem>
+                        <ToggleGroupItem value="landscape" aria-label="Paisagem">Paisagem</ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                    <div>
+                      <Label>Tamanho da Fonte</Label>
+                      <ToggleGroup type="single" value={printFontSize} onValueChange={(v) => v && setPrintFontSize(v as any)} className="justify-start mt-2">
+                        <ToggleGroupItem value="small" aria-label="Pequena"><Type className="h-3 w-3 mr-1" />Pequena</ToggleGroupItem>
+                        <ToggleGroupItem value="medium" aria-label="Média"><Type className="h-4 w-4 mr-1" />Média</ToggleGroupItem>
+                        <ToggleGroupItem value="large" aria-label="Grande"><Type className="h-5 w-5 mr-1" />Grande</ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                  </div>
+                </div>
+
               </div>
               <CheckInMandatoryFieldsConfig eventId={event.id} />
             </TabsContent>

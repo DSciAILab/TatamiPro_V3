@@ -111,55 +111,86 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   }, [filteredAthletesForCheckIn, sortConfig]);
 
   const handlePrintList = () => {
-    const doc = new jsPDF();
+    const config = event.check_in_config?.printSettings || { orientation: 'portrait', fontSize: 'medium' };
+    const orientation = config.orientation;
+    const doc = new jsPDF({ orientation });
+    
+    // Configurações de layout baseadas nas escolhas
+    const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
+    const margin = 10;
+    const contentWidth = pageWidth - (margin * 2);
+
+    // Mapeamento de tamanho de fonte
+    const fontSizes = { small: 8, medium: 10, large: 12 };
+    const lineHeights = { small: 6, medium: 8, large: 10 };
+    const fontSize = fontSizes[config.fontSize];
+    const lineHeight = lineHeights[config.fontSize];
+
+    // Definição das colunas (em porcentagem do contentWidth)
+    const cols = {
+      id: { x: margin, width: contentWidth * 0.15 },
+      name: { x: margin + contentWidth * 0.15, width: contentWidth * 0.30 },
+      division: { x: margin + contentWidth * 0.45, width: contentWidth * 0.25 },
+      club: { x: margin + contentWidth * 0.70, width: contentWidth * 0.20 },
+      weight: { x: margin + contentWidth * 0.90, width: contentWidth * 0.10 }
+    };
+
     let y = 20;
 
-    doc.setFontSize(16);
-    doc.text(`Lista de Check-in - ${event.name}`, 105, y, { align: 'center' });
-    y += 10;
+    doc.setFontSize(fontSize + 4); // Título um pouco maior
+    doc.text(`Lista de Check-in - ${event.name}`, pageWidth / 2, y, { align: 'center' });
+    y += lineHeight * 1.5;
     
-    doc.setFontSize(10);
-    doc.text(`Filtro: ${checkInFilter.toUpperCase()} - Total: ${sortedAthletes.length}`, 14, y);
-    y += 10;
+    doc.setFontSize(fontSize);
+    doc.text(`Filtro: ${checkInFilter.toUpperCase()} - Total: ${sortedAthletes.length}`, margin, y);
+    y += lineHeight * 1.5;
 
     // Headers
     doc.setFont('helvetica', 'bold');
-    doc.text("ID", 14, y);
-    doc.text("Atleta", 50, y);
-    doc.text("Divisão", 100, y);
-    doc.text("Clube", 150, y);
-    doc.text("Peso", 190, y);
-    doc.line(10, y + 2, 200, y + 2);
-    y += 8;
+    doc.text("ID", cols.id.x, y);
+    doc.text("Atleta", cols.name.x, y);
+    doc.text("Divisão", cols.division.x, y);
+    doc.text("Clube", cols.club.x, y);
+    doc.text("Peso", cols.weight.x, y);
+    doc.line(margin, y + 2, pageWidth - margin, y + 2);
+    y += lineHeight;
 
     doc.setFont('helvetica', 'normal');
     
+    const truncate = (str: string, maxWidthChars: number) => {
+      if (str.length > maxWidthChars) return str.substring(0, maxWidthChars - 3) + '...';
+      return str;
+    };
+
+    // Ajuste de truncagem baseado no tamanho da fonte e largura da página
+    const charLimitFactor = orientation === 'landscape' ? 1.4 : 1.0;
+    const fontFactor = config.fontSize === 'small' ? 1.3 : config.fontSize === 'large' ? 0.8 : 1.0;
+    const baseLimit = 22;
+    const charLimit = Math.floor(baseLimit * charLimitFactor * fontFactor);
+
     sortedAthletes.forEach((athlete) => {
-      if (y > pageHeight - 15) {
+      if (y > pageHeight - margin) {
         doc.addPage();
-        y = 20;
+        y = 20; // Reset Y for new page
       }
 
       const id = athlete.emirates_id || athlete.school_id || '-';
       const name = `${athlete.first_name} ${athlete.last_name}`;
-      // Truncate name if too long
-      const displayName = name.length > 25 ? name.substring(0, 22) + '...' : name;
       const division = athlete._division?.name || 'N/A';
-      const displayDivision = division.length > 25 ? division.substring(0, 22) + '...' : division;
-      const club = athlete.club.length > 20 ? athlete.club.substring(0, 18) + '...' : athlete.club;
+      const club = athlete.club;
       const weight = athlete.registered_weight ? `${athlete.registered_weight}kg` : '-';
 
-      doc.text(id, 14, y);
-      doc.text(displayName, 50, y);
-      doc.text(displayDivision, 100, y);
-      doc.text(club, 150, y);
-      doc.text(weight, 190, y);
+      doc.text(truncate(id, Math.floor(charLimit * 0.7)), cols.id.x, y);
+      doc.text(truncate(name, charLimit), cols.name.x, y);
+      doc.text(truncate(division, charLimit), cols.division.x, y);
+      doc.text(truncate(club, Math.floor(charLimit * 0.8)), cols.club.x, y);
+      doc.text(weight, cols.weight.x, y);
       
-      y += 7;
+      y += lineHeight;
     });
 
-    doc.save('check_in_list.pdf');
+    doc.save(`check_in_list_${event.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   const isCheckInTimeValid = () => {

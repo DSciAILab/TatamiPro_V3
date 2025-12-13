@@ -105,6 +105,14 @@ export interface Bracket {
   third_place_winner_id?: string;
 }
 
+export interface CheckInConfig {
+  mandatoryFields?: Record<string, boolean>;
+  printSettings?: {
+    orientation: 'portrait' | 'landscape';
+    fontSize: 'small' | 'medium' | 'large';
+  };
+}
+
 export interface Event {
   id: string;
   name: string;
@@ -132,5 +140,5 @@ export interface Event {
   third_place_points: number;
   count_single_club_categories: boolean;
   count_walkover_single_fight_categories: boolean;
-  check_in_config?: Record<string, boolean>; // New field for JSON config
+  check_in_config?: CheckInConfig; // Updated Type
 }
