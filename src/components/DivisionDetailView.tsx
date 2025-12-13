@@ -13,9 +13,10 @@ interface DivisionDetailViewProps {
   event: Event;
   division: Division;
   onBack: () => void;
+  isPublic?: boolean;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack }) => {
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, isPublic = false }) => {
   const athletesInDivision = (event.athletes || []).filter(a => a._division?.id === division.id);
   const bracket = event.brackets?.[division.id];
 
@@ -47,6 +48,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               allAthletes={event.athletes || []}
               division={division}
               eventId={event.id}
+              isPublic={isPublic}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">Bracket não gerado para esta divisão.</p>
@@ -61,6 +63,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               selectedDivisionId={division.id}
               onUpdateBracket={() => {}} // Read-only view
               fightViewMode="grid1"
+              isPublic={isPublic}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">Ordem de lutas não disponível.</p>

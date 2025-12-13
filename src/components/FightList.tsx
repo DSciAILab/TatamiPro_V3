@@ -14,6 +14,7 @@ interface FightListProps {
   selectedDivisionId: string;
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
   fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket';
+  isPublic?: boolean;
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -27,7 +28,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, isPublic = false }) => {
   const { athletes, brackets, mat_fight_order } = event;
 
   const allMatchesMap = useMemo(() => {
@@ -131,6 +132,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           allAthletes={athletes || []}
           division={division}
           eventId={event.id}
+          isPublic={isPublic}
         />
       );
     }
@@ -202,10 +204,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     const cardClasses = cn(
       "block border-2 rounded-md transition-colors",
       match.winner_id ? 'border-green-500' : 'border-gray-200 dark:border-gray-700',
-      isFightRecordable ? 'hover:border-primary' : 'opacity-70 cursor-not-allowed'
+      isFightRecordable && !isPublic ? 'hover:border-primary' : 'cursor-default'
     );
 
-    if (isFightRecordable) {
+    if (isFightRecordable && !isPublic) {
       return (
         <Link
           key={match.id}

@@ -9,7 +9,8 @@ interface BracketViewProps {
   bracket: Bracket;
   allAthletes: Athlete[];
   division: Division;
-  eventId: string; // NOVO: ID do evento
+  eventId: string;
+  isPublic?: boolean;
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -23,7 +24,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId }) => {
+const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false }) => {
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
@@ -43,25 +44,20 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
 
   const totalRounds = bracket.rounds.length;
 
-  // Definindo constantes para o layout das linhas
-  const cardHeight = 140; // Altura calculada de um BracketMatchCard (2 slots * 56px + padding/margin + bordas)
-  const baseVerticalGap = 40; // Espaçamento vertical entre as lutas na primeira rodada (AUMENTADO)
-  const matchFullHeight = cardHeight + baseVerticalGap; // Altura total que um card 'ocupa' na primeira rodada
-  const cardWidth = 375; // Largura máxima de um BracketMatchCard (250 * 1.5 = 375)
+  const cardHeight = 140;
+  const baseVerticalGap = 40;
+  const matchFullHeight = cardHeight + baseVerticalGap;
+  const cardWidth = 375;
 
-  // Calcula as posições Y (top) e os margin-tops para cada luta
   const matchMarginTops = useMemo(() => {
     const yTops: Map<string, number> = new Map();
     const marginTops: Map<string, number> = new Map();
 
-    // 1. Calcular a posição Y (top) absoluta de cada luta dentro de sua coluna
     bracket.rounds.forEach((round, roundIndex) => {
       round.forEach((match, matchIndex) => {
         if (roundIndex === 0) {
-          // Primeira rodada: empilhamento simples
           yTops.set(match.id, matchIndex * matchFullHeight);
         } else {
-          // Rodadas subsequentes: centralizar entre os pais
           const prevRound = bracket.rounds[roundIndex - 1];
           const parent1 = prevRound[matchIndex * 2];
           const parent2 = prevRound[matchIndex * 2 + 1];
@@ -72,24 +68,20 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             const midPoint = (center1 + center2) / 2;
             yTops.set(match.id, midPoint - cardHeight / 2);
           } else {
-            // Fallback, embora não deva acontecer em brackets válidos
             yTops.set(match.id, 0);
           }
         }
       });
     });
 
-    // 2. Calcular o margin-top para cada luta com base nas posições Y absolutas
     bracket.rounds.forEach((round) => {
       round.forEach((match, matchIndex) => {
         const currentYTop = yTops.get(match.id)!;
         let calculatedMarginTop = 0;
 
         if (matchIndex === 0) {
-          // O primeiro card da rodada tem seu margin-top igual à sua posição Y absoluta
           calculatedMarginTop = currentYTop;
         } else {
-          // Cards subsequentes na mesma rodada: margin-top é o espaço do final do card anterior até o início do atual
           const prevMatchInRound = round[matchIndex - 1];
           const prevYTop = yTops.get(prevMatchInRound.id)!;
           calculatedMarginTop = currentYTop - (prevYTop + cardHeight);
@@ -107,14 +99,14 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
         <CardTitle className="text-2xl font-bold mb-4">Bracket: {division.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center overflow-x-auto">
-        <div className="flex space-x-8 p-4 relative"> {/* Este div é o container relativo para as linhas */}
+        <div className="flex space-x-8 p-4 relative">
           {bracket.rounds.map((round, roundIndex) => {
             const isLastRound = roundIndex === totalRounds - 1;
             return (
               <React.Fragment key={roundIndex}>
                 <div
                   className="flex flex-col items-center min-w-[375px]"
-                  style={{ width: `${cardWidth}px` }} // Largura explícita para a coluna da rodada
+                  style={{ width: `${cardWidth}px` }}
                 >
                   <h3 className="text-lg font-semibold mb-4">{getRoundName(roundIndex, totalRounds)}</h3>
                   <div className="flex flex-col">
@@ -123,7 +115,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                         key={match.id}
                         style={{
                           marginTop: `${matchMarginTops.get(match.id) || 0}px`,
-                          height: `${cardHeight}px`, // Altura explícita para espaçamento consistente
+                          height: `${cardHeight}px`,
                         }}
                       >
                         <BracketMatchCard
@@ -133,14 +125,14 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           bracketWinnerId={bracket.winner_id}
                           bracketRunnerUpId={bracket.runner_up_id}
                           bracketThirdPlaceWinnerId={bracket.third_place_winner_id}
-                          eventId={eventId} // Passar eventId
-                          divisionId={bracket.division_id} // Passar divisionId
+                          eventId={eventId}
+                          divisionId={bracket.division_id}
+                          isPublic={isPublic}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
-                {/* As linhas de conexão foram removidas daqui */}
               </React.Fragment>
             );
           })}
@@ -154,8 +146,9 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
               bracketWinnerId={bracket.winner_id}
               bracketRunnerUpId={bracket.runner_up_id}
               bracketThirdPlaceWinnerId={bracket.third_place_winner_id}
-              eventId={eventId} // Passar eventId
-              divisionId={bracket.division_id} // Passar divisionId
+              eventId={eventId}
+              divisionId={bracket.division_id}
+              isPublic={isPublic}
             />
           </div>
         )}

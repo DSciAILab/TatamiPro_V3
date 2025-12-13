@@ -3,43 +3,41 @@
 import React from 'react';
 import { Match, Athlete } from '@/types/index';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserRound, Trophy, CheckCircle } from 'lucide-react'; // Added CheckCircle
-import { cn } from '@/lib/utils'; // For conditional classes
-import { Link } from 'react-router-dom'; // Importar Link
+import { UserRound, Trophy, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import { useTranslations } from '@/hooks/use-translations';
 
 interface BracketMatchCardProps {
   match: Match;
   athletesMap: Map<string, Athlete>;
   isFinal?: boolean;
-  // isThirdPlace?: boolean; // Removed
-  // New props for ranking
   bracketWinnerId?: string;
   bracketRunnerUpId?: string;
   bracketThirdPlaceWinnerId?: string;
-  eventId: string; // NOVO: ID do evento
-  divisionId: string; // NOVO: ID da divisão
+  eventId: string;
+  divisionId: string;
+  isPublic?: boolean;
 }
 
-// Helper para formatar o ID da luta anterior para exibição (ex: "9" de "divisionId-M9")
 const getShortMatchIdentifier = (fullMatchId: string): string => {
-  const mMatch = fullMatchId.match(/-M(\d+)$/); // Regex para encontrar -M{num} no final
+  const mMatch = fullMatchId.match(/-M(\d+)$/);
   if (mMatch && mMatch[1]) {
-    return mMatch[1]; // Retorna "9"
+    return mMatch[1];
   }
-  return fullMatchId; // Fallback para formatos inesperados
+  return fullMatchId;
 };
 
 const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   match,
   athletesMap,
   isFinal,
-  // isThirdPlace, // Removed
   bracketWinnerId,
   bracketRunnerUpId,
   bracketThirdPlaceWinnerId,
-  eventId, // Receber eventId
-  divisionId, // Receber divisionId
+  eventId,
+  divisionId,
+  isPublic = false,
 }) => {
   const { t } = useTranslations();
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
@@ -59,7 +57,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     }
 
     return (
-      <div className="flex flex-col items-start min-h-[56px] justify-center"> {/* Altura consistente para 3 linhas */}
+      <div className="flex flex-col items-start min-h-[56px] justify-center">
         {statusText ? (
           <span className="font-medium text-sm text-muted-foreground">{statusText}</span>
         ) : (
@@ -101,40 +99,48 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
 
   const matchNumberDisplay = match.mat_fight_number ? `${match._mat_name?.replace('Mat ', '') || ''}-${match.mat_fight_number}` : `${getShortMatchIdentifier(match.id)}`;
 
+  const cardContent = (
+    <Card className={cn("w-full min-w-[300px] max-w-[375px] border-2 bg-card text-foreground transition-colors", !isPublic && "hover:border-primary")}>
+      <CardContent className="p-2 text-sm">
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-semibold text-xs text-muted-foreground">{matchNumberDisplay}</span>
+          {isFinal && match.winner_id && <Trophy className="h-4 w-4 text-yellow-500" />}
+        </div>
+        <div className="space-y-1">
+          <div className={cn(
+            "flex items-center space-x-2 p-1 rounded-md",
+            match.winner_id === (fighter1 !== 'BYE' ? fighter1?.id : undefined) ? 'bg-green-100 dark:bg-green-900' :
+            (match.winner_id && match.winner_id !== 'BYE' && match.winner_id !== (fighter1 !== 'BYE' ? fighter1?.id : undefined)) ? 'bg-red-100 dark:bg-red-950' : ''
+          )}>
+            {getFighterPhoto(fighter1)}
+            <div className="flex-1 flex items-center justify-between">
+              {getFighterDisplay(fighter1, 1)}
+              {isFinal && getRankingIndicator(fighter1 !== 'BYE' ? fighter1?.id : undefined)}
+            </div>
+          </div>
+          <div className={cn(
+            "flex items-center space-x-2 p-1 rounded-md",
+            match.winner_id === (fighter2 !== 'BYE' ? fighter2?.id : undefined) ? 'bg-green-100 dark:bg-green-900' :
+            (match.winner_id && match.winner_id !== 'BYE' && match.winner_id !== (fighter2 !== 'BYE' ? fighter2?.id : undefined)) ? 'bg-red-100 dark:bg-red-950' : ''
+          )}>
+            {getFighterPhoto(fighter2)}
+            <div className="flex-1 flex items-center justify-between">
+              {getFighterDisplay(fighter2, 2)}
+              {isFinal && getRankingIndicator(fighter2 !== 'BYE' ? fighter2?.id : undefined)}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (isPublic) {
+    return <div className="block cursor-default">{cardContent}</div>;
+  }
+
   return (
-    <Link to={`/events/${eventId}/fights/${divisionId}/${match.id}`} className="block"> {/* Envolver o Card com Link */}
-      <Card className="w-full min-w-[300px] max-w-[375px] border-2 bg-card text-foreground hover:border-primary transition-colors">
-        <CardContent className="p-2 text-sm">
-          <div className="flex justify-between items-center mb-1">
-            <span className="font-semibold text-xs text-muted-foreground">{matchNumberDisplay}</span>
-            {isFinal && match.winner_id && <Trophy className="h-4 w-4 text-yellow-500" />}
-          </div>
-          <div className="space-y-1">
-            <div className={cn(
-              "flex items-center space-x-2 p-1 rounded-md",
-              match.winner_id === (fighter1 !== 'BYE' ? fighter1?.id : undefined) ? 'bg-green-100 dark:bg-green-900' :
-              (match.winner_id && match.winner_id !== 'BYE' && match.winner_id !== (fighter1 !== 'BYE' ? fighter1?.id : undefined)) ? 'bg-red-100 dark:bg-red-950' : ''
-            )}>
-              {getFighterPhoto(fighter1)}
-              <div className="flex-1 flex items-center justify-between">
-                {getFighterDisplay(fighter1, 1)}
-                {isFinal && getRankingIndicator(fighter1 !== 'BYE' ? fighter1?.id : undefined)}
-              </div>
-            </div>
-            <div className={cn(
-              "flex items-center space-x-2 p-1 rounded-md",
-              match.winner_id === (fighter2 !== 'BYE' ? fighter2?.id : undefined) ? 'bg-green-100 dark:bg-green-900' :
-              (match.winner_id && match.winner_id !== 'BYE' && match.winner_id !== (fighter2 !== 'BYE' ? fighter2?.id : undefined)) ? 'bg-red-100 dark:bg-red-950' : ''
-            )}>
-              {getFighterPhoto(fighter2)}
-              <div className="flex-1 flex items-center justify-between">
-                {getFighterDisplay(fighter2, 2)}
-                {isFinal && getRankingIndicator(fighter2 !== 'BYE' ? fighter2?.id : undefined)}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <Link to={`/events/${eventId}/fights/${divisionId}/${match.id}`} className="block">
+      {cardContent}
     </Link>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import PublicLayout from '@/components/PublicLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,13 +8,14 @@ import { Event } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
-import BracketView from '@/components/BracketView';
 import ResultsTab from '@/components/ResultsTab';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PublicFightOrder from '@/components/PublicFightOrder';
 import AthleteListTable from '@/components/AthleteListTable';
 import { useTranslations } from '@/hooks/use-translations';
+import PublicBrackets from './PublicBrackets';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 const PublicEvent: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ const PublicEvent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('brackets');
-  const [selectedDivisionId, setSelectedDivisionId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { t } = useTranslations();
 
   const fetchEventData = useCallback(async (isInitialLoad = false) => {
@@ -60,12 +61,6 @@ const PublicEvent: React.FC = () => {
         check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
       };
       setEvent(fullEventData);
-      if (isInitialLoad) {
-        const firstDivisionWithBracket = fullEventData.divisions?.find(div => fullEventData.brackets?.[div.id]);
-        if (firstDivisionWithBracket) {
-          setSelectedDivisionId(firstDivisionWithBracket.id);
-        }
-      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -102,6 +97,19 @@ const PublicEvent: React.FC = () => {
     };
   }, [eventId, fetchEventData]);
 
+  const approvedAthletes = useMemo(() => {
+    let athletes = (event?.athletes || []).filter(a => a.registration_status === 'approved');
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      athletes = athletes.filter(a => 
+        `${a.first_name} ${a.last_name}`.toLowerCase().includes(lower) ||
+        a.club.toLowerCase().includes(lower) ||
+        (a._division?.name || '').toLowerCase().includes(lower)
+      );
+    }
+    return athletes;
+  }, [event?.athletes, searchTerm]);
+
   if (loading) {
     return <PublicLayout><div className="text-center text-xl mt-8">{t('loadingEvent')}</div></PublicLayout>;
   }
@@ -109,9 +117,6 @@ const PublicEvent: React.FC = () => {
   if (error || !event) {
     return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || t('eventNotFound')}</div></PublicLayout>;
   }
-
-  const divisionsWithBrackets = event.divisions?.filter(div => event.brackets?.[div.id]) || [];
-  const approvedAthletes = (event.athletes || []).filter(a => a.registration_status === 'approved');
 
   return (
     <PublicLayout>
@@ -133,6 +138,15 @@ const PublicEvent: React.FC = () => {
               <CardDescription>{t('officialListOfConfirmedAthletes')}</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="relative mb-4">
+                <Input
+                  placeholder="Buscar por nome, clube ou divisão..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
               <AthleteListTable athletes={approvedAthletes} />
             </CardContent>
           </Card>
@@ -145,29 +159,10 @@ const PublicEvent: React.FC = () => {
               <CardDescription>{t('selectDivisionToViewBracket')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {divisionsWithBrackets.length === 0 ? (
-                <p>{t('noBracketsGeneratedYet')}</p>
+              {event.brackets && Object.keys(event.brackets).length > 0 ? (
+                <PublicBrackets event={event} />
               ) : (
-                <>
-                  <Select value={selectedDivisionId} onValueChange={setSelectedDivisionId}>
-                    <SelectTrigger className="w-full md:w-[300px] mb-4">
-                      <SelectValue placeholder={t('placeholderSelect')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {divisionsWithBrackets.map(div => (
-                        <SelectItem key={div.id} value={div.id}>{div.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedDivisionId && event.brackets?.[selectedDivisionId] && (
-                    <BracketView
-                      bracket={event.brackets[selectedDivisionId]}
-                      allAthletes={event.athletes || []}
-                      division={divisionsWithBrackets.find(d => d.id === selectedDivisionId)!}
-                      eventId={event.id}
-                    />
-                  )}
-                </>
+                <p>{t('noBracketsGeneratedYet')}</p>
               )}
             </CardContent>
           </Card>
