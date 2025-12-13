@@ -15,12 +15,10 @@ import { generateBracketPdf } from '@/utils/pdf-bracket-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
 import { useAuth } from '@/context/auth-context';
-import { useTranslations } from '@/hooks/use-translations'; // Import useTranslations
 
 const PrintBrackets: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslations(); // Use translations hook
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +27,7 @@ const PrintBrackets: React.FC = () => {
   useEffect(() => {
     const fetchEventData = async () => {
       if (!eventId) {
-        showError(t("eventNotFound"));
+        showError("Event ID is missing.");
         setLoading(false);
         return;
       }
@@ -57,14 +55,14 @@ const PrintBrackets: React.FC = () => {
         setEvent(fullEventData);
       } catch (error: any) {
         console.error("Erro ao carregar evento:", error);
-        showError(t('loadingEvent') + `: ${error.message}`);
+        showError(`Failed to load event data: ${error.message}`);
         setEvent(null);
       } finally {
         setLoading(false);
       }
     };
     fetchEventData();
-  }, [eventId, t]);
+  }, [eventId]);
 
   const availableDivisions = useMemo(() => {
     if (!event || !event.brackets) return [];
@@ -92,63 +90,62 @@ const PrintBrackets: React.FC = () => {
 
   const handleGeneratePdf = async () => {
     if (selectedDivisions.length === 0) {
-      showError(t('selectAtLeastOneDivision'));
+      showError('Por favor, selecione pelo menos uma divisão para imprimir.');
       return;
     }
     if (!event || !event.brackets || !event.divisions) {
-      showError(t('eventDataNotAvailable'));
+      showError('Dados do evento ou brackets não disponíveis.');
       return;
     }
 
-    const loadingToastId = showLoading(t('generatingPdf'));
+    const loadingToastId = showLoading('Gerando PDF dos brackets...');
     
     setTimeout(() => {
       try {
         const divisionsToPrint = (event.divisions || []).filter(d => selectedDivisions.includes(d.id));
         
         if (divisionsToPrint.length === 0) {
-            throw new Error(t("noValidDivisionsToPrint"));
+            throw new Error("Nenhuma divisão válida encontrada para imprimir.");
         }
 
-        const userName = profile ? `${profile.first_name} ${profile.last_name}` : t('unknownUser');
-        // Pass the translation function 't'
-        generateBracketPdf(event, divisionsToPrint, athletesMap, userName, t);
+        const userName = profile ? `${profile.first_name} ${profile.last_name}` : 'Usuário Desconhecido';
+        generateBracketPdf(event, divisionsToPrint, athletesMap, userName);
         
         dismissToast(loadingToastId);
-        showSuccess(t('pdfGeneratedSuccess'));
+        showSuccess('PDF dos brackets gerado com sucesso!');
       } catch (error: any) {
         console.error("Erro na geração do PDF:", error);
         dismissToast(loadingToastId);
-        showError(t('pdfGenerationFailed') + `: ${error.message}`);
+        showError(`Falha ao gerar PDF: ${error.message}`);
       }
     }, 100);
   };
 
   if (loading) {
-    return <Layout><div className="text-center text-xl mt-8">{t('loadingEvent')}</div></Layout>;
+    return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
   }
 
   if (!event) {
-    return <Layout><div className="text-center text-xl mt-8">{t('eventNotFound')}</div></Layout>;
+    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou ID inválido.</div></Layout>;
   }
 
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{t('printBracketsFor')} {event.name}</h1>
+        <h1 className="text-3xl font-bold">Imprimir Brackets para {event.name}</h1>
         <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets' } })} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('backToGenerateBrackets')}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerar Brackets
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>{t('selectDivisionsForPrint')}</CardTitle>
-          <CardDescription>{t('chooseBracketsToPrint')}</CardDescription>
+          <CardTitle>Selecionar Divisões para Impressão</CardTitle>
+          <CardDescription>Escolha quais brackets você deseja imprimir. Cada divisão será uma página A4.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {availableDivisions.length === 0 ? (
-            <p className="text-muted-foreground">{t('noBracketsGeneratedYet')}</p>
+            <p className="text-muted-foreground">Nenhum bracket gerado ainda para este evento.</p>
           ) : (
             <>
               <div className="flex items-center space-x-2 mb-4">
@@ -157,7 +154,7 @@ const PrintBrackets: React.FC = () => {
                   checked={selectedDivisions.length === availableDivisions.length && availableDivisions.length > 0}
                   onCheckedChange={(checked: boolean) => handleSelectAllDivisions(checked as boolean)}
                 />
-                <Label htmlFor="selectAllDivisions">{t('selectAllDivisions')}</Label>
+                <Label htmlFor="selectAllDivisions">Selecionar Todas as Divisões</Label>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {availableDivisions.map(div => (
@@ -172,7 +169,7 @@ const PrintBrackets: React.FC = () => {
                 ))}
               </div>
               <Button onClick={handleGeneratePdf} className="w-full mt-6" disabled={selectedDivisions.length === 0}>
-                <Printer className="mr-2 h-4 w-4" /> {t('generatePdfForPrint')}
+                <Printer className="mr-2 h-4 w-4" /> Gerar PDF para Impressão
               </Button>
             </>
           )}

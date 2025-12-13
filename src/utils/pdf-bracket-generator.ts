@@ -3,7 +3,6 @@
 import { jsPDF } from 'jspdf';
 import { Event, Division, Bracket, Athlete, Match } from '@/types/index';
 import { format } from 'date-fns';
-import { TranslationKey } from '@/hooks/use-translations';
 
 // --- Constants ---
 const PAGE_WIDTH = 297; // A4 Landscape width
@@ -14,16 +13,14 @@ const FOOTER_HEIGHT = 10; // Space for the footer
 const LINE_COLOR = '#444444';
 const WINNER_BG_COLOR = '#e0f2fe';
 
-type Translator = (key: TranslationKey) => string;
-
-const getRoundName = (roundIndex: number, totalRounds: number, t: Translator): string => {
+const getRoundName = (roundIndex: number, totalRounds: number): string => {
   const roundFromEnd = totalRounds - roundIndex;
   switch (roundFromEnd) {
-    case 1: return t('FINAL');
-    case 2: return t('SEMI-FINAL');
-    case 3: return t('QUARTAS');
-    case 4: return t('OITAVAS');
-    default: return `${t('ROUND')} ${roundIndex + 1}`;
+    case 1: return 'FINAL';
+    case 2: return 'SEMI-FINAL';
+    case 3: return 'QUARTAS';
+    case 4: return 'OITAVAS';
+    default: return `RODADA ${roundIndex + 1}`;
   }
 };
 
@@ -51,8 +48,7 @@ const drawMatch = (
   width: number,
   height: number,
   match: Match,
-  athletesMap: Map<string, Athlete>,
-  t: Translator // Agora 't' é usado aqui
+  athletesMap: Map<string, Athlete>
 ) => {
   doc.setDrawColor(LINE_COLOR);
   doc.setLineWidth(0.3);
@@ -70,7 +66,7 @@ const drawMatch = (
   const matchNumSize = 6;
   
   const baseNameFontSize = Math.min(9, height * 0.25);
-  const nameFontSize = baseNameFontSize + 1;
+  const nameFontSize = baseNameFontSize + 1; // Mantendo o aumento de 1 ponto
   const clubFontSize = Math.min(7, height * 0.18);
   const idFontSize = Math.min(7, height * 0.18);
 
@@ -95,31 +91,13 @@ const drawMatch = (
       doc.rect(x, slotY, width, slotHeight);
     }
 
-    if (!fighter) {
-      // Usando 't' para traduzir o status de espera
-      const statusText = `${t('waitingFor')}...`;
-      doc.setFont('helvetica', 'medium');
-      doc.setFontSize(nameFontSize);
-      doc.setTextColor(100, 100, 100);
-      doc.text(statusText, x + paddingX, slotY + (slotHeight * 0.55));
-      return;
-    }
-    
-    if (fighter === 'BYE') {
-      // Usando 't' para traduzir BYE
-      const statusText = t('BYE');
-      doc.setFont('helvetica', 'medium');
-      doc.setFontSize(nameFontSize);
-      doc.setTextColor(100, 100, 100);
-      doc.text(statusText, x + paddingX, slotY + (slotHeight * 0.55));
-      return;
-    }
+    if (!fighter) return;
 
-    const name = `${fighter.first_name} ${fighter.last_name}`;
-    const club = fighter.club;
+    const name = fighter === 'BYE' ? 'BYE' : `${fighter.first_name} ${fighter.last_name}`;
+    const club = fighter !== 'BYE' ? fighter.club : '';
     
-    // Usar Emirates ID ou School ID
-    const athleteId = fighter.emirates_id || fighter.school_id || '';
+    // CORREÇÃO: Usar Emirates ID ou School ID
+    const athleteId = fighter !== 'BYE' ? fighter.emirates_id || fighter.school_id || '' : '';
     const idDisplay = athleteId ? `${athleteId.slice(-6).toUpperCase()} ` : '';
 
     // ID
@@ -131,7 +109,7 @@ const drawMatch = (
 
     // Name
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(nameFontSize);
+    doc.setFontSize(nameFontSize); // Usando o tamanho de fonte aumentado
     doc.setTextColor(0, 0, 0);
     const fitName = fitText(doc, name, width - (paddingX * 2) - idWidth);
     doc.text(fitName, x + paddingX + idWidth, slotY + (slotHeight * 0.45));
@@ -201,8 +179,7 @@ export const generateBracketPdf = (
   event: Event,
   selectedDivisions: Division[],
   athletesMap: Map<string, Athlete>,
-  userName: string,
-  t: Translator // Recebe a função de tradução
+  userName: string
 ) => {
   const doc = new jsPDF({
     orientation: 'l',
@@ -268,13 +245,13 @@ export const generateBracketPdf = (
 
     doc.setFontSize(16);
     // Alinhado à esquerda (X = MARGIN)
-    doc.text(`${division.name} (${fightDuration} ${t('min')})`, MARGIN, currentY);
+    doc.text(`${division.name} (${fightDuration} min)`, MARGIN, currentY);
     currentY += 7; 
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100);
-    const statsText = `${totalAthletes} ${t('athletes')} | ${totalMatches} ${t('fights')} | ${t('totalTimeEst')}: ${totalMinutes} ${t('min')} (${totalHours}${t('h')})`;
+    const statsText = `${totalAthletes} atletas | ${totalMatches} lutas | Tempo total est.: ${totalMinutes} min (${totalHours}h)`;
     // Alinhado à esquerda (X = MARGIN)
     doc.text(statsText, MARGIN, currentY);
     currentY += 7; 
@@ -286,7 +263,7 @@ export const generateBracketPdf = (
     doc.setFontSize(10);
     doc.setTextColor(100);
     for (let r = 0; r < totalRounds; r++) {
-        const roundName = getRoundName(r, totalRounds, t);
+        const roundName = getRoundName(r, totalRounds);
         const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
         // Ajustar a posição Y para ficar abaixo do cabeçalho
         doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
@@ -328,7 +305,7 @@ export const generateBracketPdf = (
     bracket.rounds.flat().forEach(match => {
       const pos = matchPositions.get(match.id);
       if (pos) {
-        drawMatch(doc, pos.x, pos.y, cardWidth, cardHeight, match, athletesMap, t);
+        drawMatch(doc, pos.x, pos.y, cardWidth, cardHeight, match, athletesMap);
       }
     });
 
@@ -342,7 +319,7 @@ export const generateBracketPdf = (
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        const podiumLabels = [t('firstPlace') + ':', t('secondPlace') + ':', t('thirdPlace') + ':', t('thirdPlace') + ':'];
+        const podiumLabels = ['1º Lugar:', '2º Lugar:', '3º Lugar:', '3º Lugar:'];
         podiumLabels.forEach(label => {
             if (currentY + 10 > PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) return;
             doc.text(label, podiumXStart, currentY + 4);
@@ -365,16 +342,16 @@ export const generateBracketPdf = (
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
 
-            doc.text(t('psNumber') + ':', boxX + 3, validationBoxY + 8);
+            doc.text('PS Number:', boxX + 3, validationBoxY + 8);
             doc.line(boxX + 25, validationBoxY + 10, boxX + boxWidth - 3, validationBoxY + 10);
 
-            doc.text(t('signature') + ':', boxX + 3, validationBoxY + 18);
+            doc.text('Assinatura:', boxX + 3, validationBoxY + 18);
             doc.line(boxX + 25, validationBoxY + 20, boxX + boxWidth - 3, validationBoxY + 20);
         }
     }
 
     const now = new Date();
-    const printInfo = `${t('printedBy')}: ${userName} ${t('on')} ${format(now, 'dd/MM/yyyy HH:mm')}`;
+    const printInfo = `Impresso por: ${userName} em ${format(now, 'dd/MM/yyyy HH:mm')}`;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(150);
