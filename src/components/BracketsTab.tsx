@@ -216,7 +216,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       <Card>
         <CardHeader>
           {/* FIX 1: Use non-null assertion (!) */}
-          <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail!.name}</CardTitle>
+          <CardTitle>Detalhes da Divisão: {selectedDivisionForDetail!.name}</CardTitle>
           <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -357,7 +357,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                         <MatCategoryList
                           event={event}
                           selectedMat={selectedMat}
-                          selectedCategoryKey={selectedDivisionForDetail ? selectedDivisionForDetail.id : null}
+                          selectedCategoryKey={selectedDivisionForDetail!.id}
                           onSelectCategory={handleSelectCategory}
                         />
                       )}
