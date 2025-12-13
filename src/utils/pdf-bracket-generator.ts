@@ -239,19 +239,22 @@ export const generateBracketPdf = (
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(event.name, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += 7; // Espaço após o nome do evento
+    // Alinhado à esquerda (X = MARGIN)
+    doc.text(event.name, MARGIN, currentY);
+    currentY += 7; 
 
     doc.setFontSize(16);
-    doc.text(`${division.name} (${fightDuration} min)`, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += 7; // Espaço após o nome da divisão
+    // Alinhado à esquerda (X = MARGIN)
+    doc.text(`${division.name} (${fightDuration} min)`, MARGIN, currentY);
+    currentY += 7; 
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100);
     const statsText = `${totalAthletes} atletas | ${totalMatches} lutas | Tempo total est.: ${totalMinutes} min (${totalHours}h)`;
-    doc.text(statsText, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += 7; // Espaço após as estatísticas
+    // Alinhado à esquerda (X = MARGIN)
+    doc.text(statsText, MARGIN, currentY);
+    currentY += 7; 
 
     doc.setTextColor(0);
     // --- END HEADER DRAWING ---
