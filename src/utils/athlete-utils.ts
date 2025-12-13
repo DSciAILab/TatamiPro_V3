@@ -152,6 +152,26 @@ export const processAthleteData = (athleteData: any, divisions: Division[], ageS
   const age_division = getAgeDivision(age, ageSettings);
   const weight_division = getWeightDivision(athleteData.weight);
 
+  // Safely parse weight_attempts
+  let weight_attempts = athleteData.weight_attempts;
+  if (typeof weight_attempts === 'string') {
+    try {
+      weight_attempts = JSON.parse(weight_attempts);
+    } catch (e) {
+      console.error("Error parsing weight_attempts:", e);
+      weight_attempts = [];
+    }
+  }
+  if (!Array.isArray(weight_attempts)) {
+    weight_attempts = [];
+  }
+
+  // Ensure timestamps are Date objects inside the array
+  weight_attempts = weight_attempts.map((wa: any) => ({
+    ...wa,
+    timestamp: new Date(wa.timestamp)
+  }));
+
   const athleteWithCalculatedProps: Athlete = {
     ...athleteData,
     date_of_birth,
@@ -162,7 +182,7 @@ export const processAthleteData = (athleteData: any, divisions: Division[], ageS
     registration_status: athleteData.registration_status as 'under_approval' | 'approved' | 'rejected',
     check_in_status: athleteData.check_in_status || 'pending',
     registered_weight: athleteData.registered_weight || undefined,
-    weight_attempts: athleteData.weight_attempts || [],
+    weight_attempts: weight_attempts,
     attendance_status: athleteData.attendance_status || 'pending',
     moved_to_division_id: athleteData.moved_to_division_id || undefined,
     move_reason: athleteData.move_reason || undefined,

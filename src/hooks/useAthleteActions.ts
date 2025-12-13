@@ -114,7 +114,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
         ...athleteToUpdate,
         date_of_birth: athleteToUpdate.date_of_birth.toISOString(),
         consent_date: athleteToUpdate.consent_date.toISOString(),
-        weight_attempts: JSON.stringify(athleteToUpdate.weight_attempts),
+        weight_attempts: athleteToUpdate.weight_attempts, // Envia o array diretamente
       }).eq('id', updatedAthlete.id);
 
       if (error) throw error;
@@ -252,7 +252,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       const { error } = await supabase.from('athletes').update({
         check_in_status: athleteToUpdate.check_in_status,
         registered_weight: athleteToUpdate.registered_weight,
-        weight_attempts: JSON.stringify(athleteToUpdate.weight_attempts),
+        weight_attempts: athleteToUpdate.weight_attempts, // Envia o array diretamente
         age_division: athleteToUpdate.age_division, // Update if moved
         weight_division: athleteToUpdate.weight_division, // Update if moved
         belt: athleteToUpdate.belt, // Update if moved
