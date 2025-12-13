@@ -108,5 +108,11 @@
   "eventDivisionsDesc": "Defina e gerencie as divisões de idade, peso, gênero e faixa para este evento.",
   "placeholderSelect": "Selecione",
   "placeholderSelectGender": "Gênero",
-  "placeholderSelectBelt": "Faixa"
+  "placeholderSelectBelt": "Faixa",
+  "editAthleteProfile": "Editar Perfil do Atleta",
+  "reapprovalNeededTitle": "Re-aprovação Necessária?",
+  "reapprovalNeededDesc": "Você editou um atleta que já estava aprovado. Deseja manter o status \"Aprovado\" ou redefinir para \"Pendente\" para uma nova revisão?",
+  "cancel": "Cancelar",
+  "keepApproved": "Manter Aprovado",
+  "resetToPending": "Redefinir para Pendente"
 }

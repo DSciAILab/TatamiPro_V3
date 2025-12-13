@@ -4,17 +4,8 @@ import React, { useMemo, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Athlete, Belt, Gender, AgeDivisionSetting } from '@/types/index';
+import { Athlete, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { uploadFile } from '@/integrations/supabase/storage';
@@ -28,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import AthleteFormFields from '@/components/AthleteFormFields';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface AthleteProfileEditFormProps {
   athlete: Athlete;
@@ -55,6 +48,7 @@ const schoolIdOptionalSchema = z.string().optional();
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
 const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig, ageDivisionSettings }) => {
+  const { t } = useTranslations();
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formValues, setFormValues] = useState<FormValues | null>(null);
@@ -111,13 +105,6 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       school_id: athlete.school_id ?? '',
     },
   });
-
-  const date_of_birth = watch('date_of_birth');
-  const currentGender = watch('gender');
-  const currentBelt = watch('belt');
-  const photo = watch('photo');
-  const emiratesIdFront = watch('emiratesIdFront');
-  const emiratesIdBack = watch('emiratesIdBack');
 
   const proceedWithSave = async (values: FormValues, status: Athlete['registration_status']) => {
     setIsSaving(true);
@@ -198,167 +185,24 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 border rounded-md">
-        <h3 className="text-xl font-semibold mb-4">Editar Perfil do Atleta</h3>
+        <h3 className="text-xl font-semibold mb-4">{t('editAthleteProfile')}</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="first_name">Nome {isFieldMandatory('first_name') && <span className="text-red-500">*</span>}</Label>
-            <Input id="first_name" {...register('first_name')} />
-            {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="last_name">Sobrenome {isFieldMandatory('last_name') && <span className="text-red-500">*</span>}</Label>
-            <Input id="last_name" {...register('last_name')} />
-            {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="date_of_birth">Data de Nascimento {isFieldMandatory('date_of_birth') && <span className="text-red-500">*</span>}</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !date_of_birth && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date_of_birth ? format(date_of_birth, "PPP") : <span>Selecione uma data</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={date_of_birth}
-                onSelect={(date) => setValue('date_of_birth', date!)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="club">Clube {isFieldMandatory('club') && <span className="text-red-500">*</span>}</Label>
-          <Input id="club" {...register('club')} />
-          {errors.club && <p className="text-red-500 text-sm mt-1">{errors.club.message}</p>}
-        </div>
-
-        <div>
-          <Label>Gênero {isFieldMandatory('gender') && <span className="text-red-500">*</span>}</Label>
-          <RadioGroup
-            onValueChange={(value: Gender) => setValue('gender', value)}
-            value={currentGender}
-            className="flex space-x-4 mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Masculino" id="gender-male" />
-              <Label htmlFor="gender-male">Masculino</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Feminino" id="gender-female" />
-              <Label htmlFor="gender-female">Feminino</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Outro" id="gender-other" />
-              <Label htmlFor="gender-other">Outro</Label>
-            </div>
-          </RadioGroup>
-          {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="belt">Faixa {isFieldMandatory('belt') && <span className="text-red-500">*</span>}</Label>
-          <Select onValueChange={(value: Belt) => setValue('belt', value)} value={currentBelt}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a faixa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Branca">Branca</SelectItem>
-              <SelectItem value="Cinza">Cinza</SelectItem>
-              <SelectItem value="Amarela">Amarela</SelectItem>
-              <SelectItem value="Laranja">Laranja</SelectItem>
-              <SelectItem value="Verde">Verde</SelectItem>
-              <SelectItem value="Azul">Azul</SelectItem>
-              <SelectItem value="Roxa">Roxa</SelectItem>
-              <SelectItem value="Marrom">Marrom</SelectItem>
-              <SelectItem value="Preta">Preta</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.belt && <p className="text-red-500 text-sm mt-1">{errors.belt.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="weight">Peso (kg) {isFieldMandatory('weight') && <span className="text-red-500">*</span>}</Label>
-          <Input id="weight" type="number" step="0.1" {...register('weight')} />
-          {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="nationality">Nacionalidade {isFieldMandatory('nationality') && <span className="text-red-500">*</span>}</Label>
-          <Input id="nationality" {...register('nationality')} />
-          {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="email">Email {isFieldMandatory('email') && <span className="text-red-500">*</span>}</Label>
-          <Input id="email" type="email" {...register('email')} />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="phone">Telefone (E.164, ex: +5511987654321) {isFieldMandatory('phone') && <span className="text-red-500">*</span>}</Label>
-          <Input id="phone" type="tel" {...register('phone')} />
-          {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="emirates_id">Emirates ID (Opcional)</Label>
-            <Input id="emirates_id" {...register('emirates_id')} />
-            {errors.emirates_id && <p className="text-red-500 text-sm mt-1">{errors.emirates_id.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="school_id">School ID (Opcional)</Label>
-            <Input id="school_id" {...register('school_id')} />
-            {errors.school_id && <p className="text-red-500 text-sm mt-1">{errors.school_id.message}</p>}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="photo">Foto de Perfil {isFieldMandatory('photo') && <span className="text-red-500">*</span>}</Label>
-          <Input id="photo" type="file" accept=".jpg,.jpeg,.png" {...register('photo')} />
-          {errors.photo?.message && <p className="text-red-500 text-sm mt-1">{errors.photo.message as string}</p>}
-          {athlete.photo_url && !photo?.length && (
-            <p className="text-sm text-muted-foreground mt-1">Foto atual: <a href={athlete.photo_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="emiratesIdFront">Emirates ID (Frente {isFieldMandatory('emiratesIdFront') && <span className="text-red-500">*</span>})</Label>
-            <Input id="emiratesIdFront" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdFront')} />
-            {errors.emiratesIdFront?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdFront.message as string}</p>}
-            {athlete.emirates_id_front_url && !emiratesIdFront?.length && (
-              <p className="text-sm text-muted-foreground mt-1">Frente atual: <a href={athlete.emirates_id_front_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="emiratesIdBack">Emirates ID (Verso {isFieldMandatory('emiratesIdBack') && <span className="text-red-500">*</span>})</Label>
-            <Input id="emiratesIdBack" type="file" accept=".pdf,.jpg,.jpeg,.png" {...register('emiratesIdBack')} />
-            {errors.emiratesIdBack?.message && <p className="text-red-500 text-sm mt-1">{errors.emiratesIdBack.message as string}</p>}
-            {athlete.emirates_id_back_url && !emiratesIdBack?.length && (
-              <p className="text-sm text-muted-foreground mt-1">Verso atual: <a href={athlete.emirates_id_back_url} target="_blank" rel="noopener noreferrer" className="underline">Ver</a></p>
-            )}
-          </div>
-        </div>
+        <AthleteFormFields
+          register={register}
+          errors={errors}
+          setValue={setValue}
+          watch={watch}
+          isFieldMandatory={isFieldMandatory}
+          ageDivisionSettings={ageDivisionSettings}
+          existingPhotoUrl={athlete.photo_url}
+          existingEmiratesIdFrontUrl={athlete.emirates_id_front_url}
+          existingEmiratesIdBackUrl={athlete.emirates_id_back_url}
+        />
 
         <div className="flex justify-end space-x-2 mt-6">
-          <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>{t('cancel')}</Button>
           <Button type="submit" disabled={isSaving}>
-            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+            {isSaving ? '...' : t('saveChanges')}
           </Button>
         </div>
       </form>
@@ -366,24 +210,24 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Re-aprovação Necessária?</AlertDialogTitle>
+            <AlertDialogTitle>{t('reapprovalNeededTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Você editou um atleta que já estava aprovado. Deseja manter o status "Aprovado" ou redefinir para "Pendente" para uma nova revisão?
+              {t('reapprovalNeededDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setFormValues(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setFormValues(null)}>{t('cancel')}</AlertDialogCancel>
             <Button variant="secondary" onClick={() => {
               if (formValues) proceedWithSave(formValues, 'approved');
               setShowConfirmation(false);
             }}>
-              Manter Aprovado
+              {t('keepApproved')}
             </Button>
             <AlertDialogAction onClick={() => {
               if (formValues) proceedWithSave(formValues, 'under_approval');
               setShowConfirmation(false);
             }}>
-              Redefinir para Pendente
+              {t('resetToPending')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

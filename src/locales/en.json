@@ -108,5 +108,11 @@
   "eventDivisionsDesc": "Define and manage age, weight, gender, and belt divisions for this event.",
   "placeholderSelect": "Select",
   "placeholderSelectGender": "Select Gender",
-  "placeholderSelectBelt": "Select Belt"
+  "placeholderSelectBelt": "Select Belt",
+  "editAthleteProfile": "Edit Athlete Profile",
+  "reapprovalNeededTitle": "Re-approval Needed?",
+  "reapprovalNeededDesc": "You edited an athlete who was already approved. Do you want to keep the \"Approved\" status or reset to \"Pending\" for a new review?",
+  "cancel": "Cancel",
+  "keepApproved": "Keep Approved",
+  "resetToPending": "Reset to Pending"
 }
