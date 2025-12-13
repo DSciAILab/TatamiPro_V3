@@ -215,8 +215,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     return (
       <Card>
         <CardHeader>
-          {/* FIX 1: Using non-null assertion (!) */}
-          <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail!.name}</CardTitle>
+          {/* FIX 1: Use optional chaining and nullish coalescing */}
+          <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail?.name ?? 'Detalhes da Divisão'}</CardTitle>
           <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -357,7 +357,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                         <MatCategoryList
                           event={event}
                           selectedMat={selectedMat}
-                          selectedCategoryKey={selectedDivisionForDetail?.id || null}
+                          selectedCategoryKey={selectedDivisionForDetail?.id || null} // FIX 2: Use optional chaining
                           onSelectCategory={handleSelectCategory}
                         />
                       )}
