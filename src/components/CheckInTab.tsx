@@ -115,19 +115,16 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
     const orientation = config.orientation;
     const doc = new jsPDF({ orientation });
     
-    // Configurações de layout baseadas nas escolhas
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const margin = 10;
     const contentWidth = pageWidth - (margin * 2);
 
-    // Mapeamento de tamanho de fonte
     const fontSizes = { small: 8, medium: 10, large: 12 };
-    const lineHeights = { small: 6, medium: 8, large: 10 };
+    const lineSpacings = { small: 4, medium: 5, large: 6 };
     const fontSize = fontSizes[config.fontSize];
-    const lineHeight = lineHeights[config.fontSize];
+    const lineSpacing = lineSpacings[config.fontSize];
 
-    // Definição das colunas (em porcentagem do contentWidth)
     const cols = {
       id: { x: margin, width: contentWidth * 0.15 },
       name: { x: margin + contentWidth * 0.15, width: contentWidth * 0.30 },
@@ -138,56 +135,67 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
 
     let y = 20;
 
-    doc.setFontSize(fontSize + 4); // Título um pouco maior
+    const drawHeader = () => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(fontSize);
+      doc.text("ID", cols.id.x, y);
+      doc.text("Atleta", cols.name.x, y);
+      doc.text("Divisão", cols.division.x, y);
+      doc.text("Clube", cols.club.x, y);
+      doc.text("Peso", cols.weight.x, y);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.2);
+      doc.line(margin, y + 2, pageWidth - margin, y + 2);
+      y += lineSpacing + 2;
+      doc.setFont('helvetica', 'normal');
+    };
+
+    doc.setFontSize(fontSize + 4);
     doc.text(`Lista de Check-in - ${event.name}`, pageWidth / 2, y, { align: 'center' });
-    y += lineHeight * 1.5;
+    y += lineSpacing * 1.5;
     
     doc.setFontSize(fontSize);
     doc.text(`Filtro: ${checkInFilter.toUpperCase()} - Total: ${sortedAthletes.length}`, margin, y);
-    y += lineHeight * 1.5;
+    y += lineSpacing * 1.5;
 
-    // Headers
-    doc.setFont('helvetica', 'bold');
-    doc.text("ID", cols.id.x, y);
-    doc.text("Atleta", cols.name.x, y);
-    doc.text("Divisão", cols.division.x, y);
-    doc.text("Clube", cols.club.x, y);
-    doc.text("Peso", cols.weight.x, y);
-    doc.line(margin, y + 2, pageWidth - margin, y + 2);
-    y += lineHeight;
-
-    doc.setFont('helvetica', 'normal');
-    
-    const truncate = (str: string, maxWidthChars: number) => {
-      if (str.length > maxWidthChars) return str.substring(0, maxWidthChars - 3) + '...';
-      return str;
-    };
-
-    // Ajuste de truncagem baseado no tamanho da fonte e largura da página
-    const charLimitFactor = orientation === 'landscape' ? 1.4 : 1.0;
-    const fontFactor = config.fontSize === 'small' ? 1.3 : config.fontSize === 'large' ? 0.8 : 1.0;
-    const baseLimit = 22;
-    const charLimit = Math.floor(baseLimit * charLimitFactor * fontFactor);
+    drawHeader();
 
     sortedAthletes.forEach((athlete) => {
-      if (y > pageHeight - margin) {
-        doc.addPage();
-        y = 20; // Reset Y for new page
-      }
-
       const id = athlete.emirates_id || athlete.school_id || '-';
       const name = `${athlete.first_name} ${athlete.last_name}`;
       const division = athlete._division?.name || 'N/A';
       const club = athlete.club;
       const weight = athlete.registered_weight ? `${athlete.registered_weight}kg` : '-';
 
-      doc.text(truncate(id, Math.floor(charLimit * 0.7)), cols.id.x, y);
-      doc.text(truncate(name, charLimit), cols.name.x, y);
-      doc.text(truncate(division, charLimit), cols.division.x, y);
-      doc.text(truncate(club, Math.floor(charLimit * 0.8)), cols.club.x, y);
-      doc.text(weight, cols.weight.x, y);
+      doc.setFontSize(fontSize);
+      const idLines = doc.splitTextToSize(id, cols.id.width);
+      const nameLines = doc.splitTextToSize(name, cols.name.width);
+      const divisionLines = doc.splitTextToSize(division, cols.division.width);
+      const clubLines = doc.splitTextToSize(club, cols.club.width);
+      const weightLines = doc.splitTextToSize(weight, cols.weight.width);
+
+      const maxLines = Math.max(idLines.length, nameLines.length, divisionLines.length, clubLines.length, weightLines.length);
+      const rowHeight = maxLines * lineSpacing;
+
+      if (y + rowHeight > pageHeight - margin) {
+        doc.addPage();
+        y = 20;
+        drawHeader();
+      }
+
+      doc.text(idLines, cols.id.x, y);
+      doc.text(nameLines, cols.name.x, y);
+      doc.text(divisionLines, cols.division.x, y);
+      doc.text(clubLines, cols.club.x, y);
+      doc.text(weightLines, cols.weight.x, y);
+
+      y += rowHeight;
+
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y + 1, pageWidth - margin, y + 1);
       
-      y += lineHeight;
+      y += 3;
     });
 
     doc.save(`check_in_list_${event.name.replace(/\s+/g, '_')}.pdf`);
