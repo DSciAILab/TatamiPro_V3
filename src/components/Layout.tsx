@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import OfflineIndicator from '@/components/OfflineIndicator';
+import { LanguageToggle } from '@/components/LanguageToggle'; // Importação adicionada
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -60,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           <div className="flex items-center space-x-2">
             <OfflineIndicator />
+            <LanguageToggle /> {/* Botão de idioma adicionado ao cabeçalho */}
             <ModeToggle />
             {session && profile ? (
               <DropdownMenu>

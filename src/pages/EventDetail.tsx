@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Event, Division, Bracket, AgeDivisionSetting } from '../types/index';
+import type { Division, Bracket, AgeDivisionSetting } from '../types/index';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';

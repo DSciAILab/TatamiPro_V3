@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { uploadFile } from '@/integrations/supabase/storage';
 import { User as UserIcon } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
+import { LanguageToggle } from '@/components/LanguageToggle'; // Importação adicionada
 
 const profileSchema = z.object({
   first_name: z.string().min(2, 'First name is required.'),
@@ -128,7 +129,13 @@ const Profile: React.FC = () => {
     <Layout>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>{t('yourProfile')}</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>{t('yourProfile')}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground mr-1">Idioma:</Label>
+              <LanguageToggle />
+            </div>
+          </div>
           <CardDescription>{t('updateProfileInfo')}</CardDescription>
         </CardHeader>
         <CardContent>
