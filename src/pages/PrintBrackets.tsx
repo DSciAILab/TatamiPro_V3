@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
 
 const PrintBrackets: React.FC = () => {
-  // CORREÇÃO: O parâmetro na rota é definido como :eventId, não :id
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
@@ -26,6 +25,7 @@ const PrintBrackets: React.FC = () => {
   useEffect(() => {
     const fetchEventData = async () => {
       if (!eventId) {
+        showError("Event ID is missing.");
         setLoading(false);
         return;
       }
@@ -41,7 +41,7 @@ const PrintBrackets: React.FC = () => {
         const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
         if (divisionsError) throw divisionsError;
 
-        const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
+        const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || [], eventData.age_division_settings || []));
         
         const fullEventData: Event = {
           ...eventData,
@@ -68,8 +68,9 @@ const PrintBrackets: React.FC = () => {
   }, [event]);
 
   const athletesMap = useMemo(() => {
-    return new Map((event?.athletes || []).map(athlete => [athlete.id, athlete]));
-  }, [event?.athletes]);
+    if (!event || !event.athletes) return new Map();
+    return new Map(event.athletes.map(athlete => [athlete.id, athlete]));
+  }, [event]);
 
   const handleToggleDivision = (divisionId: string, checked: boolean) => {
     setSelectedDivisions(prev =>
@@ -97,11 +98,8 @@ const PrintBrackets: React.FC = () => {
 
     const loadingToastId = showLoading('Gerando PDF dos brackets...');
     
-    // Pequeno timeout para permitir que a UI atualize antes do trabalho pesado do PDF
     setTimeout(() => {
       try {
-        console.log("Iniciando geração de PDF para as divisões:", selectedDivisions);
-        // Use default empty array to satisfy TypeScript if event.divisions is undefined
         const divisionsToPrint = (event.divisions || []).filter(d => selectedDivisions.includes(d.id));
         
         if (divisionsToPrint.length === 0) {
