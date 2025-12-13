@@ -90,6 +90,7 @@ export interface Match {
   };
   _division_id?: string;
   _mat_name?: string;
+  _is_round_robin?: boolean; // NEW: Flag for Round Robin matches
 }
 
 export interface Bracket {
@@ -103,6 +104,7 @@ export interface Bracket {
   winner_id?: string;
   runner_up_id?: string;
   third_place_winner_id?: string;
+  _is_round_robin?: boolean; // NEW: Flag for Round Robin bracket
 }
 
 export interface CheckInConfig {

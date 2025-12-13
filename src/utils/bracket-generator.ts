@@ -72,6 +72,73 @@ export const generateBracketForDivision = (
   );
 
   const N0 = divisionAthletes.length;
+  let globalMatchCounter = 0; // Global counter for match IDs
+
+  // --- LÓGICA ROUND ROBIN (3 ATLETAS) ---
+  if (N0 === 3) {
+    const [A, B, C] = shuffleArray(divisionAthletes, rng); // Embaralha para ordem justa
+    
+    const matches: Match[] = [];
+    
+    // Luta 1: A vs B
+    globalMatchCounter++;
+    matches.push({
+      id: `${division.id}-M${globalMatchCounter}`,
+      round: 1,
+      match_number: 1,
+      fighter1_id: A.id,
+      fighter2_id: B.id,
+      winner_id: undefined,
+      loser_id: undefined,
+      next_match_id: undefined,
+      prev_match_ids: undefined,
+      _is_round_robin: true, // Flag para indicar Round Robin
+    });
+
+    // Luta 2: A vs C
+    globalMatchCounter++;
+    matches.push({
+      id: `${division.id}-M${globalMatchCounter}`,
+      round: 1,
+      match_number: 2,
+      fighter1_id: A.id,
+      fighter2_id: C.id,
+      winner_id: undefined,
+      loser_id: undefined,
+      next_match_id: undefined,
+      prev_match_ids: undefined,
+      _is_round_robin: true,
+    });
+
+    // Luta 3: B vs C
+    globalMatchCounter++;
+    matches.push({
+      id: `${division.id}-M${globalMatchCounter}`,
+      round: 1,
+      match_number: 3,
+      fighter1_id: B.id,
+      fighter2_id: C.id,
+      winner_id: undefined,
+      loser_id: undefined,
+      next_match_id: undefined,
+      prev_match_ids: undefined,
+      _is_round_robin: true,
+    });
+
+    return {
+      id: division.id,
+      division_id: division.id,
+      rounds: [matches],
+      third_place_match: undefined,
+      bracket_size: 3,
+      participants: divisionAthletes,
+      _is_round_robin: true,
+    };
+  }
+  // --- FIM LÓGICA ROUND ROBIN ---
+
+
+  // --- LÓGICA ELIMINAÇÃO SIMPLES (N0 != 3) ---
   const bracketSize = getNextPowerOf2(N0);
   const numByes = bracketSize - N0;
 
@@ -121,13 +188,10 @@ export const generateBracketForDivision = (
 
   // 7. Anti-conflito (mesma equipe) - Primeira rodada (melhor esforço)
   // A distribuição aleatória dos 'fillers' já ajuda a evitar agrupamentos.
-  // Uma implementação robusta de anti-conflito com swaps locais é complexa e pode ser adicionada futuramente.
-  // Por enquanto, a aleatoriedade dos não-seeds e BYEs é o principal mecanismo de balanceamento.
 
   const rounds: Match[][] = [];
   let currentRoundParticipants = initialRoundParticipants;
   let roundNumber = 1;
-  let globalMatchCounter = 0; // Global counter for match IDs
 
   // 8. Construção da árvore do bracket (Primeira Passagem: Criar Matches)
   while (currentRoundParticipants.length > 1) {

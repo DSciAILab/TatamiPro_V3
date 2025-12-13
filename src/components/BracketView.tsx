@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Bracket, Athlete, Division } from '@/types/index';
 import BracketMatchCard from './BracketMatchCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface BracketViewProps {
   bracket: Bracket;
@@ -25,6 +26,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
 };
 
 const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false }) => {
+  const { t } = useTranslations();
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
@@ -41,6 +43,47 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
       </Card>
     );
   }
+
+  // --- Handle Round Robin (3 athletes) ---
+  if (bracket._is_round_robin && bracket.rounds.length === 1) {
+    const roundRobinMatches = bracket.rounds[0];
+    const participants = bracket.participants.filter(p => p !== 'BYE') as Athlete[];
+
+    return (
+      <Card className="p-4">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold mb-2">Round Robin: {division.name}</CardTitle>
+          <p className="text-muted-foreground">Formato Round Robin (Todos contra Todos) para {participants.length} atletas.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <h3 className="text-lg font-semibold">Participantes:</h3>
+          <ul className="list-disc list-inside ml-4">
+            {participants.map(a => (
+              <li key={a.id}>{a.first_name} {a.last_name} ({a.club})</li>
+            ))}
+          </ul>
+          
+          <h3 className="text-lg font-semibold pt-4">Lutas ({roundRobinMatches.length})</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {roundRobinMatches.map(match => (
+              <BracketMatchCard
+                key={match.id}
+                match={match}
+                athletesMap={athletesMap}
+                eventId={eventId}
+                divisionId={bracket.division_id}
+                isPublic={isPublic}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground pt-4">
+            O vencedor do Round Robin é determinado pelo maior número de vitórias. ({t('teamStandings')})
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  // --- End Round Robin ---
 
   const totalRounds = bracket.rounds.length;
 
