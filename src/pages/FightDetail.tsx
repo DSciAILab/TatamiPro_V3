@@ -290,11 +290,11 @@ const FightDetail: React.FC = () => {
 
   const handleReturnToManageFights = () => {
     setShowRoundEndDialog(false);
-    // Navega de volta para a aba fight-overview, passando o mat e a divisão para restaurar o estado
+    // Navega de volta para a aba manage-fights, passando o mat e a divisão para restaurar o estado
     navigate(`/events/${eventId}`, { 
       state: { 
         activeTab: 'brackets', 
-        bracketsSubTab: 'fight-overview',
+        bracketsSubTab: 'manage-fights', // Alterado para manage-fights
         selectedMat: currentMatch?._mat_name,
         selectedDivisionId: divisionId,
       } 

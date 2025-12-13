@@ -74,7 +74,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
       if (division) {
         setSelectedDivisionForDetail(division);
-        setBracketsSubTab('fight-overview');
+        setBracketsSubTab('manage-fights'); // Restore to manage-fights tab
       }
     }
   }, [navSelectedMat, navSelectedDivisionId, event.divisions, setBracketsSubTab]);
@@ -199,9 +199,36 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     const division = event.divisions?.find(d => d.id === divisionId);
     if (division) {
       setSelectedDivisionForDetail(division);
-      setBracketsSubTab('fight-overview');
+      // Stay on manage-fights tab
     }
   };
+
+  // Function to handle back navigation from DivisionDetailView
+  const handleBackFromDivisionDetail = () => {
+    setSelectedDivisionForDetail(null);
+    // If we came from FightOverview (which is now removed), we default back to manage-fights
+    setBracketsSubTab('manage-fights'); 
+  };
+
+  // If a division is selected for detail, render the detail view directly within the tab content
+  if (selectedDivisionForDetail) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Gerenciamento de Lutas</CardTitle>
+          {/* FIX 1: Use non-null assertion since we are inside the conditional block */}
+          <CardDescription>Detalhes da Divisão: {selectedDivisionForDetail!.name}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DivisionDetailView
+            event={event}
+            division={selectedDivisionForDetail}
+            onBack={handleBackFromDivisionDetail}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -212,7 +239,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       <CardContent>
         {userRole && (
           <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="mat-distribution">Distribuição dos Mats</TabsTrigger>
               <TabsTrigger value="generate-brackets">
                 <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
@@ -220,7 +247,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               <TabsTrigger value="manage-fights">
                 <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
               </TabsTrigger>
-              <TabsTrigger value="fight-overview">Visão Geral</TabsTrigger>
             </TabsList>
 
             <TabsContent value="mat-distribution" className="mt-6">
@@ -286,68 +312,75 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
             </TabsContent>
 
             <TabsContent value="manage-fights" className="mt-6">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Seleção de Mat e Categoria</CardTitle>
-                  <CardDescription>Selecione uma área de luta e clique em uma categoria para ver os detalhes.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
-                    <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => {
-                      setSelectedMat(value);
-                      setSelectedDivisionForDetail(null); // Reset division detail when mat changes
-                    }}>
-                      <SelectTrigger id="mat-select">
-                        <SelectValue placeholder="Selecione um Mat" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {matNames.map(mat => (
-                          <SelectItem key={mat} value={mat}>
-                            {mat === 'all-mats' ? 'Todas as Áreas' : mat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {selectedMat && (
-                    <MatCategoryList
-                      event={event}
-                      selectedMat={selectedMat}
-                      selectedCategoryKey={selectedDivisionForDetail?.id || null}
-                      onSelectCategory={handleSelectCategory}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="fight-overview" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Visão Geral das Lutas</CardTitle>
-                  <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os detalhes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {selectedDivisionForDetail ? (
+              {selectedDivisionForDetail ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detalhes da Divisão: {selectedDivisionForDetail.name}</CardTitle>
+                    <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <DivisionDetailView
                       event={event}
                       division={selectedDivisionForDetail}
-                      onBack={() => setSelectedDivisionForDetail(null)}
+                      onBack={handleBackFromDivisionDetail}
                     />
-                  ) : (
-                    <FightOverview
-                      event={event}
-                      onDivisionSelect={(division) => {
-                        // When selecting from FightOverview, we don't know the Mat, so we default to 'all-mats'
-                        setSelectedMat('all-mats'); 
-                        setSelectedDivisionForDetail(division);
-                      }}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Seleção de Mat e Categoria</CardTitle>
+                      <CardDescription>Selecione uma área de luta e clique em uma categoria para ver os detalhes.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
+                        <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => {
+                          setSelectedMat(value);
+                          setSelectedDivisionForDetail(null); // Reset division detail when mat changes
+                        }}>
+                          <SelectTrigger id="mat-select">
+                            <SelectValue placeholder="Selecione um Mat" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {matNames.map(mat => (
+                              <SelectItem key={mat} value={mat}>
+                                {mat === 'all-mats' ? 'Todas as Áreas' : mat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {selectedMat && (
+                        <MatCategoryList
+                          event={event}
+                          selectedMat={selectedMat}
+                          selectedCategoryKey={selectedDivisionForDetail?.id || null}
+                          onSelectCategory={handleSelectCategory}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="mt-6">
+                    <CardHeader>
+                      <CardTitle>Visão Geral das Lutas</CardTitle>
+                      <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os detalhes.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FightOverview
+                        event={event}
+                        onDivisionSelect={(division) => {
+                          setSelectedMat('all-mats'); 
+                          setSelectedDivisionForDetail(division);
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         )}
