@@ -109,24 +109,29 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     const toastId = showLoading('Updating athlete...');
     try {
       const { _division, ...athleteToUpdate } = updatedAthlete;
-      const { error } = await supabase.from('athletes').update({
-        ...athleteToUpdate,
-        date_of_birth: athleteToUpdate.date_of_birth.toISOString(),
-        consent_date: athleteToUpdate.consent_date.toISOString(),
-        weight_attempts: athleteToUpdate.weight_attempts,
-      }).eq('id', updatedAthlete.id);
-
-      if (error) throw error;
+      
+      if (isOfflineMode) {
+        await trackChange('athletes', 'update', athleteToUpdate);
+        showSuccess('Athlete updated locally!');
+      } else {
+        const { error } = await supabase.from('athletes').update({
+          ...athleteToUpdate,
+          date_of_birth: athleteToUpdate.date_of_birth.toISOString(),
+          consent_date: athleteToUpdate.consent_date.toISOString(),
+          weight_attempts: athleteToUpdate.weight_attempts,
+        }).eq('id', updatedAthlete.id);
+        if (error) throw error;
+        showSuccess('Athlete updated successfully!');
+      }
 
       dismissToast(toastId);
-      showSuccess('Athlete updated successfully!');
       setEditingAthlete(null);
-      await fetchEventData('refresh'); // Background refresh
+      await fetchEventData('refresh');
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to update athlete: ' + error.message);
     }
-  }, [eventId, fetchEventData]);
+  }, [eventId, fetchEventData, isOfflineMode, trackChange]);
 
   const handleDeleteAthlete = useCallback(async (athleteId: string) => {
     if (!eventId) return;
@@ -204,7 +209,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       dismissToast(toastId);
       showError(`Failed to ${status} athletes: ` + error.message);
     }
-  }, [selectedAthletesForApproval, isOfflineMode, trackChange, fetchEventData]);
+  }, [selectedAthletesForApproval, isOfflineMode, trackChange, fetchEventData, event?.athletes]);
 
   const handleUpdateAthleteAttendance = useCallback(async (athleteId: string, status: Athlete['attendance_status']) => {
     if (!eventId) return;
@@ -233,28 +238,33 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     const toastId = showLoading('Performing check-in...');
     try {
       const { _division, ...athleteToUpdate } = updatedAthlete;
-      const { error } = await supabase.from('athletes').update({
-        check_in_status: athleteToUpdate.check_in_status,
-        registered_weight: athleteToUpdate.registered_weight,
-        weight_attempts: athleteToUpdate.weight_attempts,
-        age_division: athleteToUpdate.age_division,
-        weight_division: athleteToUpdate.weight_division,
-        belt: athleteToUpdate.belt,
-        gender: athleteToUpdate.gender,
-        moved_to_division_id: athleteToUpdate.moved_to_division_id,
-        move_reason: athleteToUpdate.move_reason,
-      }).eq('id', updatedAthlete.id);
-
-      if (error) throw error;
+      
+      if (isOfflineMode) {
+        await trackChange('athletes', 'update', athleteToUpdate);
+        showSuccess('Check-in saved locally!');
+      } else {
+        const { error } = await supabase.from('athletes').update({
+          check_in_status: athleteToUpdate.check_in_status,
+          registered_weight: athleteToUpdate.registered_weight,
+          weight_attempts: athleteToUpdate.weight_attempts,
+          age_division: athleteToUpdate.age_division,
+          weight_division: athleteToUpdate.weight_division,
+          belt: athleteToUpdate.belt,
+          gender: athleteToUpdate.gender,
+          moved_to_division_id: athleteToUpdate.moved_to_division_id,
+          move_reason: athleteToUpdate.move_reason,
+        }).eq('id', updatedAthlete.id);
+        if (error) throw error;
+        showSuccess('Check-in successful!');
+      }
 
       dismissToast(toastId);
-      showSuccess('Check-in successful!');
-      await fetchEventData('refresh'); // Background refresh
+      await fetchEventData('refresh');
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to perform check-in: ' + error.message);
     }
-  }, [eventId, fetchEventData]);
+  }, [eventId, fetchEventData, isOfflineMode, trackChange]);
 
   const handleToggleAthleteSelection = useCallback((athleteId: string) => {
     setSelectedAthletesForApproval(prev =>
