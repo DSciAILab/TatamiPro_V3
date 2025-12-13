@@ -86,7 +86,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     else if (registrationStatusFilter !== 'all') athletes = athletes.filter(a => a.registration_status === registrationStatusFilter);
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt} ${a.emirates_id || ''} ${a.school_id || ''}`.toLowerCase().includes(lower));
     }
     return athletes;
   }, [allAthletesForInscricoesTab, profile?.role, registrationStatusFilter, searchTerm]);
@@ -97,7 +97,8 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     if (scannedAthleteId) return athletes.filter(a => a.registration_qr_code_id === scannedAthleteId);
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
+      // Added emirates_id and school_id to search string
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt} ${a.emirates_id || ''} ${a.school_id || ''}`.toLowerCase().includes(lower));
     }
     if (checkInFilter !== 'all') athletes = athletes.filter(a => a.check_in_status === checkInFilter);
     return athletes;
