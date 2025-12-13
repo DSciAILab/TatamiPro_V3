@@ -62,7 +62,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       <MatCategoryList
         event={event}
         selectedMat={selectedMat}
-        selectedCategoryKey={selectedDivisionForDetail?.id || null}
+        selectedCategoryKey={(selectedDivisionForDetail as Division)?.id || null}
         onSelectCategory={handleSelectCategory}
       />
 

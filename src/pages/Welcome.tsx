@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CalendarDays, UserPlus } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useTranslations } from '@/hooks/use-translations';
+import VersionDisplay from '@/components/VersionDisplay';
 
 const Welcome: React.FC = () => {
   const { session } = useAuth();
@@ -51,6 +52,7 @@ const Welcome: React.FC = () => {
             </Link>
           )}
         </div>
+        <VersionDisplay />
       </div>
     </Layout>
   );

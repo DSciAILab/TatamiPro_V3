@@ -25,10 +25,10 @@ import EventStaffTab from '@/components/EventStaffTab';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { cn } from '@/lib/utils';
 import { Event, Bracket } from '@/types/index';
-import { supabase } from '@/integrations/supabase/client'; // Added missing import
+import { supabase } from '@/integrations/supabase/client';
 
 const EventDetail: React.FC = () => {
-  const { id: eventId } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>(); // Renomeado para 'id' para evitar TS6133
   const navigate = useNavigate();
   const { profile, loading: authLoading } = useAuth();
   const { can } = usePermission();
@@ -48,6 +48,7 @@ const EventDetail: React.FC = () => {
     filteredAthletesForDisplayInscricoes, filteredAthletesForCheckIn,
     handleAthleteUpdate, handleDeleteAthlete, handleDeleteSelectedAthletes, handleApproveReject,
     handleUpdateAthleteAttendance, handleCheckInAthlete, handleToggleAthleteSelection, handleSelectAllAthletes,
+    setScannedAthleteId, // <-- Adicionado para corrigir TS2304
   } = useAthleteActions({ event, fetchEventData });
 
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
