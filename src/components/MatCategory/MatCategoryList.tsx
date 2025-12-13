@@ -20,7 +20,7 @@ interface CategoryGroup {
   belt?: DivisionBelt;
   athleteCount: number;
   divisionIds: string[];
-  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Encerrado' | 'Sem Atletas';
+  bracketStatus: 'On Hold' | 'Generated' | 'In Progress' | 'Completed' | 'No Athletes';
 }
 
 const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory }) => {
@@ -43,7 +43,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
           belt: division.belt,
           athleteCount: 0,
           divisionIds: [division.id],
-          bracketStatus: 'Não Gerado', // Default
+          bracketStatus: 'On Hold', // Default
         });
       }
       const group = groupsMap.get(key)!;
@@ -62,15 +62,15 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
         const bracket = event.brackets?.[firstDivisionId];
 
         if (group.athleteCount < 2) {
-          status = 'Sem Atletas';
+          status = 'No Athletes';
         } else if (!bracket) {
-          status = 'Não Gerado';
+          status = 'On Hold';
         } else if (bracket.winner_id) {
-          status = 'Encerrado';
+          status = 'Completed';
         } else if (bracket.rounds.flat().some(match => match.winner_id !== undefined)) {
-          status = 'Em Andamento';
+          status = 'In Progress';
         } else {
-          status = 'Gerado';
+          status = 'Generated';
         }
         finalGroups.push({ ...group, bracketStatus: status });
       }
@@ -81,11 +81,11 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
 
   const getStatusColor = (status: CategoryGroup['bracketStatus']) => {
     switch (status) {
-      case 'Encerrado': return 'text-purple-600';
-      case 'Gerado': return 'text-green-600';
-      case 'Em Andamento': return 'text-blue-600';
-      case 'Sem Atletas': return 'text-gray-500';
-      case 'Não Gerado': return 'text-orange-500';
+      case 'Completed': return 'text-purple-600';
+      case 'Generated': return 'text-green-600';
+      case 'In Progress': return 'text-blue-600';
+      case 'No Athletes': return 'text-gray-500';
+      case 'On Hold': return 'text-orange-500';
       default: return 'text-muted-foreground';
     }
   };
@@ -114,7 +114,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
               key={group.key}
               value={group.key}
               className="h-auto py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              disabled={group.bracketStatus === 'Sem Atletas' || group.bracketStatus === 'Não Gerado'}
+              disabled={group.bracketStatus === 'No Athletes' || group.bracketStatus === 'On Hold'}
             >
               <div className="flex flex-col items-start text-left">
                 <span className="font-medium">{group.display} ({group.athleteCount} atletas)</span>
