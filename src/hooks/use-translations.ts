@@ -6,7 +6,7 @@ import en from '@/locales/en.json';
 
 const translations = { pt, en };
 
-type TranslationKey = keyof typeof pt;
+export type TranslationKey = keyof typeof pt; // Exportando o tipo
 
 export const useTranslations = () => {
   const { language } = useLanguage();
