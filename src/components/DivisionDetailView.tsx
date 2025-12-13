@@ -21,7 +21,8 @@ interface DivisionDetailViewProps {
 const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, isPublic = false }) => {
   const { t } = useTranslations();
   const location = useLocation();
-  const initialTab = (location.state as any)?.detailTab || 'athletes';
+  // Define a aba inicial como 'bracket' se não houver estado de navegação, ou usa o estado.
+  const initialTab = (location.state as any)?.detailTab || 'bracket'; 
   
   const [activeTab, setActiveTab] = useState<'athletes' | 'bracket' | 'fight_order'>(initialTab);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'first_name', direction: 'asc' });
@@ -83,17 +84,12 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'athletes' | 'bracket' | 'fight_order')} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="athletes">{t('athleteList')}</TabsTrigger>
+          {/* Nova Ordem: Bracket View, Fight Order, Athlete List */}
           <TabsTrigger value="bracket" disabled={!bracket}>{t('bracketView')}</TabsTrigger>
           <TabsTrigger value="fight_order" disabled={!bracket}>{t('fightOrder')}</TabsTrigger>
+          <TabsTrigger value="athletes">{t('athleteList')}</TabsTrigger>
         </TabsList>
-        <TabsContent value="athletes" className="mt-4">
-          <AthleteListTable 
-            athletes={sortedAthletes} 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-          />
-        </TabsContent>
+        
         <TabsContent value="bracket" className="mt-4">
           {bracket ? (
             <BracketView
@@ -121,6 +117,13 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           ) : (
             <p className="text-muted-foreground text-center py-8">Ordem de lutas não disponível.</p>
           )}
+        </TabsContent>
+        <TabsContent value="athletes" className="mt-4">
+          <AthleteListTable 
+            athletes={sortedAthletes} 
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
         </TabsContent>
       </Tabs>
     </div>
