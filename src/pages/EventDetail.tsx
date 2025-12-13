@@ -52,6 +52,8 @@ const EventDetail: React.FC = () => {
     setInscricoesSubTab,
     bracketsSubTab,
     setBracketsSubTab,
+    navSelectedMat,
+    navSelectedDivisionId,
   } = useEventTabs();
 
   const {
@@ -249,6 +251,8 @@ const EventDetail: React.FC = () => {
             onUpdateBrackets={handleUpdateBracketsAndFightOrder} 
             bracketsSubTab={bracketsSubTab} 
             setBracketsSubTab={setBracketsSubTab} 
+            navSelectedMat={navSelectedMat}
+            navSelectedDivisionId={navSelectedDivisionId}
           />
         </TabsContent>
         <TabsContent value="resultados" className="mt-6">

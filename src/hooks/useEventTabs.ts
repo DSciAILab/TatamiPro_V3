@@ -12,6 +12,9 @@ interface UseEventTabsResult {
   setInscricoesSubTab: React.Dispatch<React.SetStateAction<string>>;
   bracketsSubTab: string;
   setBracketsSubTab: React.Dispatch<React.SetStateAction<string>>;
+  // New state properties for bracket management restoration
+  navSelectedMat: string | null;
+  navSelectedDivisionId: string | null;
 }
 
 export const useEventTabs = (): UseEventTabsResult => {
@@ -21,6 +24,10 @@ export const useEventTabs = (): UseEventTabsResult => {
   const [configSubTab, setConfigSubTab] = useState('event-settings');
   const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
   const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
+  
+  // New state properties derived from navigation state
+  const [navSelectedMat, setNavSelectedMat] = useState<string | null>(null);
+  const [navSelectedDivisionId, setNavSelectedDivisionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (location.state?.activeTab) {
@@ -35,6 +42,18 @@ export const useEventTabs = (): UseEventTabsResult => {
     if (location.state?.bracketsSubTab) {
       setBracketsSubTab(location.state.bracketsSubTab);
     }
+    
+    // Capture and reset navigation state for Mat/Division selection
+    if (location.state?.selectedMat) {
+      setNavSelectedMat(location.state.selectedMat);
+    } else {
+      setNavSelectedMat(null);
+    }
+    if (location.state?.selectedDivisionId) {
+      setNavSelectedDivisionId(location.state.selectedDivisionId);
+    } else {
+      setNavSelectedDivisionId(null);
+    }
   }, [location.state]);
 
   return {
@@ -46,5 +65,7 @@ export const useEventTabs = (): UseEventTabsResult => {
     setInscricoesSubTab,
     bracketsSubTab,
     setBracketsSubTab,
+    navSelectedMat,
+    navSelectedDivisionId,
   };
 };

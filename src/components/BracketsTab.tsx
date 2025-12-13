@@ -35,6 +35,9 @@ interface BracketsTabProps {
   onUpdateBrackets: (brackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => void;
   bracketsSubTab: string;
   setBracketsSubTab: (value: string) => void;
+  // New props for state restoration
+  navSelectedMat: string | null;
+  navSelectedDivisionId: string | null;
 }
 
 const BracketsTab: React.FC<BracketsTabProps> = ({
@@ -44,6 +47,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   onUpdateBrackets,
   bracketsSubTab,
   setBracketsSubTab,
+  navSelectedMat,
+  navSelectedDivisionId,
 }) => {
   const navigate = useNavigate();
 
@@ -53,11 +58,27 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
   const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
   const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
+  
+  // State for managing fights view
+  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
   const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
 
   useEffect(() => {
     setGeneratedBrackets(event.brackets || {});
   }, [event.brackets]);
+
+  // Effect to restore state from navigation (e.g., returning from FightDetail)
+  useEffect(() => {
+    if (navSelectedMat && navSelectedDivisionId) {
+      setSelectedMat(navSelectedMat);
+      const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
+      if (division) {
+        setSelectedDivisionForDetail(division);
+        setBracketsSubTab('fight-overview');
+      }
+    }
+  }, [navSelectedMat, navSelectedDivisionId, event.divisions, setBracketsSubTab]);
+
 
   const availableDivisionsForBracketGeneration = useMemo(() => {
     if (!event) return [];
@@ -168,8 +189,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     setDivisionToRegenerateOngoing(null);
   };
 
-  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
-
   const matNames = useMemo(() => {
     if (!event?.num_fight_areas) return [];
     const names = Array.from({ length: event.num_fight_areas }, (_, i) => `Mat ${i + 1}`);
@@ -275,7 +294,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                 <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
-                    <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => setSelectedMat(value)}>
+                    <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => {
+                      setSelectedMat(value);
+                      setSelectedDivisionForDetail(null); // Reset division detail when mat changes
+                    }}>
                       <SelectTrigger id="mat-select">
                         <SelectValue placeholder="Selecione um Mat" />
                       </SelectTrigger>
@@ -293,7 +315,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                     <MatCategoryList
                       event={event}
                       selectedMat={selectedMat}
-                      selectedCategoryKey={null}
+                      selectedCategoryKey={selectedDivisionForDetail?.id || null}
                       onSelectCategory={handleSelectCategory}
                     />
                   )}
@@ -317,7 +339,11 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                   ) : (
                     <FightOverview
                       event={event}
-                      onDivisionSelect={(division) => setSelectedDivisionForDetail(division)}
+                      onDivisionSelect={(division) => {
+                        // When selecting from FightOverview, we don't know the Mat, so we default to 'all-mats'
+                        setSelectedMat('all-mats'); 
+                        setSelectedDivisionForDetail(division);
+                      }}
                     />
                   )}
                 </CardContent>

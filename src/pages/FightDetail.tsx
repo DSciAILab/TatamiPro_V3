@@ -278,8 +278,8 @@ const FightDetail: React.FC = () => {
     if (nextFight?._division_id) {
       navigate(`/events/${eventId}/fights/${nextFight._division_id}/${nextFight.id}`);
     } else {
-      showError("Não há próxima luta disponível neste mat.");
-      navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } });
+      // Se não houver próxima luta, volta para o gerenciamento de lutas, preservando o mat
+      handleReturnToManageFights();
     }
   };
 
@@ -290,7 +290,15 @@ const FightDetail: React.FC = () => {
 
   const handleReturnToManageFights = () => {
     setShowRoundEndDialog(false);
-    navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } });
+    // Navega de volta para a aba fight-overview, passando o mat e a divisão para restaurar o estado
+    navigate(`/events/${eventId}`, { 
+      state: { 
+        activeTab: 'brackets', 
+        bracketsSubTab: 'fight-overview',
+        selectedMat: currentMatch?._mat_name,
+        selectedDivisionId: divisionId,
+      } 
+    });
   };
 
   const handleReturnToBracket = () => {
@@ -323,7 +331,7 @@ const FightDetail: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{currentMatch._mat_name} - Luta {fightNumberDisplay}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } })} variant="outline">
+        <Button onClick={handleReturnToManageFights} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerenciar Lutas
         </Button>
       </div>
@@ -378,7 +386,7 @@ const FightDetail: React.FC = () => {
           {showPostFightOptions && !showRoundEndDialog && (
             <div className="flex flex-col gap-2 mt-4">
               <Button onClick={handleNextFight} className="w-full"><ArrowRight className="mr-2 h-4 w-4" /> Próxima Luta</Button>
-              <Button variant="outline" onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } })} className="w-full"><List className="mr-2 h-4 w-4" /> Voltar para o Gerenciamento de Lutas</Button>
+              <Button variant="outline" onClick={handleReturnToManageFights} className="w-full"><List className="mr-2 h-4 w-4" /> Voltar para o Gerenciamento de Lutas</Button>
               <Button variant="outline" onClick={handleReturnToBracket} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o Bracket</Button>
             </div>
           )}
