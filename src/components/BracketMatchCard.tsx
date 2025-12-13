@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UserRound, Trophy, CheckCircle } from 'lucide-react'; // Added CheckCircle
 import { cn } from '@/lib/utils'; // For conditional classes
 import { Link } from 'react-router-dom'; // Importar Link
+import { useTranslations } from '@/hooks/use-translations';
 
 interface BracketMatchCardProps {
   match: Match;
@@ -40,6 +41,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   eventId, // Receber eventId
   divisionId, // Receber divisionId
 }) => {
+  const { t } = useTranslations();
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
   const fighter2 = match.fighter2_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter2_id || '');
 
@@ -51,7 +53,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     let statusText = '';
     if (!fighter) {
       const prevMatchId = fighterSlot === 1 ? match.prev_match_ids?.[0] : match.prev_match_ids?.[1];
-      statusText = `Aguardando ${prevMatchId ? getShortMatchIdentifier(prevMatchId) : 'Luta Anterior'}`;
+      statusText = `${t('waitingFor')} ${prevMatchId ? getShortMatchIdentifier(prevMatchId) : t('previousFight')}`;
     } else if (fighter === 'BYE') {
       statusText = 'BYE';
     }

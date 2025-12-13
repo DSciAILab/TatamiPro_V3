@@ -5,6 +5,7 @@ import { Event } from '@/types/index';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface TeamLeaderboardProps {
   event: Event;
@@ -19,6 +20,7 @@ interface TeamScore {
 }
 
 const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
+  const { t } = useTranslations();
   const athletesMap = useMemo(() => {
     return new Map((event.athletes || []).map(athlete => [athlete.id, athlete]));
   }, [event.athletes]);
@@ -74,22 +76,22 @@ const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
       <CardHeader>
         <CardTitle className="flex items-center">
           <Trophy className="mr-2 h-6 w-6 text-yellow-500" />
-          Classificação por Equipes
+          {t('teamStandings')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {teamScores.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum resultado finalizado para calcular a classificação.</p>
+          <p className="text-muted-foreground">{t('noResultsToCalculateStandings')}</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">Rank</TableHead>
-                <TableHead>Equipe</TableHead>
-                <TableHead className="text-center">Ouro</TableHead>
-                <TableHead className="text-center">Prata</TableHead>
-                <TableHead className="text-center">Bronze</TableHead>
-                <TableHead className="text-right">Pontos</TableHead>
+                <TableHead className="w-[50px]">{t('rank')}</TableHead>
+                <TableHead>{t('team')}</TableHead>
+                <TableHead className="text-center">{t('gold')}</TableHead>
+                <TableHead className="text-center">{t('silver')}</TableHead>
+                <TableHead className="text-center">{t('bronze')}</TableHead>
+                <TableHead className="text-right">{t('points')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

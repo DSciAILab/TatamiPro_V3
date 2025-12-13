@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { UserRound, Trophy } from 'lucide-react';
 import TeamLeaderboard from './TeamLeaderboard';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface ResultsTabProps {
   event: Event;
 }
 
 const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
+  const { t } = useTranslations();
   const athletesMap = useMemo(() => {
     return new Map((event.athletes || []).map(athlete => [athlete.id, athlete]));
   }, [event.athletes]);
@@ -24,7 +26,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
   const getAthleteDisplay = (athleteId?: string) => {
     if (!athleteId) return <span className="text-muted-foreground">N/A</span>;
     const athlete = athletesMap.get(athleteId);
-    if (!athlete) return <span className="text-muted-foreground">Atleta Desconhecido</span>;
+    if (!athlete) return <span className="text-muted-foreground">{t('unknownAthlete')}</span>;
     return (
       <div className="flex items-center space-x-2">
         {athlete.photo_url ? (
@@ -45,12 +47,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pódios por Divisão</CardTitle>
-          <CardDescription>Resultados finais para cada divisão concluída.</CardDescription>
+          <CardTitle>{t('podiumsByDivision')}</CardTitle>
+          <CardDescription>{t('finalResultsForCompletedDivisions')}</CardDescription>
         </CardHeader>
         <CardContent>
           {completedDivisions.length === 0 ? (
-            <p className="text-muted-foreground">Nenhuma divisão foi finalizada ainda.</p>
+            <p className="text-muted-foreground">{t('noDivisionsCompletedYet')}</p>
           ) : (
             <Accordion type="single" collapsible className="w-full">
               {completedDivisions.map(division => {
@@ -62,18 +64,18 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                       <ul className="space-y-2">
                         <li className="flex items-center space-x-2">
                           <Trophy className="h-5 w-5 text-yellow-500" />
-                          <span className="font-semibold w-20">1º Lugar:</span>
+                          <span className="font-semibold w-20">{t('firstPlace')}:</span>
                           {getAthleteDisplay(bracket?.winner_id)}
                         </li>
                         <li className="flex items-center space-x-2">
                           <Trophy className="h-5 w-5 text-gray-400" />
-                          <span className="font-semibold w-20">2º Lugar:</span>
+                          <span className="font-semibold w-20">{t('secondPlace')}:</span>
                           {getAthleteDisplay(bracket?.runner_up_id)}
                         </li>
                         {event.include_third_place && bracket?.third_place_winner_id && (
                           <li className="flex items-center space-x-2">
                             <Trophy className="h-5 w-5 text-orange-500" />
-                            <span className="font-semibold w-20">3º Lugar:</span>
+                            <span className="font-semibold w-20">{t('thirdPlace')}:</span>
                             {getAthleteDisplay(bracket.third_place_winner_id)}
                           </li>
                         )}
