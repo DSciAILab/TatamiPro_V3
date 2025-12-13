@@ -215,7 +215,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     return (
       <Card>
         <CardHeader>
-          {/* FIX 1: Use non-null assertion (!) */}
+          {/* FIX 3 */}
           <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail!.name}</CardTitle>
           <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
         </CardHeader>

@@ -90,7 +90,8 @@ export interface Match {
   };
   _division_id?: string;
   _mat_name?: string;
-  _is_round_robin?: boolean; // NEW: Flag for Round Robin matches
+  _is_round_robin?: boolean;
+  _is_double_elimination?: boolean; // NEW: Flag for Double Elimination matches
 }
 
 export interface Bracket {
@@ -104,7 +105,8 @@ export interface Bracket {
   winner_id?: string;
   runner_up_id?: string;
   third_place_winner_id?: string;
-  _is_round_robin?: boolean; // NEW: Flag for Round Robin bracket
+  _is_round_robin?: boolean;
+  _is_double_elimination?: boolean; // NEW: Flag for Double Elimination bracket
 }
 
 export interface CheckInConfig {

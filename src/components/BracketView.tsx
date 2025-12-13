@@ -44,46 +44,66 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     );
   }
 
-  // --- Handle Round Robin (3 athletes) ---
-  if (bracket._is_round_robin && bracket.rounds.length === 1) {
-    const roundRobinMatches = bracket.rounds[0];
+  // --- Handle Double Elimination (3 athletes) ---
+  if (bracket._is_double_elimination && bracket.rounds.length === 3) {
+    const [round1, round2, round3] = bracket.rounds;
     const participants = bracket.participants.filter(p => p !== 'BYE') as Athlete[];
 
     return (
       <Card className="p-4">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold mb-2">Round Robin: {division.name}</CardTitle>
-          <p className="text-muted-foreground">Formato Round Robin (Todos contra Todos) para {participants.length} atletas.</p>
+          <CardTitle className="text-2xl font-bold mb-2">Double Elimination (3 Atletas): {division.name}</CardTitle>
+          <p className="text-muted-foreground">Formato de eliminação dupla para {participants.length} atletas. ({t('teamStandings')})</p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <h3 className="text-lg font-semibold">Participantes:</h3>
-          <ul className="list-disc list-inside ml-4">
-            {participants.map(a => (
-              <li key={a.id}>{a.first_name} {a.last_name} ({a.club})</li>
-            ))}
-          </ul>
-          
-          <h3 className="text-lg font-semibold pt-4">Lutas ({roundRobinMatches.length})</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roundRobinMatches.map(match => (
+        <CardContent className="flex flex-col items-start overflow-x-auto">
+          <div className="flex space-x-8 p-4 relative">
+            {/* Round 1 */}
+            <div className="flex flex-col items-center min-w-[375px]">
+              <h3 className="text-lg font-semibold mb-4">Luta 1</h3>
               <BracketMatchCard
-                key={match.id}
-                match={match}
+                match={round1[0]}
                 athletesMap={athletesMap}
                 eventId={eventId}
                 divisionId={bracket.division_id}
                 isPublic={isPublic}
               />
-            ))}
+            </div>
+
+            {/* Round 2 (Repescagem) */}
+            <div className="flex flex-col items-center min-w-[375px]">
+              <h3 className="text-lg font-semibold mb-4">Luta 2 (Repescagem)</h3>
+              <BracketMatchCard
+                match={round2[0]}
+                athletesMap={athletesMap}
+                eventId={eventId}
+                divisionId={bracket.division_id}
+                isPublic={isPublic}
+              />
+            </div>
+
+            {/* Round 3 (Final) */}
+            <div className="flex flex-col items-center min-w-[375px]">
+              <h3 className="text-lg font-semibold mb-4">Luta 3 (Final)</h3>
+              <BracketMatchCard
+                match={round3[0]}
+                athletesMap={athletesMap}
+                eventId={eventId}
+                divisionId={bracket.division_id}
+                isPublic={isPublic}
+                isFinal={true}
+                bracketWinnerId={bracket.winner_id}
+                bracketRunnerUpId={bracket.runner_up_id}
+              />
+            </div>
           </div>
           <p className="text-sm text-muted-foreground pt-4">
-            O vencedor do Round Robin é determinado pelo maior número de vitórias. ({t('teamStandings')})
+            O perdedor da Luta 1 enfrenta o terceiro atleta na Luta 2. Os vencedores da Luta 1 e Luta 2 se enfrentam na Final.
           </p>
         </CardContent>
       </Card>
     );
   }
-  // --- End Round Robin ---
+  // --- End Double Elimination ---
 
   const totalRounds = bracket.rounds.length;
 
