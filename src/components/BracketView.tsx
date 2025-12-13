@@ -98,7 +98,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
       <CardHeader>
         <CardTitle className="text-2xl font-bold mb-4">Bracket: {division.name}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col items-center overflow-x-auto">
+      <CardContent className="flex flex-col items-start overflow-x-auto">
         <div className="flex space-x-8 p-4 relative">
           {bracket.rounds.map((round, roundIndex) => {
             const isLastRound = roundIndex === totalRounds - 1;
