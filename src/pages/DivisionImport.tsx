@@ -193,7 +193,7 @@ const DivisionImport: React.FC = () => {
                     <Select onValueChange={(v) => handleMappingChange(key as RequiredDivisionField, v)} value={columnMapping[key as RequiredDivisionField] || ''}>
                       <SelectTrigger><SelectValue placeholder={`Selecione a coluna para ${label}`} /></SelectTrigger>
                       <SelectContent>
-                        {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                        {csvHeaders.filter(h => h && h.trim() !== '').map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

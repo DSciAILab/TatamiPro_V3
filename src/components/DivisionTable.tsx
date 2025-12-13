@@ -220,7 +220,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           <Select value={newDivision.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setNewDivision)}>
             <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder={t('placeholderSelect')} /></SelectTrigger>
             <SelectContent>
-              {sortedAgeSettings.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+              {sortedAgeSettings.filter(cat => cat.name && cat.name.trim() !== '').map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -331,7 +331,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       <Select value={currentEdit.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setCurrentEdit as React.Dispatch<React.SetStateAction<any>>)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {sortedAgeSettings.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+                          {sortedAgeSettings.filter(cat => cat.name && cat.name.trim() !== '').map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <div className="flex space-x-1 mt-1">
