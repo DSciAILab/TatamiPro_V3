@@ -216,7 +216,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento de Lutas</CardTitle>
-          {/* FIX 1: Use non-null assertion since we are inside the conditional block */}
+          {/* FIX 1: Use non-null assertion (!) */}
           <CardDescription>Detalhes da Divisão: {selectedDivisionForDetail!.name}</CardDescription>
         </CardHeader>
         <CardContent>
