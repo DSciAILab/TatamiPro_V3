@@ -23,6 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { v4 as uuidv4 } from 'uuid';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface DivisionTableProps {
   divisions: Division[];
@@ -31,6 +32,7 @@ interface DivisionTableProps {
 }
 
 const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisions, ageDivisionSettings }) => {
+  const { t } = useTranslations();
   const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
   const [newDivision, setNewDivision] = useState<Omit<Division, 'id' | 'is_enabled'>>({
     name: '',
@@ -71,12 +73,12 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     return divisions.filter(division =>
       division.name.toLowerCase().includes(lowerCaseSearchTerm) ||
       division.age_category_name.toLowerCase().includes(lowerCaseSearchTerm) ||
-      division.gender.toLowerCase().includes(lowerCaseSearchTerm) ||
-      division.belt.toLowerCase().includes(lowerCaseSearchTerm) ||
+      t(`gender_${division.gender}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
+      t(`belt_${division.belt}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
       `${division.min_age}-${division.max_age}`.includes(lowerCaseSearchTerm) ||
       `${division.max_weight}kg`.includes(lowerCaseSearchTerm)
     );
-  }, [divisions, searchTerm]);
+  }, [divisions, searchTerm, t]);
 
   const handleAddDivision = () => {
     if (!newDivision.name || !newDivision.age_category_name || newDivision.min_age === undefined || newDivision.max_age === undefined ||
@@ -204,63 +206,63 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold">Divisões do Evento</h3>
-      <p className="text-muted-foreground">Defina e gerencie as divisões de idade, peso, gênero e faixa para este evento.</p>
+      <h3 className="text-xl font-semibold">{t('eventDivisionsTitle')}</h3>
+      <p className="text-muted-foreground">{t('eventDivisionsDesc')}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
-        <div className="col-span-full text-lg font-medium mb-2">Adicionar Nova Divisão</div>
+        <div className="col-span-full text-lg font-medium mb-2">{t('addNewDivision')}</div>
         <div>
-          <Label htmlFor="newName">Nome da Divisão</Label>
+          <Label htmlFor="newName">{t('divisionName')}</Label>
           <Input id="newName" value={newDivision.name} onChange={(e) => setNewDivision(prev => ({ ...prev, name: e.target.value }))} />
         </div>
         <div>
-          <Label htmlFor="newAgeCategoryName">Categoria de Idade</Label>
+          <Label htmlFor="newAgeCategoryName">{t('ageCategory')}</Label>
           <Select value={newDivision.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setNewDivision)}>
-            <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder="Categoria de Idade" /></SelectTrigger>
+            <SelectTrigger id="newAgeCategoryName"><SelectValue placeholder={t('placeholderSelect')} /></SelectTrigger>
             <SelectContent>
               {sortedAgeSettings.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="newMinAge">Idade Mínima</Label>
+          <Label htmlFor="newMinAge">{t('minAge')}</Label>
           <Input id="newMinAge" type="number" value={newDivision.min_age} onChange={(e) => setNewDivision(prev => ({ ...prev, min_age: Number(e.target.value) }))} disabled />
         </div>
         <div>
-          <Label htmlFor="newMaxAge">Idade Máxima</Label>
+          <Label htmlFor="newMaxAge">{t('maxAge')}</Label>
           <Input id="newMaxAge" type="number" value={newDivision.max_age} onChange={(e) => setNewDivision(prev => ({ ...prev, max_age: Number(e.target.value) }))} disabled />
         </div>
         <div>
-          <Label htmlFor="newMaxWeight">Peso Máximo (kg)</Label>
+          <Label htmlFor="newMaxWeight">{t('maxWeight')}</Label>
           <Input id="newMaxWeight" type="number" step="0.1" value={newDivision.max_weight} onChange={(e) => setNewDivision(prev => ({ ...prev, max_weight: Number(e.target.value) }))} />
         </div>
         <div>
-          <Label htmlFor="newGender">Gênero</Label>
+          <Label htmlFor="newGender">{t('gender')}</Label>
           <Select value={newDivision.gender} onValueChange={(value: DivisionGender) => setNewDivision(prev => ({ ...prev, gender: value }))}>
-            <SelectTrigger id="newGender"><SelectValue placeholder="Gênero" /></SelectTrigger>
+            <SelectTrigger id="newGender"><SelectValue placeholder={t('placeholderSelectGender')} /></SelectTrigger>
             <SelectContent>
-              {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{gen}</SelectItem>)}
+              {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{t(`gender_${gen}` as any)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="newBelt">Faixa</Label>
+          <Label htmlFor="newBelt">{t('belt')}</Label>
           <Select value={newDivision.belt} onValueChange={(value: DivisionBelt) => setNewDivision(prev => ({ ...prev, belt: value }))}>
-            <SelectTrigger id="newBelt"><SelectValue placeholder="Faixa" /></SelectTrigger>
+            <SelectTrigger id="newBelt"><SelectValue placeholder={t('placeholderSelectBelt')} /></SelectTrigger>
             <SelectContent>
-              {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{belt}</SelectItem>)}
+              {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{t(`belt_${belt}` as any)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="col-span-full flex justify-end">
-          <Button onClick={handleAddDivision}><PlusCircle className="mr-2 h-4 w-4" /> Adicionar Divisão</Button>
+          <Button onClick={handleAddDivision}><PlusCircle className="mr-2 h-4 w-4" /> {t('addDivision')}</Button>
         </div>
       </div>
 
       <div className="relative mb-4">
         <Input
           type="text"
-          placeholder="Buscar divisões..."
+          placeholder={t('searchDivisions')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pr-10"
@@ -270,19 +272,19 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
 
       {selectedDivisionIds.length > 0 && (
         <div className="flex space-x-2 mb-4">
-          <Button onClick={handleBatchEnable} variant="outline">Habilitar Selecionados ({selectedDivisionIds.length})</Button>
-          <Button onClick={handleBatchDisable} variant="outline">Desabilitar Selecionados ({selectedDivisionIds.length})</Button>
+          <Button onClick={handleBatchEnable} variant="outline">{t('enableSelected')} ({selectedDivisionIds.length})</Button>
+          <Button onClick={handleBatchDisable} variant="outline">{t('disableSelected')} ({selectedDivisionIds.length})</Button>
           <AlertDialog open={showBatchDeleteConfirm} onOpenChange={setShowBatchDeleteConfirm}>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={selectedDivisionIds.length === 0}>
-                <Trash2 className="mr-2 h-4 w-4" /> Deletar Selecionados ({selectedDivisionIds.length})
+                <Trash2 className="mr-2 h-4 w-4" /> {t('deleteSelected')} ({selectedDivisionIds.length})
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Tem certeza que deseja deletar as divisões selecionadas?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteSelected')}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Isso removerá permanentemente {selectedDivisionIds.length} divisões.
+                  {t('confirmBatchDeleteDivision')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -297,7 +299,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
       )}
 
       {filteredDivisions.length === 0 ? (
-        <p className="text-muted-foreground">Nenhuma divisão configurada ainda ou encontrada com a pesquisa.</p>
+        <p className="text-muted-foreground">{t('noDivisionsFound')}</p>
       ) : (
         <Table>
           <TableHeader>
@@ -309,13 +311,13 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                   aria-label="Selecionar todas as divisões"
                 />
               </TableHead>
-              <TableHead>Nome da Divisão</TableHead>
-              <TableHead>Idade</TableHead>
-              <TableHead>Peso (kg)</TableHead>
-              <TableHead>Gênero</TableHead>
-              <TableHead>Faixa</TableHead>
-              <TableHead className="text-center">Habilitada</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>{t('divisionName')}</TableHead>
+              <TableHead>{t('ageCategory')}</TableHead>
+              <TableHead>{t('maxWeight')}</TableHead>
+              <TableHead>{t('gender')}</TableHead>
+              <TableHead>{t('belt')}</TableHead>
+              <TableHead className="text-center">{t('enabled')}</TableHead>
+              <TableHead className="text-right">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -344,7 +346,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       <Select value={currentEdit.gender} onValueChange={(value: DivisionGender) => setCurrentEdit(prev => prev ? { ...prev, gender: value } : null)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{gen}</SelectItem>)}
+                          {genderOptions.map(gen => <SelectItem key={gen} value={gen}>{t(`gender_${gen}` as any)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -352,7 +354,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                       <Select value={currentEdit.belt} onValueChange={(value: DivisionBelt) => setCurrentEdit(prev => prev ? { ...prev, belt: value } : null)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{belt}</SelectItem>)}
+                          {beltOptions.map(belt => <SelectItem key={belt} value={belt}>{t(`belt_${belt}` as any)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -378,8 +380,8 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                     <TableCell className="font-medium">{division.name}</TableCell>
                     <TableCell>{division.age_category_name} ({division.min_age}-{division.max_age})</TableCell>
                     <TableCell>Até {division.max_weight}kg</TableCell>
-                    <TableCell>{division.gender}</TableCell>
-                    <TableCell>{division.belt}</TableCell>
+                    <TableCell>{t(`gender_${division.gender}` as any)}</TableCell>
+                    <TableCell>{t(`belt_${division.belt}` as any)}</TableCell>
                     <TableCell className="text-center">
                       <Switch
                         checked={division.is_enabled}
