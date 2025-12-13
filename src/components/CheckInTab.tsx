@@ -183,11 +183,17 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
         drawHeader();
       }
 
-      doc.text(idLines, cols.id.x, y);
-      doc.text(nameLines, cols.name.x, y);
-      doc.text(divisionLines, cols.division.x, y);
-      doc.text(clubLines, cols.club.x, y);
-      doc.text(weightLines, cols.weight.x, y);
+      const drawCenteredText = (lines: string[], col: { x: number }, currentY: number, totalRowHeight: number) => {
+        const textBlockHeight = lines.length * lineSpacing;
+        const yOffset = (totalRowHeight - textBlockHeight) / 2;
+        doc.text(lines, col.x, currentY + yOffset);
+      };
+
+      drawCenteredText(idLines, cols.id, y, rowHeight);
+      drawCenteredText(nameLines, cols.name, y, rowHeight);
+      drawCenteredText(divisionLines, cols.division, y, rowHeight);
+      drawCenteredText(clubLines, cols.club, y, rowHeight);
+      drawCenteredText(weightLines, cols.weight, y, rowHeight);
 
       y += rowHeight;
 
