@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Event, Athlete } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserRound, CheckCircle, XCircle, Scale, Search, QrCodeIcon, Barcode, LayoutList, LayoutGrid } from 'lucide-react';
+import { UserRound, CheckCircle, XCircle, Scale, Search, QrCodeIcon, Barcode, LayoutList, LayoutGrid, Printer } from 'lucide-react';
 import CheckInForm from '@/components/CheckInForm';
-import CheckInTable from '@/components/CheckInTable'; // New Import
+import CheckInTable, { SortConfig, SortKey } from '@/components/CheckInTable';
 import QrScanner from '@/components/QrScanner';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import { format, differenceInSeconds } from 'date-fns';
 import { showSuccess, showError } from '@/utils/toast';
 import { useTranslations } from '@/hooks/use-translations';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { jsPDF } from 'jspdf';
 
 interface CheckInTabProps {
   event: Event;
@@ -61,13 +62,105 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   handleCheckInAthlete,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards'); // New State
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const { t } = useTranslations();
+  
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAthletes = useMemo(() => {
+    const sortableItems = [...filteredAthletesForCheckIn];
+    sortableItems.sort((a, b) => {
+      let aValue: any = a[sortConfig.key as keyof Athlete];
+      let bValue: any = b[sortConfig.key as keyof Athlete];
+
+      if (sortConfig.key === 'id_number') {
+        aValue = a.emirates_id || a.school_id || '';
+        bValue = b.emirates_id || b.school_id || '';
+      } else if (sortConfig.key === 'division_name') {
+        aValue = a._division?.name || '';
+        bValue = b._division?.name || '';
+      }
+
+      // Handle strings case-insensitive
+      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    return sortableItems;
+  }, [filteredAthletesForCheckIn, sortConfig]);
+
+  const handlePrintList = () => {
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+    let y = 20;
+
+    doc.setFontSize(16);
+    doc.text(`Lista de Check-in - ${event.name}`, 105, y, { align: 'center' });
+    y += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Filtro: ${checkInFilter.toUpperCase()} - Total: ${sortedAthletes.length}`, 14, y);
+    y += 10;
+
+    // Headers
+    doc.setFont('helvetica', 'bold');
+    doc.text("ID", 14, y);
+    doc.text("Atleta", 50, y);
+    doc.text("Divisão", 100, y);
+    doc.text("Clube", 150, y);
+    doc.text("Peso", 190, y);
+    doc.line(10, y + 2, 200, y + 2);
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    
+    sortedAthletes.forEach((athlete) => {
+      if (y > pageHeight - 15) {
+        doc.addPage();
+        y = 20;
+      }
+
+      const id = athlete.emirates_id || athlete.school_id || '-';
+      const name = `${athlete.first_name} ${athlete.last_name}`;
+      // Truncate name if too long
+      const displayName = name.length > 25 ? name.substring(0, 22) + '...' : name;
+      const division = athlete._division?.name || 'N/A';
+      const displayDivision = division.length > 25 ? division.substring(0, 22) + '...' : division;
+      const club = athlete.club.length > 20 ? athlete.club.substring(0, 18) + '...' : athlete.club;
+      const weight = athlete.registered_weight ? `${athlete.registered_weight}kg` : '-';
+
+      doc.text(id, 14, y);
+      doc.text(displayName, 50, y);
+      doc.text(displayDivision, 100, y);
+      doc.text(club, 150, y);
+      doc.text(weight, 190, y);
+      
+      y += 7;
+    });
+
+    doc.save('check_in_list.pdf');
+  };
 
   const isCheckInTimeValid = () => {
     if (!check_in_start_time || !check_in_end_time) return false;
@@ -210,7 +303,10 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 />
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handlePrintList} title="Imprimir Lista">
+                  <Printer className="h-4 w-4 mr-2" /> Imprimir
+                </Button>
                 <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'cards' | 'table')}>
                   <ToggleGroupItem value="cards" aria-label="Visualização em Cards"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
                   <ToggleGroupItem value="table" aria-label="Visualização em Tabela"><LayoutList className="h-4 w-4" /></ToggleGroupItem>
@@ -218,22 +314,24 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
               </div>
             </div>
 
-            {filteredAthletesForCheckIn.length === 0 ? (
+            {sortedAthletes.length === 0 ? (
               <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
             ) : (
               viewMode === 'table' ? (
                 <CheckInTable
-                  athletes={filteredAthletesForCheckIn}
+                  athletes={sortedAthletes}
                   onCheckIn={handleCheckInAthlete}
                   isCheckInAllowed={isCheckInAllowedGlobally}
                   eventDivisions={event.divisions || []}
                   isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
                   isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
                   isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
                 />
               ) : (
                 <ul className="space-y-4">
-                  {filteredAthletesForCheckIn.map((athlete) => (
+                  {sortedAthletes.map((athlete) => (
                     <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                       <div className="flex items-center space-x-3 flex-grow">
                         {athlete.photo_url ? (

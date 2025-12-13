@@ -1,15 +1,22 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Athlete, WeightAttempt, Division } from '@/types/index';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowUpDown, CheckCircle, XCircle, Scale, CheckSquare } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, CheckCircle, XCircle, Scale, CheckSquare } from 'lucide-react';
 import { findNextHigherWeightDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { showError, showSuccess } from '@/utils/toast';
+
+export type SortKey = keyof Athlete | 'id_number' | 'division_name';
+
+export interface SortConfig {
+  key: SortKey;
+  direction: 'asc' | 'desc';
+}
 
 interface CheckInTableProps {
   athletes: Athlete[];
@@ -19,6 +26,8 @@ interface CheckInTableProps {
   isWeightCheckEnabled: boolean;
   isOverweightAutoMoveEnabled: boolean;
   isBeltGroupingEnabled: boolean;
+  sortConfig: SortConfig;
+  onSort: (key: SortKey) => void;
 }
 
 const CheckInTable: React.FC<CheckInTableProps> = ({
@@ -29,45 +38,17 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   isWeightCheckEnabled,
   isOverweightAutoMoveEnabled,
   isBeltGroupingEnabled,
+  sortConfig,
+  onSort,
 }) => {
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Athlete | 'id_number' | 'division_name'; direction: 'asc' | 'desc' } | null>(null);
   const [weightInputs, setWeightInputs] = useState<Record<string, string>>({});
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
 
-  const handleSort = (key: keyof Athlete | 'id_number' | 'division_name') => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedAthletes = React.useMemo(() => {
-    let sortableItems = [...athletes];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        let aValue: any = a[sortConfig.key as keyof Athlete];
-        let bValue: any = b[sortConfig.key as keyof Athlete];
-
-        if (sortConfig.key === 'id_number') {
-          aValue = a.emirates_id || a.school_id || '';
-          bValue = b.emirates_id || b.school_id || '';
-        } else if (sortConfig.key === 'division_name') {
-          aValue = a._division?.name || '';
-          bValue = b._division?.name || '';
-        }
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [athletes, sortConfig]);
+  // Update selected athletes if the list changes significantly (optional cleanup)
+  useEffect(() => {
+    // Keep selection valid
+    setSelectedAthletes(prev => prev.filter(id => athletes.some(a => a.id === id)));
+  }, [athletes]);
 
   const handleWeightChange = (id: string, value: string) => {
     setWeightInputs(prev => ({ ...prev, [id]: value }));
@@ -76,7 +57,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   const handleSaveRow = (athlete: Athlete) => {
     const inputWeight = weightInputs[athlete.id];
     
-    // Se não houve alteração ou está vazio, ignora (a menos que seja para limpar, mas aqui focamos em registrar)
+    // If no change or empty, ignore
     if (inputWeight === undefined || inputWeight === '') return;
 
     const newWeight = parseFloat(inputWeight);
@@ -104,7 +85,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
       if (divisionMaxWeight !== undefined && newRegisteredWeight <= divisionMaxWeight) {
         newCheckInStatus = 'checked_in';
       } else if (divisionMaxWeight === undefined) {
-        newCheckInStatus = 'checked_in'; // Assume OK se não tiver limite definido (ex: absoluto)
+        newCheckInStatus = 'checked_in';
       } else {
         // Overweight Logic
         if (isOverweightAutoMoveEnabled && currentDivision) {
@@ -160,10 +141,10 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   };
 
   const toggleSelectAll = () => {
-    if (selectedAthletes.length === sortedAthletes.length) {
+    if (selectedAthletes.length === athletes.length && athletes.length > 0) {
       setSelectedAthletes([]);
     } else {
-      setSelectedAthletes(sortedAthletes.map(a => a.id));
+      setSelectedAthletes(athletes.map(a => a.id));
     }
   };
 
@@ -184,10 +165,6 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
     selectedAthletes.forEach(athleteId => {
       const athlete = athletes.find(a => a.id === athleteId);
       if (athlete) {
-        // Determine weight to use:
-        // 1. Value in input (weightInputs)
-        // 2. Existing registered_weight
-        // 3. 0 if weight check disabled or fallback
         let weightToUse = 0;
         const inputVal = weightInputs[athleteId];
         
@@ -195,6 +172,8 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
           weightToUse = parseFloat(inputVal);
         } else if (athlete.registered_weight) {
           weightToUse = athlete.registered_weight;
+        } else if (athlete.weight) {
+           weightToUse = athlete.weight;
         }
         
         processCheckIn(athlete, weightToUse);
@@ -204,6 +183,11 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
 
     setSelectedAthletes([]);
     showSuccess(`${processedCount} atletas processados.`);
+  };
+
+  const getSortIcon = (columnKey: SortKey) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown className="ml-2 h-4 w-4 inline text-muted-foreground opacity-50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4 inline" /> : <ArrowDown className="ml-2 h-4 w-4 inline" />;
   };
 
   return (
@@ -227,33 +211,39 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
             <TableRow>
               <TableHead className="w-[50px]">
                 <Checkbox 
-                  checked={sortedAthletes.length > 0 && selectedAthletes.length === sortedAthletes.length}
+                  checked={athletes.length > 0 && selectedAthletes.length === athletes.length}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
-              <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort('first_name')}>
-                Atleta <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              {/* ID First */}
+              <TableHead className="cursor-pointer" onClick={() => onSort('id_number')}>
+                ID / School ID {getSortIcon('id_number')}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('id_number')}>
-                ID / School ID <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              {/* Name Second */}
+              <TableHead className="w-[250px] cursor-pointer" onClick={() => onSort('first_name')}>
+                Atleta {getSortIcon('first_name')}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('division_name')}>
-                Divisão <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              <TableHead className="cursor-pointer" onClick={() => onSort('division_name')}>
+                Divisão {getSortIcon('division_name')}
               </TableHead>
-              <TableHead>Clube</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="cursor-pointer" onClick={() => onSort('club')}>
+                Clube {getSortIcon('club')}
+              </TableHead>
+              <TableHead className="cursor-pointer" onClick={() => onSort('check_in_status')}>
+                Status {getSortIcon('check_in_status')}
+              </TableHead>
               <TableHead className="w-[150px]">Peso (kg)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedAthletes.length === 0 ? (
+            {athletes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                   Nenhum atleta encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              sortedAthletes.map((athlete) => {
+              athletes.map((athlete) => {
                 const displayId = athlete.emirates_id || athlete.school_id || '-';
                 const currentInputValue = weightInputs[athlete.id] !== undefined ? weightInputs[athlete.id] : (athlete.registered_weight?.toString() || '');
                 
@@ -265,6 +255,9 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                         onCheckedChange={() => toggleSelectOne(athlete.id)}
                       />
                     </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{displayId}</span>
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span>{athlete.first_name} {athlete.last_name}</span>
@@ -272,9 +265,6 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                           <span className="text-xs text-blue-500 mt-1">{athlete.move_reason}</span>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{displayId}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-xs">
@@ -300,7 +290,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                           onBlur={() => handleSaveRow(athlete)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              e.currentTarget.blur(); // Triggers onBlur to save
+                              e.currentTarget.blur();
                             }
                           }}
                           disabled={!isCheckInAllowed}
