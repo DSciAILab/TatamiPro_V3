@@ -18,7 +18,7 @@ import { getAppId } from '@/lib/app-id';
 import { useTranslations } from '@/hooks/use-translations';
 
 const Events: React.FC = () => {
-  const { profile } = useAuth();
+  const { session, profile } = useAuth();
   const { t } = useTranslations();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
@@ -95,7 +95,7 @@ const Events: React.FC = () => {
         eventList.map((event) => (
           <div key={event.id} className="relative">
             <Link
-              to={`/events/${event.id}`}
+              to={session ? `/events/${event.id}` : `/public/events/${event.id}`}
               className={cn("block", { 'pointer-events-none': !event.is_active })}
               aria-disabled={!event.is_active}
             >
@@ -112,7 +112,7 @@ const Events: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {event.is_active ? "Click to see details" : "This event is inactive"}
+                    {event.is_active ? (session ? "Clique para gerenciar" : "Clique para visualizar") : "Evento inativo"}
                   </p>
                 </CardContent>
               </Card>

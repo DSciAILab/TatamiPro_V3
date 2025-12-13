@@ -13,6 +13,7 @@ import ResultsTab from '@/components/ResultsTab';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PublicFightOrder from '@/components/PublicFightOrder';
+import AthleteListTable from '@/components/AthleteListTable';
 
 const PublicEvent: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -108,6 +109,7 @@ const PublicEvent: React.FC = () => {
   }
 
   const divisionsWithBrackets = event.divisions?.filter(div => event.brackets?.[div.id]) || [];
+  const approvedAthletes = (event.athletes || []).filter(a => a.registration_status === 'approved');
 
   return (
     <PublicLayout>
@@ -115,11 +117,24 @@ const PublicEvent: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="registrations">Inscrições</TabsTrigger>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="fights">Ordem das Lutas</TabsTrigger>
           <TabsTrigger value="results">Resultados</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="registrations" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Atletas Inscritos</CardTitle>
+              <CardDescription>Lista oficial de atletas confirmados.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AthleteListTable athletes={approvedAthletes} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="brackets" className="mt-6">
           <Card>
