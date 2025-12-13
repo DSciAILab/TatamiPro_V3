@@ -8,7 +8,7 @@ import { useOffline } from '@/context/offline-context';
 import { db } from '@/lib/local-db';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { processAthleteData } from '@/utils/athlete-utils';
-import { Event } from '@/types/index'; // 'Athlete', 'Division', 'AgeDivisionSetting', 'Bracket' removidos
+import { Event } from '@/types/index';
 import { useAuth } from '@/context/auth-context';
 
 interface UseEventDataResult {
@@ -18,13 +18,13 @@ interface UseEventDataResult {
   isSaving: boolean;
   handleSaveChanges: () => Promise<void>;
   handleUpdateEventProperty: <K extends keyof Event>(key: K, value: Event[K]) => void;
-  fetchEventData: (source?: string) => Promise<void>;
+  fetchEventData: (type?: 'initial' | 'refresh' | 'subscription') => Promise<void>;
 }
 
 export const useEventData = (): UseEventDataResult => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isOfflineMode } = useOffline(); // 'trackChange' removido
+  const { isOfflineMode } = useOffline();
   const { profile, loading: authLoading } = useAuth();
 
   const [event, setEvent] = useState<Event | null>(null);
@@ -44,13 +44,16 @@ export const useEventData = (): UseEventDataResult => {
     }
   }, [profile, authLoading, navigate]);
 
-  const fetchEventData = useCallback(async (source?: string) => {
-    if (hasUnsavedChangesRef.current && source === 'subscription') {
+  const fetchEventData = useCallback(async (type: 'initial' | 'refresh' | 'subscription' = 'initial') => {
+    if (hasUnsavedChangesRef.current && type === 'subscription') {
       console.warn("Real-time update ignored due to unsaved local changes.");
       return;
     }
     if (!eventId) return;
-    if (source !== 'subscription') setLoading(true);
+    
+    // Only trigger full screen loading on initial load
+    if (type === 'initial') setLoading(true);
+    
     try {
       let eventData, athletesData, divisionsData;
 
@@ -97,10 +100,14 @@ export const useEventData = (): UseEventDataResult => {
       };
       setEvent(fullEventData);
     } catch (error: any) {
-      showError(`Failed to load event data: ${error.message}`);
-      setEvent(null);
+      // Only show error toast if it's not the initial load (which renders an error component)
+      if (type !== 'initial') {
+        showError(`Failed to refresh event data: ${error.message}`);
+      } else {
+        setEvent(null);
+      }
     } finally {
-      if (source !== 'subscription') {
+      if (type === 'initial') {
         setLoading(false);
         setHasUnsavedChanges(false);
       }
@@ -108,7 +115,7 @@ export const useEventData = (): UseEventDataResult => {
   }, [eventId, isOfflineMode, navigate]);
 
   useEffect(() => {
-    fetchEventData();
+    fetchEventData('initial');
 
     const channel = supabase
       .channel(`event-${eventId}`)

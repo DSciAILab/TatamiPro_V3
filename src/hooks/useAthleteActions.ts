@@ -10,7 +10,7 @@ import { useAuth } from '@/context/auth-context';
 
 interface UseAthleteActionsProps {
   event: Event | null;
-  fetchEventData: (source?: string) => Promise<void>;
+  fetchEventData: (type?: 'initial' | 'refresh' | 'subscription') => Promise<void>;
 }
 
 interface UseAthleteActionsResult {
@@ -38,12 +38,12 @@ interface UseAthleteActionsResult {
 
   handleAthleteUpdate: (updatedAthlete: Athlete) => Promise<void>;
   handleDeleteAthlete: (athleteId: string) => Promise<void>;
-  handleDeleteSelectedAthletes: () => Promise<void>; // NOVO: Exclusão em lote
+  handleDeleteSelectedAthletes: () => Promise<void>;
   handleApproveReject: (status: 'approved' | 'rejected') => Promise<void>;
   handleUpdateAthleteAttendance: (athleteId: string, status: Athlete['attendance_status']) => Promise<void>;
   handleCheckInAthlete: (updatedAthlete: Athlete) => Promise<void>;
-  handleToggleAthleteSelection: (athleteId: string) => void; // NOVO: Seleção individual
-  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void; // NOVO: Selecionar todos
+  handleToggleAthleteSelection: (athleteId: string) => void;
+  handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void;
 }
 
 export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsProps): UseAthleteActionsResult => {
@@ -65,7 +65,6 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
   
   const allAthletesForInscricoesTab = useMemo(() => {
     let athletes = event?.athletes || [];
-    // Assuming userRole is passed or derived from profile.role
     const userRole = profile?.role; 
     if (userRole === 'coach' && userClub) {
       athletes = athletes.filter(a => a.club === userClub);
@@ -82,7 +81,6 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
 
   const filteredAthletesForDisplayInscricoes = useMemo(() => {
     let athletes = allAthletesForInscricoesTab;
-    // Assuming userRole is passed or derived from profile.role
     const userRole = profile?.role;
     if (!userRole) athletes = athletes.filter(a => a.registration_status === 'approved');
     else if (registrationStatusFilter !== 'all') athletes = athletes.filter(a => a.registration_status === registrationStatusFilter);
@@ -109,12 +107,12 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     if (!eventId) return;
     const toastId = showLoading('Updating athlete...');
     try {
-      const { _division, ...athleteToUpdate } = updatedAthlete; // Remove _division before saving
+      const { _division, ...athleteToUpdate } = updatedAthlete;
       const { error } = await supabase.from('athletes').update({
         ...athleteToUpdate,
         date_of_birth: athleteToUpdate.date_of_birth.toISOString(),
         consent_date: athleteToUpdate.consent_date.toISOString(),
-        weight_attempts: athleteToUpdate.weight_attempts, // Envia o array diretamente
+        weight_attempts: athleteToUpdate.weight_attempts,
       }).eq('id', updatedAthlete.id);
 
       if (error) throw error;
@@ -122,7 +120,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       dismissToast(toastId);
       showSuccess('Athlete updated successfully!');
       setEditingAthlete(null);
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to update athlete: ' + error.message);
@@ -135,18 +133,13 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     try {
       if (isOfflineMode) {
         await trackChange('athletes', 'delete', { id: athleteId, event_id: eventId });
-        // Optimistic update for local state, actual fetchEventData will re-sync
-        // setEvent(prev => ({
-        //   ...prev!,
-        //   athletes: prev!.athletes?.filter(a => a.id !== athleteId) || [],
-        // }));
       } else {
         const { error } = await supabase.from('athletes').delete().eq('id', athleteId);
         if (error) throw error;
       }
       dismissToast(toastId);
       showSuccess('Athlete deleted successfully!');
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to delete athlete: ' + error.message);
@@ -174,7 +167,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       dismissToast(toastId);
       showSuccess(`${selectedAthletesForApproval.length} atletas deletados com sucesso!`);
       setSelectedAthletesForApproval([]);
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError('Falha ao deletar atletas: ' + error.message);
@@ -193,11 +186,6 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
           const athlete = event?.athletes?.find(a => a.id === athleteId);
           if (athlete) {
             await trackChange('athletes', 'update', { id: athleteId, registration_status: status });
-            // Optimistic update for local state
-            // setEvent(prev => ({
-            //   ...prev!,
-            //   athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, registration_status: status } : a) || [],
-            // }));
           }
         }
       } else {
@@ -210,7 +198,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       dismissToast(toastId);
       showSuccess(`Atletas ${status === 'approved' ? 'aprovados' : 'rejeitados'} com sucesso!`);
       setSelectedAthletesForApproval([]);
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to ${status} athletes: ` + error.message);
@@ -223,11 +211,6 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     try {
       if (isOfflineMode) {
         await trackChange('athletes', 'update', { id: athleteId, attendance_status: status });
-        // Optimistic update for local state
-        // setEvent(prev => ({
-        //   ...prev!,
-        //   athletes: prev!.athletes?.map(a => a.id === athleteId ? { ...a, attendance_status: status } : a) || [],
-        // }));
       } else {
         const { error } = await supabase
           .from('athletes')
@@ -237,7 +220,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
       }
       dismissToast(toastId);
       showSuccess('Attendance updated successfully!');
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to update attendance: ' + error.message);
@@ -248,15 +231,15 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
     if (!eventId) return;
     const toastId = showLoading('Performing check-in...');
     try {
-      const { _division, ...athleteToUpdate } = updatedAthlete; // Remove _division before saving
+      const { _division, ...athleteToUpdate } = updatedAthlete;
       const { error } = await supabase.from('athletes').update({
         check_in_status: athleteToUpdate.check_in_status,
         registered_weight: athleteToUpdate.registered_weight,
-        weight_attempts: athleteToUpdate.weight_attempts, // Envia o array diretamente
-        age_division: athleteToUpdate.age_division, // Update if moved
-        weight_division: athleteToUpdate.weight_division, // Update if moved
-        belt: athleteToUpdate.belt, // Update if moved
-        gender: athleteToUpdate.gender, // Update if moved
+        weight_attempts: athleteToUpdate.weight_attempts,
+        age_division: athleteToUpdate.age_division,
+        weight_division: athleteToUpdate.weight_division,
+        belt: athleteToUpdate.belt,
+        gender: athleteToUpdate.gender,
         moved_to_division_id: athleteToUpdate.moved_to_division_id,
         move_reason: athleteToUpdate.move_reason,
       }).eq('id', updatedAthlete.id);
@@ -265,7 +248,7 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
 
       dismissToast(toastId);
       showSuccess('Check-in successful!');
-      await fetchEventData(); // Refresh data
+      await fetchEventData('refresh'); // Background refresh
     } catch (error: any) {
       dismissToast(toastId);
       showError('Failed to perform check-in: ' + error.message);
@@ -311,11 +294,11 @@ export const useAthleteActions = ({ event, fetchEventData }: UseAthleteActionsPr
 
     handleAthleteUpdate,
     handleDeleteAthlete,
-    handleDeleteSelectedAthletes, // NOVO
+    handleDeleteSelectedAthletes,
     handleApproveReject,
     handleUpdateAthleteAttendance,
     handleCheckInAthlete,
-    handleToggleAthleteSelection, // NOVO
-    handleSelectAllAthletes, // NOVO
+    handleToggleAthleteSelection,
+    handleSelectAllAthletes,
   };
 };
