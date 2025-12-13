@@ -17,14 +17,15 @@ import { showSuccess, showError } from '@/utils/toast';
 import MatCategoryList from '@/components/MatCategory';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  // AlertDialogAction, // Removido para corrigir TS6133
 } from "@/components/ui/alert-dialog";
+import { AlertDialogAction } from "@/components/ui/alert-dialog"; // Importado separadamente para evitar TS6133
 import FightOverview from '@/components/FightOverview';
 import DivisionDetailView from './DivisionDetailView'; // Import the new component
 
@@ -469,7 +470,33 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* REMOVENDO O JSX OBSOLETO QUE CAUSOU OS ERROS 3, 4, 5, 6 e 7 */}
+      <AlertDialog open={showOngoingWarningDialog} onOpenChange={setShowOngoingWarningDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aviso: Categoria em Andamento!</AlertDialogTitle>
+            <AlertDialogDescription>
+              A divisão "{selectedDivisionForDetail?.name}" já possui lutas com resultados registrados.
+              Regerar o bracket desta divisão irá apagar todos os resultados existentes e o progresso das lutas.
+              {userRole === 'admin' ? (
+                <>
+                  <p className="mt-2 font-semibold text-red-600">Esta é uma ação crítica e irreversível.</p>
+                  <p className="mt-1">Tem certeza que deseja continuar como administrador?</p>
+                </>
+              ) : (
+                <p className="mt-2 font-semibold text-red-600">Você não tem permissão para regerar brackets de categorias em andamento.</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowOngoingWarningDialog(false)}>Cancelar</AlertDialogCancel>
+            {userRole === 'admin' && (
+              <AlertDialogAction onClick={() => handleConfirmRegeneration(true)} className="bg-red-600 hover:bg-red-700">
+                Regerar (Admin Override)
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
