@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { uploadFile } from '@/integrations/supabase/storage';
 import { User as UserIcon } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations';
 
 const profileSchema = z.object({
   first_name: z.string().min(2, 'First name is required.'),
@@ -34,6 +35,7 @@ interface Club {
 const Profile: React.FC = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslations();
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loadingClubs, setLoadingClubs] = useState(true);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -126,8 +128,8 @@ const Profile: React.FC = () => {
     <Layout>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-          <CardDescription>Update your personal information and club affiliation.</CardDescription>
+          <CardTitle>{t('yourProfile')}</CardTitle>
+          <CardDescription>{t('updateProfileInfo')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -139,31 +141,31 @@ const Profile: React.FC = () => {
                 </AvatarFallback>
               </Avatar>
               <Label htmlFor="avatar-upload" className="cursor-pointer text-sm text-primary hover:underline">
-                Change Avatar
+                {t('changeAvatar')}
               </Label>
               <Input id="avatar-upload" type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleAvatarChange} />
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label>Email</Label>
+                <Label>{t('email')}</Label>
                 <Input value={user?.email || ''} disabled />
               </div>
               <div>
-                <Label htmlFor="first_name">First Name</Label>
+                <Label htmlFor="first_name">{t('firstName')}</Label>
                 <Input id="first_name" {...register('first_name')} />
                 {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
               </div>
               <div>
-                <Label htmlFor="last_name">Last Name</Label>
+                <Label htmlFor="last_name">{t('lastName')}</Label>
                 <Input id="last_name" {...register('last_name')} />
                 {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
               </div>
               <div>
-                <Label htmlFor="club">Club</Label>
+                <Label htmlFor="club">{t('club')}</Label>
                 <Select onValueChange={(value) => setValue('club', value, { shouldDirty: true })} defaultValue={profile?.club || undefined}>
                   <SelectTrigger id="club">
-                    <SelectValue placeholder="Select your club" />
+                    <SelectValue placeholder={t('selectYourClub')} />
                   </SelectTrigger>
                   <SelectContent>
                     {clubs.map(club => (
@@ -172,7 +174,7 @@ const Profile: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full" disabled={!isDirty && !avatarFile}>Save Changes</Button>
+              <Button type="submit" className="w-full" disabled={!isDirty && !avatarFile}>{t('saveChanges')}</Button>
             </div>
           </form>
         </CardContent>

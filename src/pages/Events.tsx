@@ -15,9 +15,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { isPast, isFuture, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppId } from '@/lib/app-id';
+import { useTranslations } from '@/hooks/use-translations';
 
 const Events: React.FC = () => {
   const { profile } = useAuth();
+  const { t } = useTranslations();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -86,9 +88,9 @@ const Events: React.FC = () => {
   const renderEventCards = (eventList: Event[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {loading ? (
-        <p className="text-muted-foreground col-span-full">Loading events...</p>
+        <p className="text-muted-foreground col-span-full">{t('loadingEvents')}</p>
       ) : eventList.length === 0 ? (
-        <p className="text-muted-foreground col-span-full">No events found in this category.</p>
+        <p className="text-muted-foreground col-span-full">{t('noEventsInCategory')}</p>
       ) : (
         eventList.map((event) => (
           <div key={event.id} className="relative">
@@ -135,19 +137,19 @@ const Events: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Events</h1>
+        <h1 className="text-3xl font-bold">{t('events')}</h1>
         {profile?.role === 'admin' && (
           <Link to="/events/create">
-            <Button>Create New Event</Button>
+            <Button>{t('createNewEvent')}</Button>
           </Link>
         )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
+          <TabsTrigger value="upcoming">{t('upcoming')}</TabsTrigger>
+          <TabsTrigger value="all">{t('all')}</TabsTrigger>
+          <TabsTrigger value="past">{t('past')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="mt-6">

@@ -15,10 +15,12 @@ import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import BiometricLogin from '@/components/BiometricLogin';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations';
 
 const Auth: React.FC = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslations();
   const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgot_password'>('sign_in');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -66,8 +68,8 @@ const Auth: React.FC = () => {
       <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Bem-vindo ao TatamiPro</CardTitle>
-            <CardDescription>Acesse sua conta ou crie uma nova para continuar</CardDescription>
+            <CardTitle className="text-3xl">{t('welcomeToTatamiPro')}</CardTitle>
+            <CardDescription>{t('accessOrCreateAccount')}</CardDescription>
           </CardHeader>
           <CardContent>
             {view === 'forgot_password' ? (
@@ -90,23 +92,23 @@ const Auth: React.FC = () => {
                   }}
                 />
                 <Button variant="link" className="w-full" onClick={() => setView('sign_in')}>
-                  Voltar para o login
+                  {t('backToLogin')}
                 </Button>
               </>
             ) : (
               <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="sign_in">Entrar</TabsTrigger>
-                  <TabsTrigger value="sign_up">Registrar</TabsTrigger>
+                  <TabsTrigger value="sign_in">{t('signIn')}</TabsTrigger>
+                  <TabsTrigger value="sign_up">{t('signUp')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="sign_in">
                   <form onSubmit={handleLogin} className="space-y-4 pt-4">
                     <div>
-                      <Label htmlFor="identifier">E-mail ou Nome de Usuário</Label>
+                      <Label htmlFor="identifier">{t('emailOrUsername')}</Label>
                       <Input
                         id="identifier"
                         type="text"
-                        placeholder="seu@email.com ou seu_usuario"
+                        placeholder={t('yourEmailOrUsernamePlaceholder')}
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
                         required
@@ -114,11 +116,11 @@ const Auth: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="password">Senha</Label>
+                      <Label htmlFor="password">{t('password')}</Label>
                       <Input
                         id="password"
                         type="password"
-                        placeholder="Sua senha"
+                        placeholder={t('yourPasswordPlaceholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -127,12 +129,12 @@ const Auth: React.FC = () => {
                     </div>
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Entrar
+                      {t('signIn')}
                     </Button>
                   </form>
                   <div className="text-center mt-2">
                     <Button variant="link" size="sm" onClick={() => setView('forgot_password')}>
-                      Esqueceu sua senha?
+                      {t('forgotPassword')}
                     </Button>
                   </div>
                   <BiometricLogin />

@@ -4,11 +4,11 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Event } from '../types/index'; // Importação regular para 'Event'
-import type { Division, Bracket, AgeDivisionSetting } from '../types/index'; // Importação de tipo para os demais
+import type { Event, Division, Bracket, AgeDivisionSetting } from '../types/index';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';
+import { useTranslations } from '@/hooks/use-translations';
 
 // Importar os novos hooks
 import { useEventData } from '@/hooks/useEventData';
@@ -26,12 +26,11 @@ import EventStaffTab from '@/components/EventStaffTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 
-// A declaração '_EventDetailEvent' foi removida, pois não é mais necessária.
-
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const { can, role: userRole } = usePermission();
+  const { t } = useTranslations();
   const userClub = profile?.club;
 
   const {
@@ -99,18 +98,18 @@ const EventDetail: React.FC = () => {
   };
 
   const visibleTabs = useMemo(() => [
-    can('event.settings') && { value: 'config', label: 'Config' },
-    can('staff.view') && { value: 'staff', label: 'Equipe' },
-    { value: 'inscricoes', label: 'Inscrições' },
-    (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: 'Attendance' },
-    can('checkin.manage') && { value: 'checkin', label: 'Check-in' },
-    { value: 'brackets', label: 'Brackets' },
-    { value: 'resultados', label: 'Resultados' },
-    { value: 'llm', label: 'IA Chat' },
-  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in]);
+    can('event.settings') && { value: 'config', label: t('config') },
+    can('staff.view') && { value: 'staff', label: t('staff') },
+    { value: 'inscricoes', label: t('registrations') },
+    (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: t('attendance') },
+    can('checkin.manage') && { value: 'checkin', label: t('checkin') },
+    { value: 'brackets', label: t('brackets') },
+    { value: 'resultados', label: t('results') },
+    { value: 'llm', label: t('iaChat') },
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in, t]);
 
-  if (loading) return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
-  if (!event) return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou acesso negado.</div></Layout>;
+  if (loading) return <Layout><div className="text-center text-xl mt-8">{t('loadingEvent')}</div></Layout>;
+  if (!event) return <Layout><div className="text-center text-xl mt-8">{t('eventNotFound')}</div></Layout>;
 
   return (
     <Layout>

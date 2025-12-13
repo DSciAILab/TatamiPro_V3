@@ -17,9 +17,11 @@ import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { getAppId } from '@/lib/app-id';
+import { useTranslations } from '@/hooks/use-translations';
 
 const CreateEvent: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslations();
   const [eventName, setEventName] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
@@ -85,40 +87,40 @@ const CreateEvent: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Create New Event</h1>
-        <Button onClick={() => navigate('/events')} variant="outline">Back to Events</Button>
+        <h1 className="text-3xl font-bold">{t('createNewEvent')}</h1>
+        <Button onClick={() => navigate('/events')} variant="outline">{t('backToEvents')}</Button>
       </div>
 
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>New Event Details</CardTitle>
-          <CardDescription>Fill in the information to create a new championship.</CardDescription>
+          <CardTitle>{t('newEventDetails')}</CardTitle>
+          <CardDescription>{t('fillEventInfo')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreateEvent} className="space-y-4">
             <div>
-              <Label htmlFor="eventName">Event Name</Label>
+              <Label htmlFor="eventName">{t('eventName')}</Label>
               <Input
                 id="eventName"
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
-                placeholder="e.g., Summer Open Championship"
+                placeholder={t('eventNamePlaceholder')}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="eventDescription">Description</Label>
+              <Label htmlFor="eventDescription">{t('description')}</Label>
               <Textarea
                 id="eventDescription"
                 value={eventDescription}
                 onChange={(e) => setEventDescription(e.target.value)}
-                placeholder="A brief description of the event..."
+                placeholder={t('descriptionPlaceholder')}
                 rows={3}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="eventDate">Event Date</Label>
+              <Label htmlFor="eventDate">{t('eventDate')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -129,7 +131,7 @@ const CreateEvent: React.FC = () => {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {eventDate ? format(eventDate, "PPP") : <span>Pick a date</span>}
+                    {eventDate ? format(eventDate, "PPP") : <span>{t('pickADate')}</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -143,7 +145,7 @@ const CreateEvent: React.FC = () => {
               </Popover>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Event'}
+              {loading ? t('creating') : t('createEvent')}
             </Button>
           </form>
         </CardContent>

@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    showSuccess('Logout realizado com sucesso!');
+    showSuccess(t('logoutSuccess'));
     navigate('/auth');
   };
 
@@ -81,21 +81,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>{t('profile')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/account-security')}>
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Security</span>
+                    <span>{t('security')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    <span>{t('logOut')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate('/auth')}>Login</Button>
+              <Button onClick={() => navigate('/auth')}>{t('signIn')}</Button>
             )}
           </div>
         </div>

@@ -9,11 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
+import { useTranslations } from '@/hooks/use-translations';
 
 const BiometricLogin: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslations();
 
   const handleBiometricLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,15 +73,15 @@ const BiometricLogin: React.FC = () => {
   return (
     <div className="space-y-4 pt-4 border-t mt-4">
       <div className="text-center text-sm text-muted-foreground font-medium">
-        Ou entre com Biometria
+        {t('loginWithBiometrics')}
       </div>
       <form onSubmit={handleBiometricLogin} className="space-y-3">
         <div className="space-y-1">
-          <Label htmlFor="bio-identifier">E-mail ou Nome de Usuário</Label>
+          <Label htmlFor="bio-identifier">{t('emailOrUsername')}</Label>
           <Input 
             id="bio-identifier" 
             type="text" 
-            placeholder="seu@email.com ou seu_usuario" 
+            placeholder={t('yourEmailOrUsernamePlaceholder')} 
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             disabled={loading}
@@ -87,7 +89,7 @@ const BiometricLogin: React.FC = () => {
         </div>
         <Button type="submit" variant="outline" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanFace className="mr-2 h-4 w-4" />}
-          Entrar com Face ID / Touch ID
+          {t('signInWithFaceID')}
         </Button>
       </form>
     </div>
