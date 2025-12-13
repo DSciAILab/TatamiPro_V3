@@ -14,14 +14,14 @@ import {
 
 interface DatePickerProps {
   value?: Date;
-  onChange: (date?: Date) => void;
+  onChange: (date: Date | undefined) => void;
+  className?: string;
+  placeholder?: string;
   fromYear?: number;
   toYear?: number;
 }
 
-export function DatePicker({ value, onChange, fromYear, toYear }: DatePickerProps) {
-  const currentYear = new Date().getFullYear();
-  
+export function DatePicker({ value, onChange, className, placeholder = "Select date", fromYear, toYear }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -29,22 +29,23 @@ export function DatePicker({ value, onChange, fromYear, toYear }: DatePickerProp
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            !value && "text-muted-foreground",
+            className
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>Selecione uma data</span>}
+          {value ? format(value, "dd/MM/yyyy") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={value}
           onSelect={onChange}
           initialFocus
           captionLayout="dropdown-buttons"
-          fromYear={fromYear || currentYear - 100}
-          toYear={toYear || currentYear}
+          fromYear={fromYear || 1900}
+          toYear={toYear || new Date().getFullYear()}
         />
       </PopoverContent>
     </Popover>
