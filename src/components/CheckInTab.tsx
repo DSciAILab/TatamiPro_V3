@@ -150,6 +150,12 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
       doc.setFont('helvetica', 'normal');
     };
 
+    const drawCenteredText = (lines: string[], col: { x: number }, currentY: number, totalRowHeight: number) => {
+      const textBlockHeight = lines.length * lineSpacing;
+      const yOffset = (totalRowHeight - textBlockHeight) / 2;
+      doc.text(lines, col.x, currentY + yOffset, { baseline: 'top' });
+    };
+
     doc.setFontSize(fontSize + 4);
     doc.text(`Lista de Check-in - ${event.name}`, pageWidth / 2, y, { align: 'center' });
     y += lineSpacing * 1.5;
@@ -182,12 +188,6 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
         y = 20;
         drawHeader();
       }
-
-      const drawCenteredText = (lines: string[], col: { x: number }, currentY: number, totalRowHeight: number) => {
-        const textBlockHeight = lines.length * lineSpacing;
-        const yOffset = (totalRowHeight - textBlockHeight) / 2;
-        doc.text(lines, col.x, currentY + yOffset);
-      };
 
       drawCenteredText(idLines, cols.id, y, rowHeight);
       drawCenteredText(nameLines, cols.name, y, rowHeight);
