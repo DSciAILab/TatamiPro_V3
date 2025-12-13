@@ -294,9 +294,10 @@ const FightDetail: React.FC = () => {
     navigate(`/events/${eventId}`, { 
       state: { 
         activeTab: 'brackets', 
-        bracketsSubTab: 'manage-fights', // Alterado para manage-fights
+        bracketsSubTab: 'manage-fights',
         selectedMat: currentMatch?._mat_name,
         selectedDivisionId: divisionId,
+        detailTab: 'bracket', // Adiciona o estado para forçar a aba 'bracket' no DivisionDetailView
       } 
     });
   };

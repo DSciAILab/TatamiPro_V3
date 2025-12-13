@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Event, Division, Athlete } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,7 @@ import AthleteListTable from './AthleteListTable';
 import BracketView from './BracketView';
 import FightList from './FightList';
 import { useTranslations } from '@/hooks/use-translations';
+import { useLocation } from 'react-router-dom';
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -19,7 +20,16 @@ interface DivisionDetailViewProps {
 
 const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, isPublic = false }) => {
   const { t } = useTranslations();
+  const location = useLocation();
+  const initialTab = (location.state as any)?.detailTab || 'athletes';
+  
+  const [activeTab, setActiveTab] = useState<'athletes' | 'bracket' | 'fight_order'>(initialTab);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'first_name', direction: 'asc' });
+
+  useEffect(() => {
+    // Reset the active tab if the division changes
+    setActiveTab(initialTab);
+  }, [division.id, initialTab]);
 
   const athletesInDivision = (event.athletes || []).filter(a => a._division?.id === division.id);
   const bracket = event.brackets?.[division.id];
@@ -71,7 +81,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
         </Button>
       </div>
 
-      <Tabs defaultValue="athletes" className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'athletes' | 'bracket' | 'fight_order')} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="athletes">{t('athleteList')}</TabsTrigger>
           <TabsTrigger value="bracket" disabled={!bracket}>{t('bracketView')}</TabsTrigger>
