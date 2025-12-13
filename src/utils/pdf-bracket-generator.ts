@@ -65,8 +65,10 @@ const drawMatch = (
   const paddingX = 2;
   const matchNumSize = 6;
   
-  const nameFontSize = Math.min(9, height * 0.25);
+  const baseNameFontSize = Math.min(9, height * 0.25);
+  const nameFontSize = baseNameFontSize + 1; // Aumenta o tamanho da fonte do nome em 1
   const clubFontSize = Math.min(7, height * 0.18);
+  const idFontSize = Math.min(7, height * 0.18);
 
   let matchLabel = "";
   if (match.mat_fight_number) {
@@ -93,18 +95,21 @@ const drawMatch = (
 
     const name = fighter === 'BYE' ? 'BYE' : `${fighter.first_name} ${fighter.last_name}`;
     const club = fighter !== 'BYE' ? fighter.club : '';
-    const athleteIdShort = fighter !== 'BYE' && fighter ? `(${fighter.id.slice(-6).toUpperCase()}) ` : '';
+    
+    // Usar registration_qr_code_id como o ID impresso
+    const athleteId = fighter !== 'BYE' ? fighter.registration_qr_code_id || fighter.id : '';
+    const idDisplay = athleteId ? `${athleteId.slice(-6).toUpperCase()} ` : '';
 
     // ID
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(nameFontSize - 2);
+    doc.setFontSize(idFontSize);
     doc.setTextColor(100, 100, 100);
-    const idWidth = doc.getTextWidth(athleteIdShort);
-    doc.text(athleteIdShort, x + paddingX, slotY + (slotHeight * 0.45));
+    const idWidth = doc.getTextWidth(idDisplay);
+    doc.text(idDisplay, x + paddingX, slotY + (slotHeight * 0.45));
 
     // Name
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(nameFontSize);
+    doc.setFontSize(nameFontSize); // Usando o tamanho de fonte aumentado
     doc.setTextColor(0, 0, 0);
     const fitName = fitText(doc, name, width - (paddingX * 2) - idWidth);
     doc.text(fitName, x + paddingX + idWidth, slotY + (slotHeight * 0.45));
