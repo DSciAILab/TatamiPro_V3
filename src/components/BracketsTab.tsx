@@ -23,7 +23,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   setBracketsSubTab,
 }) => {
   const [showRegenerationOptionsDialog, setShowRegenerationOptionsDialog] = useState(false);
-  const [selectedMat, setSelectedMat] = useState<string>(''); // Changed from string | null
+  // Fix Error 4: Removed unused setter. Initializing to 'all-mats' for default view.
+  const [selectedMat] = useState<string>('all-mats'); 
   const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
 
   const handleBackFromDivisionDetail = () => {
