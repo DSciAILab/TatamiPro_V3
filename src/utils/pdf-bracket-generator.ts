@@ -2,12 +2,14 @@
 
 import { jsPDF } from 'jspdf';
 import { Event, Division, Bracket, Athlete, Match } from '@/types/index';
+import { format } from 'date-fns';
 
 // --- Constants ---
 const PAGE_WIDTH = 297; // A4 Landscape width
 const PAGE_HEIGHT = 210; // A4 Landscape height
 const MARGIN = 10;
 const HEADER_HEIGHT = 25; // Increased to accommodate round labels
+const FOOTER_HEIGHT = 10; // Space for the footer
 const LINE_COLOR = '#444444';
 const WINNER_BG_COLOR = '#e0f2fe';
 
@@ -176,9 +178,14 @@ const drawBracketLines = (
   });
 };
 
-export const generateBracketPdf = (event: Event, selectedDivisions: Division[], athletesMap: Map<string, Athlete>) => {
+export const generateBracketPdf = (
+  event: Event,
+  selectedDivisions: Division[],
+  athletesMap: Map<string, Athlete>,
+  userName: string
+) => {
   const doc = new jsPDF({
-    orientation: 'l', // Landscape
+    orientation: 'l',
     unit: 'mm',
     format: 'a4'
   });
@@ -197,45 +204,31 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
     const totalRounds = bracket.rounds.length;
     const maxMatchesInColumn = Math.max(...bracket.rounds.map(r => r.length));
 
-    // Available writing area
     const availableWidth = PAGE_WIDTH - (2 * MARGIN);
-    const availableHeight = PAGE_HEIGHT - (2 * MARGIN) - HEADER_HEIGHT;
+    const availableHeight = PAGE_HEIGHT - (2 * MARGIN) - HEADER_HEIGHT - FOOTER_HEIGHT;
 
-    // 1. Determine Width
-    // Formula: TotalWidth = (Rounds * CardW) + ((Rounds-1) * Gap)
-    // Gap = 0.3 * CardW
     const widthFactor = totalRounds + 0.3 * Math.max(0, totalRounds - 1);
     let cardWidth = availableWidth / widthFactor;
     
-    // Clamp Max Width (so 2-person brackets don't have massive boxes)
     const MAX_CARD_WIDTH = 60;
     if (cardWidth > MAX_CARD_WIDTH) cardWidth = MAX_CARD_WIDTH;
     
     const roundGap = cardWidth * 0.3;
 
-    // 2. Determine Height
-    // Formula: TotalHeight = (MaxMatches * CardH) + ((MaxMatches-1) * VGap)
-    // VGap = 0.2 * CardH
     const heightFactor = maxMatchesInColumn + 0.2 * Math.max(0, maxMatchesInColumn - 1);
     let cardHeight = availableHeight / heightFactor;
 
-    // Clamp Height (readability vs fitting)
-    const MAX_CARD_HEIGHT = 22; // Comfortable size
-    const MIN_CARD_HEIGHT = 14; // Minimum readable size
+    const MAX_CARD_HEIGHT = 22;
+    const MIN_CARD_HEIGHT = 14;
 
     if (cardHeight > MAX_CARD_HEIGHT) cardHeight = MAX_CARD_HEIGHT;
-    
-    // If calculated height is too small, we force minimum and center/clip as best as possible
     if (cardHeight < MIN_CARD_HEIGHT) cardHeight = MIN_CARD_HEIGHT; 
 
     const matchVGap = cardHeight * 0.2;
 
-    // Offsets to center content on page
-    const totalContentWidth = (cardWidth * totalRounds) + (roundGap * (totalRounds - 1));
-    const startXOffset = MARGIN + (availableWidth - totalContentWidth) / 2;
+    const startXOffset = MARGIN;
     
     const totalContentHeight = (cardHeight * maxMatchesInColumn) + (matchVGap * (maxMatchesInColumn - 1));
-    // Ensure we start after the header
     const startYOffset = MARGIN + HEADER_HEIGHT + Math.max(0, (availableHeight - totalContentHeight) / 2);
 
     // --- Draw Header (Division Name) ---
@@ -249,10 +242,9 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
     for (let r = 0; r < totalRounds; r++) {
         const roundName = getRoundName(r, totalRounds);
         const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
-        // Draw label above the column
         doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
     }
-    doc.setTextColor(0); // Reset color
+    doc.setTextColor(0);
 
     const matchPositions = new Map<string, { x: number; y: number }>();
 
@@ -263,10 +255,8 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
       round.forEach((match, matchIndex) => {
         let y;
         if (roundIndex === 0) {
-          // First round simply stacks
           y = startYOffset + matchIndex * (cardHeight + matchVGap);
         } else {
-          // Subsequent rounds center on parents
           const p1Id = match.prev_match_ids?.[0];
           const p2Id = match.prev_match_ids?.[1];
           
@@ -298,12 +288,54 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
       }
     });
 
-    // Pass 4: Third Place (Bottom Left or Bottom Right depending on space, usually Bottom Left matches layout)
+    // Pass 4: Podium and Validation Box
+    const finalMatch = bracket.rounds[totalRounds - 1][0];
+    const finalMatchPos = matchPositions.get(finalMatch.id);
+
+    if (finalMatchPos) {
+        let currentY = finalMatchPos.y + cardHeight + 10;
+        const podiumXStart = finalMatchPos.x;
+        const podiumLineWidth = cardWidth;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        const podiumLabels = ['1º Lugar:', '2º Lugar:', '3º Lugar:', '3º Lugar:'];
+        podiumLabels.forEach(label => {
+            if (currentY + 10 > PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) return;
+            doc.text(label, podiumXStart, currentY + 4);
+            doc.setDrawColor(LINE_COLOR);
+            doc.setLineWidth(0.3);
+            doc.line(podiumXStart + 25, currentY + 5, podiumXStart + podiumLineWidth, currentY + 5);
+            currentY += 10;
+        });
+
+        const validationBoxY = currentY + 5;
+        const boxWidth = 70;
+        const boxHeight = 25;
+        const boxX = podiumXStart;
+
+        if (validationBoxY + boxHeight < PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) {
+            doc.setDrawColor(LINE_COLOR);
+            doc.setLineWidth(0.3);
+            doc.rect(boxX, validationBoxY, boxWidth, boxHeight);
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+
+            doc.text('PS Number:', boxX + 3, validationBoxY + 8);
+            doc.line(boxX + 25, validationBoxY + 10, boxX + boxWidth - 3, validationBoxY + 10);
+
+            doc.text('Assinatura:', boxX + 3, validationBoxY + 18);
+            doc.line(boxX + 25, validationBoxY + 20, boxX + boxWidth - 3, validationBoxY + 20);
+        }
+    }
+
+    // Pass 5: Third Place (Bottom Left)
     if (bracket.third_place_match) {
         const tpWidth = cardWidth;
         const tpHeight = cardHeight;
         const tpX = MARGIN;
-        const tpY = PAGE_HEIGHT - MARGIN - tpHeight - 5;
+        const tpY = PAGE_HEIGHT - MARGIN - tpHeight - FOOTER_HEIGHT - 5;
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -312,6 +344,15 @@ export const generateBracketPdf = (event: Event, selectedDivisions: Division[], 
         
         drawMatch(doc, tpX, tpY, tpWidth, tpHeight, bracket.third_place_match, athletesMap);
     }
+
+    // Pass 6: Footer
+    const now = new Date();
+    const printInfo = `Impresso por: ${userName} em ${format(now, 'dd/MM/yyyy HH:mm')}`;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(150);
+    doc.text(printInfo, MARGIN, PAGE_HEIGHT - 5);
+    doc.setTextColor(0);
   });
 
   doc.save(`brackets_${event.name.replace(/\s+/g, '_')}.pdf`);

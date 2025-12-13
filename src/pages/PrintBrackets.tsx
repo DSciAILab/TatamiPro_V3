@@ -14,6 +14,7 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { generateBracketPdf } from '@/utils/pdf-bracket-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
+import { useAuth } from '@/context/auth-context';
 
 const PrintBrackets: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -21,6 +22,7 @@ const PrintBrackets: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -106,7 +108,8 @@ const PrintBrackets: React.FC = () => {
             throw new Error("Nenhuma divisão válida encontrada para imprimir.");
         }
 
-        generateBracketPdf(event, divisionsToPrint, athletesMap);
+        const userName = profile ? `${profile.first_name} ${profile.last_name}` : 'Usuário Desconhecido';
+        generateBracketPdf(event, divisionsToPrint, athletesMap, userName);
         
         dismissToast(loadingToastId);
         showSuccess('PDF dos brackets gerado com sucesso!');
