@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslations } from '@/hooks/use-translations';
+import { cn } from '@/lib/utils';
 
 interface DivisionTableProps {
   divisions: Division[];
@@ -322,7 +323,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           </TableHeader>
           <TableBody>
             {filteredDivisions.map((division) => (
-              <TableRow key={division.id}>
+              <TableRow key={division.id} className={cn(!division.is_enabled && "text-muted-foreground")}>
                 {editingDivisionId === division.id && currentEdit ? (
                   <>
                     <TableCell /> {/* Empty cell for checkbox in edit mode */}
