@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import FightOverview from '@/components/FightOverview';
-import DivisionDetailView from './DivisionDetailView'; // Import the new component
+import DivisionDetailView from './DivisionDetailView';
 
 interface BracketsTabProps {
   event: Event;
@@ -35,7 +35,6 @@ interface BracketsTabProps {
   onUpdateBrackets: (brackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => void;
   bracketsSubTab: string;
   setBracketsSubTab: (value: string) => void;
-  // New props for state restoration
   navSelectedMat: string | null;
   navSelectedDivisionId: string | null;
 }
@@ -59,7 +58,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
   const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
   
-  // State for managing fights view
   const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
   const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
 
@@ -67,18 +65,16 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     setGeneratedBrackets(event.brackets || {});
   }, [event.brackets]);
 
-  // Effect to restore state from navigation (e.g., returning from FightDetail)
   useEffect(() => {
     if (navSelectedMat && navSelectedDivisionId) {
       setSelectedMat(navSelectedMat);
       const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
       if (division) {
         setSelectedDivisionForDetail(division);
-        setBracketsSubTab('manage-fights'); // Restore to manage-fights tab
+        setBracketsSubTab('manage-fights');
       }
     }
   }, [navSelectedMat, navSelectedDivisionId, event.divisions, setBracketsSubTab]);
-
 
   const availableDivisionsForBracketGeneration = useMemo(() => {
     if (!event) return [];
@@ -103,23 +99,18 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       showError("Evento não carregado.");
       return;
     }
-
     const newBrackets: Record<string, Bracket> = {};
     const includeThirdPlaceFromEvent = event.include_third_place || false;
-
     try {
       divisionsToGenerate.forEach(div => {
         const bracket = generateBracketForDivision(div, event.athletes || [], { thirdPlace: includeThirdPlaceFromEvent });
         newBrackets[div.id] = bracket;
       });
-
       const mergedBrackets = { ...event.brackets, ...newBrackets };
-
       const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
         ...event,
         brackets: mergedBrackets,
       });
-
       onUpdateBrackets(finalBrackets, newMatFightOrder);
       showSuccess(`${divisionsToGenerate.length} bracket(s) gerado(s) com sucesso!`);
     } catch (error: any) {
@@ -133,27 +124,22 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       showError("Evento não carregado.");
       return;
     }
-
     let divisionsToConsider: Division[] = [];
     if (selectedDivisionIdForBracket === 'all') {
       divisionsToConsider = availableDivisionsForBracketGeneration;
     } else {
       const division = availableDivisionsForBracketGeneration.find(d => d.id === selectedDivisionIdForBracket);
-      if (division) {
-        divisionsToConsider.push(division);
-      } else {
+      if (division) divisionsToConsider.push(division);
+      else {
         showError("Divisão selecionada não encontrada ou não tem atletas suficientes.");
         return;
       }
     }
-
     if (divisionsToConsider.length === 0) {
       showError("Nenhuma divisão com atletas suficientes para gerar brackets.");
       return;
     }
-
     const divisionsWithOngoingFights = divisionsToConsider.filter(div => hasOngoingFights(div.id));
-
     if (selectedDivisionIdForBracket !== 'all' && divisionsWithOngoingFights.length > 0) {
       if (userRole === 'admin') {
         setDivisionToRegenerateOngoing(divisionsWithOngoingFights[0]);
@@ -163,10 +149,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       }
       return;
     }
-
     const divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
     const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => event.brackets?.[div.id]);
-
     if (divisionsThatWillBeRegenerated.length > 0) {
       setDivisionsToConfirmRegenerate(divisionsThatWillBeRegenerated);
       setShowRegenerateConfirmDialog(true);
@@ -182,9 +166,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   const confirmRegenerateOngoingAction = () => {
-    if (divisionToRegenerateOngoing) {
-      executeBracketGeneration([divisionToRegenerateOngoing]);
-    }
+    if (divisionToRegenerateOngoing) executeBracketGeneration([divisionToRegenerateOngoing]);
     setShowOngoingWarningDialog(false);
     setDivisionToRegenerateOngoing(null);
   };
@@ -197,38 +179,13 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
   const handleSelectCategory = (_categoryKey: string, divisionId: string) => {
     const division = event.divisions?.find(d => d.id === divisionId);
-    if (division) {
-      setSelectedDivisionForDetail(division);
-      // Stay on manage-fights tab
-    }
+    if (division) setSelectedDivisionForDetail(division);
   };
 
-  // Function to handle back navigation from DivisionDetailView
   const handleBackFromDivisionDetail = () => {
     setSelectedDivisionForDetail(null);
-    // If we came from FightOverview (which is now removed), we default back to manage-fights
-    setBracketsSubTab('manage-fights'); 
+    setBracketsSubTab('manage-fights');
   };
-
-  // If a division is selected for detail, render the detail view directly within the tab content
-  if (selectedDivisionForDetail) {
-    return (
-      <Card>
-        <CardHeader>
-          {/* FIX 1: Use non-null assertion (!) */}
-          <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail.name}</CardTitle>
-          <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DivisionDetailView
-            event={event}
-            division={selectedDivisionForDetail}
-            onBack={handleBackFromDivisionDetail}
-          />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -241,20 +198,12 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="mat-distribution">Distribuição dos Mats</TabsTrigger>
-              <TabsTrigger value="generate-brackets">
-                <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets
-              </TabsTrigger>
-              <TabsTrigger value="manage-fights">
-                <Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas
-              </TabsTrigger>
+              <TabsTrigger value="generate-brackets"><LayoutGrid className="mr-2 h-4 w-4" /> Gerar Brackets</TabsTrigger>
+              <TabsTrigger value="manage-fights"><Swords className="mr-2 h-4 w-4" /> Gerenciar Lutas</TabsTrigger>
             </TabsList>
 
             <TabsContent value="mat-distribution" className="mt-6">
-              <MatDistribution
-                event={event}
-                onUpdateMatAssignments={handleUpdateMatAssignments}
-                isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
-              />
+              <MatDistribution event={event} onUpdateMatAssignments={handleUpdateMatAssignments} isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true} />
             </TabsContent>
 
             <TabsContent value="generate-brackets" className="mt-6">
@@ -267,28 +216,19 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                   <div>
                     <Label htmlFor="division-select">Divisão</Label>
                     <Select value={selectedDivisionIdForBracket} onValueChange={(value: string | 'all') => setSelectedDivisionIdForBracket(value)}>
-                      <SelectTrigger id="division-select">
-                        <SelectValue placeholder="Selecione uma divisão ou todas" />
-                      </SelectTrigger>
+                      <SelectTrigger id="division-select"><SelectValue placeholder="Selecione uma divisão ou todas" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todas as Divisões</SelectItem>
-                        {availableDivisionsForBracketGeneration.map(div => (
-                          <SelectItem key={div.id} value={div.id}>{div.name}</SelectItem>
-                        ))}
+                        {availableDivisionsForBracketGeneration.map(div => (<SelectItem key={div.id} value={div.id}>{div.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleGenerateBrackets} className="w-full">
-                    <LayoutGrid className="mr-2 h-4 w-4" /> Gerar Bracket(s)
-                  </Button>
+                  <Button onClick={handleGenerateBrackets} className="w-full"><LayoutGrid className="mr-2 h-4 w-4" /> Gerar Bracket(s)</Button>
                   {Object.keys(generatedBrackets).length > 0 && (
-                    <Button className="w-full mt-2" variant="outline" onClick={() => navigate(`/events/${event.id}/print-brackets`)}>
-                      <Printer className="mr-2 h-4 w-4" /> Imprimir Brackets (PDF)
-                    </Button>
+                    <Button className="w-full mt-2" variant="outline" onClick={() => navigate(`/events/${event.id}/print-brackets`)}><Printer className="mr-2 h-4 w-4" /> Imprimir Brackets (PDF)</Button>
                   )}
                 </CardContent>
               </Card>
-
               <h2 className="text-2xl font-bold mt-8 mb-4">Brackets Gerados</h2>
               {Object.keys(generatedBrackets).length === 0 ? (
                 <p className="text-muted-foreground">Nenhum bracket gerado ainda. Use as opções acima para começar.</p>
@@ -297,15 +237,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                   {Object.values(generatedBrackets).map(bracket => {
                     const division = event?.divisions?.find(d => d.id === bracket.division_id);
                     if (!division) return null;
-                    return (
-                      <BracketView
-                        key={bracket.id}
-                        bracket={bracket}
-                        allAthletes={event.athletes || []}
-                        division={division}
-                        eventId={event.id}
-                      />
-                    );
+                    return (<BracketView key={bracket.id} bracket={bracket} allAthletes={event.athletes || []} division={division} eventId={event.id} />);
                   })}
                 </div>
               )}
@@ -315,15 +247,11 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               {selectedDivisionForDetail ? (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Detalhes da Divisão: {selectedDivisionForDetail.name}</CardTitle>
+                    <CardTitle>Gerenciamento de Lutas: {selectedDivisionForDetail.name}</CardTitle>
                     <CardDescription>Gerencie a lista de atletas, o bracket e a ordem de lutas.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <DivisionDetailView
-                      event={event}
-                      division={selectedDivisionForDetail}
-                      onBack={handleBackFromDivisionDetail}
-                    />
+                    <DivisionDetailView event={event} division={selectedDivisionForDetail} onBack={handleBackFromDivisionDetail} />
                   </CardContent>
                 </Card>
               ) : (
@@ -336,47 +264,25 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                     <CardContent className="space-y-4">
                       <div>
                         <Label htmlFor="mat-select">Área de Luta (Mat)</Label>
-                        <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => {
-                          setSelectedMat(value);
-                          setSelectedDivisionForDetail(null); // Reset division detail when mat changes
-                        }}>
-                          <SelectTrigger id="mat-select">
-                            <SelectValue placeholder="Selecione um Mat" />
-                          </SelectTrigger>
+                        <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => { setSelectedMat(value); setSelectedDivisionForDetail(null); }}>
+                          <SelectTrigger id="mat-select"><SelectValue placeholder="Selecione um Mat" /></SelectTrigger>
                           <SelectContent>
-                            {matNames.map(mat => (
-                              <SelectItem key={mat} value={mat}>
-                                {mat === 'all-mats' ? 'Todas as Áreas' : mat}
-                              </SelectItem>
-                            ))}
+                            {matNames.map(mat => (<SelectItem key={mat} value={mat}>{mat === 'all-mats' ? 'Todas as Áreas' : mat}</SelectItem>))}
                           </SelectContent>
                         </Select>
                       </div>
-
                       {selectedMat && (
-                        <MatCategoryList
-                          event={event}
-                          selectedMat={selectedMat}
-                          selectedCategoryKey={selectedDivisionForDetail ? selectedDivisionForDetail.id : null}
-                          onSelectCategory={handleSelectCategory}
-                        />
+                        <MatCategoryList event={event} selectedMat={selectedMat} selectedCategoryKey={null} onSelectCategory={handleSelectCategory} />
                       )}
                     </CardContent>
                   </Card>
-                  
                   <Card className="mt-6">
                     <CardHeader>
                       <CardTitle>Visão Geral das Lutas</CardTitle>
                       <CardDescription>Lista de todas as categorias com seus mats atribuídos. Clique em uma linha para ver os detalhes.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <FightOverview
-                        event={event}
-                        onDivisionSelect={(division) => {
-                          setSelectedMat('all-mats'); 
-                          setSelectedDivisionForDetail(division);
-                        }}
-                      />
+                      <FightOverview event={event} onDivisionSelect={(division) => { setSelectedMat('all-mats'); setSelectedDivisionForDetail(division); }} />
                     </CardContent>
                   </Card>
                 </>
@@ -385,7 +291,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           </Tabs>
         )}
       </CardContent>
-
       <AlertDialog open={showRegenerateConfirmDialog} onOpenChange={setShowRegenerateConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -394,9 +299,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               Você selecionou divisões que já possuem brackets gerados. Regerá-los irá apagar os brackets atuais e quaisquer resultados de lutas não iniciadas.
               {divisionsToConfirmRegenerate.length > 0 && (
                 <ul className="list-disc list-inside mt-2">
-                  {divisionsToConfirmRegenerate.map(div => (
-                    <li key={div.id} className="font-medium">{div.name}</li>
-                  ))}
+                  {divisionsToConfirmRegenerate.map(div => (<li key={div.id} className="font-medium">{div.name}</li>))}
                 </ul>
               )}
               Tem certeza que deseja continuar?
@@ -408,7 +311,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <AlertDialog open={showOngoingWarningDialog} onOpenChange={setShowOngoingWarningDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -429,9 +331,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowOngoingWarningDialog(false)}>Cancelar</AlertDialogCancel>
             {userRole === 'admin' && (
-              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-red-600 hover:bg-red-700">
-                Regerar (Admin Override)
-              </AlertDialogAction>
+              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-red-600 hover:bg-red-700">Regerar (Admin Override)</AlertDialogAction>
             )}
           </AlertDialogFooter>
         </AlertDialogContent>

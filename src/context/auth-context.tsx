@@ -10,6 +10,7 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'coach' | 'staff' | 'athlete';
   club: string | null;
+  prefers_wide_layout?: boolean; // Added this line
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>; // Added this line
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, role, club, avatar_url')
+      .select('first_name, last_name, role, club, avatar_url, prefers_wide_layout') // Added prefers_wide_layout
       .eq('id', userId)
       .single();
     
@@ -41,6 +43,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setProfile(data);
     }
   }, []);
+
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating profile:", error);
+    } else {
+      setProfile(data); // Optimistically update local state
+    }
+  };
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
@@ -59,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        if (_event !== 'USER_UPDATED') { // Avoid re-fetching on simple metadata updates
+        if (_event !== 'USER_UPDATED') {
           setLoading(true);
           await fetchProfile(session.user.id);
           setLoading(false);
@@ -79,6 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     user,
     profile,
     loading,
+    updateProfile, // Expose the update function
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;

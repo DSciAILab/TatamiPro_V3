@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import { useAuth } from './auth-context';
 
 interface LayoutSettingsContextType {
   isWideLayout: boolean;
@@ -10,19 +11,15 @@ interface LayoutSettingsContextType {
 const LayoutSettingsContext = createContext<LayoutSettingsContextType | undefined>(undefined);
 
 export const LayoutSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isWideLayout, setIsWideLayout] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const storedValue = localStorage.getItem('app-wide-layout');
-      return storedValue ? JSON.parse(storedValue) : false;
-    }
-    return false;
-  });
+  const { profile, updateProfile } = useAuth();
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('app-wide-layout', JSON.stringify(isWideLayout));
+  const isWideLayout = profile?.prefers_wide_layout || false;
+
+  const setIsWideLayout = useCallback((value: boolean) => {
+    if (profile) {
+      updateProfile({ prefers_wide_layout: value });
     }
-  }, [isWideLayout]);
+  }, [profile, updateProfile]);
 
   return (
     <LayoutSettingsContext.Provider value={{ isWideLayout, setIsWideLayout }}>
