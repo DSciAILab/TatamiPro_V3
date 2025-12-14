@@ -1,0 +1,2 @@
+# Ignore Supabase Edge Functions directory as they are deployed separately
+supabase/
