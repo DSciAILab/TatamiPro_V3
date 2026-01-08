@@ -84,15 +84,22 @@ class ConnectionManager {
 
   // Check if Supabase is reachable
   private async checkCloudConnection(): Promise<boolean> {
-    if (!this._supabaseUrl) return false;
+    if (!this._supabaseUrl) {
+      console.log('[ConnectionManager] No Supabase URL configured');
+      return false;
+    }
     
     try {
       const response = await fetch(`${this._supabaseUrl}/rest/v1/`, {
         method: 'HEAD',
         signal: AbortSignal.timeout(3000)
       });
-      return response.ok;
-    } catch {
+      // 401 means Supabase is reachable but needs auth - that's OK, we're online!
+      const isReachable = response.ok || response.status === 401;
+      console.log(`[ConnectionManager] Cloud check: ${response.status} - reachable: ${isReachable}`);
+      return isReachable;
+    } catch (err) {
+      console.log('[ConnectionManager] Cloud check failed:', err);
       return false;
     }
   }
@@ -240,7 +247,7 @@ class ConnectionManager {
 // Singleton instance
 export const connectionManager = new ConnectionManager({
   localServerUrl: import.meta.env.VITE_LOCAL_SERVER_URL || 'http://localhost:3001',
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://otqzzllevufcxbpeavmo.supabase.co',
   autoDetect: true
 });
 

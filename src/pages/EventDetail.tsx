@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '@/types/index';
@@ -30,6 +31,7 @@ const EventDetail: React.FC = () => {
   const location = useLocation();
   const { profile, loading: authLoading } = useAuth();
   const { can, role: userRole } = usePermission();
+  const queryClient = useQueryClient();
   
   const userClub = profile?.club;
   
@@ -245,7 +247,45 @@ const EventDetail: React.FC = () => {
   };
 
   const handleDeleteAthlete = async (_id: string) => { /* Stub */ };
-  const handleApproveReject = async (_status: any) => { /* Stub */ };
+  
+  const handleApproveReject = async (status: 'approved' | 'rejected') => {
+    if (!event || !eventId || selectedAthletesForApproval.length === 0) {
+      showError('No athletes selected for approval/rejection.');
+      return;
+    }
+    
+    const toastId = showLoading(`Updating ${selectedAthletesForApproval.length} athlete(s)...`);
+    
+    try {
+      const { error } = await supabase
+        .from('sjjp_athletes')
+        .update({ registration_status: status })
+        .in('id', selectedAthletesForApproval);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a =>
+            selectedAthletesForApproval.includes(a.id)
+              ? { ...a, registration_status: status }
+              : a
+          )
+        };
+      });
+      
+      dismissToast(toastId);
+      showSuccess(`${selectedAthletesForApproval.length} athlete(s) ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
+      setSelectedAthletesForApproval([]);
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Failed to update athletes: ${error.message}`);
+      console.error('Approve/Reject error:', error);
+    }
+  };
   
   const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
     console.log('[ATTENDANCE] Updating attendance for athlete:', athleteId, 'to status:', status);
@@ -281,7 +321,70 @@ const EventDetail: React.FC = () => {
     }
   };
   
-  const handleCheckInAthlete = async (_athlete: Athlete) => { /* Stub */ };
+  const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
+    if (!event || !eventId) return;
+    
+    console.log('[CheckIn] Updating athlete:', updatedAthlete.id, 'to status:', updatedAthlete.check_in_status);
+    console.log('[CheckIn] Weight:', updatedAthlete.registered_weight, 'Attempts:', updatedAthlete.weight_attempts?.length);
+    
+    try {
+      // Prepare update payload with all check-in related fields
+      const updatePayload: Record<string, any> = {
+        check_in_status: updatedAthlete.check_in_status,
+        registered_weight: updatedAthlete.registered_weight,
+        weight_attempts: updatedAthlete.weight_attempts,
+      };
+      
+      // Include division move fields if they exist
+      if (updatedAthlete.moved_to_division_id !== undefined) {
+        updatePayload.moved_to_division_id = updatedAthlete.moved_to_division_id;
+      }
+      if (updatedAthlete.move_reason !== undefined) {
+        updatePayload.move_reason = updatedAthlete.move_reason;
+      }
+      
+      const { data, error } = await supabase
+        .from('sjjp_athletes')
+        .update(updatePayload)
+        .eq('id', updatedAthlete.id)
+        .select();
+      
+      console.log('[CheckIn] Update result - data:', data, 'error:', error);
+      
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        console.error('[CheckIn] No data returned - possible RLS issue');
+        showError('Check-in update failed - no data returned. Check database permissions.');
+        return;
+      }
+      
+      // Update local state immediately for optimistic UI
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a =>
+            a.id === updatedAthlete.id ? { ...a, ...updatedAthlete } : a
+          )
+        };
+      });
+      
+      // Invalidate the cache to ensure fresh data on next render
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      
+      const statusMessage = updatedAthlete.check_in_status === 'checked_in' 
+        ? 'checked in' 
+        : updatedAthlete.check_in_status === 'overweight'
+          ? 'marked as overweight'
+          : 'check-in cancelled';
+      
+      showSuccess(`${updatedAthlete.first_name} ${updatedAthlete.last_name} ${statusMessage} successfully!`);
+    } catch (error: any) {
+      showError(`Failed to update check-in: ${error.message}`);
+      console.error('[CheckIn] Error:', error);
+    }
+  };
 
 
 

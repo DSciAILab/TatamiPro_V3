@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import { parseISO, parse, isValid } from "date-fns";
 import { z } from "zod";
@@ -31,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { showError, showLoading, dismissToast } from "@/utils/toast";
+import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { Belt, Gender, AgeDivisionSetting } from "@/types/index";
 import { getAgeDivision, getWeightDivision } from "@/utils/athlete-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,6 +197,7 @@ interface ImportResult {
 const BatchAthleteImport: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMapping, setColumnMapping] = useState<
@@ -395,14 +397,33 @@ const BatchAthleteImport: React.FC = () => {
     });
 
     if (successfulAthletesForDb.length > 0) {
-      const { error } = await supabase
+      console.log('[BatchImport] Tentando inserir', successfulAthletesForDb.length, 'atletas');
+      console.log('[BatchImport] Primeiro atleta:', successfulAthletesForDb[0]);
+      
+      const { data: insertedData, error } = await supabase
         .from("sjjp_athletes")
-        .insert(successfulAthletesForDb);
+        .insert(successfulAthletesForDb)
+        .select();
+        
       if (error) {
+        console.error('[BatchImport] Erro ao inserir:', error);
         dismissToast(loadingToast);
-        showError(`Erro ao salvar no banco de dados: ${error.message}`);
+        showError(`Erro ao salvar no banco de dados: ${error.message} (Code: ${error.code})`);
         return;
       }
+      
+      console.log('[BatchImport] Dados inseridos:', insertedData?.length || 0, 'registros');
+      
+      if (!insertedData || insertedData.length === 0) {
+        console.warn('[BatchImport] Insert retornou sem dados - possível problema de RLS');
+        dismissToast(loadingToast);
+        showError('Os atletas foram processados mas não foram salvos. Verifique as permissões do banco de dados.');
+        return;
+      }
+      
+      // Invalidate event cache so athletes appear immediately
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      showSuccess(`${insertedData.length} atletas importados com sucesso!`);
     }
 
     dismissToast(loadingToast);

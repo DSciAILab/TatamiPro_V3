@@ -18,8 +18,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getAppId } from '@/lib/app-id';
 
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
-  'kids 1': { min: 4, max: 6 }, 'kids 2': { min: 7, max: 8 }, 'kids 3': { min: 9, max: 10 },
-  'infant': { min: 11, max: 12 }, 'junior': { min: 13, max: 14 }, 'teen': { min: 15, max: 15 },
+  'kids 1': { min: 4, max: 5 }, 'kids 2': { min: 6, max: 7 }, 'kids 3': { min: 8, max: 9 },
+  'infant': { min: 10, max: 11  }, 'junior': { min: 12, max: 13 }, 'teen': { min: 14, max: 15 },
   'juvenile': { min: 16, max: 17 }, 'adulto': { min: 18, max: 29 }, 'adult': { min: 18, max: 29 },
   'master': { min: 30, max: 99 },
 };
