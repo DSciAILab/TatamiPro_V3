@@ -5,10 +5,9 @@ import { Event, Athlete } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QrCodeIcon, Barcode, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { QrCodeIcon, Barcode, Download } from 'lucide-react';
 import CheckInTable from '@/features/events/components/CheckInTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import QrScanner from '@/components/QrScanner';
 import { FaceCapture } from '@/components/face/FaceCapture';
 import { showSuccess, showError } from '@/utils/toast';
@@ -99,135 +98,126 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Column - QR Scanner & Athletes Table */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div
-                className={cn(
-                  "p-3 border rounded-md cursor-pointer transition-colors",
-                  checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-                  checkInFilter === 'checked_in' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
-                )}
-                onClick={() => setCheckInFilter('checked_in')}
-              >
-                <p className="text-2xl font-bold text-green-600">{totalCheckedIn}</p>
-                <p className="text-sm text-muted-foreground">Checked In</p>
-              </div>
-              <div
-                className={cn(
-                  "p-3 border rounded-md cursor-pointer transition-colors",
-                  checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-                  checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
-                )}
-                onClick={() => setCheckInFilter('pending')}
-              >
-                <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
-                <p className="text-sm text-muted-foreground">Remaining</p>
-              </div>
-              <div
-                className={cn(
-                  "p-3 border rounded-md cursor-pointer transition-colors",
-                  checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-                  checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
-                )}
-                onClick={() => setCheckInFilter('all')}
-              >
-                <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
-                <p className="text-sm text-muted-foreground">Total Approved</p>
-              </div>
-            </div>
-
-            {/* QR/Barcode Scanner Buttons */}
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              {event.check_in_scan_mode === 'qr' && (
-                <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-auto">
-                      <QrCodeIcon className="mr-2 h-4 w-4" /> Scan QR
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Scan Athlete QR Code</DialogTitle>
-                    </DialogHeader>
-                    <QrScanner
-                      onScanSuccess={(qrCodeId) => {
-                        const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
-                        if (athlete) {
-                          setScannedAthleteId(qrCodeId);
-                          setSearchTerm('');
-                          showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
-                          setIsScannerOpen(false);
-                        } else {
-                          showError('QR Code not recognized or athlete not found.');
-                        }
-                      }}
-                    />
-                  </DialogContent>
-                </Dialog>
+        <div className="space-y-6">
+          {/* Stats Cards - Full Width */}
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div
+              className={cn(
+                "p-3 border rounded-md cursor-pointer transition-colors",
+                checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+                checkInFilter === 'checked_in' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
               )}
-              {event.check_in_scan_mode === 'barcode' && (
-                <div className="flex-1">
-                  <Button variant="outline" className="w-full" disabled>
-                    <Barcode className="mr-2 h-4 w-4" /> Scan Barcode (Coming Soon)
+              onClick={() => setCheckInFilter('checked_in')}
+            >
+              <p className="text-2xl font-bold text-green-600">{totalCheckedIn}</p>
+              <p className="text-sm text-muted-foreground">Checked In</p>
+            </div>
+            <div
+              className={cn(
+                "p-3 border rounded-md cursor-pointer transition-colors",
+                checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
+                checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
+              )}
+              onClick={() => setCheckInFilter('pending')}
+            >
+              <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
+              <p className="text-sm text-muted-foreground">Remaining</p>
+            </div>
+            <div
+              className={cn(
+                "p-3 border rounded-md cursor-pointer transition-colors",
+                checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
+                checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
+              )}
+              onClick={() => setCheckInFilter('all')}
+            >
+              <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
+              <p className="text-sm text-muted-foreground">Total Approved</p>
+            </div>
+          </div>
+
+          {/* Action Buttons Row - QR Scanner, Barcode, Face ID */}
+          <div className="flex flex-wrap gap-4 items-center">
+            {event.check_in_scan_mode === 'qr' && (
+              <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <QrCodeIcon className="mr-2 h-4 w-4" /> Scan QR
                   </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Athletes Table */}
-            <CheckInTable
-              athletes={filteredAthletesForCheckIn}
-              event={event}
-              isCheckInAllowedGlobally={!!isCheckInAllowedGlobally}
-              onCheckIn={handleCheckInAthlete}
-              searchTerm={searchTerm}
-              onSearchChange={(term) => {
-                setSearchTerm(term);
-                setScannedAthleteId(null);
-              }}
-              viewMode={viewMode === 'table' ? 'list' : 'grid'}
-              onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
-            />
-          </div>
-
-          {/* Side Column - Face Capture (Beta) */}
-          <div className="lg:col-span-1">
-            <Collapsible open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <CardTitle className="flex items-center justify-between text-lg">
-                      <span>Face ID</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
-                          Beta
-                        </Badge>
-                        {isFaceCaptureOpen ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                    </CardTitle>
-                    <CardDescription>
-                      {isFaceCaptureOpen 
-                        ? 'Capture athlete face for identity verification'
-                        : 'Click to expand Face ID capture'
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Scan Athlete QR Code</DialogTitle>
+                  </DialogHeader>
+                  <QrScanner
+                    onScanSuccess={(qrCodeId) => {
+                      const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
+                      if (athlete) {
+                        setScannedAthleteId(qrCodeId);
+                        setSearchTerm('');
+                        showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
+                        setIsScannerOpen(false);
+                      } else {
+                        showError('QR Code not recognized or athlete not found.');
                       }
-                    </CardDescription>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    <FaceCapture onCapture={handleFaceCapture} />
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {event.check_in_scan_mode === 'barcode' && (
+              <Button variant="outline" size="sm" disabled>
+                <Barcode className="mr-2 h-4 w-4" /> Scan Barcode (Coming Soon)
+              </Button>
+            )}
+
+            {/* Face ID Dialog Button */}
+            <Dialog open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="9" cy="10" r="1.5" />
+                    <circle cx="15" cy="10" r="1.5" />
+                    <path d="M9 16c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
+                  </svg>
+                  Face ID
+                  <Badge variant="outline" className="ml-1 bg-amber-50 text-amber-700 border-amber-300 text-xs">
+                    Beta
+                  </Badge>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    Face ID Check-in
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                      Beta
+                    </Badge>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <FaceCapture onCapture={handleFaceCapture} />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
+
+          {/* Athletes Table - Full Width */}
+          <CheckInTable
+            athletes={filteredAthletesForCheckIn}
+            event={event}
+            isCheckInAllowedGlobally={!!isCheckInAllowedGlobally}
+            onCheckIn={handleCheckInAthlete}
+            searchTerm={searchTerm}
+            onSearchChange={(term) => {
+              setSearchTerm(term);
+              setScannedAthleteId(null);
+            }}
+            viewMode={viewMode === 'table' ? 'list' : 'grid'}
+            onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
+          />
         </div>
       )}
     </div>

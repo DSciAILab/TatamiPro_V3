@@ -9,10 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy, Phone } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy, Phone, QrCode, Users } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { usePermission } from '@/hooks/use-permission';
 import Papa from 'papaparse';
+import StaffAccessGenerator from '@/components/StaffAccessGenerator';
 
 interface EventStaffTabProps {
   eventId: string;
@@ -313,13 +315,28 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Equipe do Evento</span>
-          <div className="flex gap-2">
-            {canManageStaff && (
-              <>
+    <div className="space-y-6">
+      <Tabs defaultValue="team" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Equipe
+          </TabsTrigger>
+          <TabsTrigger value="quick-access" className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            Acesso Rápido (QR)
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Equipe */}
+        <TabsContent value="team">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Equipe do Evento</span>
+                <div className="flex gap-2">
+                  {canManageStaff && (
+                    <>
                 <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline"><FileUp className="mr-2 h-4 w-4" /> Importar CSV</Button>
@@ -517,6 +534,14 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         </DialogContent>
       </Dialog>
     </Card>
+        </TabsContent>
+
+        {/* Tab: Acesso Rápido (QR) */}
+        <TabsContent value="quick-access">
+          <StaffAccessGenerator eventId={eventId} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

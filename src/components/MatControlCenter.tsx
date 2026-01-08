@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Event, Division } from '@/types/index';
+import { Event, Division, Athlete, Bracket, Match } from '@/types/index';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Search, Clock, Swords, ChevronDown, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, Clock, Swords, ChevronDown, ChevronRight, ArrowUpDown, Trophy, Medal, UserRound } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MatControlCenterProps {
@@ -37,10 +38,115 @@ type SortDirection = 'asc' | 'desc';
 
 const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedMats, setExpandedMats] = useState<Set<string>>(new Set());
+  
+  // Persist expanded mats state in localStorage
+  const [expandedMats, setExpandedMats] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`matControl_expanded_${event.id}`);
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch {
+          return new Set();
+        }
+      }
+    }
+    return new Set();
+  });
+  
   const [sortKey, setSortKey] = useState<SortKey>('category');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'finished'>('all');
+  
+  // State for expanded divisions (to show athletes inline)
+  const [expandedDivisions, setExpandedDivisions] = useState<Set<string>>(new Set());
+  
+  // Persist status filter in localStorage
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'finished'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`matControl_filter_${event.id}`);
+      if (saved && ['all', 'active', 'finished'].includes(saved)) {
+        return saved as 'all' | 'active' | 'finished';
+      }
+    }
+    return 'all';
+  });
+
+  // Save expanded mats to localStorage whenever it changes
+  const updateExpandedMats = (newExpanded: Set<string>) => {
+    setExpandedMats(newExpanded);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`matControl_expanded_${event.id}`, JSON.stringify([...newExpanded]));
+    }
+  };
+
+  // Save status filter to localStorage whenever it changes
+  const updateStatusFilter = (newFilter: 'all' | 'active' | 'finished') => {
+    setStatusFilter(newFilter);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`matControl_filter_${event.id}`, newFilter);
+    }
+  };
+
+  // Toggle division expansion
+  const toggleDivisionExpansion = (divisionId: string) => {
+    const newExpanded = new Set(expandedDivisions);
+    if (newExpanded.has(divisionId)) {
+      newExpanded.delete(divisionId);
+    } else {
+      newExpanded.add(divisionId);
+    }
+    setExpandedDivisions(newExpanded);
+  };
+
+  // Get athlete status in bracket
+  interface AthleteStatus {
+    placing: '1st' | '2nd' | '3rd' | 'eliminated' | 'active';
+    eliminatedInFight?: number;
+    eliminatedByName?: string;
+  }
+
+  const getAthleteStatusInBracket = (athleteId: string, bracket: Bracket): AthleteStatus => {
+    // Check if winner
+    if (bracket.winner_id === athleteId) {
+      return { placing: '1st' };
+    }
+    // Check if runner-up
+    if (bracket.runner_up_id === athleteId) {
+      return { placing: '2nd' };
+    }
+    // Check if third place
+    if (bracket.third_place_winner_id === athleteId) {
+      return { placing: '3rd' };
+    }
+    
+    // Check if eliminated - find the match where they lost
+    const allMatches = bracket.rounds.flat();
+    if (bracket.third_place_match) {
+      allMatches.push(bracket.third_place_match);
+    }
+    
+    for (const match of allMatches) {
+      if (match.loser_id === athleteId && match.winner_id) {
+        const winnerAthlete = event.athletes?.find(a => a.id === match.winner_id);
+        return {
+          placing: 'eliminated',
+          eliminatedInFight: match.mat_fight_number,
+          eliminatedByName: winnerAthlete ? `${winnerAthlete.first_name} ${winnerAthlete.last_name}` : undefined
+        };
+      }
+    }
+    
+    return { placing: 'active' };
+  };
+
+  // Get athletes for a division
+  const getAthletesForDivision = (divisionId: string): Athlete[] => {
+    return (event.athletes || []).filter(a => {
+      if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') return false;
+      const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+      return effectiveDivisionId === divisionId;
+    });
+  };
 
   // Build mat groups with fight data
   const matGroups = useMemo(() => {
@@ -233,15 +339,15 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
     } else {
       newExpanded.add(matName);
     }
-    setExpandedMats(newExpanded);
+    updateExpandedMats(newExpanded);
   };
 
   const expandAll = () => {
-    setExpandedMats(new Set(filteredGroups.map(g => g.matName)));
+    updateExpandedMats(new Set(filteredGroups.map(g => g.matName)));
   };
 
   const collapseAll = () => {
-    setExpandedMats(new Set());
+    updateExpandedMats(new Set());
   };
 
   const handleSort = (key: SortKey) => {
@@ -279,7 +385,7 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
 
   return (
     <div className="space-y-4">
-      {/* Status Filter Cards */}
+      {/* Status Filter Cards - 3 options */}
       <div className="grid grid-cols-3 gap-4 text-center">
         <div
           className={cn(
@@ -287,32 +393,32 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
             statusFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
             'hover:bg-blue-100 dark:hover:bg-blue-900'
           )}
-          onClick={() => setStatusFilter('all')}
+          onClick={() => updateStatusFilter('all')}
         >
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totals.total}</p>
-          <p className="text-sm text-muted-foreground">Total Divisions</p>
+          <p className="text-sm text-muted-foreground">Todas</p>
         </div>
         <div
           className={cn(
             "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'active' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-            'hover:bg-orange-100 dark:hover:bg-orange-900'
-          )}
-          onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
-        >
-          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{totals.active}</p>
-          <p className="text-sm text-muted-foreground">Active</p>
-        </div>
-        <div
-          className={cn(
-            "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'finished' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
+            statusFilter === 'active' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
             'hover:bg-green-100 dark:hover:bg-green-900'
           )}
-          onClick={() => setStatusFilter(prev => prev === 'finished' ? 'all' : 'finished')}
+          onClick={() => updateStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
         >
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totals.finished}</p>
-          <p className="text-sm text-muted-foreground">Finished</p>
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totals.active}</p>
+          <p className="text-sm text-muted-foreground">Ativas</p>
+        </div>
+        <div
+          className={cn(
+            "p-3 border rounded-md cursor-pointer transition-colors",
+            statusFilter === 'finished' ? 'bg-yellow-200 dark:bg-yellow-800 border-yellow-500' : 'bg-yellow-50 dark:bg-yellow-950',
+            'hover:bg-yellow-100 dark:hover:bg-yellow-900'
+          )}
+          onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
+        >
+          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totals.finished}</p>
+          <p className="text-sm text-muted-foreground">Finalizadas</p>
         </div>
       </div>
 
@@ -418,28 +524,130 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.divisions.map(divInfo => (
-                        <TableRow
-                          key={divInfo.division.id}
-                          className={cn(
-                            "cursor-pointer hover:bg-muted/50",
-                            divInfo.status === 'Finished' && "opacity-60"
-                          )}
-                          onClick={() => onDivisionSelect?.(divInfo.division)}
-                        >
-                          <TableCell className="font-medium">{divInfo.division.name}</TableCell>
-                          <TableCell className="text-center">{divInfo.athleteCount}</TableCell>
-                          <TableCell className="text-center">
-                            {divInfo.remainingFights} / {divInfo.totalFights}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {formatTime(divInfo.remainingFights * divInfo.fightDuration)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {getStatusBadge(divInfo.status)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {group.divisions.map(divInfo => {
+                        const isExpanded = expandedDivisions.has(divInfo.division.id);
+                        const bracket = event.brackets?.[divInfo.division.id];
+                        const athletes = getAthletesForDivision(divInfo.division.id);
+                        
+                        return (
+                          <React.Fragment key={divInfo.division.id}>
+                            <TableRow
+                              className={cn(
+                                "cursor-pointer hover:bg-muted/50",
+                                divInfo.status === 'Finished' && "opacity-60",
+                                isExpanded && "bg-muted/30"
+                              )}
+                              onClick={() => toggleDivisionExpansion(divInfo.division.id)}
+                            >
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  {divInfo.division.name}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">{divInfo.athleteCount}</TableCell>
+                              <TableCell className="text-center">
+                                {divInfo.remainingFights} / {divInfo.totalFights}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {formatTime(divInfo.remainingFights * divInfo.fightDuration)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {getStatusBadge(divInfo.status)}
+                              </TableCell>
+                            </TableRow>
+                            
+                            {/* Expanded Athletes List */}
+                            {isExpanded && bracket && (
+                              <TableRow className="bg-muted/20">
+                                <TableCell colSpan={5} className="p-0">
+                                  <div className="px-6 py-3 space-y-2">
+                                    {athletes.map(athlete => {
+                                      const status = getAthleteStatusInBracket(athlete.id, bracket);
+                                      
+                                      return (
+                                        <div
+                                          key={athlete.id}
+                                          className={cn(
+                                            "flex items-center justify-between p-2 rounded-md",
+                                            status.placing === '1st' && "bg-yellow-100 dark:bg-yellow-900/30",
+                                            status.placing === '2nd' && "bg-gray-200 dark:bg-gray-700/50",
+                                            status.placing === '3rd' && "bg-orange-100 dark:bg-orange-900/30",
+                                            status.placing === 'eliminated' && "bg-red-50 dark:bg-red-900/20",
+                                            status.placing === 'active' && "bg-blue-50 dark:bg-blue-900/20"
+                                          )}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                              {status.placing === '1st' ? (
+                                                <Trophy className="h-4 w-4 text-yellow-600" />
+                                              ) : status.placing === '2nd' ? (
+                                                <Medal className="h-4 w-4 text-gray-500" />
+                                              ) : status.placing === '3rd' ? (
+                                                <Medal className="h-4 w-4 text-orange-500" />
+                                              ) : (
+                                                <UserRound className="h-4 w-4 text-muted-foreground" />
+                                              )}
+                                            </div>
+                                            <div>
+                                              <p className={cn(
+                                                "font-medium",
+                                                status.placing === 'eliminated' && "line-through text-red-600 dark:text-red-400"
+                                              )}>
+                                                {athlete.first_name} {athlete.last_name}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">{athlete.club}</p>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="flex items-center gap-2">
+                                            {status.placing === '1st' && (
+                                              <Badge className="bg-yellow-500 text-white">🥇 1º Lugar</Badge>
+                                            )}
+                                            {status.placing === '2nd' && (
+                                              <Badge className="bg-gray-400 text-white">🥈 2º Lugar</Badge>
+                                            )}
+                                            {status.placing === '3rd' && (
+                                              <Badge className="bg-orange-500 text-white">🥉 3º Lugar</Badge>
+                                            )}
+                                            {status.placing === 'eliminated' && (
+                                              <Badge variant="destructive">
+                                                Eliminado {status.eliminatedInFight ? `(Luta #${status.eliminatedInFight})` : ''}
+                                              </Badge>
+                                            )}
+                                            {status.placing === 'active' && (
+                                              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                                                Em Competição
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                    
+                                    {/* Action button to go to details */}
+                                    {onDivisionSelect && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDivisionSelect(divInfo.division);
+                                        }}
+                                        className="w-full mt-2 py-2 text-sm text-center text-primary hover:underline"
+                                      >
+                                        Ver detalhes da divisão →
+                                      </button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>

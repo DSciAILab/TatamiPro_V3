@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Event, Bracket, Division } from '@/types/index';
+import { StaffRole } from '@/types/staff-access';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import MatControlCenter from '@/components/MatControlCenter';
 interface BracketsTabProps {
   event: Event;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
+  staffRole?: StaffRole; // Staff access role (bracket, check_in, results, admin)
   handleUpdateMatAssignments: (assignments: Record<string, string[]>) => void;
   onUpdateBrackets: (brackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>, shouldSave?: boolean) => void;
   bracketsSubTab: string;
@@ -43,6 +45,7 @@ interface BracketsTabProps {
 const BracketsTab: React.FC<BracketsTabProps> = ({
   event,
   userRole,
+  staffRole,
   handleUpdateMatAssignments,
   onUpdateBrackets,
   bracketsSubTab,
@@ -285,34 +288,44 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     }
   };
 
+  // Check if user is bracket staff (limited view - only Mat Control tab)
+  const isBracketStaffOnly = staffRole === 'bracket';
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Brackets</CardTitle>
-        <CardDescription>Generate and view the event brackets.</CardDescription>
+        <CardDescription>
+          {isBracketStaffOnly 
+            ? 'Gerencie as lutas a partir do Mat Control.'
+            : 'Generate and view the event brackets.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {userRole && (
+        {(userRole || isBracketStaffOnly) && (
           <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="mat-distribution">Mat Distribution</TabsTrigger>
-              <TabsTrigger value="generate-brackets">
-                <LayoutGrid className="mr-2 h-4 w-4" /> Generate
-              </TabsTrigger>
-              <TabsTrigger value="wo-champions" className="relative">
-                WO Champions
-                {singleAthleteDivisions.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-orange-500 text-white rounded-full">
-                    {singleAthleteDivisions.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="manage-fights">
-                <Swords className="mr-2 h-4 w-4" /> Manage
-              </TabsTrigger>
-              <TabsTrigger value="mat-control">Mat Control</TabsTrigger>
-              <TabsTrigger value="fight-overview">Overview</TabsTrigger>
-            </TabsList>
+            {/* Bracket staff only sees Mat Control tab */}
+            {isBracketStaffOnly ? (
+              <TabsList className="grid w-full grid-cols-1">
+                <TabsTrigger value="mat-control">Mat Control</TabsTrigger>
+              </TabsList>
+            ) : (
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="generate-brackets">
+                  <LayoutGrid className="mr-2 h-4 w-4" /> Generate
+                </TabsTrigger>
+                <TabsTrigger value="mat-distribution">Mat Distribution</TabsTrigger>
+                <TabsTrigger value="mat-control">Mat Control</TabsTrigger>
+                <TabsTrigger value="wo-champions" className="relative">
+                  WO Champions
+                  {singleAthleteDivisions.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-orange-500 text-white rounded-full">
+                      {singleAthleteDivisions.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            )}
 
             <TabsContent value="mat-distribution" className="mt-6">
               <MatDistribution
@@ -337,9 +350,33 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Divisions</SelectItem>
-                        {availableDivisionsForBracketGeneration.map(div => (
-                          <SelectItem key={div.id} value={div.id}>{div.name}</SelectItem>
-                        ))}
+                        {availableDivisionsForBracketGeneration.map(div => {
+                          const bracket = event.brackets?.[div.id];
+                          let statusIndicator = '⚪'; // No bracket
+                          let statusText = 'Não gerado';
+                          
+                          if (bracket) {
+                            if (bracket.winner_id) {
+                              statusIndicator = '✅'; // Finished
+                              statusText = 'Finalizado';
+                            } else if (hasOngoingFights(div.id)) {
+                              statusIndicator = '🔄'; // In progress
+                              statusText = 'Em progresso';
+                            } else {
+                              statusIndicator = '📋'; // Generated but not started
+                              statusText = 'Gerado';
+                            }
+                          }
+                          
+                          return (
+                            <SelectItem key={div.id} value={div.id}>
+                              <span className="flex items-center gap-2">
+                                <span title={statusText}>{statusIndicator}</span>
+                                {div.name}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -441,72 +478,22 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
             <TabsContent value="manage-fights" className="mt-6">
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Mat and Category Selection</CardTitle>
-                  <CardDescription>Select a fight area and click on a category to see the details.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Swords className="h-5 w-5 text-muted-foreground" />
+                    Mat and Category Selection
+                  </CardTitle>
+                  <CardDescription>Section temporarily disabled for maintenance.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Division Status Filter Cards */}
-                  <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                    <div
-                      className={cn(
-                        "p-3 border rounded-md cursor-pointer transition-colors",
-                        divisionStatusFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-                        'hover:bg-blue-100 dark:hover:bg-blue-900'
-                      )}
-                      onClick={() => setDivisionStatusFilter(prev => prev === 'all' ? 'all' : 'all')}
-                    >
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{divisionStatusCounts.total}</p>
-                      <p className="text-sm text-muted-foreground">Total Divisions</p>
+                <CardContent className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                      <Swords className="h-8 w-8" />
                     </div>
-                    <div
-                      className={cn(
-                        "p-3 border rounded-md cursor-pointer transition-colors",
-                        divisionStatusFilter === 'active' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-                        'hover:bg-orange-100 dark:hover:bg-orange-900'
-                      )}
-                      onClick={() => setDivisionStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
-                    >
-                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{divisionStatusCounts.active + divisionStatusCounts.pending}</p>
-                      <p className="text-sm text-muted-foreground">Active</p>
-                    </div>
-                    <div
-                      className={cn(
-                        "p-3 border rounded-md cursor-pointer transition-colors",
-                        divisionStatusFilter === 'finished' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-                        'hover:bg-green-100 dark:hover:bg-green-900'
-                      )}
-                      onClick={() => setDivisionStatusFilter(prev => prev === 'finished' ? 'all' : 'finished')}
-                    >
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{divisionStatusCounts.finished}</p>
-                      <p className="text-sm text-muted-foreground">Finished</p>
+                    <div>
+                      <p className="text-lg font-medium">Temporarily Unavailable</p>
+                      <p className="text-sm">This section is under maintenance. Please use the "Overview" or "Mat Control" tabs instead.</p>
                     </div>
                   </div>
-
-                  <div>
-                    <Label htmlFor="mat-select">Fight Area (Mat)</Label>
-                    <Select value={selectedMat || ''} onValueChange={(value: string | 'all-mats') => handleMatChange(value)}>
-                      <SelectTrigger id="mat-select">
-                        <SelectValue placeholder="Select a Mat" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {matNames.map(mat => (
-                          <SelectItem key={mat} value={mat}>
-                            {mat === 'all-mats' ? 'All Areas' : mat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {selectedMat && (
-                    <MatCategoryList
-                      event={event}
-                      selectedMat={selectedMat}
-                      selectedCategoryKey={null}
-                      onSelectCategory={handleSelectCategory}
-                      divisionStatusFilter={divisionStatusFilter}
-                    />
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -529,11 +516,12 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               </Card>
             </TabsContent>
 
+            {/* Hidden tab - only accessible via Mat Control */}
             <TabsContent value="fight-overview" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Fights Overview</CardTitle>
-                  <CardDescription>List of all categories with their assigned mats. Click a row to view details.</CardDescription>
+                  <CardTitle>Division Details</CardTitle>
+                  <CardDescription>View and manage fights for the selected division.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {selectedDivisionForDetail ? (
@@ -542,14 +530,13 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       division={selectedDivisionForDetail}
                       onBack={() => {
                         setSelectedDivisionForDetail(null);
-                        setBracketsSubTab('manage-fights');
+                        setBracketsSubTab('mat-control');
                       }}
                     />
                   ) : (
-                    <FightOverview
-                      event={event}
-                      onDivisionSelect={(division) => setSelectedDivisionForDetail(division)}
-                    />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No division selected. Please select a division from Mat Control.</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

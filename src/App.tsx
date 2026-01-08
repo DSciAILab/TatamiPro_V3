@@ -22,9 +22,15 @@ import CreateEvent from "./pages/CreateEvent";
 import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 import PublicEvent from "./pages/PublicEvent";
-import PublicRegistration from "./pages/PublicRegistration"; // New Import
+import PublicRegistration from "./pages/PublicRegistration";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
+// Staff pages
+import StaffAccess from "./pages/StaffAccess";
+import StaffCheckIn from "./pages/StaffCheckIn";
+import StaffBracket from "./pages/StaffBracket";
+import StaffResults from "./pages/StaffResults";
+import StaffFightDetail from "./pages/StaffFightDetail";
 
 const queryClient = new QueryClient();
 
@@ -60,8 +66,14 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/account-security" element={<AccountSecurity />} />
                     <Route path="/public/events/:id" element={<PublicEvent />} />
-                    <Route path="/public/events/:id/register" element={<PublicRegistration />} /> {/* New Route */}
-                    <Route path="/change-password" element={<ChangePassword />} /> 
+                    <Route path="/public/events/:id/register" element={<PublicRegistration />} />
+                    <Route path="/change-password" element={<ChangePassword />} />
+                    {/* Staff routes */}
+                    <Route path="/staff/:eventId/:token" element={<StaffAccess />} />
+                    <Route path="/staff/:eventId/check-in/:token" element={<StaffCheckIn />} />
+                    <Route path="/staff/:eventId/bracket/:token" element={<StaffBracket />} />
+                    <Route path="/staff/:eventId/bracket/:token/fight/:divisionId/:matchId" element={<StaffFightDetail />} />
+                    <Route path="/staff/:eventId/results/:token" element={<StaffResults />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>

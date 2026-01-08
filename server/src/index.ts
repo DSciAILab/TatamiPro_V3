@@ -5,6 +5,7 @@ import { Server as SocketServer } from 'socket.io';
 import { initDatabase } from './database/sqlite';
 import { eventsRouter } from './routes/events';
 import { athletesRouter } from './routes/athletes';
+import { staffRouter } from './routes/staff';
 import { setupWebSocket } from './websocket/handler';
 import { SyncService } from './sync/supabase-sync';
 
@@ -35,6 +36,7 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/events', eventsRouter);
 app.use('/api/athletes', athletesRouter);
+app.use('/api/staff', staffRouter);
 
 // Initialize database
 initDatabase();

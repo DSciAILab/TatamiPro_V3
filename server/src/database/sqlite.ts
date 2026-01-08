@@ -122,6 +122,56 @@ export function initDatabase() {
       last_error TEXT
     )
   `);
+
+  // Create staff_tokens table for access control
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS staff_tokens (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      nickname TEXT,
+      created_by TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT,
+      last_accessed_at TEXT,
+      status TEXT DEFAULT 'active',
+      max_uses INTEGER,
+      current_uses INTEGER DEFAULT 0,
+      metadata TEXT,
+      FOREIGN KEY (event_id) REFERENCES events(id)
+    )
+  `);
+
+  // Create index for token lookup
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_staff_tokens_token ON staff_tokens(token);
+    CREATE INDEX IF NOT EXISTS idx_staff_tokens_event ON staff_tokens(event_id);
+  `);
+
+  // Create staff_sessions table for active connections
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS staff_sessions (
+      id TEXT PRIMARY KEY,
+      token_id TEXT NOT NULL,
+      token TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      connected_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_activity_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      socket_id TEXT,
+      device_info TEXT,
+      is_online INTEGER DEFAULT 1,
+      FOREIGN KEY (token_id) REFERENCES staff_tokens(id),
+      FOREIGN KEY (event_id) REFERENCES events(id)
+    )
+  `);
+
+  // Create index for session lookup
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_staff_sessions_event ON staff_sessions(event_id);
+    CREATE INDEX IF NOT EXISTS idx_staff_sessions_token ON staff_sessions(token_id);
+  `);
   
   console.log('✅ Database tables created/verified');
 }

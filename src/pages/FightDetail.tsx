@@ -58,6 +58,7 @@ const FightDetail: React.FC = () => {
   const [resultDetails, setResultDetails] = useState<string | undefined>(undefined);
   const [showPostFightOptions, setShowPostFightOptions] = useState(false);
   const [showRoundEndDialog, setShowRoundEndDialog] = useState(false);
+  const [showDivisionCompleteDialog, setShowDivisionCompleteDialog] = useState(false);
 
   const loadFightData = useCallback(async () => {
     if (!eventId || !divisionId || !matchId) return;
@@ -267,53 +268,73 @@ const FightDetail: React.FC = () => {
       }
       await handleUpdateBracket(updatedBracket);
       
-      const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];
-      const allMatchesInRoundCompleted = currentRoundMatches?.every(m => m.id === currentMatch.id || m.winner_id !== undefined);
-      if (allMatchesInRoundCompleted) {
-        setShowRoundEndDialog(true);
+      // Check if division is complete (no more fights left)
+      const allMatches = updatedBracket.rounds.flat();
+      if (updatedBracket.third_place_match) {
+        allMatches.push(updatedBracket.third_place_match);
+      }
+      const hasRemainingFights = allMatches.some(m => 
+        !m.winner_id && 
+        m.fighter1_id && m.fighter1_id !== 'BYE' &&
+        m.fighter2_id && m.fighter2_id !== 'BYE'
+      );
+      
+      if (!hasRemainingFights && updatedBracket.winner_id) {
+        // Division is complete!
+        setShowDivisionCompleteDialog(true);
+      } else {
+        // Show next round dialog if current round is complete
+        const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];
+        const allMatchesInRoundCompleted = currentRoundMatches?.every(m => m.id === currentMatch.id || m.winner_id !== undefined);
+        if (allMatchesInRoundCompleted) {
+          setShowRoundEndDialog(true);
+        }
       }
     } else {
       showError("Luta não encontrada no bracket.");
     }
   };
 
-  const findNextFight = (): Match | undefined => {
-    if (!event || !currentMatch || !currentMatch._mat_name || !event.mat_fight_order) return undefined;
-    const matMatchesIds = event.mat_fight_order[currentMatch._mat_name];
-    if (!matMatchesIds) return undefined;
-    const currentMatchIndex = matMatchesIds.indexOf(currentMatch.id);
-    if (currentMatchIndex === -1 || currentMatchIndex >= matMatchesIds.length - 1) return undefined;
-    const nextMatchId = matMatchesIds[currentMatchIndex + 1];
-    for (const bracket of Object.values(event.brackets || {})) {
-      const match = bracket.rounds.flat().find(m => m.id === nextMatchId) || (bracket.third_place_match?.id === nextMatchId ? bracket.third_place_match : undefined);
-      if (match) return match;
+  // Find next fight in the SAME DIVISION (not mat)
+  const findNextFightInDivision = (): Match | undefined => {
+    if (!currentBracket || !currentMatch) return undefined;
+    
+    // Collect all matches in the bracket
+    const allMatches = currentBracket.rounds.flat();
+    if (currentBracket.third_place_match) {
+      allMatches.push(currentBracket.third_place_match);
     }
-    return undefined;
+    
+    // Find incomplete matches (no winner yet)
+    const incompleteMatches = allMatches.filter(m => 
+      !m.winner_id && 
+      m.id !== currentMatch.id &&
+      m.fighter1_id && m.fighter1_id !== 'BYE' &&
+      m.fighter2_id && m.fighter2_id !== 'BYE'
+    );
+    
+    return incompleteMatches[0];
   };
 
-  const handleNextFight = () => {
-    const nextFight = findNextFight();
-    if (nextFight?._division_id) {
-      navigate(`/events/${eventId}/fights/${nextFight._division_id}/${nextFight.id}`);
-    } else {
-      showError("Não há próxima luta disponível neste mat.");
-      navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } });
+  const handleNextFightInDivision = () => {
+    const nextFight = findNextFightInDivision();
+    if (nextFight) {
+      navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
     }
+  };
+
+  const handleGoBack = () => {
+    navigate(-1); // Go back to previous page
   };
 
   const handleAdvanceToNextRound = () => {
     setShowRoundEndDialog(false);
-    handleNextFight();
-  };
-
-  const handleReturnToManageFights = () => {
-    setShowRoundEndDialog(false);
-    navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } });
-  };
-
-  const handleReturnToBracket = () => {
-    setShowRoundEndDialog(false);
-    navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'generate-brackets' } });
+    const nextFight = findNextFightInDivision();
+    if (nextFight) {
+      navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
+    } else {
+      navigate(-1);
+    }
   };
 
   if (loading || !event || !currentMatch || !currentBracket) {
@@ -341,8 +362,8 @@ const FightDetail: React.FC = () => {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{currentMatch._mat_name} - Luta {fightNumberDisplay}</h1>
-        <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } })} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerenciar Lutas
+        <Button onClick={handleGoBack} variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
         </Button>
       </div>
 
@@ -394,10 +415,15 @@ const FightDetail: React.FC = () => {
           )}
 
           {showPostFightOptions && !showRoundEndDialog && (
-            <div className="flex flex-col gap-2 mt-4">
-              <Button onClick={handleNextFight} className="w-full"><ArrowRight className="mr-2 h-4 w-4" /> Próxima Luta</Button>
-              <Button variant="outline" onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets', bracketsSubTab: 'manage-fights' } })} className="w-full"><List className="mr-2 h-4 w-4" /> Voltar para o Gerenciamento de Lutas</Button>
-              <Button variant="outline" onClick={handleReturnToBracket} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o Bracket</Button>
+            <div className="flex gap-4 mt-4">
+              {findNextFightInDivision() && (
+                <Button onClick={handleNextFightInDivision} className="flex-1">
+                  <ArrowRight className="mr-2 h-4 w-4" /> Próxima Luta
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleGoBack} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+              </Button>
             </div>
           )}
         </CardContent>
@@ -410,9 +436,46 @@ const FightDetail: React.FC = () => {
             <AlertDialogDescription>Todas as lutas da {currentRoundName} foram concluídas. O que você gostaria de fazer a seguir?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleReturnToManageFights}>Retornar ao Gerenciamento de Lutas</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAdvanceToNextRound}>Avançar para a Próxima Luta no Mat</AlertDialogAction>
-            <AlertDialogAction onClick={handleReturnToBracket}>Voltar para o Bracket</AlertDialogAction>
+            <AlertDialogCancel onClick={handleGoBack}>Voltar</AlertDialogCancel>
+            {findNextFightInDivision() && (
+              <AlertDialogAction onClick={handleAdvanceToNextRound}>Próxima Luta</AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Division Complete Dialog */}
+      <AlertDialog open={showDivisionCompleteDialog} onOpenChange={setShowDivisionCompleteDialog}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl flex items-center justify-center gap-2">
+              <Trophy className="h-8 w-8 text-yellow-500" />
+              Divisão Concluída!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p className="text-lg">
+                Todas as lutas desta divisão foram finalizadas.
+              </p>
+              {currentBracket?.winner_id && (
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-muted-foreground mb-1">Campeão</p>
+                  <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                    🥇 {athletesMap.get(currentBracket.winner_id)?.first_name} {athletesMap.get(currentBracket.winner_id)?.last_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {athletesMap.get(currentBracket.winner_id)?.club}
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="justify-center">
+            <AlertDialogAction 
+              onClick={handleGoBack} 
+              className="min-w-32"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
