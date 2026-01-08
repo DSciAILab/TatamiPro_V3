@@ -5,7 +5,15 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Athlete, AgeDivisionSetting } from '@/types/index';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Athlete, Belt, Gender, AgeDivisionSetting, Division } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { getAgeDivision, getWeightDivision } from '@/utils/athlete-utils';
 import { uploadFile } from '@/integrations/supabase/storage';
@@ -28,6 +36,7 @@ interface AthleteProfileEditFormProps {
   onCancel: () => void;
   mandatoryFieldsConfig?: Record<string, boolean>;
   ageDivisionSettings: AgeDivisionSetting[];
+  divisions?: Division[]; // Add divisions prop
 }
 
 // Define os esquemas base para campos comuns
@@ -44,11 +53,11 @@ const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, { message: 'Telefone 
 
 const emiratesIdOptionalSchema = z.string().optional();
 const schoolIdOptionalSchema = z.string().optional();
+const manualDivisionIdOptionalSchema = z.string().optional(); // New schema
 
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
-const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig, ageDivisionSettings }) => {
-  const { t } = useTranslations();
+const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig, ageDivisionSettings, divisions = [] }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formValues, setFormValues] = useState<FormValues | null>(null);
@@ -68,6 +77,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       phone: phoneSchema,
       emirates_id: emiratesIdOptionalSchema,
       school_id: schoolIdOptionalSchema,
+      manualDivisionId: manualDivisionIdOptionalSchema,
       photo: config?.photo
         ? fileListSchema.refine(file => file.length > 0, { message: 'Foto de perfil é obrigatória.' })
         : fileListSchema.optional(),
@@ -103,6 +113,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       phone: athlete.phone,
       emirates_id: athlete.emirates_id ?? '',
       school_id: athlete.school_id ?? '',
+      manualDivisionId: athlete.moved_to_division_id || '',
     },
   });
 
@@ -124,6 +135,21 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       const age_division = getAgeDivision(age, ageDivisionSettings);
       const weight_division = getWeightDivision(values.weight!);
 
+      let moved_to_division_id = athlete.moved_to_division_id;
+      let move_reason = athlete.move_reason;
+
+      // Handle Manual Override
+      if (values.manualDivisionId) {
+        moved_to_division_id = values.manualDivisionId;
+        const targetDiv = divisions.find(d => d.id === values.manualDivisionId);
+        move_reason = targetDiv ? `${targetDiv.name}` : 'Movido Manualmente';
+      } else {
+        // If cleared or empty, reset to undefined/null (or keep existing if not overriding... actually, if user clears it in UI, they likely want to reset)
+        // Ideally if we default it to the existing override, clearing it implies removing the override.
+        moved_to_division_id = undefined;
+        move_reason = undefined;
+      }
+
       const updatedAthlete: Athlete = {
         ...athlete,
         ...values,
@@ -135,6 +161,8 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
         photo_url,
         emirates_id_front_url,
         emirates_id_back_url,
+        moved_to_division_id, // Update this
+        move_reason,          // Update this
       };
 
       await onSave(updatedAthlete);
@@ -164,6 +192,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
       values.phone !== athlete.phone ||
       values.emirates_id !== athlete.emirates_id ||
       values.school_id !== athlete.school_id ||
+      values.manualDivisionId !== (athlete.moved_to_division_id || '') || // Check manual division
       (values.photo && values.photo.length > 0) ||
       (values.emiratesIdFront && values.emiratesIdFront.length > 0) ||
       (values.emiratesIdBack && values.emiratesIdBack.length > 0);
@@ -199,8 +228,30 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
           existingEmiratesIdBackUrl={athlete.emirates_id_back_url}
         />
 
+        <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium mb-2">Avançado: Alteração Manual de Categoria</h4>
+            <p className="text-xs text-muted-foreground mb-3">Use apenas se necessário mover o atleta para uma categoria diferente da calculada (ex: Absoluto).</p>
+            <Label htmlFor="manualDivision">Forçar Categoria</Label>
+             <Select 
+                value={watch('manualDivisionId') || "auto"} 
+                onValueChange={(val) => setValue('manualDivisionId', val === "auto" ? "" : val)}
+             >
+              <SelectTrigger>
+                <SelectValue placeholder="Automático (Baseado em Peso/Idade)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Automático (Baseado em Peso/Idade)</SelectItem>
+                 {divisions.map(div => (
+                    <SelectItem key={div.id} value={div.id}>
+                       {div.name} ({div.gender} / {div.age_category_name} / {div.belt} / {div.max_weight}kg)
+                    </SelectItem>
+                 ))}
+              </SelectContent>
+            </Select>
+        </div>
+
         <div className="flex justify-end space-x-2 mt-6">
-          <Button type="button" variant="outline" onClick={onCancel}>{t('cancel')}</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
           <Button type="submit" disabled={isSaving}>
             {isSaving ? '...' : t('saveChanges')}
           </Button>
@@ -216,7 +267,7 @@ const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setFormValues(null)}>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setFormValues(null)}>Cancel</AlertDialogCancel>
             <Button variant="secondary" onClick={() => {
               if (formValues) proceedWithSave(formValues, 'approved');
               setShowConfirmation(false);

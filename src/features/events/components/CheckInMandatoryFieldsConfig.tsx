@@ -38,7 +38,7 @@ const CheckInMandatoryFieldsConfig: React.FC<CheckInMandatoryFieldsConfigProps> 
     const loadingToast = showLoading('Saving check-in configuration...');
     try {
       const { error } = await supabase
-        .from('events')
+        .from('sjjp_events')
         .update({ check_in_config: config })
         .eq('id', eventId);
 

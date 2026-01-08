@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./server
+    container_name: sjjp-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    restart: unless-stopped
+    networks:
+      - sjjp-network
+
+  frontend:
+    image: nginx:alpine
+    container_name: sjjp-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - sjjp-network
+
+networks:
+  sjjp-network:
+    driver: bridge

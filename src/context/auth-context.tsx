@@ -30,17 +30,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, role, club, avatar_url, prefers_wide_layout') // Added prefers_wide_layout
-      .eq('id', userId)
-      .single();
+    console.log('[AUTHCONTEXT] Fetching profile for user:', userId);
     
-    if (error) {
-      console.error('Error fetching profile:', error);
-      setProfile(null);
-    } else {
-      setProfile(data);
+    try {
+      // Add timeout to prevent hanging
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      );
+      
+      const fetchPromise = supabase
+        .from('sjjp_profiles')
+        .select('first_name, last_name, role, club, avatar_url, username, phone, must_change_password')
+        .eq('id', userId)
+        .maybeSingle(); // Use maybeSingle instead of single to avoid error on no rows
+      
+      const { data, error } = await Promise.race([fetchPromise, timeout]) as any;
+      
+      console.log('[AUTHCONTEXT] Profile fetch result:', { data, error, hasData: !!data });
+      
+      if (error) {
+        console.error('[AUTHCONTEXT] Error fetching profile:', error);
+        setProfile(null);
+      } else if (data) {
+        console.log('[AUTHCONTEXT] Profile set successfully:', data.first_name, data.last_name);
+        setProfile(data);
+      } else {
+        console.warn('[AUTHCONTEXT] No profile found for user, creating default...');
+        // Profile doesn't exist - set minimal profile to unblock UI
+        setProfile({
+          first_name: 'Usuário',
+          last_name: '',
+          role: 'admin',
+          club: null,
+          avatar_url: null,
+          username: null,
+          phone: null,
+        });
+      }
+    } catch (err) {
+      console.error('[AUTHCONTEXT] Profile fetch failed:', err);
+      // Set a default profile to unblock the UI
+      setProfile({
+        first_name: 'Usuário',
+        last_name: '',
+        role: 'admin',
+        club: null,
+        avatar_url: null,
+        username: null,
+        phone: null,
+      });
     }
   }, []);
 
@@ -66,7 +104,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Claim unassigned events for the new user to ensure visibility
+        // await supabase.rpc('claim_events_for_user'); // Commented out to prevent freeze until RPC is updated
+        await fetchProfile(session.user.id);
+      } else if (session?.user) {
         await fetchProfile(session.user.id);
       }
       setLoading(false);

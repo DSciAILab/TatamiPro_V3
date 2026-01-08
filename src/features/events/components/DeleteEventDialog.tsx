@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2, Download } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-import { exportEventDataToCsv } from '@/utils/event-utils';
+import { exportEventDataToCsv } from '@/features/events/utils/event-utils';
 import { Event } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,16 +41,16 @@ const DeleteEventDialog: React.FC<DeleteEventDialogProps> = ({
       return;
     }
 
-    let fullEventData = { ...eventData };
+    const fullEventData = { ...eventData };
 
     // If athlete/division data is missing, fetch it on-demand
     if (!fullEventData.athletes || !fullEventData.divisions) {
       const loadingToast = showLoading('Carregando dados para backup...');
       try {
-        const { data: athletes, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        const { data: athletes, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
         if (athletesError) throw athletesError;
 
-        const { data: divisions, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        const { data: divisions, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
         if (divisionsError) throw divisionsError;
 
         fullEventData.athletes = athletes || [];
@@ -73,7 +73,7 @@ const DeleteEventDialog: React.FC<DeleteEventDialogProps> = ({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      showSuccess(`Backup de ${dataType} do evento "${eventName}" baixado com sucesso!`);
+      showSuccess(`${dataType} backup for event "${eventName}" downloaded successfully!`);
     } catch (error: any) {
       showError(`Falha ao baixar backup de ${dataType}: ${error.message}`);
       console.error('Backup error:', error);
@@ -92,14 +92,14 @@ const DeleteEventDialog: React.FC<DeleteEventDialogProps> = ({
         </AlertDialogHeader>
         <div className="flex flex-col space-y-2 mt-4">
           <Button variant="outline" onClick={() => handleDownloadBackup('athletes')}>
-            <Download className="mr-2 h-4 w-4" /> Backup de Atletas (CSV)
+            <Download className="mr-2 h-4 w-4" /> Athletes Backup (CSV)
           </Button>
           <Button variant="outline" onClick={() => handleDownloadBackup('divisions')}>
-            <Download className="mr-2 h-4 w-4" /> Backup de Divisões (CSV)
+            <Download className="mr-2 h-4 w-4" /> Divisions Backup (CSV)
           </Button>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={() => onConfirmDelete(eventId)} className="bg-red-600 hover:bg-red-700 text-white">
             <Trash2 className="mr-2 h-4 w-4" /> Deletar Evento
           </AlertDialogAction>

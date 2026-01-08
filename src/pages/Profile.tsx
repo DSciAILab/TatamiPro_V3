@@ -63,7 +63,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const fetchClubs = async () => {
       setLoadingClubs(true);
-      const { data, error } = await supabase.from('clubs').select('id, name').order('name');
+      const { data, error } = await supabase.from('sjjp_clubs').select('id, name').order('name');
       if (error) {
         showError('Failed to load clubs: ' + error.message);
       } else {
@@ -93,7 +93,7 @@ const Profile: React.FC = () => {
       }
 
       const { error } = await supabase
-        .from('profiles')
+        .from('sjjp_profiles')
         .update({
           first_name: data.first_name,
           last_name: data.last_name,

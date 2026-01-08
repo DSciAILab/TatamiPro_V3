@@ -57,7 +57,7 @@ serve(async (req: Request) => {
     if (!user) throw new Error('User not found');
 
     const { data: authenticator } = await supabaseAdmin
-      .from('user_authenticators')
+      .from('sjjp_user_authenticators')
       .select('*')
       .eq('credential_id', credential.id)
       .single();
@@ -84,7 +84,7 @@ serve(async (req: Request) => {
 
     if (verified && authenticationInfo) {
       await supabaseAdmin
-        .from('user_authenticators')
+        .from('sjjp_user_authenticators')
         .update({ counter: authenticationInfo.newCounter })
         .eq('credential_id', credential.id);
 

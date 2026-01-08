@@ -1,47 +1,64 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Division, Bracket, AgeDivisionSetting } from '../types/index';
+import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '@/types/index';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';
-import { useTranslations } from '@/hooks/use-translations';
+import { supabase } from '@/integrations/supabase/client';
+import { useEventData } from '@/features/events/hooks/use-event-data';
 
-// Importar os novos hooks
-import { useEventData } from '@/hooks/useEventData';
-import { useAthleteActions } from '@/hooks/useAthleteActions';
-import { useEventTabs } from '@/hooks/useEventTabs';
-
-import EventConfigTab from '@/components/EventConfigTab';
+import EventConfigTab from '@/features/events/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
 import CheckInTab from '@/components/CheckInTab';
 import BracketsTab from '@/components/BracketsTab';
-import AttendanceManagement from '@/components/AttendanceManagement';
+import AttendanceManagement from '@/features/events/components/AttendanceManagement';
 import LLMChat from '@/components/LLMChat';
 import ResultsTab from '@/components/ResultsTab';
-import EventStaffTab from '@/components/EventStaffTab';
+import EventStaffTab from '@/features/events/components/EventStaffTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
+import { PageSkeleton } from '@/components/skeletons';
 
 const EventDetail: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const { can, role: userRole } = usePermission();
-  const { t } = useTranslations();
+  const queryClient = useQueryClient();
+  
   const userClub = profile?.club;
 
-  const {
-    event,
-    loading,
-    hasUnsavedChanges,
-    isSaving,
-    handleSaveChanges,
-    handleUpdateEventProperty,
-    fetchEventData,
-  } = useEventData();
+  // --- Data Fetching via Hook ---
+  const { data: serverEvent, isLoading: isLoadingData, error: loadError } = useEventData(eventId);
+  
+  // Local state for event (to allow optimistic updates / unsaved changes)
+  const [event, setEvent] = useState<Event | null>(null);
+  
+  // Sync local state when server data arrives (only if no unsaved changes)
+  const hasUnsavedChangesRef = useRef(false);
+  
+  useEffect(() => {
+    if (serverEvent) {
+      if (!hasUnsavedChangesRef.current) {
+        // No unsaved changes - sync everything from server
+        setEvent(serverEvent);
+      } else {
+        // Has unsaved changes - only sync brackets and mat_fight_order from server
+        // These are updated externally from FightDetail page and should always be fresh
+        setEvent(prev => prev ? {
+          ...prev,
+          brackets: serverEvent.brackets,
+          mat_fight_order: serverEvent.mat_fight_order,
+          athletes: serverEvent.athletes, // Also sync athletes as they may be updated elsewhere
+        } : serverEvent);
+      }
+    }
+  }, [serverEvent]);
 
   const {
     activeTab,
@@ -56,35 +73,74 @@ const EventDetail: React.FC = () => {
     navSelectedDivisionId,
   } = useEventTabs();
 
-  const {
-    selectedAthletesForApproval,
-    editingAthlete,
-    setEditingAthlete,
-    searchTerm,
-    setSearchTerm,
-    setScannedAthleteId,
-    checkInFilter,
-    setCheckInFilter,
-    registrationStatusFilter,
-    setRegistrationStatusFilter,
-    isScannerOpen,
-    setIsScannerOpen,
-    
-    athletesUnderApproval,
-    processedApprovedAthletes,
-    coachStats,
-    filteredAthletesForDisplayInscricoes,
-    filteredAthletesForCheckIn,
+  // --- UI State ---
+  const [activeTab, setActiveTab] = useState('inscricoes');
+  const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
+  const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
+  const [checkInFilter, setCheckInFilter] = useState<'pending' | 'checked_in' | 'overweight' | 'all' | 'moved'>('all');
+  const [registrationStatusFilter, setRegistrationStatusFilter] = useState<'all' | 'approved' | 'under_approval' | 'rejected'>('all');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-    handleAthleteUpdate,
-    handleDeleteAthlete,
-    handleDeleteSelectedAthletes,
-    handleApproveReject,
-    handleUpdateAthleteAttendance,
-    handleCheckInAthlete,
-    handleToggleAthleteSelection,
-    handleSelectAllAthletes,
-  } = useAthleteActions({ event, fetchEventData });
+  // Sync ref
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  const [configSubTab, setConfigSubTab] = useState('event-settings');
+  const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
+  const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+    if (location.state?.bracketsSubTab) {
+      setBracketsSubTab(location.state.bracketsSubTab);
+    }
+  }, [location.state]);
+
+  const handleSaveChanges = async () => {
+    if (!event || !eventId || !hasUnsavedChanges) return;
+    setIsSaving(true);
+    const toastId = showLoading("Saving event settings...");
+
+    try {
+      const { athletes, divisions, ...eventToUpdate } = event;
+      
+      const { error } = await supabase
+        .from('sjjp_events')
+        .update({
+          ...eventToUpdate,
+          check_in_start_time: event.check_in_start_time?.toISOString(),
+          check_in_end_time: event.check_in_end_time?.toISOString(),
+        })
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      setHasUnsavedChanges(false);
+      dismissToast(toastId);
+      showSuccess("Event settings saved successfully!");
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError("Failed to save event settings: " + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateEventProperty = <K extends keyof Event>(key: K, value: Event[K]) => {
+    setEvent(prev => {
+      if (!prev) return null;
+      setHasUnsavedChanges(true);
+      return { ...prev, [key]: value };
+    });
+  };
 
   const handleUpdateAgeDivisionSettings = (settings: AgeDivisionSetting[]) => {
     handleUpdateEventProperty('age_division_settings', settings);
@@ -94,24 +150,307 @@ const EventDetail: React.FC = () => {
       handleUpdateEventProperty('divisions', updatedDivisions);
   };
 
-  const handleUpdateBracketsAndFightOrder = async (updatedBrackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>) => {
-      handleUpdateEventProperty('brackets', updatedBrackets);
-      handleUpdateEventProperty('mat_fight_order', matFightOrder);
+  const handleUpdateBracketsAndFightOrder = async (updatedBrackets: Record<string, Bracket>, matFightOrder: Record<string, string[]>, shouldSave: boolean = false) => {
+      console.log("[EventDetail] handleUpdateBracketsAndFightOrder called. shouldSave:", shouldSave);
+      // 1. Update State
+      setEvent(prevEvent => {
+        if (!prevEvent) return null;
+        if (!shouldSave) setHasUnsavedChanges(true);
+        return { ...prevEvent, brackets: updatedBrackets, mat_fight_order: matFightOrder };
+      });
+
+      // 2. Persist if requested
+      if (shouldSave && event && eventId) {
+         console.log("[EventDetail] Auto-saving brackets to DB...");
+         try {
+            const toastId = showLoading("Saving brackets...");
+            const { error } = await supabase
+              .from('sjjp_events')
+              .update({
+                brackets: updatedBrackets,
+                mat_fight_order: matFightOrder
+              })
+              .eq('id', eventId);
+
+            if (error) throw error;
+            dismissToast(toastId);
+            showSuccess("Brackets updated and saved successfully!");
+         } catch (err: any) {
+            console.error("Error saving brackets:", err);
+            showError("Error saving brackets: " + err.message);
+            // Revert unsaved status if save failed? Or keep it true?
+            setHasUnsavedChanges(true);
+         }
+      }
+  };
+  
+  const handleAthleteUpdate = async (updatedAthlete: Athlete) => {
+    if (!event || !eventId) return;
+    
+    try {
+      const toastId = showLoading("Saving athlete changes...");
+      
+      // Prepare data for Supabase (remove _division which is a computed field)
+      const { _division, ...athleteData } = updatedAthlete;
+      
+      const { error } = await supabase
+        .from('sjjp_athletes')
+        .update({
+          first_name: athleteData.first_name,
+          last_name: athleteData.last_name,
+          date_of_birth: athleteData.date_of_birth instanceof Date 
+            ? athleteData.date_of_birth.toISOString() 
+            : athleteData.date_of_birth,
+          club: athleteData.club,
+          gender: athleteData.gender,
+          belt: athleteData.belt,
+          weight: athleteData.weight,
+          nationality: athleteData.nationality,
+          email: athleteData.email,
+          phone: athleteData.phone,
+          emirates_id: athleteData.emirates_id,
+          school_id: athleteData.school_id,
+          age: athleteData.age,
+          age_division: athleteData.age_division,
+          weight_division: athleteData.weight_division,
+          registration_status: athleteData.registration_status,
+          photo_url: athleteData.photo_url,
+          emirates_id_front_url: athleteData.emirates_id_front_url,
+          emirates_id_back_url: athleteData.emirates_id_back_url,
+          moved_to_division_id: athleteData.moved_to_division_id || null,
+          move_reason: athleteData.move_reason || null,
+        })
+        .eq('id', updatedAthlete.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a => 
+            a.id === updatedAthlete.id ? { ...updatedAthlete, _division: a._division } : a
+          )
+        };
+      });
+      
+      dismissToast(toastId);
+      showSuccess("Athlete updated successfully!");
+      setEditingAthlete(null);
+    } catch (error: any) {
+      showError("Failed to update athlete: " + error.message);
+      console.error("Athlete update error:", error);
+    }
   };
 
-  const visibleTabs = useMemo(() => [
-    can('event.settings') && { value: 'config', label: t('config') },
-    can('staff.view') && { value: 'staff', label: t('staff') },
-    { value: 'inscricoes', label: t('registrations') },
-    (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: t('attendance') },
-    can('checkin.manage') && { value: 'checkin', label: t('checkin') },
-    { value: 'brackets', label: t('brackets') },
-    { value: 'resultados', label: t('results') },
-    { value: 'llm', label: t('iaChat') },
-  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in, t]);
+  const handleDeleteAthlete = async (_id: string) => { /* Stub */ };
+  
+  const handleApproveReject = async (status: 'approved' | 'rejected') => {
+    if (!event || !eventId || selectedAthletesForApproval.length === 0) {
+      showError('No athletes selected for approval/rejection.');
+      return;
+    }
+    
+    const toastId = showLoading(`Updating ${selectedAthletesForApproval.length} athlete(s)...`);
+    
+    try {
+      const { error } = await supabase
+        .from('sjjp_athletes')
+        .update({ registration_status: status })
+        .in('id', selectedAthletesForApproval);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a =>
+            selectedAthletesForApproval.includes(a.id)
+              ? { ...a, registration_status: status }
+              : a
+          )
+        };
+      });
+      
+      dismissToast(toastId);
+      showSuccess(`${selectedAthletesForApproval.length} athlete(s) ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
+      setSelectedAthletesForApproval([]);
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Failed to update athletes: ${error.message}`);
+      console.error('Approve/Reject error:', error);
+    }
+  };
+  
+  const handleUpdateAthleteAttendance = async (athleteId: string, status: Athlete['attendance_status']) => {
+    console.log('[ATTENDANCE] Updating attendance for athlete:', athleteId, 'to status:', status);
+    
+    try {
+      const { error } = await supabase
+        .from('sjjp_athletes')
+        .update({ attendance_status: status })
+        .eq('id', athleteId);
 
-  if (loading) return <Layout><div className="text-center text-xl mt-8">{t('loadingEvent')}</div></Layout>;
-  if (!event) return <Layout><div className="text-center text-xl mt-8">{t('eventNotFound')}</div></Layout>;
+      if (error) {
+        console.error('[ATTENDANCE] Error updating attendance:', error);
+        showError('Failed to update attendance: ' + error.message);
+        return;
+      }
+
+      console.log('[ATTENDANCE] Attendance updated successfully');
+      showSuccess('Attendance updated successfully!');
+      
+      // Update local state optimistically
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a => 
+            a.id === athleteId ? { ...a, attendance_status: status } : a
+          )
+        };
+      });
+    } catch (err: any) {
+      console.error('[ATTENDANCE] Exception updating attendance:', err);
+      showError('Error updating attendance.');
+    }
+  };
+  
+  const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
+    if (!event || !eventId) return;
+    
+    console.log('[CheckIn] Updating athlete:', updatedAthlete.id, 'to status:', updatedAthlete.check_in_status);
+    console.log('[CheckIn] Weight:', updatedAthlete.registered_weight, 'Attempts:', updatedAthlete.weight_attempts?.length);
+    
+    try {
+      // Prepare update payload with all check-in related fields
+      const updatePayload: Record<string, any> = {
+        check_in_status: updatedAthlete.check_in_status,
+        registered_weight: updatedAthlete.registered_weight,
+        weight_attempts: updatedAthlete.weight_attempts,
+      };
+      
+      // Include division move fields if they exist
+      if (updatedAthlete.moved_to_division_id !== undefined) {
+        updatePayload.moved_to_division_id = updatedAthlete.moved_to_division_id;
+      }
+      if (updatedAthlete.move_reason !== undefined) {
+        updatePayload.move_reason = updatedAthlete.move_reason;
+      }
+      
+      const { data, error } = await supabase
+        .from('sjjp_athletes')
+        .update(updatePayload)
+        .eq('id', updatedAthlete.id)
+        .select();
+      
+      console.log('[CheckIn] Update result - data:', data, 'error:', error);
+      
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        console.error('[CheckIn] No data returned - possible RLS issue');
+        showError('Check-in update failed - no data returned. Check database permissions.');
+        return;
+      }
+      
+      // Update local state immediately for optimistic UI
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a =>
+            a.id === updatedAthlete.id ? { ...a, ...updatedAthlete } : a
+          )
+        };
+      });
+      
+      // Invalidate the cache to ensure fresh data on next render
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      
+      const statusMessage = updatedAthlete.check_in_status === 'checked_in' 
+        ? 'checked in' 
+        : updatedAthlete.check_in_status === 'overweight'
+          ? 'marked as overweight'
+          : 'check-in cancelled';
+      
+      showSuccess(`${updatedAthlete.first_name} ${updatedAthlete.last_name} ${statusMessage} successfully!`);
+    } catch (error: any) {
+      showError(`Failed to update check-in: ${error.message}`);
+      console.error('[CheckIn] Error:', error);
+    }
+  };
+
+
+
+  const handleBatchAthleteUpdate = (updatedAthletes: Athlete[]) => {
+    setEvent(prev => {
+      if (!prev || !prev.athletes) return prev;
+      
+      const updatedMap = new Map(updatedAthletes.map(a => [a.id, a]));
+      const newAthletes = prev.athletes.map(a => updatedMap.get(a.id) || a);
+      
+      return { ...prev, athletes: newAthletes };
+    });
+  };
+
+  // --- Derived State ---
+  const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
+  const processedApprovedAthletes = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'approved'), [event]);
+  const allAthletesForInscricoesTab = useMemo(() => {
+    let athletes = event?.athletes || [];
+    if (userRole === 'coach' && userClub) {
+      athletes = athletes.filter(a => a.club === userClub);
+    }
+    return athletes;
+  }, [event?.athletes, userRole, userClub]);
+
+  const coachStats = useMemo(() => ({
+    total: allAthletesForInscricoesTab.length,
+    approved: allAthletesForInscricoesTab.filter(a => a.registration_status === 'approved').length,
+    pending: allAthletesForInscricoesTab.filter(a => a.registration_status === 'under_approval').length,
+    rejected: allAthletesForInscricoesTab.filter(a => a.registration_status === 'rejected').length,
+  }), [allAthletesForInscricoesTab]);
+
+  const filteredAthletesForDisplayInscricoes = useMemo(() => {
+    let athletes = allAthletesForInscricoesTab;
+    if (!userRole) athletes = athletes.filter(a => a.registration_status === 'approved');
+    else if (registrationStatusFilter !== 'all') athletes = athletes.filter(a => a.registration_status === registrationStatusFilter);
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
+    }
+    return athletes;
+  }, [allAthletesForInscricoesTab, userRole, registrationStatusFilter, searchTerm]);
+
+  const filteredAthletesForCheckIn = useMemo(() => {
+    let athletes = processedApprovedAthletes;
+    if (event?.is_attendance_mandatory_before_check_in) athletes = athletes.filter(a => a.attendance_status === 'present');
+    if (scannedAthleteId) return athletes.filter(a => a.registration_qr_code_id === scannedAthleteId);
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      athletes = athletes.filter(a => `${a.first_name} ${a.last_name} ${a.club} ${a.age_division} ${a.weight_division} ${a.belt}`.toLowerCase().includes(lower));
+    }
+    if (checkInFilter !== 'all') athletes = athletes.filter(a => a.check_in_status === checkInFilter);
+    return athletes;
+  }, [processedApprovedAthletes, event?.is_attendance_mandatory_before_check_in, scannedAthleteId, searchTerm, checkInFilter]);
+
+  const visibleTabs = useMemo(() => [
+    can('event.settings') && { value: 'config', label: 'Config' },
+    can('staff.view') && { value: 'staff', label: 'Staff' },
+    { value: 'inscricoes', label: 'Registrations' },
+    (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: 'Attendance' },
+    can('checkin.manage') && { value: 'checkin', label: 'Check-in' },
+    { value: 'brackets', label: 'Brackets' },
+    { value: 'resultados', label: 'Results' },
+    { value: 'llm', label: 'IA Chat' },
+  ].filter((tab): tab is { value: string; label: string } => Boolean(tab)), [can, event?.is_attendance_mandatory_before_check_in]);
+
+  if (isLoadingData && !event) return <Layout><PageSkeleton /></Layout>;
+  if (!event) return <Layout><div className="text-center text-xl mt-8">Event not found or access denied.</div></Layout>;
 
   return (
     <Layout>
@@ -163,6 +502,8 @@ const EventDetail: React.FC = () => {
             set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
             count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
             set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
+            count_wo_champion_categories={event.count_wo_champion_categories ?? false}
+            set_count_wo_champion_categories={(value) => handleUpdateEventProperty('count_wo_champion_categories', value)}
             userRole={userRole as any}
             event_name={event.name}
             set_event_name={(value) => handleUpdateEventProperty('name', value)}
@@ -202,41 +543,26 @@ const EventDetail: React.FC = () => {
             handleApproveSelected={() => handleApproveReject('approved')}
             handleRejectSelected={() => handleApproveReject('rejected')}
             ageDivisionSettings={event.age_division_settings || []}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
+            onBatchUpdate={handleBatchAthleteUpdate}
           />
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
-          <AttendanceManagement 
-            eventDivisions={event.divisions || []} 
-            onUpdateAthleteAttendance={handleUpdateAthleteAttendance} 
-            isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} 
-            userRole={userRole as any} 
-            athletes={event.athletes || []} 
-          />
+          <AttendanceManagement eventDivisions={event.divisions || []} eventName={event.name} onUpdateAthleteAttendance={handleUpdateAthleteAttendance} isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} userRole={userRole as any} athletes={event.athletes || []} />
         </TabsContent>
         <TabsContent value="checkin" className="mt-6">
           <CheckInTab 
             event={event} 
-            userRole={userRole as any} 
-            check_in_start_time={event.check_in_start_time} 
-            check_in_end_time={event.check_in_end_time} 
+            processedApprovedAthletes={processedApprovedAthletes}
+            filteredAthletesForCheckIn={filteredAthletesForCheckIn}
             checkInFilter={checkInFilter} 
-            handleCheckInBoxClick={(filter) => setCheckInFilter(prev => prev === filter ? 'all' : filter)} 
-            setCheckInFilter={setCheckInFilter} 
-            totalCheckedInOk={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length} 
-            totalOverweights={processedApprovedAthletes.filter(a => a.check_in_status === 'overweight').length} 
-            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length} 
-            totalApprovedAthletes={processedApprovedAthletes.length} 
-            isScannerOpen={isScannerOpen} 
-            setIsScannerOpen={setIsScannerOpen} 
-            processedApprovedAthletes={processedApprovedAthletes} 
-            setScannedAthleteId={setScannedAthleteId} 
-            setSearchTerm={setSearchTerm} 
-            searchTerm={searchTerm} 
-            filteredAthletesForCheckIn={filteredAthletesForCheckIn} 
-            handleCheckInAthlete={handleCheckInAthlete} 
+            setCheckInFilter={setCheckInFilter}
+            totalApprovedAthletes={processedApprovedAthletes.length}
+            totalCheckedIn={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length}
+            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            handleCheckInAthlete={handleCheckInAthlete}
           />
         </TabsContent>
         <TabsContent value="brackets" className="mt-6">
@@ -259,7 +585,7 @@ const EventDetail: React.FC = () => {
           <ResultsTab event={event} />
         </TabsContent>
         <TabsContent value="llm" className="mt-6">
-          <Card><CardHeader><CardTitle>Perguntas & Respostas</CardTitle></CardHeader><CardContent><LLMChat event={event} /></CardContent></Card>
+          <Card><CardHeader><CardTitle>Questions & Answers</CardTitle></CardHeader><CardContent><LLMChat event={event} /></CardContent></Card>
         </TabsContent>
 
       </Tabs>

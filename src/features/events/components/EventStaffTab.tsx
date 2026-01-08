@@ -9,10 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2, UserPlus, Shield, FileUp, Edit, KeyRound, RefreshCw, Copy, Phone, QrCode, Users } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { usePermission } from '@/hooks/use-permission';
 import Papa from 'papaparse';
+import StaffAccessGenerator from '@/components/StaffAccessGenerator';
 
 interface EventStaffTabProps {
   eventId: string;
@@ -64,7 +66,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setLoading(true);
     // Fetch event_staff joined with profiles
     const { data, error } = await supabase
-      .from('event_staff')
+      .from('sjjp_event_staff')
       .select(`
         id,
         user_id,
@@ -140,7 +142,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const handleRemoveStaff = async (id: string) => {
     if (!confirm('Remover este membro da equipe? O usuário não terá mais acesso a este evento.')) return;
 
-    const { error } = await supabase.from('event_staff').delete().eq('id', id);
+    const { error } = await supabase.from('sjjp_event_staff').delete().eq('id', id);
     if (error) {
       showError(error.message);
     } else {
@@ -167,7 +169,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
       // 1. Update Role in event_staff
       if (editRole !== editingMember.role) {
         const { error: roleError } = await supabase
-          .from('event_staff')
+          .from('sjjp_event_staff')
           .update({ role: editRole })
           .eq('id', editingMember.id);
         if (roleError) throw roleError;
@@ -176,7 +178,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
       // 2. Update Profile Name
       if (editFirstName !== editingMember.profile?.first_name || editLastName !== editingMember.profile?.last_name) {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('sjjp_profiles')
           .update({ 
             first_name: editFirstName,
             last_name: editLastName
@@ -292,13 +294,28 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Equipe do Evento</span>
-          <div className="flex gap-2">
-            {canManageStaff && (
-              <>
+    <div className="space-y-6">
+      <Tabs defaultValue="team" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Equipe
+          </TabsTrigger>
+          <TabsTrigger value="quick-access" className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            Acesso Rápido (QR)
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Equipe */}
+        <TabsContent value="team">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Equipe do Evento</span>
+                <div className="flex gap-2">
+                  {canManageStaff && (
+                    <>
                 <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline"><FileUp className="mr-2 h-4 w-4" /> Importar CSV</Button>
@@ -463,12 +480,20 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
+        </TabsContent>
+
+        {/* Tab: Acesso Rápido (QR) */}
+        <TabsContent value="quick-access">
+          <StaffAccessGenerator eventId={eventId} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

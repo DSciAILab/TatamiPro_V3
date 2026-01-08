@@ -36,7 +36,7 @@ const AccountSecurity: React.FC = () => {
   const fetchAuthenticators = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('user_authenticators')
+      .from('sjjp_user_authenticators')
       .select('id, friendly_name, created_at');
 
     if (error) {
@@ -93,7 +93,7 @@ const AccountSecurity: React.FC = () => {
     }
 
     const { error } = await supabase
-      .from('user_authenticators')
+      .from('sjjp_user_authenticators')
       .delete()
       .eq('id', authenticatorId);
 

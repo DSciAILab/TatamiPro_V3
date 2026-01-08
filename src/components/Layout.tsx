@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import OfflineIndicator from '@/components/OfflineIndicator';
-import { LanguageToggle } from '@/components/LanguageToggle'; // Importação adicionada
+import ConnectionStatus from '@/components/ConnectionStatus';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    showSuccess(t('logoutSuccess'));
+    showSuccess('Successfully logged out!');
     navigate('/auth');
   };
 
@@ -60,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
           </div>
           <div className="flex items-center space-x-2">
+            <ConnectionStatus />
             <OfflineIndicator />
             <LanguageToggle /> {/* Botão de idioma adicionado ao cabeçalho */}
             <ModeToggle />
@@ -103,6 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
       <main className={cn("flex-1 py-8", isWideLayout ? "px-4" : "container")}>
+        <Breadcrumbs />
         {children}
       </main>
     </div>

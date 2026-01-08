@@ -35,7 +35,7 @@ const PublicEvent: React.FC = () => {
     if (isInitialLoad) setLoading(true);
     try {
       const { data: eventData, error: eventError } = await supabase
-        .from('events')
+        .from('sjjp_events')
         .select('*')
         .eq('id', eventId)
         .eq('is_active', true)
@@ -45,10 +45,10 @@ const PublicEvent: React.FC = () => {
         throw new Error("Event not found or is not active.");
       }
 
-      const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+      const { data: athletesData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
       if (athletesError) throw athletesError;
       
-      const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+      const { data: divisionsData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
       if (divisionsError) throw divisionsError;
 
       const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
@@ -111,11 +111,11 @@ const PublicEvent: React.FC = () => {
   }, [event?.athletes, searchTerm]);
 
   if (loading) {
-    return <PublicLayout><div className="text-center text-xl mt-8">{t('loadingEvent')}</div></PublicLayout>;
+    return <PublicLayout><div className="text-center text-xl mt-8">Loading event...</div></PublicLayout>;
   }
 
   if (error || !event) {
-    return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || t('eventNotFound')}</div></PublicLayout>;
+    return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || "Event not found."}</div></PublicLayout>;
   }
 
   return (
@@ -124,11 +124,10 @@ const PublicEvent: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="registrations">{t('publicRegistrations')}</TabsTrigger>
-          <TabsTrigger value="brackets">{t('publicBrackets')}</TabsTrigger>
-          <TabsTrigger value="fights">{t('publicFightOrder')}</TabsTrigger>
-          <TabsTrigger value="results">{t('publicResults')}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="brackets">Brackets</TabsTrigger>
+          <TabsTrigger value="fights">Fight Order</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
         </TabsList>
 
         <TabsContent value="registrations" className="mt-6">
@@ -155,14 +154,33 @@ const PublicEvent: React.FC = () => {
         <TabsContent value="brackets" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('eventBrackets')}</CardTitle>
-              <CardDescription>{t('selectDivisionToViewBracket')}</CardDescription>
+              <CardTitle>Event Brackets</CardTitle>
+              <CardDescription>Select a division to view the bracket.</CardDescription>
             </CardHeader>
             <CardContent>
-              {event.brackets && Object.keys(event.brackets).length > 0 ? (
-                <PublicBrackets event={event} />
+              {divisionsWithBrackets.length === 0 ? (
+                <p>No brackets generated for this event yet.</p>
               ) : (
-                <p>{t('noBracketsGeneratedYet')}</p>
+                <>
+                  <Select value={selectedDivisionId} onValueChange={setSelectedDivisionId}>
+                    <SelectTrigger className="w-full md:w-[300px] mb-4">
+                      <SelectValue placeholder="Select a division" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {divisionsWithBrackets.map(div => (
+                        <SelectItem key={div.id} value={div.id}>{div.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedDivisionId && event.brackets?.[selectedDivisionId] && (
+                    <BracketView
+                      bracket={event.brackets[selectedDivisionId]}
+                      allAthletes={event.athletes || []}
+                      division={divisionsWithBrackets.find(d => d.id === selectedDivisionId)!}
+                      eventId={event.id}
+                    />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -171,8 +189,8 @@ const PublicEvent: React.FC = () => {
         <TabsContent value="fights" className="mt-6">
            <Card>
             <CardHeader>
-              <CardTitle>{t('publicFightOrder')}</CardTitle>
-              <CardDescription>{t('trackFightSequence')}</CardDescription>
+              <CardTitle>Fight Order</CardTitle>
+              <CardDescription>Follow the fight sequence in real-time.</CardDescription>
             </CardHeader>
             <CardContent>
               <PublicFightOrder event={event} />

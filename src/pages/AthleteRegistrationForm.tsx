@@ -44,7 +44,7 @@ const AthleteRegistrationForm: React.FC = () => {
     const fetchSettings = async () => {
       if (!eventId) return;
       const { data, error } = await supabase
-        .from('events')
+        .from('sjjp_events')
         .select('age_division_settings')
         .eq('id', eventId)
         .single();
@@ -177,7 +177,7 @@ const AthleteRegistrationForm: React.FC = () => {
         attendance_status: 'pending',
       };
 
-      const { error } = await supabase.from('athletes').insert(newAthleteForDb);
+      const { error } = await supabase.from('sjjp_athletes').insert(newAthleteForDb);
 
       if (error) {
         throw error;

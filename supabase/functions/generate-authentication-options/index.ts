@@ -58,7 +58,7 @@ serve(async (req: Request) => {
     }
 
     const { data: authenticators, error: authError } = await supabaseAdmin
-      .from('user_authenticators')
+      .from('sjjp_user_authenticators')
       .select('credential_id, transports')
       .eq('user_id', user.id);
 

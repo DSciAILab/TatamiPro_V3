@@ -10,6 +10,7 @@ interface MatCategoryListProps {
   selectedMat: string | 'all-mats';
   selectedCategoryKey: string | null;
   onSelectCategory: (categoryKey: string, divisionId: string) => void;
+  divisionStatusFilter?: 'all' | 'active' | 'finished';
 }
 
 interface CategoryGroup {
@@ -20,15 +21,20 @@ interface CategoryGroup {
   belt?: DivisionBelt;
   athleteCount: number;
   divisionIds: string[];
-  bracketStatus: 'Não Gerado' | 'Gerado' | 'Em Andamento' | 'Encerrado' | 'Sem Atletas';
+  bracketStatus: 'Not Generated' | 'Generated' | 'In Progress' | 'Finished' | 'No Athletes';
 }
 
-const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory }) => {
+const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, selectedCategoryKey, onSelectCategory, divisionStatusFilter = 'all' }) => {
   const categoriesOnSelectedMat = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
 
     const processAthlete = (athlete: Athlete) => {
-      const division = athlete._division;
+      // Get effective division - if athlete was moved, use the new division
+      let effectiveDivisionId = athlete.moved_to_division_id || athlete._division?.id;
+      let division = effectiveDivisionId 
+        ? (event.divisions || []).find(d => d.id === effectiveDivisionId) 
+        : athlete._division;
+      
       if (!division) return;
 
       const key = division.id;
@@ -43,7 +49,7 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
           belt: division.belt,
           athleteCount: 0,
           divisionIds: [division.id],
-          bracketStatus: 'Não Gerado', // Default
+          bracketStatus: 'Not Generated', // Default
         });
       }
       const group = groupsMap.get(key)!;
@@ -62,39 +68,47 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
         const bracket = event.brackets?.[firstDivisionId];
 
         if (group.athleteCount < 2) {
-          status = 'Sem Atletas';
+          status = 'No Athletes';
         } else if (!bracket) {
-          status = 'Não Gerado';
+          status = 'Not Generated';
         } else if (bracket.winner_id) {
-          status = 'Encerrado';
+          status = 'Finished';
         } else if (bracket.rounds.flat().some(match => match.winner_id !== undefined)) {
-          status = 'Em Andamento';
+          status = 'In Progress';
         } else {
-          status = 'Gerado';
+          status = 'Generated';
         }
         finalGroups.push({ ...group, bracketStatus: status });
       }
     });
 
-    return finalGroups.sort((a, b) => a.display.localeCompare(b.display));
-  }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets]);
+    // Apply status filter
+    let filtered = finalGroups;
+    if (divisionStatusFilter === 'finished') {
+      filtered = finalGroups.filter(g => g.bracketStatus === 'Finished');
+    } else if (divisionStatusFilter === 'active') {
+      filtered = finalGroups.filter(g => g.bracketStatus !== 'Finished');
+    }
+
+    return filtered.sort((a, b) => a.display.localeCompare(b.display));
+  }, [event.mat_assignments, selectedMat, event.athletes, event.is_belt_grouping_enabled, event.brackets, divisionStatusFilter]);
 
   const getStatusColor = (status: CategoryGroup['bracketStatus']) => {
     switch (status) {
-      case 'Encerrado': return 'text-purple-600';
-      case 'Gerado': return 'text-green-600';
-      case 'Em Andamento': return 'text-blue-600';
-      case 'Sem Atletas': return 'text-gray-500';
-      case 'Não Gerado': return 'text-orange-500';
+      case 'Finished': return 'text-purple-600';
+      case 'Generated': return 'text-green-600';
+      case 'In Progress': return 'text-blue-600';
+      case 'No Athletes': return 'text-gray-500';
+      case 'Not Generated': return 'text-orange-500';
       default: return 'text-muted-foreground';
     }
   };
 
   return (
     <div className="space-y-2">
-      <h4 className="text-md font-semibold">Categorias {selectedMat === 'all-mats' ? 'em todas as áreas' : `no ${selectedMat}`}</h4>
+      <h4 className="text-md font-semibold">Categories {selectedMat === 'all-mats' ? 'in all areas' : `in ${selectedMat}`}</h4>
       {categoriesOnSelectedMat.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nenhuma categoria encontrada para esta seleção.</p>
+        <p className="text-muted-foreground text-sm">No categories found for this selection.</p>
       ) : (
         <ToggleGroup
           type="single"
@@ -114,10 +128,10 @@ const MatCategoryList: React.FC<MatCategoryListProps> = ({ event, selectedMat, s
               key={group.key}
               value={group.key}
               className="h-auto py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              disabled={group.bracketStatus === 'Sem Atletas' || group.bracketStatus === 'Não Gerado'}
+              disabled={group.bracketStatus === 'No Athletes' || group.bracketStatus === 'Not Generated'}
             >
               <div className="flex flex-col items-start text-left">
-                <span className="font-medium">{group.display} ({group.athleteCount} atletas)</span>
+                <span className="font-medium">{group.display} ({group.athleteCount} athletes)</span>
                 <span className={cn("text-xs", getStatusColor(group.bracketStatus))}>
                   Status: {group.bracketStatus}
                 </span>

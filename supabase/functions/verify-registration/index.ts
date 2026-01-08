@@ -77,7 +77,7 @@ serve(async (req: Request) => {
       );
 
       const { error: insertError } = await supabaseAdmin
-        .from('user_authenticators')
+        .from('sjjp_user_authenticators')
         .insert({
           user_id: user.id,
           credential_id: credentialID,

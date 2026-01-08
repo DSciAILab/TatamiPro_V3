@@ -57,7 +57,7 @@ const FightOverview: React.FC<FightOverviewProps> = ({ event, onDivisionSelect }
   }, [event]);
 
   if (divisionMatList.length === 0) {
-    return <p className="text-muted-foreground">Nenhuma categoria com bracket gerado encontrada.</p>;
+    return <p className="text-muted-foreground">No category with generated bracket found.</p>;
   }
 
   return (
@@ -67,8 +67,8 @@ const FightOverview: React.FC<FightOverviewProps> = ({ event, onDivisionSelect }
           <TableHeader>
             <TableRow>
               <TableHead className="w-[120px]">Mat</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead className="text-right">Atletas</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead className="text-right">Athletes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

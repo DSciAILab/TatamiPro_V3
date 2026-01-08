@@ -14,7 +14,8 @@ interface FightListProps {
   selectedDivisionId: string;
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
   fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket';
-  isPublic?: boolean;
+  /** Custom base path for fight navigation (for staff pages) */
+  baseFightPath?: string;
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -28,8 +29,16 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, isPublic = false }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath }) => {
   const { athletes, brackets, mat_fight_order } = event;
+  
+  // Build fight URL based on baseFightPath or default
+  const buildFightUrl = (divisionId: string, matchId: string) => {
+    if (baseFightPath) {
+      return `${baseFightPath}/${divisionId}/${matchId}`;
+    }
+    return `/events/${event.id}/fights/${divisionId}/${matchId}`;
+  };
 
   const allMatchesMap = useMemo(() => {
     const map = new Map<string, Match>();
@@ -140,7 +149,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   }
 
   if (fightsForSelectedMatAndCategory.length === 0) {
-    return <p className="text-muted-foreground">Nenhuma luta encontrada para esta categoria no {selectedMat === 'all-mats' ? 'todas as áreas' : selectedMat}.</p>;
+    return <p className="text-muted-foreground">No fights found for this category in {selectedMat === 'all-mats' ? 'all areas' : selectedMat}.</p>;
   }
 
   const gridClasses = {
@@ -211,7 +220,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       return (
         <Link
           key={match.id}
-          to={`/events/${event.id}/fights/${selectedDivisionId}/${match.id}`}
+          to={buildFightUrl(selectedDivisionId, match.id)}
           className={cardClasses}
         >
           {cardContent}

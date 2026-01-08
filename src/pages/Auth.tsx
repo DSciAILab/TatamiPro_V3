@@ -34,17 +34,41 @@ const Auth: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginIdentifier || !password) {
+      showError("Please fill in all fields.");
+      return;
+    }
+
     setLoading(true);
     let email = identifier;
     const isEmail = identifier.includes('@');
 
     try {
-      if (!isEmail) {
-        const { data, error } = await supabase.rpc('get_email_from_username', { p_username: identifier });
-        if (error || !data) {
-          throw new Error("Usuário não encontrado.");
-        }
-        email = data;
+      console.log('[AUTH] Starting login with:', loginIdentifier);
+      
+      // For now, only support email login (username support needs Edge Function)
+      if (!loginIdentifier.includes('@')) {
+        throw new Error('Please use your email to login.');
+      }
+
+      console.log('[AUTH] Attempting sign in with email');
+      
+      // Direct Supabase auth (more reliable than Edge Function)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginIdentifier,
+        password
+      });
+
+      console.log('[AUTH] Sign in response:', { hasSession: !!data.session, error });
+
+      if (error) throw error;
+
+      if (data.session) {
+        console.log('[AUTH] Session established successfully');
+        showSuccess("Welcome back!");
+        navigate('/events');
+      } else {
+        throw new Error('Failed to obtain login session.');
       }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -57,7 +81,8 @@ const Auth: React.FC = () => {
       showSuccess("Login bem-sucedido!");
       navigate('/events');
     } catch (error: any) {
-      showError(error.message);
+      console.error('[AUTH] Login error:', error);
+      showError(error.message || "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -68,101 +93,43 @@ const Auth: React.FC = () => {
       <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">{t('welcomeToTatamiPro')}</CardTitle>
-            <CardDescription>{t('accessOrCreateAccount')}</CardDescription>
+            <CardTitle className="text-3xl">TatamiPro</CardTitle>
+            <CardDescription>Sign in with your Email or Username</CardDescription>
           </CardHeader>
-          <CardContent>
-            {view === 'forgot_password' ? (
-              <>
-                <SupabaseAuth
-                  supabaseClient={supabase}
-                  appearance={{ theme: ThemeSupa }}
-                  providers={[]}
-                  theme="light"
-                  view="forgotten_password"
-                  localization={{
-                    variables: {
-                      forgotten_password: {
-                        email_label: 'Endereço de e-mail',
-                        email_input_placeholder: 'Seu endereço de e-mail',
-                        button_label: 'Enviar instruções',
-                        link_text: 'Esqueceu sua senha?',
-                      },
-                    },
-                  }}
+          <CardContent className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login">Email or Username</Label>
+                <Input
+                  id="login"
+                  type="text"
+                  placeholder="e.g: john.doe or email@example.com"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  disabled={loading}
                 />
-                <Button variant="link" className="w-full" onClick={() => setView('sign_in')}>
-                  {t('backToLogin')}
-                </Button>
-              </>
-            ) : (
-              <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="sign_in">{t('signIn')}</TabsTrigger>
-                  <TabsTrigger value="sign_up">{t('signUp')}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="sign_in">
-                  <form onSubmit={handleLogin} className="space-y-4 pt-4">
-                    <div>
-                      <Label htmlFor="identifier">{t('emailOrUsername')}</Label>
-                      <Input
-                        id="identifier"
-                        type="text"
-                        placeholder={t('yourEmailOrUsernamePlaceholder')}
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        required
-                        disabled={loading}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="password">{t('password')}</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder={t('yourPasswordPlaceholder')}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {t('signIn')}
-                    </Button>
-                  </form>
-                  <div className="text-center mt-2">
-                    <Button variant="link" size="sm" onClick={() => setView('forgot_password')}>
-                      {t('forgotPassword')}
-                    </Button>
-                  </div>
-                  <BiometricLogin />
-                </TabsContent>
-                <TabsContent value="sign_up">
-                  <SupabaseAuth
-                    supabaseClient={supabase}
-                    appearance={{ theme: ThemeSupa }}
-                    providers={[]}
-                    theme="light"
-                    view="sign_up"
-                    localization={{
-                      variables: {
-                        sign_up: {
-                          email_label: 'Endereço de e-mail',
-                          password_label: 'Crie uma senha',
-                          email_input_placeholder: 'Seu endereço de e-mail',
-                          password_input_placeholder: 'Sua senha',
-                          button_label: 'Registrar',
-                          social_provider_text: 'Registrar com {{provider}}',
-                          link_text: 'Não tem uma conta? Registre-se',
-                        },
-                      },
-                    }}
-                  />
-                </TabsContent>
-              </Tabs>
-            )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                Sign In
+              </Button>
+            </form>
+
+            <BiometricLogin />
+            
           </CardContent>
         </Card>
       </div>

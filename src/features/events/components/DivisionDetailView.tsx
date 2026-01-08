@@ -5,34 +5,24 @@ import { Event, Division, Athlete } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
-import AthleteListTable from './AthleteListTable';
-import BracketView from './BracketView';
-import FightList from './FightList';
-import { useTranslations } from '@/hooks/use-translations';
-import { useLocation } from 'react-router-dom';
+import AthleteListTable from '@/components/AthleteListTable';
+import BracketView from '@/components/BracketView';
+import FightList from '@/components/FightList';
 
 interface DivisionDetailViewProps {
   event: Event;
   division: Division;
   onBack: () => void;
-  isPublic?: boolean;
+  /** Custom base path for fight navigation (for staff pages) */
+  baseFightPath?: string;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, isPublic = false }) => {
-  const { t } = useTranslations();
-  const location = useLocation();
-  // Define a aba inicial como 'bracket' se não houver estado de navegação, ou usa o estado.
-  const initialTab = (location.state as any)?.detailTab || 'bracket'; 
-  
-  const [activeTab, setActiveTab] = useState<'athletes' | 'bracket' | 'fight_order'>(initialTab);
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'first_name', direction: 'asc' });
-
-  useEffect(() => {
-    // Reset the active tab if the division changes
-    setActiveTab(initialTab);
-  }, [division.id, initialTab]);
-
-  const athletesInDivision = (event.athletes || []).filter(a => a._division?.id === division.id);
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath }) => {
+  // Consider moved_to_division_id for athletes who were moved to this division
+  const athletesInDivision = (event.athletes || []).filter(a => {
+    const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+    return effectiveDivisionId === division.id;
+  });
   const bracket = event.brackets?.[division.id];
 
   const handleSort = (key: string) => {
@@ -78,18 +68,31 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           <p className="text-muted-foreground">{athletesInDivision.length} athletes</p>
         </div>
         <Button onClick={onBack} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('backToOverview')}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Mat Control
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'athletes' | 'bracket' | 'fight_order')} className="w-full">
+      <Tabs defaultValue="fight_order" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          {/* Nova Ordem: Bracket View, Fight Order, Athlete List */}
-          <TabsTrigger value="bracket" disabled={!bracket}>{t('bracketView')}</TabsTrigger>
-          <TabsTrigger value="fight_order" disabled={!bracket}>{t('fightOrder')}</TabsTrigger>
-          <TabsTrigger value="athletes">{t('athleteList')}</TabsTrigger>
+          <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
+          <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>
+          <TabsTrigger value="athletes">Athlete List</TabsTrigger>
         </TabsList>
-        
+        <TabsContent value="fight_order" className="mt-4">
+          {bracket ? (
+            <FightList
+              event={event}
+              selectedMat="all-mats"
+              selectedCategoryKey={division.id}
+              selectedDivisionId={division.id}
+              onUpdateBracket={() => {}} // Read-only view
+              fightViewMode="grid1"
+              baseFightPath={baseFightPath}
+            />
+          ) : (
+            <p className="text-muted-foreground text-center py-8">Fight order not available.</p>
+          )}
+        </TabsContent>
         <TabsContent value="bracket" className="mt-4">
           {bracket ? (
             <BracketView
@@ -100,23 +103,11 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               isPublic={isPublic}
             />
           ) : (
-            <p className="text-muted-foreground text-center py-8">Bracket não gerado para esta divisão.</p>
+            <p className="text-muted-foreground text-center py-8">Bracket not generated for this division.</p>
           )}
         </TabsContent>
-        <TabsContent value="fight_order" className="mt-4">
-          {bracket ? (
-            <FightList
-              event={event}
-              selectedMat="all-mats"
-              selectedCategoryKey={division.id}
-              selectedDivisionId={division.id}
-              onUpdateBracket={() => {}} // Read-only view
-              fightViewMode="grid1"
-              isPublic={isPublic}
-            />
-          ) : (
-            <p className="text-muted-foreground text-center py-8">Ordem de lutas não disponível.</p>
-          )}
+        <TabsContent value="athletes" className="mt-4">
+          <AthleteListTable athletes={athletesInDivision} divisions={event.divisions || []} />
         </TabsContent>
         <TabsContent value="athletes" className="mt-4">
           <AthleteListTable 
