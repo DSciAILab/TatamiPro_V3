@@ -16,6 +16,7 @@ interface FightListProps {
   fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket';
   /** Custom base path for fight navigation (for staff pages) */
   baseFightPath?: string;
+  isPublic?: boolean;
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -29,7 +30,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false }) => {
   const { athletes, brackets, mat_fight_order } = event;
   
   // Build fight URL based on baseFightPath or default

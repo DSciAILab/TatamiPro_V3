@@ -4,6 +4,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { showSuccess } from '@/utils/toast';
 import { LogOut, User, Settings } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';

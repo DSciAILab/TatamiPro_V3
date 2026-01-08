@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Event, Bracket, Division } from '@/types/index';
 import { StaffRole } from '@/types/staff-access';
@@ -62,8 +62,15 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
   const [showOngoingWarningDialog, setShowOngoingWarningDialog] = useState(false);
   const [divisionToRegenerateOngoing, setDivisionToRegenerateOngoing] = useState<Division | null>(null);
+
+  // Persist selectedMat to localStorage
+  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`selectedMat_${event.id}`) || null;
+    }
+    return null;
+  });
   
-  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(null);
   const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
   const [includeOngoingBrackets, setIncludeOngoingBrackets] = useState<boolean>(false);
   const [divisionStatusFilter, setDivisionStatusFilter] = useState<'all' | 'active' | 'finished'>('all');
@@ -265,13 +272,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     setDivisionToRegenerateOngoing(null);
   };
 
-  // Persist selectedMat to localStorage
-  const [selectedMat, setSelectedMat] = useState<string | 'all-mats' | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(`selectedMat_${event.id}`) || null;
-    }
-    return null;
-  });
+
 
   // Save to localStorage when mat changes
   const handleMatChange = (mat: string | 'all-mats') => {

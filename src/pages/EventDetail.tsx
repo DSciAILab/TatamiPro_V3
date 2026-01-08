@@ -12,6 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventData } from '@/features/events/hooks/use-event-data';
+import { useEventTabs } from '@/hooks/useEventTabs';
 
 import EventConfigTab from '@/features/events/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -74,7 +75,6 @@ const EventDetail: React.FC = () => {
   } = useEventTabs();
 
   // --- UI State ---
-  const [activeTab, setActiveTab] = useState('inscricoes');
   const [selectedAthletesForApproval, setSelectedAthletesForApproval] = useState<string[]>([]);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -91,18 +91,7 @@ const EventDetail: React.FC = () => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
 
-  const [configSubTab, setConfigSubTab] = useState('event-settings');
-  const [inscricoesSubTab, setInscricoesSubTab] = useState('registered-athletes');
-  const [bracketsSubTab, setBracketsSubTab] = useState('mat-distribution');
 
-  useEffect(() => {
-    if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-    if (location.state?.bracketsSubTab) {
-      setBracketsSubTab(location.state.bracketsSubTab);
-    }
-  }, [location.state]);
 
   const handleSaveChanges = async () => {
     if (!event || !eventId || !hasUnsavedChanges) return;
@@ -244,7 +233,52 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteAthlete = async (_id: string) => { /* Stub */ };
+  const handleToggleAthleteSelection = (athleteId: string) => {
+    setSelectedAthletesForApproval(prev =>
+      prev.includes(athleteId)
+        ? prev.filter(id => id !== athleteId)
+        : [...prev, athleteId]
+    );
+  };
+
+  const handleSelectAllAthletes = () => {
+    if (selectedAthletesForApproval.length === filteredAthletesForDisplayInscricoes.length) {
+      setSelectedAthletesForApproval([]);
+    } else {
+      setSelectedAthletesForApproval(filteredAthletesForDisplayInscricoes.map(a => a.id));
+    }
+  };
+
+  const handleDeleteAthlete = async (id: string) => {
+      if (!event || !eventId) return;
+      const toastId = showLoading(`Deleting athlete...`);
+      try {
+        const { error } = await supabase.from('sjjp_athletes').delete().eq('id', id);
+        if (error) throw error;
+        setEvent(prev => prev ? { ...prev, athletes: prev.athletes?.filter(a => a.id !== id) } : prev);
+        dismissToast(toastId);
+        showSuccess('Athlete deleted successfully');
+      } catch (error: any) {
+        dismissToast(toastId);
+        showError('Failed to delete athlete: ' + error.message);
+      }
+  };
+
+  const handleDeleteSelectedAthletes = async () => {
+      if (!event || !eventId || selectedAthletesForApproval.length === 0) return;
+      const toastId = showLoading(`Deleting ${selectedAthletesForApproval.length} athletes...`);
+      try {
+        const { error } = await supabase.from('sjjp_athletes').delete().in('id', selectedAthletesForApproval);
+        if (error) throw error;
+        setEvent(prev => prev ? { ...prev, athletes: prev.athletes?.filter(a => !selectedAthletesForApproval.includes(a.id)) } : prev);
+        dismissToast(toastId);
+        showSuccess('Athletes deleted successfully');
+        setSelectedAthletesForApproval([]);
+      } catch (error: any) {
+        dismissToast(toastId);
+        showError('Failed to delete athletes: ' + error.message);
+      }
+  };
   
   const handleApproveReject = async (status: 'approved' | 'rejected') => {
     if (!event || !eventId || selectedAthletesForApproval.length === 0) {

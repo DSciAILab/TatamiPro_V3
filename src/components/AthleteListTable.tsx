@@ -11,6 +11,8 @@ import { getAthleteDisplayString } from '@/utils/athlete-utils';
 interface AthleteListTableProps {
   athletes: Athlete[];
   divisions?: Division[];
+  sortConfig?: SortConfig;
+  onSort?: (key: SortKey) => void;
 }
 
 type SortKey = keyof Athlete | 'status';
@@ -20,17 +22,28 @@ interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-const AthleteListTable: React.FC<AthleteListTableProps> = ({ athletes, divisions = [] }) => {
+const AthleteListTable: React.FC<AthleteListTableProps> = ({ 
+  athletes, 
+  divisions = [],
+  sortConfig: externalSortConfig,
+  onSort: externalOnSort
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
+  const [internalSortConfig, setInternalSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
+
+  const sortConfig = externalSortConfig || internalSortConfig;
 
   const handleSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    if (externalOnSort) {
+      externalOnSort(key);
+    } else {
+      let direction: 'asc' | 'desc' = 'asc';
+      if (internalSortConfig.key === key && internalSortConfig.direction === 'asc') {
+        direction = 'desc';
+      }
+      setInternalSortConfig({ key, direction });
     }
-    setSortConfig({ key, direction });
   };
 
   const getSortIcon = (columnKey: SortKey) => {

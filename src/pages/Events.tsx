@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,11 @@ const Events: React.FC = () => {
       setEvents(data || []);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadEventsFromSupabase();
+  }, [loadEventsFromSupabase]);
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);

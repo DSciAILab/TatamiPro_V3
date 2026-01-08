@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 import RegistrationsTable from '@/features/events/components/RegistrationsTable';
 import BatchEditTab from '@/features/events/components/BatchEditTab';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface RegistrationsTabProps {
   event: Event;
@@ -102,7 +103,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
       
       if (searchTerms.length > 0) {
         current = current.filter(a => {
-          const searchableText = `${a.first_name} ${a.last_name} ${a.club} ${a.emirates_id || ''} ${a.school_id || ''} ${getAthleteDisplayString(a, a._division)}`.toLowerCase();
+          const searchableText = `${a.first_name} ${a.last_name} ${a.club} ${a.emirates_id || ''} ${a.school_id || ''} ${getAthleteDisplayString(a, a._division, t)}`.toLowerCase();
           // Match if ANY search term is found (OR logic)
           return searchTerms.some(term => searchableText.includes(term));
         });

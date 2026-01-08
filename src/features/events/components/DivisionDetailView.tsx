@@ -15,9 +15,12 @@ interface DivisionDetailViewProps {
   onBack: () => void;
   /** Custom base path for fight navigation (for staff pages) */
   baseFightPath?: string;
+  isPublic?: boolean;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath }) => {
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath, isPublic = false }) => {
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'last_name', direction: 'asc' });
+  
   // Consider moved_to_division_id for athletes who were moved to this division
   const athletesInDivision = (event.athletes || []).filter(a => {
     const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
@@ -107,12 +110,10 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           )}
         </TabsContent>
         <TabsContent value="athletes" className="mt-4">
-          <AthleteListTable athletes={athletesInDivision} divisions={event.divisions || []} />
-        </TabsContent>
-        <TabsContent value="athletes" className="mt-4">
           <AthleteListTable 
             athletes={sortedAthletes} 
-            sortConfig={sortConfig}
+            divisions={event.divisions || []}
+            sortConfig={sortConfig as any}
             onSort={handleSort}
           />
         </TabsContent>

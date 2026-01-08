@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Division } from '@/types/index';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useTranslations } from '@/hooks/use-translations';
 
 export type SortKey = keyof Athlete | 'division_name' | 'id_number';
 
@@ -48,6 +49,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   selectedAthletes = [],
   onToggleSelection,
 }) => {
+  const { t } = useTranslations();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
 
   const handleSort = (key: SortKey) => {
@@ -184,11 +186,11 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                               : divisions.find(d => d.id === athlete.moved_to_division_id)?.name || 'New Division'}
                           </span>
                           <span className="line-through text-muted-foreground opacity-70">
-                            {getAthleteDisplayString(athlete, athlete._division)}
+                            {getAthleteDisplayString(athlete, athlete._division, t)}
                           </span>
                         </>
                       ) : (
-                        <span>{getAthleteDisplayString(athlete, athlete._division)}</span>
+                        <span>{getAthleteDisplayString(athlete, athlete._division, t)}</span>
                       )}
                     </div>
                   </TableCell>
@@ -269,7 +271,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                     <div>
                         <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                         <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
+                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
                         <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registration_status === 'under_approval' ? 'Pending Approval' : athlete.registration_status === 'approved' ? 'Approved' : 'Rejected'}</span></p>
                         {athlete.move_reason && (
                         <p className="text-xs text-blue-500">

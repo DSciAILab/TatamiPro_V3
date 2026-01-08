@@ -10,6 +10,8 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'coach' | 'staff' | 'athlete';
   club: string | null;
+  username: string | null;
+  phone: string | null;
   prefers_wide_layout?: boolean; // Added this line
 }
 
@@ -101,18 +103,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Claim unassigned events for the new user to ensure visibility
-        // await supabase.rpc('claim_events_for_user'); // Commented out to prevent freeze until RPC is updated
-        await fetchProfile(session.user.id);
-      } else if (session?.user) {
-        await fetchProfile(session.user.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('[AUTHCONTEXT] Initialization error:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchSessionAndProfile();
