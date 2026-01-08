@@ -138,7 +138,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   }
 
   if (fightsForSelectedMatAndCategory.length === 0) {
-    return <p className="text-muted-foreground">Nenhuma luta encontrada para esta categoria no {selectedMat === 'all-mats' ? 'todas as áreas' : selectedMat}.</p>;
+    return <p className="text-muted-foreground">No fights found for this category in {selectedMat === 'all-mats' ? 'all areas' : selectedMat}.</p>;
   }
 
   const gridClasses = {

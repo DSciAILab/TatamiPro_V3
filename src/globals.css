@@ -99,3 +99,47 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide UI elements */
+  header,
+  aside,
+  .no-print,
+  button,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Ensure content takes full width */
+  main,
+  .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Improve table readability */
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd !important;
+    color: black !important;
+    padding: 8px !important;
+  }
+
+  /* Force background colors for badges if needed, or stick to clean layout */
+  .badge {
+    border: 1px solid #000;
+  }
+
+  /* Reset background colors to save ink, unless user wants them */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}

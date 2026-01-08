@@ -19,6 +19,11 @@ const QrScanner: React.FC<QrScannerProps> = ({ onScanSuccess }) => {
         qrbox: { width: 250, height: 250 },
         rememberLastUsedCamera: true,
         supportedScanTypes: [], // Use all supported types
+        aspectRatio: 1.0, // Square aspect ratio
+        // More permissive video constraints to avoid OverconstrainedError
+        videoConstraints: {
+          facingMode: { ideal: 'environment' }, // Prefer back camera but don't require
+        },
       };
 
       const handleSuccess = (decodedText: string) => {

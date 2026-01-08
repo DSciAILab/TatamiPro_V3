@@ -16,6 +16,14 @@ interface OfflineContextType {
   trackChange: (table: string, action: 'create' | 'update' | 'delete', data: any) => Promise<void>;
 }
 
+const REMOTE_TABLE_MAP: Record<string, string> = {
+  events: 'sjjp_events',
+  athletes: 'sjjp_athletes',
+  divisions: 'sjjp_divisions',
+  clubs: 'sjjp_clubs',
+  profiles: 'sjjp_profiles',
+};
+
 const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
 
 export const OfflineProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -49,17 +57,17 @@ export const OfflineProvider: React.FC<{ children: ReactNode }> = ({ children })
     const appId = await getAppId();
     
     // Fetch Events
-    const { data: events, error: evErr } = await supabase.from('events').select('*').eq('app_id', appId);
+    const { data: events, error: evErr } = await supabase.from('sjjp_events').select('*').eq('app_id', appId);
     if (evErr) throw evErr;
     await db.events.bulkPut(events as Event[]);
 
     // Fetch Divisions
-    const { data: divisions, error: divErr } = await supabase.from('divisions').select('*').eq('app_id', appId);
+    const { data: divisions, error: divErr } = await supabase.from('sjjp_divisions').select('*').eq('app_id', appId);
     if (divErr) throw divErr;
     await db.divisions.bulkPut(divisions as Division[]);
 
     // Fetch Athletes
-    const { data: athletes, error: athErr } = await supabase.from('athletes').select('*').eq('app_id', appId);
+    const { data: athletes, error: athErr } = await supabase.from('sjjp_athletes').select('*').eq('app_id', appId);
     if (athErr) throw athErr;
     await db.athletes.bulkPut(athletes as Athlete[]);
   };
@@ -72,17 +80,18 @@ export const OfflineProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { table, action, data } = change;
       let error = null;
 
+      const remoteTable = REMOTE_TABLE_MAP[table] || table;
       // Remove local-only fields if necessary or handle conflicts
       // For simplicity, we just replay the action
       if (action === 'create') {
-        const { error: reqErr } = await supabase.from(table).insert(data);
+        const { error: reqErr } = await supabase.from(remoteTable).insert(data);
         error = reqErr;
       } else if (action === 'update') {
         const { id, ...updateData } = data;
-        const { error: reqErr } = await supabase.from(table).update(updateData).eq('id', id);
+        const { error: reqErr } = await supabase.from(remoteTable).update(updateData).eq('id', id);
         error = reqErr;
       } else if (action === 'delete') {
-        const { error: reqErr } = await supabase.from(table).delete().eq('id', data.id);
+        const { error: reqErr } = await supabase.from(remoteTable).delete().eq('id', data.id);
         error = reqErr;
       }
 

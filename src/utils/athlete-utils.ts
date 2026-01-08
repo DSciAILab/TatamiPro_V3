@@ -139,7 +139,7 @@ export const findNextHigherWeightDivision = (
 // Função para gerar a string de ordenação/exibição
 export const getAthleteDisplayString = (athlete: Athlete, division?: Division): string => {
   if (division) {
-    return `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
+    return division.name || `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
   }
   // Fallback se a divisão não for encontrada ou passada
   return `${athlete.gender} / ${athlete.age_division} / ${athlete.belt} / Divisão não encontrada`;
@@ -173,4 +173,30 @@ export const processAthleteData = (athleteData: any, divisions: Division[], ageS
   athleteWithCalculatedProps._division = findAthleteDivision(athleteWithCalculatedProps, divisions);
 
   return athleteWithCalculatedProps;
+};
+
+export const formatMoveReason = (reason: string | null | undefined): string | null => {
+  if (!reason) return null;
+  // Handle legacy validation message "Movido automaticamente para [Division] por excesso de peso..."
+  // User wants just the division name "Movido para: [Division]"
+  
+  let cleanReason = reason;
+
+  // Remove the prefix
+  if (cleanReason.startsWith("Movido automaticamente para ")) {
+    cleanReason = cleanReason.replace("Movido automaticamente para ", "");
+  }
+
+  // Remove the suffix starting with " por excesso de peso"
+  const suffixIndex = cleanReason.indexOf(" por excesso de peso");
+  if (suffixIndex !== -1) {
+    cleanReason = cleanReason.substring(0, suffixIndex);
+  }
+  
+  // Remove any trailing period if present after stripping
+  if (cleanReason.endsWith(".")) {
+    cleanReason = cleanReason.slice(0, -1);
+  }
+
+  return cleanReason.trim();
 };

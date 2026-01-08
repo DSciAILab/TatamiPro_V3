@@ -28,20 +28,9 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
 
-  if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Bracket para {division.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Nenhum bracket gerado para esta divisão ainda.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const totalRounds = bracket.rounds.length;
+  const rounds = bracket?.rounds ?? [];
+  const hasRounds = rounds.length > 0;
+  const totalRounds = rounds.length;
 
   // Definindo constantes para o layout das linhas
   const cardHeight = 140; // Altura calculada de um BracketMatchCard (2 slots * 56px + padding/margin + bordas)
@@ -51,18 +40,20 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
 
   // Calcula as posições Y (top) e os margin-tops para cada luta
   const matchMarginTops = useMemo(() => {
+    if (!hasRounds) return new Map<string, number>();
+
     const yTops: Map<string, number> = new Map();
     const marginTops: Map<string, number> = new Map();
 
     // 1. Calcular a posição Y (top) absoluta de cada luta dentro de sua coluna
-    bracket.rounds.forEach((round, roundIndex) => {
+    rounds.forEach((round, roundIndex) => {
       round.forEach((match, matchIndex) => {
         if (roundIndex === 0) {
           // Primeira rodada: empilhamento simples
           yTops.set(match.id, matchIndex * matchFullHeight);
         } else {
           // Rodadas subsequentes: centralizar entre os pais
-          const prevRound = bracket.rounds[roundIndex - 1];
+          const prevRound = rounds[roundIndex - 1];
           const parent1 = prevRound[matchIndex * 2];
           const parent2 = prevRound[matchIndex * 2 + 1];
 
@@ -80,7 +71,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     });
 
     // 2. Calcular o margin-top para cada luta com base nas posições Y absolutas
-    bracket.rounds.forEach((round) => {
+    rounds.forEach((round) => {
       round.forEach((match, matchIndex) => {
         const currentYTop = yTops.get(match.id)!;
         let calculatedMarginTop = 0;
@@ -99,7 +90,20 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     });
 
     return marginTops;
-  }, [bracket, cardHeight, matchFullHeight]);
+  }, [hasRounds, rounds, cardHeight, matchFullHeight]);
+
+  if (!hasRounds) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Bracket para {division.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No bracket generated for this division yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-4">
@@ -108,7 +112,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
       </CardHeader>
       <CardContent className="flex flex-col items-center overflow-x-auto">
         <div className="flex space-x-8 p-4 relative"> {/* Este div é o container relativo para as linhas */}
-          {bracket.rounds.map((round, roundIndex) => {
+          {rounds.map((round, roundIndex) => {
             const isLastRound = roundIndex === totalRounds - 1;
             return (
               <React.Fragment key={roundIndex}>

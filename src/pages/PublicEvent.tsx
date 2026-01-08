@@ -31,7 +31,7 @@ const PublicEvent: React.FC = () => {
     if (isInitialLoad) setLoading(true);
     try {
       const { data: eventData, error: eventError } = await supabase
-        .from('events')
+        .from('sjjp_events')
         .select('*')
         .eq('id', eventId)
         .eq('is_active', true)
@@ -41,10 +41,10 @@ const PublicEvent: React.FC = () => {
         throw new Error("Event not found or is not active.");
       }
 
-      const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+      const { data: athletesData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
       if (athletesError) throw athletesError;
       
-      const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+      const { data: divisionsData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
       if (divisionsError) throw divisionsError;
 
       const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
@@ -100,11 +100,11 @@ const PublicEvent: React.FC = () => {
   }, [eventId, fetchEventData]);
 
   if (loading) {
-    return <PublicLayout><div className="text-center text-xl mt-8">Carregando evento...</div></PublicLayout>;
+    return <PublicLayout><div className="text-center text-xl mt-8">Loading event...</div></PublicLayout>;
   }
 
   if (error || !event) {
-    return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || "Evento não encontrado."}</div></PublicLayout>;
+    return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || "Event not found."}</div></PublicLayout>;
   }
 
   const divisionsWithBrackets = event.divisions?.filter(div => event.brackets?.[div.id]) || [];
@@ -117,24 +117,24 @@ const PublicEvent: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
-          <TabsTrigger value="fights">Ordem das Lutas</TabsTrigger>
-          <TabsTrigger value="results">Resultados</TabsTrigger>
+          <TabsTrigger value="fights">Fight Order</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brackets" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Brackets do Evento</CardTitle>
-              <CardDescription>Selecione uma divisão para ver o bracket.</CardDescription>
+              <CardTitle>Event Brackets</CardTitle>
+              <CardDescription>Select a division to view the bracket.</CardDescription>
             </CardHeader>
             <CardContent>
               {divisionsWithBrackets.length === 0 ? (
-                <p>Nenhum bracket gerado para este evento ainda.</p>
+                <p>No brackets generated for this event yet.</p>
               ) : (
                 <>
                   <Select value={selectedDivisionId} onValueChange={setSelectedDivisionId}>
                     <SelectTrigger className="w-full md:w-[300px] mb-4">
-                      <SelectValue placeholder="Selecione uma divisão" />
+                      <SelectValue placeholder="Select a division" />
                     </SelectTrigger>
                     <SelectContent>
                       {divisionsWithBrackets.map(div => (
@@ -159,8 +159,8 @@ const PublicEvent: React.FC = () => {
         <TabsContent value="fights" className="mt-6">
            <Card>
             <CardHeader>
-              <CardTitle>Ordem das Lutas</CardTitle>
-              <CardDescription>Acompanhe a sequência de lutas em tempo real.</CardDescription>
+              <CardTitle>Fight Order</CardTitle>
+              <CardDescription>Follow the fight sequence in real-time.</CardDescription>
             </CardHeader>
             <CardContent>
               <PublicFightOrder event={event} />

@@ -43,12 +43,12 @@ const CreateEvent: React.FC = () => {
       return;
     }
 
-    const appId = await getAppId();
+    // const appId = await getAppId();
 
     const newEventForDB = {
       id: uuidv4(),
       user_id: user.id,
-      app_id: appId, // Add App ID
+      // app_id: appId, // Temporarily removed
       name: eventName,
       description: eventDescription,
       status: 'Aberto',
@@ -59,6 +59,7 @@ const CreateEvent: React.FC = () => {
       third_place_points: 1,
       count_single_club_categories: true,
       count_walkover_single_fight_categories: true,
+      count_wo_champion_categories: false,
       mat_assignments: {},
       brackets: {},
       mat_fight_order: {},
@@ -71,7 +72,7 @@ const CreateEvent: React.FC = () => {
       num_fight_areas: 1,
     };
 
-    const { error } = await supabase.from('events').insert(newEventForDB);
+    const { error } = await supabase.from('sjjp_events').insert(newEventForDB);
 
     if (error) {
       showError(`Failed to create event: ${error.message}`);

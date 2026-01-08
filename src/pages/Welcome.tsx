@@ -14,20 +14,20 @@ const Welcome: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-128px)] text-center">
-        <h1 className="text-5xl font-extrabold mb-6 text-primary">Bem-vindo ao TatamiPro</h1>
+        <h1 className="text-5xl font-extrabold mb-6 text-primary">Welcome to TatamiPro</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
-          Sua plataforma completa para gerenciar campeonatos de Jiu-Jitsu de forma eficiente e organizada.
+          Your complete platform for managing Jiu-Jitsu tournaments efficiently and organized.
         </p>
         <div className={`grid grid-cols-1 ${isLoggedIn ? 'md:grid-cols-1 justify-center' : 'md:grid-cols-2'} gap-8 w-full max-w-3xl`}>
           <Link to="/events">
             <Card className="flex flex-col items-center p-6 h-full hover:bg-accent transition-colors">
               <CardHeader>
                 <CalendarDays className="h-16 w-16 text-primary mb-4" />
-                <CardTitle className="text-2xl">Visualizar Eventos</CardTitle>
+                <CardTitle className="text-2xl">View Events</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
                 <CardDescription className="mb-6 text-center">
-                  Explore os campeonatos disponíveis, veja os inscritos e os brackets.
+                  Explore available tournaments, see registrations and brackets.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -38,11 +38,11 @@ const Welcome: React.FC = () => {
               <Card className="flex flex-col items-center p-6 h-full hover:bg-accent transition-colors">
                 <CardHeader>
                   <UserPlus className="h-16 w-16 text-primary mb-4" />
-                  <CardTitle className="text-2xl">Fazer Login ou Cadastro</CardTitle>
+                  <CardTitle className="text-2xl">Login or Register</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
                   <CardDescription className="mb-6 text-center">
-                    Acesse sua conta ou crie um novo perfil para participar e gerenciar eventos.
+                    Access your account or create a new profile to participate and manage events.
                   </CardDescription>
                 </CardContent>
               </Card>

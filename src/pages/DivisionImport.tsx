@@ -145,7 +145,7 @@ const DivisionImport: React.FC = () => {
     });
 
     if (successfulDivisionsForDb.length > 0) {
-      const { error } = await supabase.from('divisions').insert(successfulDivisionsForDb);
+      const { error } = await supabase.from('sjjp_divisions').insert(successfulDivisionsForDb);
       if (error) {
         dismissToast(loadingToast);
         showError(`Erro ao salvar no banco de dados: ${error.message}`);

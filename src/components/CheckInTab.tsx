@@ -1,137 +1,119 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Event, Athlete } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { QrCodeIcon, Barcode, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import CheckInTable from '@/features/events/components/CheckInTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserRound, CheckCircle, XCircle, Scale, Search, QrCodeIcon, Barcode } from 'lucide-react';
-import CheckInForm from '@/components/CheckInForm';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import QrScanner from '@/components/QrScanner';
-import { getAthleteDisplayString } from '@/utils/athlete-utils';
-import { cn } from '@/lib/utils';
-import { format, differenceInSeconds } from 'date-fns';
+import { FaceCapture } from '@/components/face/FaceCapture';
 import { showSuccess, showError } from '@/utils/toast';
+import { cn } from '@/lib/utils';
+import { generateCheckInPdf } from '@/utils/pdf-checkin-generator';
 
 interface CheckInTabProps {
   event: Event;
-  userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
-  check_in_start_time?: Date;
-  check_in_end_time?: Date;
-  checkInFilter: 'pending' | 'checked_in' | 'overweight' | 'all';
-  handleCheckInBoxClick: (filter: 'pending' | 'checked_in' | 'overweight') => void;
-  setCheckInFilter: (filter: 'all' | 'pending' | 'checked_in' | 'overweight') => void;
-  totalCheckedInOk: number;
-  totalOverweights: number;
-  totalPendingCheckIn: number;
-  totalApprovedAthletes: number;
-  isScannerOpen: boolean;
-  setIsScannerOpen: (isOpen: boolean) => void;
   processedApprovedAthletes: Athlete[];
-  setScannedAthleteId: (id: string | null) => void;
-  setSearchTerm: (term: string) => void;
   searchTerm: string;
+  setSearchTerm: (term: string) => void;
   filteredAthletesForCheckIn: Athlete[];
+  checkInFilter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved';
+  setCheckInFilter: (filter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved') => void;
+  totalApprovedAthletes: number;
+  totalCheckedIn: number;
+  totalPendingCheckIn: number;
   handleCheckInAthlete: (athlete: Athlete) => void;
 }
 
 const CheckInTab: React.FC<CheckInTabProps> = ({
   event,
-  userRole,
-  check_in_start_time,
-  check_in_end_time,
-  checkInFilter,
-  handleCheckInBoxClick,
-  setCheckInFilter,
-  totalCheckedInOk,
-  totalOverweights,
-  totalPendingCheckIn,
-  totalApprovedAthletes,
-  isScannerOpen,
-  setIsScannerOpen,
   processedApprovedAthletes,
-  setScannedAthleteId,
-  setSearchTerm,
   searchTerm,
+  setSearchTerm,
   filteredAthletesForCheckIn,
+  checkInFilter,
+  setCheckInFilter,
+  totalApprovedAthletes,
+  totalCheckedIn,
+  totalPendingCheckIn,
   handleCheckInAthlete,
 }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [isFaceCaptureOpen, setIsFaceCaptureOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const isCheckInAllowedGlobally = useMemo(() => {
+    // Check global event setting first
+    if (event.is_check_in_open === false) return false;
 
-  const isCheckInTimeValid = () => {
-    if (!check_in_start_time || !check_in_end_time) return false;
-    return currentTime >= check_in_start_time && currentTime <= check_in_end_time;
+    // Check date range
+    if (!event.check_in_enabled_start || !event.check_in_enabled_end) return true;
+    const now = new Date();
+    const start = new Date(event.check_in_enabled_start);
+    const end = new Date(event.check_in_enabled_end);
+    return now >= start && now <= end;
+  }, [event]);
+
+  const handleDownloadPdf = () => {
+    generateCheckInPdf(event, processedApprovedAthletes);
   };
 
-  const isCheckInAllowedGlobally = userRole === 'admin' || isCheckInTimeValid();
-
-  const timeRemainingInSeconds = check_in_end_time ? differenceInSeconds(check_in_end_time, currentTime) : 0;
-  const timeRemainingFormatted = timeRemainingInSeconds > 0 ? `${Math.floor(timeRemainingInSeconds / 3600)}h ${Math.floor((timeRemainingInSeconds % 3600) / 60)}m ${timeRemainingInSeconds % 60}s` : 'Encerrado';
+  const handleFaceCapture = (imageData: string) => {
+    // For now, just log - future implementation can match faces
+    console.log('Face captured:', imageData.substring(0, 50) + '...');
+    showSuccess('Face captured successfully! (Beta feature)');
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Check-in de Atletas</span>
-          <div className="text-sm font-normal text-muted-foreground flex flex-col items-end">
-            <span>Hora Atual: {format(currentTime, 'HH:mm:ss')}</span>
-            <span>Tempo para fechar: {timeRemainingFormatted}</span>
-          </div>
-        </CardTitle>
-        <CardDescription>
-          Confirme a presença e o peso dos atletas.
-          {!isCheckInTimeValid() && userRole !== 'admin' && (
-            <span className="text-red-500 block mt-2">O check-in está fora do horário permitido. Apenas administradores podem realizar o check-in agora.</span>
-          )}
-          {isCheckInTimeValid() && (
-            <span className="text-green-600 block mt-2">Check-in aberto!</span>
-          )}
-          {!event.check_in_start_time || !event.check_in_end_time ? (
-            <span className="text-orange-500 block mt-2">Horário de check-in não configurado.</span>
-          ) : (
-            <span className="text-muted-foreground block mt-2">Horário: {format(new Date(event.check_in_start_time), 'dd/MM HH:mm')} - {format(new Date(event.check_in_end_time), 'dd/MM HH:mm')}</span>
-          )}
-          {event.is_attendance_mandatory_before_check_in && (
-            <p className="text-orange-500 mt-2">Atenção: A presença é obrigatória antes do check-in. Apenas atletas marcados como 'Presente' aparecerão aqui.</p>
-          )}
-          {!event.is_weight_check_enabled && (
-            <p className="text-blue-500 mt-2">Verificação de peso desabilitada. Todos os atletas serão considerados no peso.</p>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {!userRole ? (
-          <Card><CardHeader><CardTitle>Acesso Negado</CardTitle><CardDescription>Você não tem permissão para acessar o check-in.</CardDescription></CardHeader></Card>
-        ) : (
-          <>
-            <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex justify-between items-center">
+            <span>Check-in & Weigh-in</span>
+            <div className="flex items-center space-x-2">
+              <Button onClick={handleDownloadPdf} variant="outline" size="sm" className="gap-2 no-print">
+                <Download className="h-4 w-4" /> Download PDF
+              </Button>
+              {!isCheckInAllowedGlobally && (
+                <Badge variant="destructive">Check-in Closed</Badge>
+              )}
+              {event.is_check_in_open && (
+                <Badge variant="outline" className="text-green-600 border-green-600">Check-in Open</Badge>
+              )}
+            </div>
+          </CardTitle>
+          <CardDescription>Manage athlete check-in and weigh-in.</CardDescription>
+        </CardHeader>
+      </Card>
+
+      {!processedApprovedAthletes || processedApprovedAthletes.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground text-center">No approved athletes for check-in at the moment.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Column - QR Scanner & Athletes Table */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-4 text-center">
               <div
                 className={cn(
                   "p-3 border rounded-md cursor-pointer transition-colors",
                   checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-                  'hover:bg-green-100 dark:hover:bg-green-900'
+                  checkInFilter === 'checked_in' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
                 )}
-                onClick={() => handleCheckInBoxClick('checked_in')}
+                onClick={() => setCheckInFilter('checked_in')}
               >
-                <p className="text-2xl font-bold text-green-600">{totalCheckedInOk}</p>
-                <p className="text-sm text-muted-foreground">Check-in OK</p>
-              </div>
-              <div
-                className={cn(
-                  "p-3 border rounded-md cursor-pointer transition-colors",
-                  checkInFilter === 'overweight' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
-                  checkInFilter === 'overweight' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
-                )}
-                onClick={() => handleCheckInBoxClick('overweight')}
-              >
-                <p className="text-2xl font-bold text-red-600">{totalOverweights}</p>
-                <p className="text-sm text-muted-foreground">Acima do Peso</p>
+                <p className="text-2xl font-bold text-green-600">{totalCheckedIn}</p>
+                <p className="text-sm text-muted-foreground">Checked In</p>
               </div>
               <div
                 className={cn(
@@ -139,10 +121,10 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                   checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
                   checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
                 )}
-                onClick={() => handleCheckInBoxClick('pending')}
+                onClick={() => setCheckInFilter('pending')}
               >
                 <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
-                <p className="text-sm text-muted-foreground">Faltam</p>
+                <p className="text-sm text-muted-foreground">Remaining</p>
               </div>
               <div
                 className={cn(
@@ -153,21 +135,22 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 onClick={() => setCheckInFilter('all')}
               >
                 <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
-                <p className="text-sm text-muted-foreground">Total Aprovados</p>
+                <p className="text-sm text-muted-foreground">Total Approved</p>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            {/* QR/Barcode Scanner Buttons */}
+            <div className="flex flex-col md:flex-row gap-4 items-center">
               {event.check_in_scan_mode === 'qr' && (
                 <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <QrCodeIcon className="mr-2 h-4 w-4" /> Escanear QR Code
+                    <Button variant="outline" size="sm" className="w-auto">
+                      <QrCodeIcon className="mr-2 h-4 w-4" /> Scan QR
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Escanear QR Code do Atleta</DialogTitle>
+                      <DialogTitle>Scan Athlete QR Code</DialogTitle>
                     </DialogHeader>
                     <QrScanner
                       onScanSuccess={(qrCodeId) => {
@@ -175,10 +158,10 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                         if (athlete) {
                           setScannedAthleteId(qrCodeId);
                           setSearchTerm('');
-                          showSuccess(`Atleta ${athlete.first_name} ${athlete.last_name} escaneado!`);
+                          showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
                           setIsScannerOpen(false);
                         } else {
-                          showError('QR Code não reconhecido ou atleta não encontrado.');
+                          showError('QR Code not recognized or athlete not found.');
                         }
                       }}
                     />
@@ -188,89 +171,66 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
               {event.check_in_scan_mode === 'barcode' && (
                 <div className="flex-1">
                   <Button variant="outline" className="w-full" disabled>
-                    <Barcode className="mr-2 h-4 w-4" /> Escanear Código de Barras (Em breve)
+                    <Barcode className="mr-2 h-4 w-4" /> Scan Barcode (Coming Soon)
                   </Button>
                 </div>
               )}
-              <div className="flex-1 relative">
-                <Input
-                  type="text"
-                  placeholder="Buscar atleta (nome, clube, divisão...)"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setScannedAthleteId(null);
-                  }}
-                  className="pr-10"
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
             </div>
 
-            {filteredAthletesForCheckIn.length === 0 ? (
-              <p className="text-muted-foreground">Nenhum atleta aprovado para check-in encontrado com os critérios atuais.</p>
-            ) : (
-              <ul className="space-y-4">
-                {filteredAthletesForCheckIn.map((athlete) => (
-                  <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
-                    <div className="flex items-center space-x-3 flex-grow">
-                      {athlete.photo_url ? (
-                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <UserRound className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                        {athlete.registered_weight && (
-                          <p className="text-xs text-gray-500">Último peso: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
-                        )}
-                        {athlete.move_reason && (
-                          <p className="text-xs text-blue-500">
-                            <span className="font-semibold">Movido:</span> {athlete.move_reason}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2">
-                        {athlete.check_in_status === 'checked_in' && (
-                          <span className="flex items-center text-green-600 font-semibold text-sm">
-                            <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'overweight' && (
-                          <span className="flex items-center text-red-600 font-semibold text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Acima do Peso ({athlete.registered_weight}kg)
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'pending' && (
-                          <span className="flex items-center text-orange-500 font-semibold text-sm">
-                            <Scale className="h-4 w-4 mr-1" /> Pendente
-                          </span>
+            {/* Athletes Table */}
+            <CheckInTable
+              athletes={filteredAthletesForCheckIn}
+              event={event}
+              isCheckInAllowedGlobally={!!isCheckInAllowedGlobally}
+              onCheckIn={handleCheckInAthlete}
+              searchTerm={searchTerm}
+              onSearchChange={(term) => {
+                setSearchTerm(term);
+                setScannedAthleteId(null);
+              }}
+              viewMode={viewMode === 'table' ? 'list' : 'grid'}
+              onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
+            />
+          </div>
+
+          {/* Side Column - Face Capture (Beta) */}
+          <div className="lg:col-span-1">
+            <Collapsible open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between text-lg">
+                      <span>Face ID</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                          Beta
+                        </Badge>
+                        {isFaceCaptureOpen ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
-                      <CheckInForm
-                        athlete={athlete}
-                        onCheckIn={handleCheckInAthlete}
-                        isCheckInAllowed={isCheckInAllowedGlobally && (event.is_attendance_mandatory_before_check_in ? athlete.attendance_status === 'present' : true)}
-                        divisionMaxWeight={athlete._division?.max_weight}
-                        isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
-                        isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
-                        eventDivisions={event.divisions || []}
-                        isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+                    </CardTitle>
+                    <CardDescription>
+                      {isFaceCaptureOpen 
+                        ? 'Capture athlete face for identity verification'
+                        : 'Click to expand Face ID capture'
+                      }
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <FaceCapture onCapture={handleFaceCapture} />
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

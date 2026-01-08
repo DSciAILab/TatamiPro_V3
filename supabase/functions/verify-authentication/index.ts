@@ -41,7 +41,7 @@ serve(async (req: Request) => {
 
     // 2. Get Authenticator
     const { data: authenticator } = await supabaseAdmin
-      .from('user_authenticators')
+      .from('sjjp_user_authenticators')
       .select('*')
       .eq('credential_id', credential.id)
       .single();
@@ -70,7 +70,7 @@ serve(async (req: Request) => {
     if (verified && authenticationInfo) {
       // Update counter
       await supabaseAdmin
-        .from('user_authenticators')
+        .from('sjjp_user_authenticators')
         .update({ counter: authenticationInfo.newCounter })
         .eq('credential_id', credential.id);
 

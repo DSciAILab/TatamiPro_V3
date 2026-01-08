@@ -11,9 +11,11 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { Event } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { processAthleteData } from '@/utils/athlete-utils';
-import { generateBracketPdf } from '@/utils/pdf-bracket-generator';
+import { generateBracketPdf, BracketPdfOptions } from '@/utils/pdf-bracket-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 const PrintBrackets: React.FC = () => {
   // CORREÇÃO: O parâmetro na rota é definido como :eventId, não :id
@@ -22,6 +24,19 @@ const PrintBrackets: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [matStaffName, setMatStaffName] = useState('');
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            setCurrentUserEmail(user.email);
+        }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -32,13 +47,13 @@ const PrintBrackets: React.FC = () => {
       
       setLoading(true);
       try {
-        const { data: eventData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
+        const { data: eventData, error: eventError } = await supabase.from('sjjp_events').select('*').eq('id', eventId).single();
         if (eventError) throw eventError;
 
-        const { data: athletesData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        const { data: athletesData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
         if (athletesError) throw athletesError;
         
-        const { data: divisionsData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        const { data: divisionsData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
         if (divisionsError) throw divisionsError;
 
         const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
@@ -52,7 +67,7 @@ const PrintBrackets: React.FC = () => {
         };
         setEvent(fullEventData);
       } catch (error: any) {
-        console.error("Erro ao carregar evento:", error);
+        console.error("Error loading event:", error);
         showError(`Failed to load event data: ${error.message}`);
         setEvent(null);
       } finally {
@@ -87,15 +102,15 @@ const PrintBrackets: React.FC = () => {
 
   const handleGeneratePdf = async () => {
     if (selectedDivisions.length === 0) {
-      showError('Por favor, selecione pelo menos uma divisão para imprimir.');
+      showError('Please select at least one division to print.');
       return;
     }
     if (!event || !event.brackets || !event.divisions) {
-      showError('Dados do evento ou brackets não disponíveis.');
+      showError('Event data or brackets not available.');
       return;
     }
 
-    const loadingToastId = showLoading('Gerando PDF dos brackets...');
+    const loadingToastId = showLoading('Generating PDF brackets...');
     
     // Pequeno timeout para permitir que a UI atualize antes do trabalho pesado do PDF
     setTimeout(() => {
@@ -105,55 +120,87 @@ const PrintBrackets: React.FC = () => {
         const divisionsToPrint = (event.divisions || []).filter(d => selectedDivisions.includes(d.id));
         
         if (divisionsToPrint.length === 0) {
-            throw new Error("Nenhuma divisão válida encontrada para imprimir.");
+            throw new Error("No valid divisions found to print.");
         }
 
-        generateBracketPdf(event, divisionsToPrint, athletesMap);
+        const pdfOptions: BracketPdfOptions = {
+            fontSize,
+            userName: currentUserEmail,
+            matStaffName: matStaffName || undefined
+        };
+
+        generateBracketPdf(event, divisionsToPrint, athletesMap, pdfOptions);
         
         dismissToast(loadingToastId);
-        showSuccess('PDF dos brackets gerado com sucesso!');
+        showSuccess('Bracket PDF generated successfully!');
       } catch (error: any) {
-        console.error("Erro na geração do PDF:", error);
+        console.error("Error generating PDF:", error);
         dismissToast(loadingToastId);
-        showError(`Falha ao gerar PDF: ${error.message}`);
+        showError(`Failed to generate PDF: ${error.message}`);
       }
     }, 100);
   };
 
   if (loading) {
-    return <Layout><div className="text-center text-xl mt-8">Carregando evento...</div></Layout>;
+    return <Layout><div className="text-center text-xl mt-8">Loading event...</div></Layout>;
   }
 
   if (!event) {
-    return <Layout><div className="text-center text-xl mt-8">Evento não encontrado ou ID inválido.</div></Layout>;
+    return <Layout><div className="text-center text-xl mt-8">Event not found or invalid ID.</div></Layout>;
   }
 
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Imprimir Brackets para {event.name}</h1>
+        <h1 className="text-3xl font-bold">Print Brackets for {event.name}</h1>
         <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets' } })} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Gerar Brackets
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Generate Brackets
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Selecionar Divisões para Impressão</CardTitle>
-          <CardDescription>Escolha quais brackets você deseja imprimir. Cada divisão será uma página A4.</CardDescription>
+          <CardTitle>Select Divisions for Printing</CardTitle>
+          <CardDescription>Choose which brackets you want to print. Each division will be an A4 page.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {availableDivisions.length === 0 ? (
-            <p className="text-muted-foreground">Nenhum bracket gerado ainda para este evento.</p>
+            <p className="text-muted-foreground">No brackets generated for this event yet.</p>
           ) : (
             <>
+              {/* Configuration Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-4 border rounded-md bg-muted/20">
+                <div className="space-y-2">
+                    <Label htmlFor="font-size-select">Bracket Font Size</Label>
+                    <Select value={fontSize} onValueChange={(v: 'small' | 'medium' | 'large') => setFontSize(v)}>
+                        <SelectTrigger id="font-size-select">
+                            <SelectValue placeholder="Select font size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="small">Small (More compact)</SelectItem>
+                            <SelectItem value="medium">Medium (Default)</SelectItem>
+                            <SelectItem value="large">Large (Better visibility)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="mat-staff-input">Mat Staff / Coordinator Name</Label>
+                    <Input 
+                        id="mat-staff-input" 
+                        placeholder="Optional: Name of staff assigned to mat"
+                        value={matStaffName}
+                        onChange={(e) => setMatStaffName(e.target.value)}
+                    />
+                </div>
+              </div>
+
               <div className="flex items-center space-x-2 mb-4">
                 <Checkbox
                   id="selectAllDivisions"
                   checked={selectedDivisions.length === availableDivisions.length && availableDivisions.length > 0}
                   onCheckedChange={(checked: boolean) => handleSelectAllDivisions(checked as boolean)}
                 />
-                <Label htmlFor="selectAllDivisions">Selecionar Todas as Divisões</Label>
+                <Label htmlFor="selectAllDivisions">Select All Divisions</Label>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {availableDivisions.map(div => (
@@ -168,7 +215,7 @@ const PrintBrackets: React.FC = () => {
                 ))}
               </div>
               <Button onClick={handleGeneratePdf} className="w-full mt-6" disabled={selectedDivisions.length === 0}>
-                <Printer className="mr-2 h-4 w-4" /> Gerar PDF para Impressão
+                <Printer className="mr-2 h-4 w-4" /> Generate PDF for Printing
               </Button>
             </>
           )}

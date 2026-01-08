@@ -29,35 +29,43 @@ const Auth: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdentifier || !password) {
-      showError("Por favor, preencha todos os campos.");
+      showError("Please fill in all fields.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Call Edge Function to handle Username -> Email resolution if needed
-      const { data, error } = await supabase.functions.invoke('login', {
-        body: { login: loginIdentifier, password: password }
+      console.log('[AUTH] Starting login with:', loginIdentifier);
+      
+      // For now, only support email login (username support needs Edge Function)
+      if (!loginIdentifier.includes('@')) {
+        throw new Error('Please use your email to login.');
+      }
+
+      console.log('[AUTH] Attempting sign in with email');
+      
+      // Direct Supabase auth (more reliable than Edge Function)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginIdentifier,
+        password
       });
 
-      if (error) throw new Error(error.message || 'Falha ao conectar com o servidor.');
-      if (data?.error) throw new Error(data.error || 'Credenciais inválidas.');
+      console.log('[AUTH] Sign in response:', { hasSession: !!data.session, error });
 
-      if (data?.session) {
-        // Set the session in the client
-        const { error: sessionError } = await supabase.auth.setSession(data.session);
-        if (sessionError) throw sessionError;
+      if (error) throw error;
 
-        showSuccess("Bem-vindo de volta!");
+      if (data.session) {
+        console.log('[AUTH] Session established successfully');
+        showSuccess("Welcome back!");
         navigate('/events');
       } else {
-        throw new Error('Falha ao obter sessão de login.');
+        throw new Error('Failed to obtain login session.');
       }
 
     } catch (error: any) {
-      console.error(error);
-      showError(error.message || "Erro ao fazer login.");
+      console.error('[AUTH] Login error:', error);
+      showError(error.message || "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -69,16 +77,16 @@ const Auth: React.FC = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">TatamiPro</CardTitle>
-            <CardDescription>Entre com seu E-mail ou Nome de Usuário</CardDescription>
+            <CardDescription>Sign in with your Email or Username</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login">E-mail ou Usuário</Label>
+                <Label htmlFor="login">Email or Username</Label>
                 <Input
                   id="login"
                   type="text"
-                  placeholder="ex: nome.sobrenome ou email@exemplo.com"
+                  placeholder="e.g: john.doe or email@example.com"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   autoCapitalize="none"
@@ -87,11 +95,11 @@ const Auth: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Sua senha"
+                  placeholder="Your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -99,7 +107,7 @@ const Auth: React.FC = () => {
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                Entrar
+                Sign In
               </Button>
             </form>
 

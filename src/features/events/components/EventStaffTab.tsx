@@ -70,7 +70,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
     setLoading(true);
     // Fetch event_staff joined with profiles
     const { data, error } = await supabase
-      .from('event_staff')
+      .from('sjjp_event_staff')
       .select(`
         id,
         user_id,
@@ -150,7 +150,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   const handleRemoveStaff = async (id: string) => {
     if (!confirm('Remover este membro da equipe? O usuário não terá mais acesso a este evento.')) return;
 
-    const { error } = await supabase.from('event_staff').delete().eq('id', id);
+    const { error } = await supabase.from('sjjp_event_staff').delete().eq('id', id);
     if (error) {
       showError(error.message);
     } else {
@@ -179,7 +179,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
       // 1. Update Role in event_staff
       if (editRole !== editingMember.role) {
         const { error: roleError } = await supabase
-          .from('event_staff')
+          .from('sjjp_event_staff')
           .update({ role: editRole })
           .eq('id', editingMember.id);
         if (roleError) throw roleError;
@@ -193,7 +193,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         editPhone !== editingMember.profile?.phone
       ) {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('sjjp_profiles')
           .update({ 
             first_name: editFirstName,
             last_name: editLastName,
@@ -511,7 +511,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>

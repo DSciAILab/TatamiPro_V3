@@ -16,16 +16,16 @@ import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast
 import { Loader2, CheckCircle } from 'lucide-react';
 import { Division } from '@/types/index';
 
-// Schema de validação
+// Validation schema
 const registrationSchema = z.object({
-  first_name: z.string().min(2, "Nome é obrigatório"),
-  last_name: z.string().min(2, "Sobrenome é obrigatório"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().min(8, "Telefone inválido"),
-  date_of_birth: z.string().refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
-  club: z.string().min(2, "Equipe/Clube é obrigatório"),
-  division_id: z.string().min(1, "Selecione uma divisão"),
-  weight: z.coerce.number().min(1, "Informe seu peso aproximado"),
+  first_name: z.string().min(2, "First name is required"),
+  last_name: z.string().min(2, "Last name is required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().min(8, "Invalid phone number"),
+  date_of_birth: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid date"),
+  club: z.string().min(2, "Team/Club is required"),
+  division_id: z.string().min(1, "Please select a division"),
+  weight: z.coerce.number().min(1, "Please enter your approximate weight"),
 });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
@@ -48,19 +48,19 @@ const PublicRegistration: React.FC = () => {
       try {
         // Buscar Evento
         const { data: event, error: eventError } = await supabase
-          .from('events')
+          .from('sjjp_events')
           .select('name, is_active')
           .eq('id', eventId)
           .single();
         
-        if (eventError || !event) throw new Error("Evento não encontrado.");
-        if (!event.is_active) throw new Error("As inscrições para este evento estão encerradas.");
+        if (eventError || !event) throw new Error("Event not found.");
+        if (!event.is_active) throw new Error("Registrations for this event are closed.");
         
         setEventName(event.name);
 
         // Buscar Divisões
         const { data: divs, error: divError } = await supabase
-          .from('divisions')
+          .from('sjjp_divisions')
           .select('*')
           .eq('event_id', eventId)
           .eq('is_enabled', true);
@@ -78,7 +78,7 @@ const PublicRegistration: React.FC = () => {
   }, [eventId]);
 
   const onSubmit = async (data: RegistrationFormValues) => {
-    const toastId = showLoading('Enviando inscrição...');
+    const toastId = showLoading('Submitting registration...');
     try {
       const selectedDivision = divisions.find(d => d.id === data.division_id);
       
@@ -106,10 +106,10 @@ const PublicRegistration: React.FC = () => {
 
       dismissToast(toastId);
       setSuccess(true);
-      showSuccess("Inscrição realizada com sucesso!");
+      showSuccess("Registration submitted successfully!");
     } catch (err: any) {
       dismissToast(toastId);
-      showError(err.message || "Erro ao realizar inscrição.");
+      showError(err.message || "Error submitting registration.");
     }
   };
 
@@ -126,16 +126,16 @@ const PublicRegistration: React.FC = () => {
               <div className="flex justify-center mb-4">
                 <CheckCircle className="h-16 w-16 text-green-500" />
               </div>
-              <CardTitle className="text-2xl text-green-700 dark:text-green-400">Inscrição Recebida!</CardTitle>
+              <CardTitle className="text-2xl text-green-700 dark:text-green-400">Registration Received!</CardTitle>
               <CardDescription className="text-lg">
-                Seus dados foram enviados para a organização do <strong>{eventName}</strong>.
+                Your information has been sent to the organization of <strong>{eventName}</strong>.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Você receberá uma confirmação por e-mail assim que sua inscrição for aprovada.</p>
+              <p>You will receive an email confirmation once your registration is approved.</p>
             </CardContent>
             <CardFooter className="justify-center">
-              <Button onClick={() => navigate(`/public/events/${eventId}`)}>Ver Detalhes do Evento</Button>
+              <Button onClick={() => navigate(`/public/events/${eventId}`)}>View Event Details</Button>
             </CardFooter>
           </Card>
         </div>
@@ -148,38 +148,38 @@ const PublicRegistration: React.FC = () => {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">{eventName}</h1>
-          <p className="text-muted-foreground">Formulário de Inscrição de Atleta</p>
+          <p className="text-muted-foreground">Athlete Registration Form</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Seus Dados</CardTitle>
-            <CardDescription>Preencha os campos abaixo para solicitar sua inscrição.</CardDescription>
+            <CardTitle>Your Information</CardTitle>
+            <CardDescription>Fill in the fields below to request your registration.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">Nome</Label>
-                  <Input id="first_name" {...register('first_name')} placeholder="Seu nome" />
+                  <Label htmlFor="first_name">First Name</Label>
+                  <Input id="first_name" {...register('first_name')} placeholder="Your first name" />
                   {errors.first_name && <span className="text-red-500 text-xs">{errors.first_name.message}</span>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Sobrenome</Label>
-                  <Input id="last_name" {...register('last_name')} placeholder="Seu sobrenome" />
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input id="last_name" {...register('last_name')} placeholder="Your last name" />
                   {errors.last_name && <span className="text-red-500 text-xs">{errors.last_name.message}</span>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" {...register('email')} placeholder="seu@email.com" />
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" {...register('email')} placeholder="your@email.com" />
                   {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone / WhatsApp</Label>
+                  <Label htmlFor="phone">Phone / WhatsApp</Label>
                   <Input id="phone" {...register('phone')} placeholder="(XX) XXXXX-XXXX" />
                   {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
@@ -187,26 +187,26 @@ const PublicRegistration: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Data de Nascimento</Label>
+                  <Label htmlFor="date_of_birth">Date of Birth</Label>
                   <Input id="date_of_birth" type="date" {...register('date_of_birth')} />
                   {errors.date_of_birth && <span className="text-red-500 text-xs">{errors.date_of_birth.message}</span>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="club">Equipe / Clube</Label>
-                  <Input id="club" {...register('club')} placeholder="Nome da sua equipe" />
+                  <Label htmlFor="club">Team / Club</Label>
+                  <Input id="club" {...register('club')} placeholder="Your team name" />
                   {errors.club && <span className="text-red-500 text-xs">{errors.club.message}</span>}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="division">Categoria / Divisão</Label>
+                <Label htmlFor="division">Category / Division</Label>
                 <Select onValueChange={(val) => setValue('division_id', val)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione sua categoria" />
+                    <SelectValue placeholder="Select your category" />
                   </SelectTrigger>
                   <SelectContent>
                     {divisions.length === 0 ? (
-                      <SelectItem value="none" disabled>Nenhuma divisão disponível</SelectItem>
+                      <SelectItem value="none" disabled>No divisions available</SelectItem>
                     ) : (
                       divisions.map(div => (
                         <SelectItem key={div.id} value={div.id}>
@@ -220,14 +220,14 @@ const PublicRegistration: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weight">Seu Peso Aproximado (kg)</Label>
+                <Label htmlFor="weight">Your Approximate Weight (kg)</Label>
                 <Input id="weight" type="number" step="0.1" {...register('weight')} placeholder="Ex: 75.5" />
-                <p className="text-xs text-muted-foreground">O peso oficial será conferido no dia do evento.</p>
+                <p className="text-xs text-muted-foreground">Official weight will be checked on the event day.</p>
                 {errors.weight && <span className="text-red-500 text-xs">{errors.weight.message}</span>}
               </div>
 
               <Button type="submit" className="w-full mt-6" disabled={isSubmitting}>
-                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</> : "Confirmar Inscrição"}
+                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : "Confirm Registration"}
               </Button>
 
             </form>

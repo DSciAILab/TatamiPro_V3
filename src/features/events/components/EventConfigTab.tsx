@@ -16,8 +16,8 @@ import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2 } from 'lucide-reac
 import { format } from 'date-fns';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
-import DivisionTable from '@/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/components/CheckInMandatoryFieldsConfig';
+import DivisionTable from '@/features/events/components/DivisionTable';
+import CheckInMandatoryFieldsConfig from '@/features/events/components/CheckInMandatoryFieldsConfig';
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { Textarea } from '@/components/ui/textarea';
 import { showSuccess, showError } from '@/utils/toast';
@@ -60,6 +60,8 @@ interface EventConfigTabProps {
   set_count_single_club_categories: (value: boolean) => void;
   count_walkover_single_fight_categories: boolean;
   set_count_walkover_single_fight_categories: (value: boolean) => void;
+  count_wo_champion_categories: boolean;
+  set_count_wo_champion_categories: (value: boolean) => void;
   userRole?: 'admin' | 'coach' | 'staff' | 'athlete';
   event_name: string;
   set_event_name: (name: string) => void;
@@ -104,6 +106,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_count_single_club_categories,
   count_walkover_single_fight_categories,
   set_count_walkover_single_fight_categories,
+  count_wo_champion_categories,
+  set_count_wo_champion_categories,
   userRole,
   event_name,
   set_event_name,
@@ -412,6 +416,14 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     onCheckedChange={set_count_walkover_single_fight_categories}
                   />
                   <Label htmlFor="count-walkover-single-fight-categories">W.O. em lutas únicas (equipes diferentes) contam pontos</Label>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Switch
+                    id="count-wo-champion-categories"
+                    checked={count_wo_champion_categories}
+                    onCheckedChange={set_count_wo_champion_categories}
+                  />
+                  <Label htmlFor="count-wo-champion-categories">Campeão declarado por W.O. (atleta único) conta pontos</Label>
                 </div>
               </div>
             </TabsContent>

@@ -286,7 +286,7 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleBatchDelete} className="bg-red-600 hover:bg-red-700 text-white">
                   Deletar
                 </AlertDialogAction>

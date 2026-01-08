@@ -57,6 +57,87 @@ interface GenerateBracketOptions {
   rngSeed?: number;
 }
 
+/**
+ * Generates a double elimination bracket specifically for 3 athletes.
+ * Structure (3 matches):
+ * - Match 1: Athlete A vs Athlete B
+ * - Match 2: Loser(M1) vs Athlete C
+ * - Match 3 (Final): Winner(M1) vs Winner(M2)
+ */
+const generateDoubleEliminationFor3Athletes = (
+  division: Division,
+  athletes: Athlete[]
+): Bracket => {
+  if (athletes.length !== 3) {
+    throw new Error('This function only works with exactly 3 athletes');
+  }
+
+  // Sort athletes by seed (if available) or randomly
+  const sortedAthletes = [...athletes].sort((a, b) => {
+    if (a.seed !== undefined && b.seed !== undefined) return a.seed - b.seed;
+    if (a.seed !== undefined) return -1;
+    if (b.seed !== undefined) return 1;
+    return 0;
+  });
+
+  const [athleteA, athleteB, athleteC] = sortedAthletes;
+
+  // Match 1: Athlete A vs Athlete B
+  const match1: Match = {
+    id: `${division.id}-M1`,
+    round: 1,
+    match_number: 1,
+    fighter1_id: athleteA.id,
+    fighter2_id: athleteB.id,
+    winner_id: undefined,
+    loser_id: undefined,
+    next_match_id: `${division.id}-M3`, // Winner goes to final
+    prev_match_ids: undefined,
+  };
+
+  // Match 2: Loser(M1) vs Athlete C
+  const match2: Match = {
+    id: `${division.id}-M2`,
+    round: 2,
+    match_number: 1,
+    fighter1_id: undefined, // Loser from M1
+    fighter2_id: athleteC.id,
+    winner_id: undefined,
+    loser_id: undefined,
+    next_match_id: `${division.id}-M3`, // Winner goes to final
+    prev_match_ids: [match1.id, undefined], // Loser comes from M1
+  };
+
+  // Match 3: Final (Winner M1 vs Winner M2)
+  const match3: Match = {
+    id: `${division.id}-M3`,
+    round: 3,
+    match_number: 1,
+    fighter1_id: undefined, // Winner from M1
+    fighter2_id: undefined, // Winner from M2
+    winner_id: undefined,
+    loser_id: undefined,
+    next_match_id: undefined,
+    prev_match_ids: [match1.id, match2.id],
+  };
+
+  // Organize into rounds
+  const rounds: Match[][] = [
+    [match1],      // Round 1
+    [match2],      // Round 2
+    [match3],      // Round 3 (Final)
+  ];
+
+  return {
+    id: division.id,
+    division_id: division.id,
+    rounds,
+    third_place_match: undefined, // Not needed - 3rd place is automatically the loser of M2
+    bracket_size: 3,
+    participants: sortedAthletes,
+  };
+};
+
 export const generateBracketForDivision = (
   division: Division,
   athletes: Athlete[],
@@ -65,18 +146,33 @@ export const generateBracketForDivision = (
   const rng = seededRandom(options?.rngSeed || Date.now());
 
   // 1. Pré-processo: Filtrar e preparar atletas
-  const divisionAthletes = athletes.filter(a =>
-    a.registration_status === 'approved' &&
-    a.check_in_status === 'checked_in' &&
-    a._division?.id === division.id // Usar a divisão já atribuída ao atleta
-  );
+  // Check if athlete belongs to this division:
+  // - If athlete has moved_to_division_id, use that as their effective division
+  // - Otherwise, use their original _division
+  const divisionAthletes = athletes.filter(a => {
+    if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') {
+      return false;
+    }
+    
+    // Determine the effective division for this athlete
+    const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+    return effectiveDivisionId === division.id;
+  });
 
   const N0 = divisionAthletes.length;
+  console.log(`[BracketGenerator] Division ${division.name}: Found ${N0} athletes (Approved & Checked-in)`);
+
+  // Special case: Exactly 3 athletes should use double elimination
+  if (N0 === 3) {
+    console.log(`[BracketGenerator] Using Double Elimination for 3 athletes`);
+    return generateDoubleEliminationFor3Athletes(division, divisionAthletes);
+  }
+
   const bracketSize = getNextPowerOf2(N0);
   const numByes = bracketSize - N0;
 
   // 2. Separar atletas com seed e sem seed
-  const seededAthletes = divisionAthletes.filter(a => a.seed !== undefined).sort((a, b) => a.seed! - b.seed!);
+  const seededAthletes = divisionAthletes.filter(a => a.seed !== undefined).sort((a, b) => (a.seed || 0) - (b.seed || 0));
   let unseededAthletes = divisionAthletes.filter(a => a.seed === undefined);
 
   // 3. Inicializar o array de participantes final

@@ -8,6 +8,7 @@ import { Trophy } from 'lucide-react';
 
 interface TeamLeaderboardProps {
   event: Event;
+  searchTerm?: string;
 }
 
 interface TeamScore {
@@ -18,7 +19,7 @@ interface TeamScore {
   totalPoints: number;
 }
 
-const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
+const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event, searchTerm = '' }) => {
   const athletesMap = useMemo(() => {
     return new Map((event.athletes || []).map(athlete => [athlete.id, athlete]));
   }, [event.athletes]);
@@ -51,6 +52,8 @@ const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
           scores[club].totalPoints += event.runner_up_points || 3;
         }
       }
+      
+      // Check for third place winner from third place match
       if (bracket.third_place_winner_id) {
         const club = getClub(bracket.third_place_winner_id);
         if (club) {
@@ -58,6 +61,19 @@ const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
           scores[club].bronze += 1;
           scores[club].totalPoints += event.third_place_points || 1;
         }
+      } else if (!bracket.third_place_match && bracket.rounds.length >= 2) {
+        // No third place match - both semi-final losers get 3rd place
+        const semiRound = bracket.rounds[bracket.rounds.length - 2];
+        semiRound.forEach(match => {
+          if (match.loser_id && match.loser_id !== 'BYE') {
+            const club = getClub(match.loser_id);
+            if (club) {
+              if (!scores[club]) scores[club] = { name: club, gold: 0, silver: 0, bronze: 0, totalPoints: 0 };
+              scores[club].bronze += 1;
+              scores[club].totalPoints += event.third_place_points || 1;
+            }
+          }
+        });
       }
     });
 
@@ -69,40 +85,58 @@ const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({ event }) => {
     });
   }, [event, athletesMap]);
 
+  // Filter teams based on searchTerm
+  const filteredTeams = useMemo(() => {
+    if (!searchTerm.trim()) return teamScores;
+    
+    const terms = searchTerm.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
+    return teamScores.filter(team => 
+      terms.some(term => team.name.toLowerCase().includes(term))
+    );
+  }, [teamScores, searchTerm]);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
           <Trophy className="mr-2 h-6 w-6 text-yellow-500" />
-          Classificação por Equipes
+          Team Rankings
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {teamScores.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum resultado finalizado para calcular a classificação.</p>
+        {filteredTeams.length === 0 ? (
+          <p className="text-muted-foreground">
+            {teamScores.length === 0 
+              ? 'No completed results to calculate rankings.'
+              : 'No teams match your search.'}
+          </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">Rank</TableHead>
-                <TableHead>Equipe</TableHead>
-                <TableHead className="text-center">Ouro</TableHead>
-                <TableHead className="text-center">Prata</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead className="text-center">Gold</TableHead>
+                <TableHead className="text-center">Silver</TableHead>
                 <TableHead className="text-center">Bronze</TableHead>
-                <TableHead className="text-right">Pontos</TableHead>
+                <TableHead className="text-right">Points</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamScores.map((team, index) => (
-                <TableRow key={team.name}>
-                  <TableCell className="font-bold">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell className="text-center">{team.gold}</TableCell>
-                  <TableCell className="text-center">{team.silver}</TableCell>
-                  <TableCell className="text-center">{team.bronze}</TableCell>
-                  <TableCell className="text-right font-bold">{team.totalPoints}</TableCell>
-                </TableRow>
-              ))}
+              {filteredTeams.map((team) => {
+                // Get original rank from full list
+                const originalRank = teamScores.findIndex(t => t.name === team.name) + 1;
+                return (
+                  <TableRow key={team.name}>
+                    <TableCell className="font-bold">{originalRank}</TableCell>
+                    <TableCell className="font-medium">{team.name}</TableCell>
+                    <TableCell className="text-center">{team.gold}</TableCell>
+                    <TableCell className="text-center">{team.silver}</TableCell>
+                    <TableCell className="text-center">{team.bronze}</TableCell>
+                    <TableCell className="text-right font-bold">{team.totalPoints}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}

@@ -33,7 +33,7 @@ serve(async (req: Request) => {
     if (!login.includes('@')) {
       // It's likely a username. Look up the email in profiles.
       const { data: profile, error: profileError } = await supabaseAdmin
-        .from('profiles')
+        .from('sjjp_profiles')
         .select('id')
         .eq('username', login)
         .single();

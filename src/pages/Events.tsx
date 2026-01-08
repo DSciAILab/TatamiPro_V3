@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Trash2 } from 'lucide-react';
-import DeleteEventDialog from '@/components/DeleteEventDialog';
+import DeleteEventDialog from '@/features/events/components/DeleteEventDialog';
+import { EventCardSkeleton } from '@/components/skeletons';
+import { NoEventsEmptyState } from '@/components/empty-states';
 import { Event } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -24,19 +26,24 @@ const Events: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const loadEventsFromSupabase = useCallback(async () => {
+    console.log('[EVENTS] Loading events from Supabase...');
     setLoading(true);
-    const appId = await getAppId();
+    // const appId = await getAppId(); // Temporarily removed
     
     const { data, error } = await supabase
-      .from('events')
+      .from('sjjp_events')
       .select('*')
-      .eq('app_id', appId)
+      // .eq('app_id', appId) // Temporarily removed
       .order('event_date', { ascending: false });
 
+    console.log('[EVENTS] Query result:', { data, error, count: data?.length });
+
     if (error) {
+      console.error('[EVENTS] Error loading events:', error);
       showError('Failed to load events: ' + error.message);
       setEvents([]);
     } else {
+      console.log('[EVENTS] Events loaded successfully:', data?.length || 0);
       setEvents(data || []);
     }
     setLoading(false);
@@ -56,13 +63,13 @@ const Events: React.FC = () => {
 
   const handleConfirmDelete = async (eventId: string) => {
     const loadingToast = showLoading('Deleting event...');
-    const appId = await getAppId();
+    // const appId = await getAppId(); // Temporarily removed
 
     const { error } = await supabase
-      .from('events')
+      .from('sjjp_events')
       .delete()
-      .eq('id', eventId)
-      .eq('app_id', appId);
+      .eq('id', eventId);
+      // .eq('app_id', appId); // Temporarily removed
 
     dismissToast(loadingToast);
 
@@ -91,9 +98,18 @@ const Events: React.FC = () => {
   const renderEventCards = (eventList: Event[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {loading ? (
-        <p className="text-muted-foreground col-span-full">Loading events...</p>
+        <>
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+        </>
       ) : eventList.length === 0 ? (
-        <p className="text-muted-foreground col-span-full">No events found in this category.</p>
+        <div className="col-span-full">
+          <NoEventsEmptyState />
+        </div>
       ) : (
         eventList.map((event) => (
           <div key={event.id} className="relative">

@@ -5,9 +5,9 @@ import { Event, Division } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
-import AthleteListTable from './AthleteListTable';
-import BracketView from './BracketView';
-import FightList from './FightList';
+import AthleteListTable from '@/components/AthleteListTable';
+import BracketView from '@/components/BracketView';
+import FightList from '@/components/FightList';
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -16,7 +16,11 @@ interface DivisionDetailViewProps {
 }
 
 const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack }) => {
-  const athletesInDivision = (event.athletes || []).filter(a => a._division?.id === division.id);
+  // Consider moved_to_division_id for athletes who were moved to this division
+  const athletesInDivision = (event.athletes || []).filter(a => {
+    const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+    return effectiveDivisionId === division.id;
+  });
   const bracket = event.brackets?.[division.id];
 
   return (
@@ -27,18 +31,18 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           <p className="text-muted-foreground">{athletesInDivision.length} athletes</p>
         </div>
         <Button onClick={onBack} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Visão Geral
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Manage Fights
         </Button>
       </div>
 
       <Tabs defaultValue="athletes" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="athletes">Lista de Atletas</TabsTrigger>
-          <TabsTrigger value="bracket" disabled={!bracket}>Visão do Bracket</TabsTrigger>
-          <TabsTrigger value="fight_order" disabled={!bracket}>Ordem das Lutas</TabsTrigger>
+          <TabsTrigger value="athletes">Athlete List</TabsTrigger>
+          <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>
+          <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
         </TabsList>
         <TabsContent value="athletes" className="mt-4">
-          <AthleteListTable athletes={athletesInDivision} />
+          <AthleteListTable athletes={athletesInDivision} divisions={event.divisions || []} />
         </TabsContent>
         <TabsContent value="bracket" className="mt-4">
           {bracket ? (
@@ -49,7 +53,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               eventId={event.id}
             />
           ) : (
-            <p className="text-muted-foreground text-center py-8">Bracket não gerado para esta divisão.</p>
+            <p className="text-muted-foreground text-center py-8">Bracket not generated for this division.</p>
           )}
         </TabsContent>
         <TabsContent value="fight_order" className="mt-4">
@@ -63,7 +67,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               fightViewMode="grid1"
             />
           ) : (
-            <p className="text-muted-foreground text-center py-8">Ordem de lutas não disponível.</p>
+            <p className="text-muted-foreground text-center py-8">Fight order not available.</p>
           )}
         </TabsContent>
       </Tabs>

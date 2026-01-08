@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isOfflineMode, trackChange } = useOffline(); // Use offline hook
   
   const [event, setEvent] = useState<Event | null>(null);
@@ -72,15 +74,15 @@ const FightDetail: React.FC = () => {
         divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
       } else {
         // FETCH FROM SUPABASE
-        const { data: eData, error: eventError } = await supabase.from('events').select('*').eq('id', eventId).single();
+        const { data: eData, error: eventError } = await supabase.from('sjjp_events').select('*').eq('id', eventId).single();
         if (eventError) throw eventError;
         eventData = eData;
 
-        const { data: aData, error: athletesError } = await supabase.from('athletes').select('*').eq('event_id', eventId);
+        const { data: aData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
         if (athletesError) throw athletesError;
         athletesData = aData;
         
-        const { data: dData, error: divisionsError } = await supabase.from('divisions').select('*').eq('event_id', eventId);
+        const { data: dData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
         if (divisionsError) throw divisionsError;
         divisionsData = dData;
       }
@@ -177,9 +179,11 @@ const FightDetail: React.FC = () => {
         showSuccess(isOfflineMode ? "Resultado salvo localmente." : "Resultado registrado!");
       } else {
         // SAVE ONLINE
-        const { error } = await supabase.from('events').update(updateData).eq('id', eventId);
+        const { error } = await supabase.from('sjjp_events').update(updateData).eq('id', eventId);
         if (error) throw error;
         showSuccess(`Resultado da luta ${currentMatch?.mat_fight_number} registrado!`);
+        // Invalidate React Query cache to ensure EventDetail gets fresh data
+        queryClient.invalidateQueries({ queryKey: ['event', eventId] });
       }
       
       await loadFightData();
@@ -219,6 +223,20 @@ const FightDetail: React.FC = () => {
             if (nextMatch.prev_match_ids?.[0] === match.id) nextMatch.fighter1_id = selectedWinnerId;
             else if (nextMatch.prev_match_ids?.[1] === match.id) nextMatch.fighter2_id = selectedWinnerId;
           }
+        }
+      }
+
+      // NOVO: Propagar perdedor para lutas que referenciam esta luta em prev_match_ids, MAS não são o destino do vencedor
+      // Isso é necessário para Double Elimination, chaves de 3, ou qualquer formato onde o perdedor avança
+      for (const round of updatedBracket.rounds) {
+        for (const m of round) {
+           if (m.id === match.next_match_id) continue; // Pula se for a luta do vencedor
+           
+           if (m.prev_match_ids?.[0] === match.id) {
+              m.fighter1_id = loserId; 
+           } else if (m.prev_match_ids?.[1] === match.id) {
+              m.fighter2_id = loserId;
+           }
         }
       }
     };
