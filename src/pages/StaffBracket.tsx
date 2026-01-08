@@ -184,6 +184,7 @@ const StaffBracket: React.FC = () => {
             event={event}
             division={selectedDivision}
             onBack={() => setSelectedDivision(null)}
+            baseFightPath={`/staff/${eventId}/bracket/${token}/fight`}
           />
         ) : (
           <Card>

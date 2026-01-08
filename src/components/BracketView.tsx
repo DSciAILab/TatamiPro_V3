@@ -11,6 +11,7 @@ interface BracketViewProps {
   division: Division;
   eventId: string;
   isPublic?: boolean;
+  basePath?: string;
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -24,7 +25,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false }) => {
+const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false, basePath }) => {
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
@@ -135,6 +136,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           eventId={eventId}
                           divisionId={bracket.division_id}
                           isPublic={isPublic}
+                          basePath={basePath}
                         />
                       </div>
                     ))}
@@ -156,6 +158,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
               eventId={eventId}
               divisionId={bracket.division_id}
               isPublic={isPublic}
+              basePath={basePath}
             />
           </div>
         )}

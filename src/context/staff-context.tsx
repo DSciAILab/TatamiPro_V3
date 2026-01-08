@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { db } from '@/lib/local-db';
 import { connectionManager } from '@/lib/connection-manager';
+import { showError } from '@/utils/toast';
 import {
   StaffAccessToken,
   StaffSession,
@@ -115,6 +116,29 @@ export const StaffProvider: React.FC<StaffProviderProps> = ({ children, eventId 
     // Save to local DB
     await db.staffTokens.put(token);
 
+    // Save to Supabase (Cloud Persistence)
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { error } = await supabase.from('sjjp_staff_tokens').insert({
+        id: token.id,
+        event_id: token.event_id,
+        token: token.token,
+        role: token.role,
+        nickname: token.nickname,
+        status: token.status,
+        max_uses: token.max_uses,
+        current_uses: token.current_uses,
+        created_at: token.created_at.toISOString(),
+        expires_at: token.expires_at?.toISOString(),
+      });
+      if (error) {
+        console.error('[StaffContext] Failed to sync token to Supabase:', error);
+        showError('Erro ao sincronizar token com a nuvem v2. Verifique se a tabela sjjp_staff_tokens existe.');
+      }
+    } catch (err) {
+      console.error('[StaffContext] Supabase sync error:', err);
+    }
+
     // If connected to server, sync
     if (connectionManager.isLocal && connectionManager.socket?.connected) {
       connectionManager.socket.emit('staff:token:created', token);
@@ -139,6 +163,17 @@ export const StaffProvider: React.FC<StaffProviderProps> = ({ children, eventId 
    */
   const revokeToken = useCallback(async (tokenId: string) => {
     await db.staffTokens.update(tokenId, { status: 'revoked' });
+
+    // Sync revocation to Supabase
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase
+        .from('sjjp_staff_tokens')
+        .update({ status: 'revoked' })
+        .eq('id', tokenId);
+    } catch (err) {
+      console.error('[StaffContext] Failed to sync revocation to Supabase:', err);
+    }
 
     // If connected, notify server
     if (connectionManager.isLocal && connectionManager.socket?.connected) {

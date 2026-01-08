@@ -56,9 +56,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               TatamiPro
             </Link>
             <nav className="hidden md:flex items-center space-x-2">
-              <Link to="/events">
-                <Button variant="ghost">{t('events')}</Button>
-              </Link>
+              {profile?.role !== 'staff' && (
+                <Link to="/events">
+                  <Button variant="ghost">{t('events')}</Button>
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center space-x-2">
@@ -106,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
       <main className={cn("flex-1 py-8", isWideLayout ? "px-4" : "container")}>
-        <Breadcrumbs />
+        {profile?.role !== 'staff' && <Breadcrumbs />}
         {children}
       </main>
     </div>

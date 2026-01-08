@@ -71,6 +71,7 @@ const App = () => (
                     {/* Staff routes */}
                     <Route path="/staff/:eventId/:token" element={<StaffAccess />} />
                     <Route path="/staff/:eventId/check-in/:token" element={<StaffCheckIn />} />
+                    <Route path="/staff/:eventId/check_in/:token" element={<StaffCheckIn />} />
                     <Route path="/staff/:eventId/bracket/:token" element={<StaffBracket />} />
                     <Route path="/staff/:eventId/bracket/:token/fight/:divisionId/:matchId" element={<StaffFightDetail />} />
                     <Route path="/staff/:eventId/results/:token" element={<StaffResults />} />

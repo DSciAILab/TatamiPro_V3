@@ -118,7 +118,38 @@ export function useStaffAuth(): UseStaffAuthResult {
               }
             }
           }
-          // TODO: Add Supabase validation for cloud mode
+          // Supabase validation for cloud mode
+          if (!validToken) {
+            try {
+              const { supabase } = await import('@/integrations/supabase/client');
+              const { data, error } = await supabase
+                .from('sjjp_staff_tokens')
+                .select('*')
+                .eq('event_id', eventId)
+                .eq('token', tokenString)
+                .single();
+
+              if (!error && data) {
+                 validToken = {
+                   id: data.id,
+                   event_id: data.event_id,
+                   token: data.token,
+                   role: data.role,
+                   status: data.status,
+                   created_at: data.created_at,
+                   expires_at: data.expires_at ? new Date(data.expires_at) : undefined,
+                   max_uses: data.max_uses,
+                   current_uses: data.current_uses,
+                 };
+                 // Save to local DB for future use
+                 await db.staffTokens.put(validToken);
+              } else if (error) {
+                 console.warn('[useStaffAuth] Supabase validation error:', error);
+              }
+            } catch (supaErr) {
+               console.error('[useStaffAuth] Supabase import or query failed:', supaErr);
+            }
+          }
         } catch (err) {
           console.warn('[useStaffAuth] Server validation failed:', err);
         }
@@ -163,7 +194,7 @@ export function useStaffAuth(): UseStaffAuthResult {
       setIsLoading(false);
 
       // Determine redirect path based on role
-      const redirectPath = getRedirectPath(validToken.role, eventId);
+      const redirectPath = getRedirectPath(validToken.role, eventId, tokenString);
 
       return {
         valid: true,
@@ -236,18 +267,18 @@ export function useStaffAuth(): UseStaffAuthResult {
 /**
  * Get redirect path based on role
  */
-function getRedirectPath(role: StaffRole, eventId: string): string {
+function getRedirectPath(role: StaffRole, eventId: string, token: string): string {
   switch (role) {
     case 'check_in':
-      return `/staff/${eventId}/check-in`;
+      return `/staff/${eventId}/check-in/${token}`;
     case 'bracket':
-      return `/staff/${eventId}/bracket`;
+      return `/staff/${eventId}/bracket/${token}`;
     case 'results':
-      return `/staff/${eventId}/results`;
+      return `/staff/${eventId}/results/${token}`;
     case 'admin':
       return `/events/${eventId}`;
     default:
-      return `/staff/${eventId}`;
+      return `/staff/${eventId}/${token}`;
   }
 }
 

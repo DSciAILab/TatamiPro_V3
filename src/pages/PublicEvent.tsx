@@ -16,6 +16,8 @@ import { useTranslations } from '@/hooks/use-translations';
 import PublicBrackets from './PublicBrackets';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import BracketView from '@/components/BracketView';
 
 const PublicEvent: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -24,6 +26,7 @@ const PublicEvent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('brackets');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string>('');
   const { t } = useTranslations();
 
   const fetchEventData = useCallback(async (isInitialLoad = false) => {
@@ -110,6 +113,18 @@ const PublicEvent: React.FC = () => {
     return athletes;
   }, [event?.athletes, searchTerm]);
 
+  const divisionsWithBrackets = useMemo(() => {
+    if (!event?.divisions || !event?.brackets) return [];
+    return event.divisions.filter(d => event.brackets?.[d.id]);
+  }, [event?.divisions, event?.brackets]);
+
+  // Set default selected division when divisions load
+  useEffect(() => {
+    if (divisionsWithBrackets.length > 0 && !selectedDivisionId) {
+      setSelectedDivisionId(divisionsWithBrackets[0].id);
+    }
+  }, [divisionsWithBrackets, selectedDivisionId]);
+
   if (loading) {
     return <PublicLayout><div className="text-center text-xl mt-8">Loading event...</div></PublicLayout>;
   }
@@ -151,6 +166,8 @@ const PublicEvent: React.FC = () => {
           </Card>
         </TabsContent>
 
+
+
         <TabsContent value="brackets" className="mt-6">
           <Card>
             <CardHeader>
@@ -172,12 +189,13 @@ const PublicEvent: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  {selectedDivisionId && event.brackets?.[selectedDivisionId] && (
+                  {selectedDivisionId && event?.brackets?.[selectedDivisionId] && (
                     <BracketView
                       bracket={event.brackets[selectedDivisionId]}
                       allAthletes={event.athletes || []}
                       division={divisionsWithBrackets.find(d => d.id === selectedDivisionId)!}
                       eventId={event.id}
+                      isPublic={true}
                     />
                   )}
                 </>

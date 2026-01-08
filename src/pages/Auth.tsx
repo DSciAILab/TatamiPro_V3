@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import BiometricLogin from '@/components/BiometricLogin';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
 
 const Auth: React.FC = () => {
@@ -22,7 +22,7 @@ const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslations();
   const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgot_password'>('sign_in');
-  const [identifier, setIdentifier] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,8 +40,8 @@ const Auth: React.FC = () => {
     }
 
     setLoading(true);
-    let email = identifier;
-    const isEmail = identifier.includes('@');
+    let email = loginIdentifier;
+    const isEmail = loginIdentifier.includes('@');
 
     try {
       console.log('[AUTH] Starting login with:', loginIdentifier);

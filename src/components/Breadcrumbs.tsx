@@ -11,6 +11,7 @@ interface BreadcrumbItem {
 interface BreadcrumbsProps {
   items?: BreadcrumbItem[];
   className?: string;
+  disableNavigation?: boolean;
 }
 
 // Generate breadcrumbs from current path
@@ -41,7 +42,7 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
   return breadcrumbs;
 }
 
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) => {
+export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className, disableNavigation = false }) => {
   const location = useLocation();
   const breadcrumbs = items || generateBreadcrumbs(location.pathname);
 
@@ -52,18 +53,24 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) =>
       aria-label="Breadcrumb" 
       className={cn("flex items-center text-sm text-muted-foreground mb-4", className)}
     >
-      <Link 
-        to="/" 
-        className="flex items-center hover:text-foreground transition-colors"
-        aria-label="Home"
-      >
-        <Home className="h-4 w-4" />
-      </Link>
+      {!disableNavigation ? (
+        <Link 
+          to="/" 
+          className="flex items-center hover:text-foreground transition-colors"
+          aria-label="Home"
+        >
+          <Home className="h-4 w-4" />
+        </Link>
+      ) : (
+        <span className="flex items-center text-muted-foreground opacity-50 cursor-not-allowed">
+          <Home className="h-4 w-4" />
+        </span>
+      )}
 
       {breadcrumbs.map((item, index) => (
         <React.Fragment key={index}>
           <ChevronRight className="h-4 w-4 mx-2 flex-shrink-0" />
-          {item.href ? (
+          {item.href && !disableNavigation ? (
             <Link 
               to={item.href} 
               className="hover:text-foreground transition-colors truncate max-w-[150px]"

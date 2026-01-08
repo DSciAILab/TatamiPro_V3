@@ -25,6 +25,7 @@ import {
   Download,
   ExternalLink,
   Users,
+  KeyRound,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -234,7 +235,35 @@ const StaffAccessGeneratorInner: React.FC<StaffAccessGeneratorProps> = ({ eventI
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" title="Ver Código">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>Código de Acesso</DialogTitle>
+                          <DialogDescription>
+                            Use este código para acessar a área restrita
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                          <code className="text-2xl font-mono font-bold bg-muted px-4 py-2 rounded-lg tracking-widest select-all">
+                            {token.token}
+                          </code>
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => copyToClipboard(token.token)}
+                          >
+                             <Copy className="mr-2 h-3 w-3" /> Copiar Código
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="icon">

@@ -104,6 +104,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               division={division}
               eventId={event.id}
               isPublic={isPublic}
+              basePath={baseFightPath}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">Bracket not generated for this division.</p>

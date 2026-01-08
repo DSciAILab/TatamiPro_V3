@@ -18,6 +18,7 @@ interface BracketMatchCardProps {
   eventId: string;
   divisionId: string;
   isPublic?: boolean;
+  basePath?: string;
 }
 
 const getShortMatchIdentifier = (fullMatchId: string): string => {
@@ -38,6 +39,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   eventId,
   divisionId,
   isPublic = false,
+  basePath,
 }) => {
   const { t } = useTranslations();
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
@@ -138,8 +140,12 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     return <div className="block cursor-default">{cardContent}</div>;
   }
 
+  const linkPath = basePath 
+    ? `${basePath}/${divisionId}/${match.id}`
+    : `/events/${eventId}/fights/${divisionId}/${match.id}`;
+
   return (
-    <Link to={`/events/${eventId}/fights/${divisionId}/${match.id}`} className="block">
+    <Link to={linkPath} className="block">
       {cardContent}
     </Link>
   );
