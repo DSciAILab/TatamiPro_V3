@@ -158,7 +158,9 @@ export const getAthleteDisplayString = (athlete: Athlete, division: Division | u
   const belt = translate(beltKey, division ? division.belt : athlete.belt);
 
   if (division) {
-    return division.name || `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
+    // Remove codes like [B89] [404] from the start of the name if present
+    const cleanName = division.name ? division.name.replace(/^(\[[^\]]+\]\s*)+/, '') : '';
+    return cleanName || `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;
   }
   // Fallback se a divisão não for encontrada ou passada
   return `${gender} / ${athlete.age_division} / ${belt} / N/A`;
