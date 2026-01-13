@@ -8,29 +8,33 @@ import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider } from "@/context/auth-context";
 import { LayoutSettingsProvider } from "@/context/layout-settings-context";
 import { OfflineProvider } from "@/context/offline-context";
-import Welcome from "./pages/Welcome";
-import Auth from "./pages/Auth";
-import Events from "./pages/Events";
-import EventDetail from "./pages/EventDetail";
-import BatchAthleteImport from "./pages/BatchAthleteImport";
-import RegistrationOptions from "./pages/RegistrationOptions";
-import AthleteRegistrationForm from "./pages/AthleteRegistrationForm";
-import DivisionImport from "./pages/DivisionImport";
-import FightDetail from "./pages/FightDetail";
-import PrintBrackets from "./pages/PrintBrackets";
-import CreateEvent from "./pages/CreateEvent";
-import AccountSecurity from "./pages/AccountSecurity";
-import NotFound from "./pages/NotFound";
-import PublicEvent from "./pages/PublicEvent";
-import PublicRegistration from "./pages/PublicRegistration";
-import Profile from "./pages/Profile";
-import ChangePassword from "./pages/ChangePassword";
+import { RealtimeProvider } from "@/context/realtime-context";
+import { lazy, Suspense } from "react";
+import { PageSkeleton } from "@/components/skeletons";
+
+const Welcome = lazy(() => import("./pages/Welcome"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Events = lazy(() => import("./pages/Events"));
+const EventDetail = lazy(() => import("./pages/EventDetail"));
+const BatchAthleteImport = lazy(() => import("./pages/BatchAthleteImport"));
+const RegistrationOptions = lazy(() => import("./pages/RegistrationOptions"));
+const AthleteRegistrationForm = lazy(() => import("./pages/AthleteRegistrationForm"));
+const DivisionImport = lazy(() => import("./pages/DivisionImport"));
+const FightDetail = lazy(() => import("./pages/FightDetail"));
+const PrintBrackets = lazy(() => import("./pages/PrintBrackets"));
+const CreateEvent = lazy(() => import("./pages/CreateEvent"));
+const AccountSecurity = lazy(() => import("./pages/AccountSecurity"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PublicEvent = lazy(() => import("./pages/PublicEvent"));
+const PublicRegistration = lazy(() => import("./pages/PublicRegistration"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 // Staff pages
-import StaffAccess from "./pages/StaffAccess";
-import StaffCheckIn from "./pages/StaffCheckIn";
-import StaffBracket from "./pages/StaffBracket";
-import StaffResults from "./pages/StaffResults";
-import StaffFightDetail from "./pages/StaffFightDetail";
+const StaffAccess = lazy(() => import("./pages/StaffAccess"));
+const StaffCheckIn = lazy(() => import("./pages/StaffCheckIn"));
+const StaffBracket = lazy(() => import("./pages/StaffBracket"));
+const StaffResults = lazy(() => import("./pages/StaffResults"));
+const StaffFightDetail = lazy(() => import("./pages/StaffFightDetail"));
 
 const queryClient = new QueryClient();
 
@@ -46,12 +50,14 @@ const App = () => (
       <LanguageProvider>
         <AuthProvider>
           <OfflineProvider> 
-            <LayoutSettingsProvider>
+            <RealtimeProvider>
+              <LayoutSettingsProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
-                  <Routes>
+                  <Suspense fallback={<PageSkeleton />}>
+                    <Routes>
                     <Route path="/" element={<Welcome />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/events" element={<Events />} />
@@ -75,11 +81,12 @@ const App = () => (
                     <Route path="/staff/:eventId/bracket/:token" element={<StaffBracket />} />
                     <Route path="/staff/:eventId/bracket/:token/fight/:divisionId/:matchId" element={<StaffFightDetail />} />
                     <Route path="/staff/:eventId/results/:token" element={<StaffResults />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                    </Routes>
+                  </Suspense>
                 </BrowserRouter>
               </TooltipProvider>
-            </LayoutSettingsProvider>
+              </LayoutSettingsProvider>
+            </RealtimeProvider>
           </OfflineProvider>
         </AuthProvider>
       </LanguageProvider>

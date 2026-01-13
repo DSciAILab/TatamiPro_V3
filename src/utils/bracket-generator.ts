@@ -55,6 +55,7 @@ const getSeedPosition = (seedNumber: number, bracketSize: number): number | null
 interface GenerateBracketOptions {
   thirdPlace?: boolean;
   rngSeed?: number;
+  explicitAthletes?: Athlete[];
 }
 
 /**
@@ -149,15 +150,21 @@ export const generateBracketForDivision = (
   // Check if athlete belongs to this division:
   // - If athlete has moved_to_division_id, use that as their effective division
   // - Otherwise, use their original _division
-  const divisionAthletes = athletes.filter(a => {
-    if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') {
-      return false;
-    }
-    
-    // Determine the effective division for this athlete
-    const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
-    return effectiveDivisionId === division.id;
-  });
+  let divisionAthletes: Athlete[] = [];
+  
+  if (options?.explicitAthletes) {
+      divisionAthletes = options.explicitAthletes;
+  } else {
+      divisionAthletes = athletes.filter(a => {
+        if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') {
+          return false;
+        }
+        
+        // Determine the effective division for this athlete
+        const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+        return effectiveDivisionId === division.id;
+      });
+  }
 
   const N0 = divisionAthletes.length;
   console.log(`[BracketGenerator] Division ${division.name}: Found ${N0} athletes (Approved & Checked-in)`);

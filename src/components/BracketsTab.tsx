@@ -178,9 +178,64 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     const newBrackets: Record<string, Bracket> = {};
     const includeThirdPlaceFromEvent = event.include_third_place || false;
     try {
+      
+      // Helper function to shuffle array
+      const shuffleArray = <T,>(array: T[]): T[] => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+      };
+
       divisionsToGenerate.forEach(div => {
-        const bracket = generateBracketForDivision(div, event.athletes || [], { thirdPlace: includeThirdPlaceFromEvent });
-        newBrackets[div.id] = bracket;
+        let athletes = getAthletesForDivision(div.id);
+        const maxPerBracket = event.max_athletes_per_bracket;
+        const splittingEnabled = event.is_bracket_splitting_enabled;
+
+        // Reset existing brackets for this division key prefix
+        // (This is tricky because keys usually match div.id. For splits, we use div.id-A, div.id-B)
+        // Ideally we should CLEANUP old brackets for this division before generating new ones.
+        // But for now, we will just generate new ones.
+
+        if (splittingEnabled && maxPerBracket && maxPerBracket > 1 && athletes.length > maxPerBracket) {
+           // Splitting logic
+           const shuffledAthletes = shuffleArray(athletes);
+           const groups = [];
+           
+           // Calculate optimal split to avoid tiny last bracket
+           // Simple strategy: chunk by maxPerBracket
+           for (let i = 0; i < shuffledAthletes.length; i += maxPerBracket) {
+              groups.push(shuffledAthletes.slice(i, i + maxPerBracket));
+           }
+
+           // If last group is too small (e.g. < 2), try to redistribute? 
+           // For MVP, just let it be. Or if last group is 1, merge with previous? 
+           // Let's stick to simple chunking for now as per plan.
+
+           const groupLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+           
+           groups.forEach((groupAthletes, index) => {
+              const groupSuffix = groupLetters[index] || `${index + 1}`;
+              const bracketId = `${div.id}-${groupSuffix}`; // Virtual ID
+              
+              const bracket = generateBracketForDivision(div, event.athletes || [], { 
+                thirdPlace: includeThirdPlaceFromEvent, 
+                explicitAthletes: groupAthletes
+              });
+
+              // Override properties for the virtual bracket
+              bracket.id = bracketId; // Important: ID is customized
+              bracket.group_name = `Group ${groupSuffix}`;
+              newBrackets[bracketId] = bracket;
+           });
+
+        } else {
+           // Standard generation
+           const bracket = generateBracketForDivision(div, event.athletes || [], { thirdPlace: includeThirdPlaceFromEvent });
+           newBrackets[div.id] = bracket;
+        }
       });
       const mergedBrackets = { ...event.brackets, ...newBrackets };
       const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
@@ -357,21 +412,34 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                       <SelectContent>
                         <SelectItem value="all">All Divisions</SelectItem>
                         {availableDivisionsForBracketGeneration.map(div => {
-                          const bracket = event.brackets?.[div.id];
+                          // Support for split brackets: find all brackets for this division
+                          const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
+                          
                           let statusIndicator = '⚪'; // No bracket
                           let statusText = 'Não gerado';
                           
-                          if (bracket) {
-                            if (bracket.winner_id) {
-                              statusIndicator = '✅'; // Finished
-                              statusText = 'Finalizado';
-                            } else if (hasOngoingFights(div.id)) {
-                              statusIndicator = '🔄'; // In progress
-                              statusText = 'Em progresso';
-                            } else {
-                              statusIndicator = '📋'; // Generated but not started
-                              statusText = 'Gerado';
-                            }
+                          if (divisionBrackets.length > 0) {
+                             const allFinished = divisionBrackets.every(b => b.winner_id);
+                             const anyInProgress = divisionBrackets.some(b => {
+                                // Check for in-progress fights
+                                if (!b.rounds) return false;
+                                return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
+                             });
+
+                             if (allFinished) {
+                               statusIndicator = '✅'; // Finished
+                               statusText = 'Finalizado';
+                             } else if (anyInProgress) {
+                               statusIndicator = '🔄'; // In progress
+                               statusText = 'Em progresso';
+                             } else {
+                               statusIndicator = '📋'; // Generated but not started
+                               statusText = 'Gerado';
+                             }
+                             
+                             if (divisionBrackets.length > 1) {
+                                 statusText += ` (${divisionBrackets.length} groups)`;
+                             }
                           }
                           
                           return (

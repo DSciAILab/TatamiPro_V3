@@ -101,7 +101,8 @@ const EventDetail: React.FC = () => {
     try {
       const { athletes, divisions, ...eventToUpdate } = event;
       
-      const { error } = await supabase
+      // 1. Update Event Details
+      const { error: eventError } = await supabase
         .from('sjjp_events')
         .update({
           ...eventToUpdate,
@@ -110,14 +111,60 @@ const EventDetail: React.FC = () => {
         })
         .eq('id', eventId);
 
-      if (error) throw error;
+      if (eventError) throw eventError;
+
+      // 2. Sync Divisions (Upsert + Delete)
+      if (divisions) {
+        // A. Get existing divisions from DB to find deletions
+        const { data: existingDivisions, error: fetchError } = await supabase
+          .from('sjjp_divisions')
+          .select('id')
+          .eq('event_id', eventId);
+
+        if (fetchError) throw fetchError;
+
+        const existingIds = new Set(existingDivisions?.map(d => d.id) || []);
+        const currentIds = new Set(divisions.map(d => d.id));
+
+        // Find IDs to delete (in DB but not in current state)
+        const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
+
+        // B. Perform Deletions
+        if (idsToDelete.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('sjjp_divisions')
+            .delete()
+            .in('id', idsToDelete);
+          if (deleteError) throw deleteError;
+        }
+
+        // C. Perform Upserts (Insert New / Update Existing)
+        // Ensure event_id is set
+        const divisionsToUpsert = divisions.map(d => ({
+          ...d,
+          event_id: eventId
+        }));
+
+        if (divisionsToUpsert.length > 0) {
+            const { error: upsertError } = await supabase
+            .from('sjjp_divisions')
+            .upsert(divisionsToUpsert);
+            
+            if (upsertError) throw upsertError;
+        }
+      }
 
       setHasUnsavedChanges(false);
       dismissToast(toastId);
       showSuccess("Event settings saved successfully!");
+      
+      // Force refresh to ensure everything is in sync
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+
     } catch (error: any) {
       dismissToast(toastId);
       showError("Failed to save event settings: " + error.message);
+      console.error("Save Error:", error);
     } finally {
       setIsSaving(false);
     }
@@ -431,6 +478,40 @@ const EventDetail: React.FC = () => {
     });
   };
 
+  const handleBatchCheckIn = async (athleteIds: string[]) => {
+    if (!event || !eventId) return;
+    
+    const toastId = showLoading(`Checking in ${athleteIds.length} athletes...`);
+    
+    try {
+      const { error } = await supabase
+        .from('sjjp_athletes')
+        .update({ check_in_status: 'checked_in' })
+        .in('id', athleteIds);
+
+      if (error) throw error;
+
+      // Update local state
+      setEvent(prev => {
+        if (!prev || !prev.athletes) return prev;
+        return {
+          ...prev,
+          athletes: prev.athletes.map(a =>
+            athleteIds.includes(a.id) ? { ...a, check_in_status: 'checked_in' } : a
+          )
+        };
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      
+      dismissToast(toastId);
+      showSuccess(`${athleteIds.length} athletes checked in successfully!`);
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Failed to batch check-in: ${error.message}`);
+    }
+  };
+
   // --- Derived State ---
   const athletesUnderApproval = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'under_approval'), [event]);
   const processedApprovedAthletes = useMemo(() => (event?.athletes || []).filter(a => a.registration_status === 'approved'), [event]);
@@ -543,6 +624,10 @@ const EventDetail: React.FC = () => {
             set_event_name={(value) => handleUpdateEventProperty('name', value)}
             event_description={event.description}
             set_event_description={(value) => handleUpdateEventProperty('description', value)}
+            max_athletes_per_bracket={event.max_athletes_per_bracket || 0}
+            set_max_athletes_per_bracket={(value) => handleUpdateEventProperty('max_athletes_per_bracket', value)}
+            is_bracket_splitting_enabled={event.is_bracket_splitting_enabled || false}
+            set_is_bracket_splitting_enabled={(value) => handleUpdateEventProperty('is_bracket_splitting_enabled', value)}
           />
         </TabsContent>
 
@@ -597,6 +682,7 @@ const EventDetail: React.FC = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             handleCheckInAthlete={handleCheckInAthlete}
+            handleBatchCheckIn={handleBatchCheckIn}
           />
         </TabsContent>
         <TabsContent value="brackets" className="mt-6">

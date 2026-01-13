@@ -137,12 +137,25 @@ export const findNextHigherWeightDivision = (
 
 
 // Função para gerar a string de ordenação/exibição
-export const getAthleteDisplayString = (athlete: Athlete, division: Division | undefined, t: (key: any) => string): string => {
+// Função para gerar a string de ordenação/exibição
+export const getAthleteDisplayString = (athlete: Athlete, division: Division | undefined, t?: (key: any) => string): string => {
   const genderKey = `gender_${division ? division.gender : athlete.gender}`;
   const beltKey = `belt_${division ? division.belt : athlete.belt}`;
   
-  const gender = t(genderKey);
-  const belt = t(beltKey);
+  // Safe translation: use t if provided and valid, otherwise use raw value or simple mapping
+  const translate = (key: string, fallback: string) => {
+    if (typeof t === 'function') {
+      try {
+        return t(key);
+      } catch (e) {
+        return fallback;
+      }
+    }
+    return fallback;
+  };
+
+  const gender = translate(genderKey, division ? division.gender : athlete.gender);
+  const belt = translate(beltKey, division ? division.belt : athlete.belt);
 
   if (division) {
     return division.name || `${division.gender} / ${division.age_category_name} / ${division.belt} / ${division.max_weight}kg`;

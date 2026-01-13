@@ -26,6 +26,7 @@ interface CheckInTabProps {
   totalCheckedIn: number;
   totalPendingCheckIn: number;
   handleCheckInAthlete: (athlete: Athlete) => void;
+  handleBatchCheckIn: (athleteIds: string[]) => void;
 }
 
 const CheckInTab: React.FC<CheckInTabProps> = ({
@@ -40,11 +41,13 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   totalCheckedIn,
   totalPendingCheckIn,
   handleCheckInAthlete,
+  handleBatchCheckIn,
 }) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [isFaceCaptureOpen, setIsFaceCaptureOpen] = useState(false);
+  const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
 
   const isCheckInAllowedGlobally = useMemo(() => {
     // Check global event setting first
@@ -57,6 +60,9 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
     const end = new Date(event.check_in_enabled_end);
     return now >= start && now <= end;
   }, [event]);
+  
+  // Batch check-in only enabled when weight check is DISABLED
+  const isBatchCheckInEnabled = event.is_weight_check_enabled === false;
 
   const handleDownloadPdf = () => {
     generateCheckInPdf(event, processedApprovedAthletes);
@@ -66,6 +72,28 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
     // For now, just log - future implementation can match faces
     console.log('Face captured:', imageData.substring(0, 50) + '...');
     showSuccess('Face captured successfully! (Beta feature)');
+  };
+  
+  const handleToggleSelectAthlete = (athleteId: string) => {
+    setSelectedAthleteIds(prev => 
+      prev.includes(athleteId) ? prev.filter(id => id !== athleteId) : [...prev, athleteId]
+    );
+  };
+  
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      // Select all visible athletes that are NOT checked in yet
+      const pendingAthletes = filteredAthletesForCheckIn.filter(a => a.check_in_status === 'pending');
+      setSelectedAthleteIds(pendingAthletes.map(a => a.id));
+    } else {
+      setSelectedAthleteIds([]);
+    }
+  };
+  
+  const onBatchCheckIn = () => {
+    if (selectedAthleteIds.length === 0) return;
+    handleBatchCheckIn(selectedAthleteIds);
+    setSelectedAthleteIds([]);
   };
 
   return (
@@ -136,8 +164,9 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons Row - QR Scanner, Barcode, Face ID */}
-          <div className="flex flex-wrap gap-4 items-center">
+          {/* Action Buttons Row - QR Scanner, Barcode, Face ID, Batch Action */}
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex gap-4">
             {event.check_in_scan_mode === 'qr' && (
               <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                 <DialogTrigger asChild>
@@ -202,6 +231,14 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
+
+            {/* Batch Check-in Button */}
+            {isBatchCheckInEnabled && selectedAthleteIds.length > 0 && (
+                <Button onClick={onBatchCheckIn} className="bg-green-600 hover:bg-green-700 text-white animate-in fade-in zoom-in">
+                    Batch Check-in ({selectedAthleteIds.length})
+                </Button>
+            )}
           </div>
 
           {/* Athletes Table - Full Width */}
@@ -217,6 +254,10 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             }}
             viewMode={viewMode === 'table' ? 'list' : 'grid'}
             onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
+            selectedAthleteIds={selectedAthleteIds}
+            onToggleSelectAthlete={handleToggleSelectAthlete}
+            onSelectAll={handleSelectAll}
+            isBatchSelectionEnabled={isBatchCheckInEnabled}
           />
         </div>
       )}

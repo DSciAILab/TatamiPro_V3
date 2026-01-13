@@ -4,11 +4,13 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Link2 } from "lucide-react";
 import { parseISO, parse, isValid } from "date-fns";
 import { z } from "zod";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -200,6 +202,8 @@ const BatchAthleteImport: React.FC = () => {
   const queryClient = useQueryClient();
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<any[]>([]);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
   const [columnMapping, setColumnMapping] = useState<
     Record<RequiredAthleteField, string | undefined>
   >(() => ({} as any));
@@ -274,17 +278,73 @@ const BatchAthleteImport: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      Papa.parse(e.target.files[0], {
+      const file = e.target.files[0];
+      parseCsvFile(file);
+    }
+  };
+
+  const parseCsvFile = (file: File) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length) {
+          showError(
+            "Erro ao parsear o arquivo CSV: " + results.errors[0].message
+          );
+          return;
+        }
+        const headers = Object.keys(results.data[0] || {});
+        setCsvHeaders(headers);
+        setCsvData(results.data);
+        setStep("map");
+        const autoMapping: Partial<Record<RequiredAthleteField, string>> = {};
+        Object.entries(baseRequiredAthleteFields).forEach(([key, label]) => {
+          const found = headers.find(
+            (h) =>
+              h.toLowerCase().replace(/ /g, "") ===
+              label.toLowerCase().replace(/ /g, "")
+          );
+          if (found) autoMapping[key as RequiredAthleteField] = found;
+        });
+        setColumnMapping((prev) => ({ ...prev, ...autoMapping }));
+      },
+      error: (err: any) => showError("Erro ao ler o arquivo: " + err.message),
+    });
+  }
+
+  const handleUrlImport = async () => {
+    if (!sheetUrl) {
+      showError("Por favor, insira a URL da planilha.");
+      return;
+    }
+
+    setIsLoadingUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-google-sheet', {
+        body: { sheetUrl }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Convert string back to file-like object for Papa Parse logic (easier to reuse)
+      // Actually Papa.parse can take a string directly
+      Papa.parse(data.csvData, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          if (results.errors.length) {
-            showError(
-              "Erro ao parsear o arquivo CSV: " + results.errors[0].message
-            );
+          if (results.errors.length > 0 && results.data.length === 0) {
+             showError("Erro ao processar dados da planilha: " + results.errors[0].message);
+             return;
+          }
+          
+          const headers = results.meta.fields || [];
+           if (headers.length === 0) {
+            showError("A planilha parece estar vazia ou sem cabeçalhos.");
             return;
           }
-          const headers = Object.keys(results.data[0] || {});
+
           setCsvHeaders(headers);
           setCsvData(results.data);
           setStep("map");
@@ -299,8 +359,16 @@ const BatchAthleteImport: React.FC = () => {
           });
           setColumnMapping((prev) => ({ ...prev, ...autoMapping }));
         },
-        error: (err: any) => showError("Erro ao ler o arquivo: " + err.message),
+        error: (err: any) => {
+          showError("Erro ao processar CSV da planilha: " + err.message);
+        }
       });
+
+    } catch (err: any) {
+      console.error("Error fetching sheet:", err);
+      showError("Falha ao importar planilha. Verifique se o link é público (Qualquer pessoa com o link). " + err.message);
+    } finally {
+      setIsLoadingUrl(false);
     }
   };
 
@@ -464,30 +532,79 @@ const BatchAthleteImport: React.FC = () => {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Importação de Atletas</CardTitle>
+          <CardTitle>Importar Atletas</CardTitle>
           <CardDescription>
-            {step === "upload" && "Faça upload de um arquivo CSV para iniciar."}
-            {step === "map" &&
-              "Mapeie as colunas do seu arquivo para os campos de atleta."}
-            {step === "results" && "Resultados da importação."}
+            Escolha como você deseja importar os dados dos atletas.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {step === "upload" && (
-            <div className="space-y-4">
-              <Label htmlFor="athlete-file">Arquivo CSV</Label>
-              <Input
-                id="athlete-file"
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-              />
-              <p className="text-sm text-muted-foreground">
-                Certifique-se de que seu arquivo CSV contenha as colunas
-                necessárias.
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="upload">Upload CSV</TabsTrigger>
+                <TabsTrigger value="url">Importar via URL</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upload">
+                <div className="space-y-4">
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="athlete-file">Arquivo CSV</Label>
+                    <Input
+                      id="athlete-file"
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Faça upload de um arquivo .csv do seu computador.
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="url">
+                <div className="space-y-4">
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="sheet-url">URL do Arquivo (Google Sheets ou CSV)</Label>
+                    <div className="flex space-x-2">
+                        <div className="relative flex-1">
+                          <Link2 className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="sheet-url"
+                            type="url"
+                            placeholder="https://docs.google.com/spreadsheets/d/... ou https://site.com/arquivo.csv"
+                            className="pl-9"
+                            value={sheetUrl}
+                            onChange={(e) => setSheetUrl(e.target.value)}
+                          />
+                        </div>
+                        <Button onClick={handleUrlImport} disabled={isLoadingUrl}>
+                          {isLoadingUrl ? "Carregando..." : "Carregar"}
+                        </Button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded border">
+                    <p className="font-semibold mb-1">Dicas de Link:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                        <li><strong>Google Sheets:</strong> Use o link padrão (certifique-se que está público).</li>
+                        <li><strong>CSV Online:</strong> Cole o link direto para o arquivo .csv.</li>
+                    </ul>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+
+          {step === "upload" && (
+            <div className="mt-8 p-4 bg-muted rounded-md text-sm">
+              <p className="font-semibold mb-2">Requisitos do Arquivo/Planilha:</p>
+              <p className="text-muted-foreground mb-2">
+              Certifique-se de que seu arquivo contenha as colunas
+              necessárias.
               </p>
             </div>
           )}
+
           {step === "map" && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold">Mapeamento de Colunas</h3>
@@ -545,8 +662,8 @@ const BatchAthleteImport: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Linha</TableHead>
-                        <TableHead>Erro</TableHead>
+                      <TableHead>Linha</TableHead>
+                      <TableHead>Erro</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

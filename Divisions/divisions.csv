@@ -1,475 +1,475 @@
-﻿#,gender,belt,max_weight,division_age,division_name,public name
-1,Female,White,16,5,kg,[001] Female / kg / White / 16Kg
-2,Female,White,18,5,Kids 1,[002] Female / Kids 1 / White / 18Kg
-3,Female,White,21,5,Kids 1,[003] Female / Kids 1 / White / 21Kg
-4,Female,White,24,5,Kids 1,[004] Female / Kids 1 / White / 24Kg
-5,Female,White,28,5,Kids 1,[005] Female / Kids 1 / White / 28Kg
-6,Female,White,32,5,Kids 1,[006] Female / Kids 1 / White / 32Kg
-7,Female,White,36,5,Kids 1,[007] Female / Kids 1 / White / 36Kg
-8,Female,White,44,5,Kids 1,[008] Female / Kids 1 / White / 44Kg
-9,Female,Grey,16,5,Kids 1,[009] Female / Kids 1 / Grey / 16Kg
-10,Female,Grey,18,5,Kids 1,[010] Female / Kids 1 / Grey / 18Kg
-11,Female,Grey,21,5,Kids 1,[011] Female / Kids 1 / Grey / 21Kg
-12,Female,Grey,24,5,Kids 1,[012] Female / Kids 1 / Grey / 24Kg
-13,Female,Grey,28,5,Kids 1,[013] Female / Kids 1 / Grey / 28Kg
-14,Female,Grey,32,5,Kids 1,[014] Female / Kids 1 / Grey / 32Kg
-15,Female,Grey,36,5,Kids 1,[015] Female / Kids 1 / Grey / 36Kg
-16,Female,Grey,44,5,Kids 1,[016] Female / Kids 1 / Grey / 44Kg
-17,Female,White,17,7,Kids 2,[017] Female / Kids 2 / White / 17Kg
-18,Female,White,19,7,Kids 2,[018] Female / Kids 2 / White / 19Kg
-19,Female,White,22,7,Kids 2,[019] Female / Kids 2 / White / 22Kg
-20,Female,White,25,7,Kids 2,[020] Female / Kids 2 / White / 25Kg
-21,Female,White,29,7,Kids 2,[021] Female / Kids 2 / White / 29Kg
-22,Female,White,33,7,Kids 2,[022] Female / Kids 2 / White / 33Kg
-23,Female,White,37,7,Kids 2,[023] Female / Kids 2 / White / 37Kg
-24,Female,White,44,7,Kids 2,[024] Female / Kids 2 / White / 44Kg
-25,Female,Grey,17,7,Kids 2,[025] Female / Kids 2 / Grey / 17Kg
-26,Female,Grey,19,7,Kids 2,[026] Female / Kids 2 / Grey / 19Kg
-27,Female,Grey,22,7,Kids 2,[027] Female / Kids 2 / Grey / 22Kg
-28,Female,Grey,25,7,Kids 2,[028] Female / Kids 2 / Grey / 25Kg
-29,Female,Grey,29,7,Kids 2,[029] Female / Kids 2 / Grey / 29Kg
-30,Female,Grey,33,7,Kids 2,[030] Female / Kids 2 / Grey / 33Kg
-31,Female,Grey,37,7,Kids 2,[031] Female / Kids 2 / Grey / 37Kg
-32,Female,Grey,44,7,Kids 2,[032] Female / Kids 2 / Grey / 44Kg
-33,Female,Yellow,17,7,Kids 2,[033] Female / Kids 2 / Yellow / 17Kg
-34,Female,Yellow,19,7,Kids 2,[034] Female / Kids 2 / Yellow / 19Kg
-35,Female,Yellow,22,7,Kids 2,[035] Female / Kids 2 / Yellow / 22Kg
-36,Female,Yellow,25,7,Kids 2,[036] Female / Kids 2 / Yellow / 25Kg
-37,Female,Yellow,29,7,Kids 2,[037] Female / Kids 2 / Yellow / 29Kg
-38,Female,Yellow,33,7,Kids 2,[038] Female / Kids 2 / Yellow / 33Kg
-39,Female,Yellow,37,7,Kids 2,[039] Female / Kids 2 / Yellow / 37Kg
-40,Female,Yellow,44,7,Kids 2,[040] Female / Kids 2 / Yellow / 44Kg
-41,Female,White,20,9,Kids 3,[041] Female / Kids 3 / White / 20Kg
-42,Female,White,22,9,Kids 3,[042] Female / Kids 3 / White / 22Kg
-43,Female,White,25,9,Kids 3,[043] Female / Kids 3 / White / 25Kg
-44,Female,White,28,9,Kids 3,[044] Female / Kids 3 / White / 28Kg
-45,Female,White,32,9,Kids 3,[045] Female / Kids 3 / White / 32Kg
-46,Female,White,36,9,Kids 3,[046] Female / Kids 3 / White / 36Kg
-47,Female,White,40,9,Kids 3,[047] Female / Kids 3 / White / 40Kg
-48,Female,White,48,9,Kids 3,[048] Female / Kids 3 / White / 48Kg
-49,Female,Grey,20,9,Kids 3,[049] Female / Kids 3 / Grey / 20Kg
-50,Female,Grey,22,9,Kids 3,[050] Female / Kids 3 / Grey / 22Kg
-51,Female,Grey,25,9,Kids 3,[051] Female / Kids 3 / Grey / 25Kg
-52,Female,Grey,28,9,Kids 3,[052] Female / Kids 3 / Grey / 28Kg
-53,Female,Grey,32,9,Kids 3,[053] Female / Kids 3 / Grey / 32Kg
-54,Female,Grey,36,9,Kids 3,[054] Female / Kids 3 / Grey / 36Kg
-55,Female,Grey,40,9,Kids 3,[055] Female / Kids 3 / Grey / 40Kg
-56,Female,Grey,48,9,Kids 3,[056] Female / Kids 3 / Grey / 48Kg
-57,Female,Yellow,20,9,Kids 3,[057] Female / Kids 3 / Yellow / 20Kg
-58,Female,Yellow,22,9,Kids 3,[058] Female / Kids 3 / Yellow / 22Kg
-59,Female,Yellow,25,9,Kids 3,[059] Female / Kids 3 / Yellow / 25Kg
-60,Female,Yellow,28,9,Kids 3,[060] Female / Kids 3 / Yellow / 28Kg
-61,Female,Yellow,32,9,Kids 3,[061] Female / Kids 3 / Yellow / 32Kg
-62,Female,Yellow,36,9,Kids 3,[062] Female / Kids 3 / Yellow / 36Kg
-63,Female,Yellow,40,9,Kids 3,[063] Female / Kids 3 / Yellow / 40Kg
-64,Female,Yellow,48,9,Kids 3,[064] Female / Kids 3 / Yellow / 48Kg
-65,Female,White,22,11,Infant,[065] Female / Infant / White / 22Kg
-66,Female,White,25,11,Infant,[066] Female / Infant / White / 25Kg
-67,Female,White,28,11,Infant,[067] Female / Infant / White / 28Kg
-68,Female,White,32,11,Infant,[068] Female / Infant / White / 32Kg
-69,Female,White,36,11,Infant,[069] Female / Infant / White / 36Kg
-70,Female,White,40,11,Infant,[070] Female / Infant / White / 40Kg
-71,Female,White,44,11,Infant,[071] Female / Infant / White / 44Kg
-72,Female,White,48,11,Infant,[072] Female / Infant / White / 48Kg
-73,Female,White,60,11,Infant,[073] Female / Infant / White / 60Kg
-74,Female,Grey,22,11,Infant,[074] Female / Infant / Grey / 22Kg
-75,Female,Grey,25,11,Infant,[075] Female / Infant / Grey / 25Kg
-76,Female,Grey,28,11,Infant,[076] Female / Infant / Grey / 28Kg
-77,Female,Grey,32,11,Infant,[077] Female / Infant / Grey / 32Kg
-78,Female,Grey,36,11,Infant,[078] Female / Infant / Grey / 36Kg
-79,Female,Grey,40,11,Infant,[079] Female / Infant / Grey / 40Kg
-80,Female,Grey,44,11,Infant,[080] Female / Infant / Grey / 44Kg
-81,Female,Grey,48,11,Infant,[081] Female / Infant / Grey / 48Kg
-82,Female,Grey,60,11,Infant,[082] Female / Infant / Grey / 60Kg
-83,Female,Yellow,22,11,Infant,[083] Female / Infant / Yellow / 22Kg
-84,Female,Yellow,25,11,Infant,[084] Female / Infant / Yellow / 25Kg
-85,Female,Yellow,28,11,Infant,[085] Female / Infant / Yellow / 28Kg
-86,Female,Yellow,32,11,Infant,[086] Female / Infant / Yellow / 32Kg
-87,Female,Yellow,36,11,Infant,[087] Female / Infant / Yellow / 36Kg
-88,Female,Yellow,40,11,Infant,[088] Female / Infant / Yellow / 40Kg
-89,Female,Yellow,44,11,Infant,[089] Female / Infant / Yellow / 44Kg
-90,Female,Yellow,48,11,Infant,[090] Female / Infant / Yellow / 48Kg
-91,Female,Yellow,60,11,Infant,[091] Female / Infant / Yellow / 60Kg
-92,Female,Orange,22,11,Infant,[092] Female / Infant / Orange / 22Kg
-93,Female,Orange,25,11,Infant,[093] Female / Infant / Orange / 25Kg
-94,Female,Orange,28,11,Infant,[094] Female / Infant / Orange / 28Kg
-95,Female,Orange,32,11,Infant,[095] Female / Infant / Orange / 32Kg
-96,Female,Orange,36,11,Infant,[096] Female / Infant / Orange / 36Kg
-97,Female,Orange,40,11,Infant,[097] Female / Infant / Orange / 40Kg
-98,Female,Orange,44,11,Infant,[098] Female / Infant / Orange / 44Kg
-99,Female,Orange,48,11,Infant,[099] Female / Infant / Orange / 48Kg
-100,Female,Orange,60,11,Infant,[100] Female / Infant / Orange / 60Kg
-101,Female,White,32,13,Junior,[101] Female / Junior / White / 32Kg
-102,Female,White,36,13,Junior,[102] Female / Junior / White / 36Kg
-103,Female,White,40,13,Junior,[103] Female / Junior / White / 40Kg
-104,Female,White,44,13,Junior,[104] Female / Junior / White / 44Kg
-105,Female,White,48,13,Junior,[105] Female / Junior / White / 48Kg
-106,Female,White,52,13,Junior,[106] Female / Junior / White / 52Kg
-107,Female,White,57,13,Junior,[107] Female / Junior / White / 57Kg
-108,Female,White,63,13,Junior,[108] Female / Junior / White / 63Kg
-109,Female,White,75,13,Junior,[109] Female / Junior / White / 75Kg
-110,Female,Grey,32,13,Junior,[110] Female / Junior / Grey / 32Kg
-111,Female,Grey,36,13,Junior,[111] Female / Junior / Grey / 36Kg
-112,Female,Grey,40,13,Junior,[112] Female / Junior / Grey / 40Kg
-113,Female,Grey,44,13,Junior,[113] Female / Junior / Grey / 44Kg
-114,Female,Grey,48,13,Junior,[114] Female / Junior / Grey / 48Kg
-115,Female,Grey,52,13,Junior,[115] Female / Junior / Grey / 52Kg
-116,Female,Grey,57,13,Junior,[116] Female / Junior / Grey / 57Kg
-117,Female,Grey,63,13,Junior,[117] Female / Junior / Grey / 63Kg
-118,Female,Grey,75,13,Junior,[118] Female / Junior / Grey / 75Kg
-119,Female,Yellow,32,13,Junior,[119] Female / Junior / Yellow / 32Kg
-120,Female,Yellow,36,13,Junior,[120] Female / Junior / Yellow / 36Kg
-121,Female,Yellow,40,13,Junior,[121] Female / Junior / Yellow / 40Kg
-122,Female,Yellow,44,13,Junior,[122] Female / Junior / Yellow / 44Kg
-123,Female,Yellow,48,13,Junior,[123] Female / Junior / Yellow / 48Kg
-124,Female,Yellow,52,13,Junior,[124] Female / Junior / Yellow / 52Kg
-125,Female,Yellow,57,13,Junior,[125] Female / Junior / Yellow / 57Kg
-126,Female,Yellow,63,13,Junior,[126] Female / Junior / Yellow / 63Kg
-127,Female,Yellow,75,13,Junior,[127] Female / Junior / Yellow / 75Kg
-128,Female,Orange,32,13,Junior,[128] Female / Junior / Orange / 32Kg
-129,Female,Orange,32,13,Junior,[129] Female / Junior / Orange / 32Kg
-130,Female,Orange,36,13,Junior,[130] Female / Junior / Orange / 36Kg
-131,Female,Orange,36,13,Junior,[131] Female / Junior / Orange / 36Kg
-132,Female,Orange,40,13,Junior,[132] Female / Junior / Orange / 40Kg
-133,Female,Orange,40,13,Junior,[133] Female / Junior / Orange / 40Kg
-134,Female,Orange,44,13,Junior,[134] Female / Junior / Orange / 44Kg
-135,Female,Orange,44,13,Junior,[135] Female / Junior / Orange / 44Kg
-136,Female,Orange,48,13,Junior,[136] Female / Junior / Orange / 48Kg
-137,Female,Orange,48,13,Junior,[137] Female / Junior / Orange / 48Kg
-138,Female,Orange,52,13,Junior,[138] Female / Junior / Orange / 52Kg
-139,Female,Orange,52,13,Junior,[139] Female / Junior / Orange / 52Kg
-140,Female,Orange,57,13,Junior,[140] Female / Junior / Orange / 57Kg
-141,Female,Orange,57,13,Junior,[141] Female / Junior / Orange / 57Kg
-142,Female,Orange,63,13,Junior,[142] Female / Junior / Orange / 63Kg
-143,Female,Orange,63,13,Junior,[143] Female / Junior / Orange / 63Kg
-144,Female,Orange,75,13,Junior,[144] Female / Junior / Orange / 75Kg
-145,Female,Orange,75,13,Junior,[145] Female / Junior / Orange / 75Kg
-146,Female,White,36,15,Teen,[146] Female / Teen / White / 36Kg
-147,Female,White,40,15,Teen,[147] Female / Teen / White / 40Kg
-148,Female,White,44,15,Teen,[148] Female / Teen / White / 44Kg
-149,Female,White,48,15,Teen,[149] Female / Teen / White / 48Kg
-150,Female,White,52,15,Teen,[150] Female / Teen / White / 52Kg
-151,Female,White,57,15,Teen,[151] Female / Teen / White / 57Kg
-152,Female,White,63,15,Teen,[152] Female / Teen / White / 63Kg
-153,Female,White,68,15,Teen,[153] Female / Teen / White / 68Kg
-154,Female,White,80,15,Teen,[154] Female / Teen / White / 80Kg
-155,Female,Grey,36,15,Teen,[155] Female / Teen / Grey / 36Kg
-156,Female,Grey,40,15,Teen,[156] Female / Teen / Grey / 40Kg
-157,Female,Grey,44,15,Teen,[157] Female / Teen / Grey / 44Kg
-158,Female,Grey,48,15,Teen,[158] Female / Teen / Grey / 48Kg
-159,Female,Grey,52,15,Teen,[159] Female / Teen / Grey / 52Kg
-160,Female,Grey,57,15,Teen,[160] Female / Teen / Grey / 57Kg
-161,Female,Grey,63,15,Teen,[161] Female / Teen / Grey / 63Kg
-162,Female,Grey,68,15,Teen,[162] Female / Teen / Grey / 68Kg
-163,Female,Grey,80,15,Teen,[163] Female / Teen / Grey / 80Kg
-164,Female,Yellow,36,15,Teen,[164] Female / Teen / Yellow / 36Kg
-165,Female,Yellow,40,15,Teen,[165] Female / Teen / Yellow / 40Kg
-166,Female,Yellow,44,15,Teen,[166] Female / Teen / Yellow / 44Kg
-167,Female,Yellow,48,15,Teen,[167] Female / Teen / Yellow / 48Kg
-168,Female,Yellow,52,15,Teen,[168] Female / Teen / Yellow / 52Kg
-169,Female,Yellow,57,15,Teen,[169] Female / Teen / Yellow / 57Kg
-170,Female,Yellow,63,15,Teen,[170] Female / Teen / Yellow / 63Kg
-171,Female,Yellow,68,15,Teen,[171] Female / Teen / Yellow / 68Kg
-172,Female,Yellow,80,15,Teen,[172] Female / Teen / Yellow / 80Kg
-173,Female,Orange,36,15,Teen,[173] Female / Teen / Orange / 36Kg
-174,Female,Orange,40,15,Teen,[174] Female / Teen / Orange / 40Kg
-175,Female,Orange,44,15,Teen,[175] Female / Teen / Orange / 44Kg
-176,Female,Orange,48,15,Teen,[176] Female / Teen / Orange / 48Kg
-177,Female,Orange,52,15,Teen,[177] Female / Teen / Orange / 52Kg
-178,Female,Orange,57,15,Teen,[178] Female / Teen / Orange / 57Kg
-179,Female,Orange,63,15,Teen,[179] Female / Teen / Orange / 63Kg
-180,Female,Orange,68,15,Teen,[180] Female / Teen / Orange / 68Kg
-181,Female,Orange,80,15,Teen,[181] Female / Teen / Orange / 80Kg
-182,Female,White,40,17,Junvenile,[182] Female / Junvenile / White / 40Kg
-183,Female,White,40,17,Junvenile,[183] Female / Junvenile / White / 40Kg
-184,Female,White,44,17,Junvenile,[184] Female / Junvenile / White / 44Kg
-185,Female,White,44,17,Junvenile,[185] Female / Junvenile / White / 44Kg
-186,Female,White,48,17,Junvenile,[186] Female / Junvenile / White / 48Kg
-187,Female,White,48,17,Junvenile,[187] Female / Junvenile / White / 48Kg
-188,Female,White,52,17,Junvenile,[188] Female / Junvenile / White / 52Kg
-189,Female,White,52,17,Junvenile,[189] Female / Junvenile / White / 52Kg
-190,Female,White,57,17,Junvenile,[190] Female / Junvenile / White / 57Kg
-191,Female,White,57,17,Junvenile,[191] Female / Junvenile / White / 57Kg
-192,Female,White,63,17,Junvenile,[192] Female / Junvenile / White / 63Kg
-193,Female,White,63,17,Junvenile,[193] Female / Junvenile / White / 63Kg
-194,Female,White,70,17,Junvenile,[194] Female / Junvenile / White / 70Kg
-195,Female,White,70,17,Junvenile,[195] Female / Junvenile / White / 70Kg
-196,Female,White,82,17,Junvenile,[196] Female / Junvenile / White / 82Kg
-197,Female,White,82,17,Junvenile,[197] Female / Junvenile / White / 82Kg
-198,Female,Blue,40,17,Junvenile,[198] Female / Junvenile / Blue / 40Kg
-199,Female,Blue,44,17,Junvenile,[199] Female / Junvenile / Blue / 44Kg
-200,Female,Blue,48,17,Junvenile,[200] Female / Junvenile / Blue / 48Kg
-201,Female,Blue,52,17,Junvenile,[201] Female / Junvenile / Blue / 52Kg
-202,Female,Blue,57,17,Junvenile,[202] Female / Junvenile / Blue / 57Kg
-203,Female,Blue,63,17,Junvenile,[203] Female / Junvenile / Blue / 63Kg
-204,Female,Blue,70,17,Junvenile,[204] Female / Junvenile / Blue / 70Kg
-205,Female,Blue,82,17,Junvenile,[205] Female / Junvenile / Blue / 82Kg
-206,Female,Purple,40,17,Junvenile,[206] Female / Junvenile / Purple / 40Kg
-207,Female,Purple,44,17,Junvenile,[207] Female / Junvenile / Purple / 44Kg
-208,Female,Purple,48,17,Junvenile,[208] Female / Junvenile / Purple / 48Kg
-209,Female,Purple,52,17,Junvenile,[209] Female / Junvenile / Purple / 52Kg
-210,Female,Purple,57,17,Junvenile,[210] Female / Junvenile / Purple / 57Kg
-211,Female,Purple,63,17,Junvenile,[211] Female / Junvenile / Purple / 63Kg
-212,Female,Purple,70,17,Junvenile,[212] Female / Junvenile / Purple / 70Kg
-213,Female,Purple,82,17,Junvenile,[213] Female / Junvenile / Purple / 82Kg
-214,Female,White,49,18,Adult,[214] Female / Adult / White / 49Kg
-215,Female,White,49,18,Adult,[215] Female / Adult / White / 49Kg
-216,Female,White,55,18,Adult,[216] Female / Adult / White / 55Kg
-217,Female,White,55,18,Adult,[217] Female / Adult / White / 55Kg
-218,Female,White,62,18,Adult,[218] Female / Adult / White / 62Kg
-219,Female,White,62,18,Adult,[219] Female / Adult / White / 62Kg
-220,Female,White,70,18,Adult,[220] Female / Adult / White / 70Kg
-221,Female,White,70,18,Adult,[221] Female / Adult / White / 70Kg
-222,Female,White,95,18,Adult,[222] Female / Adult / White / 95Kg
-223,Female,White,95,18,Adult,[223] Female / Adult / White / 95Kg
-224,Female,Blue,49,18,Adult,[224] Female / Adult / Blue / 49Kg
-225,Female,Blue,55,18,Adult,[225] Female / Adult / Blue / 55Kg
-226,Female,Blue,62,18,Adult,[226] Female / Adult / Blue / 62Kg
-227,Female,Blue,70,18,Adult,[227] Female / Adult / Blue / 70Kg
-228,Female,Blue,95,18,Adult,[228] Female / Adult / Blue / 95Kg
-229,Female,Purple,49,18,Adult,[229] Female / Adult / Purple / 49Kg
-230,Female,Purple,55,18,Adult,[230] Female / Adult / Purple / 55Kg
-231,Female,Purple,62,18,Adult,[231] Female / Adult / Purple / 62Kg
-232,Female,Purple,70,18,Adult,[232] Female / Adult / Purple / 70Kg
-233,Female,Purple,95,18,Adult,[233] Female / Adult / Purple / 95Kg
-234,Male,White,16,5,Kids 1,[234] Male / Kids 1 / White / 16Kg
-235,Male,White,18,5,Kids 1,[235] Male / Kids 1 / White / 18Kg
-236,Male,White,21,5,Kids 1,[236] Male / Kids 1 / White / 21Kg
-237,Male,White,24,5,Kids 1,[237] Male / Kids 1 / White / 24Kg
-238,Male,White,28,5,Kids 1,[238] Male / Kids 1 / White / 28Kg
-239,Male,White,32,5,Kids 1,[239] Male / Kids 1 / White / 32Kg
-240,Male,White,36,5,Kids 1,[240] Male / Kids 1 / White / 36Kg
-241,Male,White,44,5,Kids 1,[241] Male / Kids 1 / White / 44Kg
-242,Male,Grey,16,5,Kids 1,[242] Male / Kids 1 / Grey / 16Kg
-243,Male,Grey,18,5,Kids 1,[243] Male / Kids 1 / Grey / 18Kg
-244,Male,Grey,21,5,Kids 1,[244] Male / Kids 1 / Grey / 21Kg
-245,Male,Grey,24,5,Kids 1,[245] Male / Kids 1 / Grey / 24Kg
-246,Male,Grey,28,5,Kids 1,[246] Male / Kids 1 / Grey / 28Kg
-247,Male,Grey,32,5,Kids 1,[247] Male / Kids 1 / Grey / 32Kg
-248,Male,Grey,36,5,Kids 1,[248] Male / Kids 1 / Grey / 36Kg
-249,Male,Grey,44,5,Kids 1,[249] Male / Kids 1 / Grey / 44Kg
-250,Male,White,18,7,Kids 2,[250] Male / Kids 2 / White / 18Kg
-251,Male,White,20,7,Kids 2,[251] Male / Kids 2 / White / 20Kg
-252,Male,White,23,7,Kids 2,[252] Male / Kids 2 / White / 23Kg
-253,Male,White,26,7,Kids 2,[253] Male / Kids 2 / White / 26Kg
-254,Male,White,30,7,Kids 2,[254] Male / Kids 2 / White / 30Kg
-255,Male,White,34,7,Kids 2,[255] Male / Kids 2 / White / 34Kg
-256,Male,White,38,7,Kids 2,[256] Male / Kids 2 / White / 38Kg
-257,Male,White,46,7,Kids 2,[257] Male / Kids 2 / White / 46Kg
-258,Male,Grey,18,7,Kids 2,[258] Male / Kids 2 / Grey / 18Kg
-259,Male,Grey,20,7,Kids 2,[259] Male / Kids 2 / Grey / 20Kg
-260,Male,Grey,23,7,Kids 2,[260] Male / Kids 2 / Grey / 23Kg
-261,Male,Grey,26,7,Kids 2,[261] Male / Kids 2 / Grey / 26Kg
-262,Male,Grey,30,7,Kids 2,[262] Male / Kids 2 / Grey / 30Kg
-263,Male,Grey,34,7,Kids 2,[263] Male / Kids 2 / Grey / 34Kg
-264,Male,Grey,38,7,Kids 2,[264] Male / Kids 2 / Grey / 38Kg
-265,Male,Grey,46,7,Kids 2,[265] Male / Kids 2 / Grey / 46Kg
-266,Male,Yellow,18,7,Kids 2,[266] Male / Kids 2 / Yellow / 18Kg
-267,Male,Yellow,20,7,Kids 2,[267] Male / Kids 2 / Yellow / 20Kg
-268,Male,Yellow,23,7,Kids 2,[268] Male / Kids 2 / Yellow / 23Kg
-269,Male,Yellow,26,7,Kids 2,[269] Male / Kids 2 / Yellow / 26Kg
-270,Male,Yellow,30,7,Kids 2,[270] Male / Kids 2 / Yellow / 30Kg
-271,Male,Yellow,34,7,Kids 2,[271] Male / Kids 2 / Yellow / 34Kg
-272,Male,Yellow,38,7,Kids 2,[272] Male / Kids 2 / Yellow / 38Kg
-273,Male,Yellow,46,7,Kids 2,[273] Male / Kids 2 / Yellow / 46Kg
-274,Male,White,21,9,Kids 3,[274] Male / Kids 3 / White / 21Kg
-275,Male,White,24,9,Kids 3,[275] Male / Kids 3 / White / 24Kg
-276,Male,White,27,9,Kids 3,[276] Male / Kids 3 / White / 27Kg
-277,Male,White,30,9,Kids 3,[277] Male / Kids 3 / White / 30Kg
-278,Male,White,34,9,Kids 3,[278] Male / Kids 3 / White / 34Kg
-279,Male,White,38,9,Kids 3,[279] Male / Kids 3 / White / 38Kg
-280,Male,White,42,9,Kids 3,[280] Male / Kids 3 / White / 42Kg
-281,Male,White,50,9,Kids 3,[281] Male / Kids 3 / White / 50Kg
-282,Male,Grey,21,9,Kids 3,[282] Male / Kids 3 / Grey / 21Kg
-283,Male,Grey,24,9,Kids 3,[283] Male / Kids 3 / Grey / 24Kg
-284,Male,Grey,27,9,Kids 3,[284] Male / Kids 3 / Grey / 27Kg
-285,Male,Grey,30,9,Kids 3,[285] Male / Kids 3 / Grey / 30Kg
-286,Male,Grey,34,9,Kids 3,[286] Male / Kids 3 / Grey / 34Kg
-287,Male,Grey,38,9,Kids 3,[287] Male / Kids 3 / Grey / 38Kg
-288,Male,Grey,42,9,Kids 3,[288] Male / Kids 3 / Grey / 42Kg
-289,Male,Grey,50,9,Kids 3,[289] Male / Kids 3 / Grey / 50Kg
-290,Male,Yellow,21,9,Kids 3,[290] Male / Kids 3 / Yellow / 21Kg
-291,Male,Yellow,24,9,Kids 3,[291] Male / Kids 3 / Yellow / 24Kg
-292,Male,Yellow,27,9,Kids 3,[292] Male / Kids 3 / Yellow / 27Kg
-293,Male,Yellow,30,9,Kids 3,[293] Male / Kids 3 / Yellow / 30Kg
-294,Male,Yellow,34,9,Kids 3,[294] Male / Kids 3 / Yellow / 34Kg
-295,Male,Yellow,38,9,Kids 3,[295] Male / Kids 3 / Yellow / 38Kg
-296,Male,Yellow,42,9,Kids 3,[296] Male / Kids 3 / Yellow / 42Kg
-297,Male,Yellow,50,9,Kids 3,[297] Male / Kids 3 / Yellow / 50Kg
-298,Male,White,24,11,Infant,[298] Male / Infant / White / 24Kg
-299,Male,White,27,11,Infant,[299] Male / Infant / White / 27Kg
-300,Male,White,30,11,Infant,[300] Male / Infant / White / 30Kg
-301,Male,White,34,11,Infant,[301] Male / Infant / White / 34Kg
-302,Male,White,38,11,Infant,[302] Male / Infant / White / 38Kg
-303,Male,White,42,11,Infant,[303] Male / Infant / White / 42Kg
-304,Male,White,46,11,Infant,[304] Male / Infant / White / 46Kg
-305,Male,White,50,11,Infant,[305] Male / Infant / White / 50Kg
-306,Male,White,62,11,Infant,[306] Male / Infant / White / 62Kg
-307,Male,Grey,24,11,Infant,[307] Male / Infant / Grey / 24Kg
-308,Male,Grey,27,11,Infant,[308] Male / Infant / Grey / 27Kg
-309,Male,Grey,30,11,Infant,[309] Male / Infant / Grey / 30Kg
-310,Male,Grey,34,11,Infant,[310] Male / Infant / Grey / 34Kg
-311,Male,Grey,38,11,Infant,[311] Male / Infant / Grey / 38Kg
-312,Male,Grey,42,11,Infant,[312] Male / Infant / Grey / 42Kg
-313,Male,Grey,46,11,Infant,[313] Male / Infant / Grey / 46Kg
-314,Male,Grey,50,11,Infant,[314] Male / Infant / Grey / 50Kg
-315,Male,Grey,62,11,Infant,[315] Male / Infant / Grey / 62Kg
-316,Male,Yellow,24,11,Infant,[316] Male / Infant / Yellow / 24Kg
-317,Male,Yellow,27,11,Infant,[317] Male / Infant / Yellow / 27Kg
-318,Male,Yellow,30,11,Infant,[318] Male / Infant / Yellow / 30Kg
-319,Male,Yellow,34,11,Infant,[319] Male / Infant / Yellow / 34Kg
-320,Male,Yellow,38,11,Infant,[320] Male / Infant / Yellow / 38Kg
-321,Male,Yellow,42,11,Infant,[321] Male / Infant / Yellow / 42Kg
-322,Male,Yellow,46,11,Infant,[322] Male / Infant / Yellow / 46Kg
-323,Male,Yellow,50,11,Infant,[323] Male / Infant / Yellow / 50Kg
-324,Male,Yellow,62,11,Infant,[324] Male / Infant / Yellow / 62Kg
-325,Male,Orange,27,11,Infant,[325] Male / Infant / Orange / 27Kg
-326,Male,Orange,30,11,Infant,[326] Male / Infant / Orange / 30Kg
-327,Male,Orange,34,11,Infant,[327] Male / Infant / Orange / 34Kg
-328,Male,Orange,38,11,Infant,[328] Male / Infant / Orange / 38Kg
-329,Male,Orange,42,11,Infant,[329] Male / Infant / Orange / 42Kg
-330,Male,Orange,46,11,Infant,[330] Male / Infant / Orange / 46Kg
-331,Male,Orange,50,11,Infant,[331] Male / Infant / Orange / 50Kg
-332,Male,Orange,62,11,Infant,[332] Male / Infant / Orange / 62Kg
-333,Male,White,34,13,Junior,[333] Male / Junior / White / 34Kg
-334,Male,White,37,13,Junior,[334] Male / Junior / White / 37Kg
-335,Male,White,41,13,Junior,[335] Male / Junior / White / 41Kg
-336,Male,White,45,13,Junior,[336] Male / Junior / White / 45Kg
-337,Male,White,50,13,Junior,[337] Male / Junior / White / 50Kg
-338,Male,White,55,13,Junior,[338] Male / Junior / White / 55Kg
-339,Male,White,60,13,Junior,[339] Male / Junior / White / 60Kg
-340,Male,White,66,13,Junior,[340] Male / Junior / White / 66Kg
-341,Male,White,78,13,Junior,[341] Male / Junior / White / 78Kg
-342,Male,Grey,34,13,Junior,[342] Male / Junior / Grey / 34Kg
-343,Male,Grey,37,13,Junior,[343] Male / Junior / Grey / 37Kg
-344,Male,Grey,41,13,Junior,[344] Male / Junior / Grey / 41Kg
-345,Male,Grey,45,13,Junior,[345] Male / Junior / Grey / 45Kg
-346,Male,Grey,50,13,Junior,[346] Male / Junior / Grey / 50Kg
-347,Male,Grey,55,13,Junior,[347] Male / Junior / Grey / 55Kg
-348,Male,Grey,60,13,Junior,[348] Male / Junior / Grey / 60Kg
-349,Male,Grey,66,13,Junior,[349] Male / Junior / Grey / 66Kg
-350,Male,Grey,78,13,Junior,[350] Male / Junior / Grey / 78Kg
-351,Male,Yellow,34,13,Junior,[351] Male / Junior / Yellow / 34Kg
-352,Male,Yellow,37,13,Junior,[352] Male / Junior / Yellow / 37Kg
-353,Male,Yellow,41,13,Junior,[353] Male / Junior / Yellow / 41Kg
-354,Male,Yellow,45,13,Junior,[354] Male / Junior / Yellow / 45Kg
-355,Male,Yellow,50,13,Junior,[355] Male / Junior / Yellow / 50Kg
-356,Male,Yellow,55,13,Junior,[356] Male / Junior / Yellow / 55Kg
-357,Male,Yellow,60,13,Junior,[357] Male / Junior / Yellow / 60Kg
-358,Male,Yellow,66,13,Junior,[358] Male / Junior / Yellow / 66Kg
-359,Male,Yellow,78,13,Junior,[359] Male / Junior / Yellow / 78Kg
-360,Male,Orange,34,13,Junior,[360] Male / Junior / Orange / 34Kg
-361,Male,Orange,34,13,Junior,[361] Male / Junior / Orange / 34Kg
-362,Male,Orange,37,13,Junior,[362] Male / Junior / Orange / 37Kg
-363,Male,Orange,37,13,Junior,[363] Male / Junior / Orange / 37Kg
-364,Male,Orange,41,13,Junior,[364] Male / Junior / Orange / 41Kg
-365,Male,Orange,41,13,Junior,[365] Male / Junior / Orange / 41Kg
-366,Male,Orange,45,13,Junior,[366] Male / Junior / Orange / 45Kg
-367,Male,Orange,45,13,Junior,[367] Male / Junior / Orange / 45Kg
-368,Male,Orange,50,13,Junior,[368] Male / Junior / Orange / 50Kg
-369,Male,Orange,50,13,Junior,[369] Male / Junior / Orange / 50Kg
-370,Male,Orange,55,13,Junior,[370] Male / Junior / Orange / 55Kg
-371,Male,Orange,55,13,Junior,[371] Male / Junior / Orange / 55Kg
-372,Male,Orange,60,13,Junior,[372] Male / Junior / Orange / 60Kg
-373,Male,Orange,60,13,Junior,[373] Male / Junior / Orange / 60Kg
-374,Male,Orange,66,13,Junior,[374] Male / Junior / Orange / 66Kg
-375,Male,Orange,66,13,Junior,[375] Male / Junior / Orange / 66Kg
-376,Male,Orange,78,13,Junior,[376] Male / Junior / Orange / 78Kg
-377,Male,Orange,78,13,Junior,[377] Male / Junior / Orange / 78Kg
-378,Male,White,38,15,Teen,[378] Male / Teen / White / 38Kg
-379,Male,White,42,15,Teen,[379] Male / Teen / White / 42Kg
-380,Male,White,46,15,Teen,[380] Male / Teen / White / 46Kg
-381,Male,White,50,15,Teen,[381] Male / Teen / White / 50Kg
-382,Male,White,56,15,Teen,[382] Male / Teen / White / 56Kg
-383,Male,White,62,15,Teen,[383] Male / Teen / White / 62Kg
-384,Male,White,67,15,Teen,[384] Male / Teen / White / 67Kg
-385,Male,White,72,15,Teen,[385] Male / Teen / White / 72Kg
-386,Male,White,84,15,Teen,[386] Male / Teen / White / 84Kg
-387,Male,Grey,38,15,Teen,[387] Male / Teen / Grey / 38Kg
-388,Male,Grey,42,15,Teen,[388] Male / Teen / Grey / 42Kg
-389,Male,Grey,46,15,Teen,[389] Male / Teen / Grey / 46Kg
-390,Male,Grey,50,15,Teen,[390] Male / Teen / Grey / 50Kg
-391,Male,Grey,56,15,Teen,[391] Male / Teen / Grey / 56Kg
-392,Male,Grey,62,15,Teen,[392] Male / Teen / Grey / 62Kg
-393,Male,Grey,67,15,Teen,[393] Male / Teen / Grey / 67Kg
-394,Male,Grey,72,15,Teen,[394] Male / Teen / Grey / 72Kg
-395,Male,Grey,84,15,Teen,[395] Male / Teen / Grey / 84Kg
-396,Male,Yellow,38,15,Teen,[396] Male / Teen / Yellow / 38Kg
-397,Male,Yellow,42,15,Teen,[397] Male / Teen / Yellow / 42Kg
-398,Male,Yellow,46,15,Teen,[398] Male / Teen / Yellow / 46Kg
-399,Male,Yellow,50,15,Teen,[399] Male / Teen / Yellow / 50Kg
-400,Male,Yellow,56,15,Teen,[400] Male / Teen / Yellow / 56Kg
-401,Male,Yellow,62,15,Teen,[401] Male / Teen / Yellow / 62Kg
-402,Male,Yellow,67,15,Teen,[402] Male / Teen / Yellow / 67Kg
-403,Male,Yellow,72,15,Teen,[403] Male / Teen / Yellow / 72Kg
-404,Male,Yellow,84,15,Teen,[404] Male / Teen / Yellow / 84Kg
-405,Male,Orange,38,15,Teen,[405] Male / Teen / Orange / 38Kg
-406,Male,Orange,38,15,Teen,[406] Male / Teen / Orange / 38Kg
-407,Male,Orange,42,15,Teen,[407] Male / Teen / Orange / 42Kg
-408,Male,Orange,42,15,Teen,[408] Male / Teen / Orange / 42Kg
-409,Male,Orange,46,15,Teen,[409] Male / Teen / Orange / 46Kg
-410,Male,Orange,46,15,Teen,[410] Male / Teen / Orange / 46Kg
-411,Male,Orange,50,15,Teen,[411] Male / Teen / Orange / 50Kg
-412,Male,Orange,50,15,Teen,[412] Male / Teen / Orange / 50Kg
-413,Male,Orange,56,15,Teen,[413] Male / Teen / Orange / 56Kg
-414,Male,Orange,56,15,Teen,[414] Male / Teen / Orange / 56Kg
-415,Male,Orange,62,15,Teen,[415] Male / Teen / Orange / 62Kg
-416,Male,Orange,62,15,Teen,[416] Male / Teen / Orange / 62Kg
-417,Male,Orange,67,15,Teen,[417] Male / Teen / Orange / 67Kg
-418,Male,Orange,67,15,Teen,[418] Male / Teen / Orange / 67Kg
-419,Male,Orange,72,15,Teen,[419] Male / Teen / Orange / 72Kg
-420,Male,Orange,72,15,Teen,[420] Male / Teen / Orange / 72Kg
-421,Male,Orange,84,15,Teen,[421] Male / Teen / Orange / 84Kg
-422,Male,Orange,84,15,Teen,[422] Male / Teen / Orange / 84Kg
-423,Male,White,46,17,Junvenile,[423] Male / Junvenile / White / 46Kg
-424,Male,White,50,17,Junvenile,[424] Male / Junvenile / White / 50Kg
-425,Male,White,55,17,Junvenile,[425] Male / Junvenile / White / 55Kg
-426,Male,White,60,17,Junvenile,[426] Male / Junvenile / White / 60Kg
-427,Male,White,66,17,Junvenile,[427] Male / Junvenile / White / 66Kg
-428,Male,White,73,17,Junvenile,[428] Male / Junvenile / White / 73Kg
-429,Male,White,81,17,Junvenile,[429] Male / Junvenile / White / 81Kg
-430,Male,White,94,17,Junvenile,[430] Male / Junvenile / White / 94Kg
-431,Male,Blue,46,17,Junvenile,[431] Male / Junvenile / Blue / 46Kg
-432,Male,Blue,50,17,Junvenile,[432] Male / Junvenile / Blue / 50Kg
-433,Male,Blue,55,17,Junvenile,[433] Male / Junvenile / Blue / 55Kg
-434,Male,Blue,60,17,Junvenile,[434] Male / Junvenile / Blue / 60Kg
-435,Male,Blue,66,17,Junvenile,[435] Male / Junvenile / Blue / 66Kg
-436,Male,Blue,73,17,Junvenile,[436] Male / Junvenile / Blue / 73Kg
-437,Male,Blue,81,17,Junvenile,[437] Male / Junvenile / Blue / 81Kg
-438,Male,Blue,94,17,Junvenile,[438] Male / Junvenile / Blue / 94Kg
-439,Male,Purple,46,17,Junvenile,[439] Male / Junvenile / Purple / 46Kg
-440,Male,Purple,50,17,Junvenile,[440] Male / Junvenile / Purple / 50Kg
-441,Male,Purple,55,17,Junvenile,[441] Male / Junvenile / Purple / 55Kg
-442,Male,Purple,60,17,Junvenile,[442] Male / Junvenile / Purple / 60Kg
-443,Male,Purple,66,17,Junvenile,[443] Male / Junvenile / Purple / 66Kg
-444,Male,Purple,73,17,Junvenile,[444] Male / Junvenile / Purple / 73Kg
-445,Male,Purple,81,17,Junvenile,[445] Male / Junvenile / Purple / 81Kg
-446,Male,Purple,94,17,Junvenile,[446] Male / Junvenile / Purple / 94Kg
-447,Male,White,56,18,Adult,[447] Male / Adult / White / 56Kg
-448,Male,White,56,18,Adult,[448] Male / Adult / White / 56Kg
-449,Male,White,62,18,Adult,[449] Male / Adult / White / 62Kg
-450,Male,White,62,18,Adult,[450] Male / Adult / White / 62Kg
-451,Male,White,69,18,Adult,[451] Male / Adult / White / 69Kg
-452,Male,White,69,18,Adult,[452] Male / Adult / White / 69Kg
-453,Male,White,77,18,Adult,[453] Male / Adult / White / 77Kg
-454,Male,White,77,18,Adult,[454] Male / Adult / White / 77Kg
-455,Male,White,85,18,Adult,[455] Male / Adult / White / 85Kg
-456,Male,White,85,18,Adult,[456] Male / Adult / White / 85Kg
-457,Male,White,94,18,Adult,[457] Male / Adult / White / 94Kg
-458,Male,White,94,18,Adult,[458] Male / Adult / White / 94Kg
-459,Male,White,120,18,Adult,[459] Male / Adult / White / 120Kg
-460,Male,White,120,18,Adult,[460] Male / Adult / White / 120Kg
-461,Male,Blue,56,18,Adult,[461] Male / Adult / Blue / 56Kg
-462,Male,Blue,62,18,Adult,[462] Male / Adult / Blue / 62Kg
-463,Male,Blue,69,18,Adult,[463] Male / Adult / Blue / 69Kg
-464,Male,Blue,77,18,Adult,[464] Male / Adult / Blue / 77Kg
-465,Male,Blue,85,18,Adult,[465] Male / Adult / Blue / 85Kg
-466,Male,Blue,94,18,Adult,[466] Male / Adult / Blue / 94Kg
-467,Male,Blue,120,18,Adult,[467] Male / Adult / Blue / 120Kg
-468,Male,Purple,56,18,Adult,[468] Male / Adult / Purple / 56Kg
-469,Male,Purple,62,18,Adult,[469] Male / Adult / Purple / 62Kg
-470,Male,Purple,69,18,Adult,[470] Male / Adult / Purple / 69Kg
-471,Male,Purple,77,18,Adult,[471] Male / Adult / Purple / 77Kg
-472,Male,Purple,85,18,Adult,[472] Male / Adult / Purple / 85Kg
-473,Male,Purple,94,18,Adult,[473] Male / Adult / Purple / 94Kg
-474,Male,Purple,120,18,Adult,[474] Male / Adult / Purple / 120Kg
+"#,gender,belt,max_weight,division_age,division_name,public name"
+"1,Female,White,16,5,kg,[001] Female / kg / White / 16Kg"
+"2,Female,White,18,5,Kids 1,[002] Female / Kids 1 / White / 18Kg"
+"3,Female,White,21,5,Kids 1,[003] Female / Kids 1 / White / 21Kg"
+"4,Female,White,24,5,Kids 1,[004] Female / Kids 1 / White / 24Kg"
+"5,Female,White,28,5,Kids 1,[005] Female / Kids 1 / White / 28Kg"
+"6,Female,White,32,5,Kids 1,[006] Female / Kids 1 / White / 32Kg"
+"7,Female,White,36,5,Kids 1,[007] Female / Kids 1 / White / 36Kg"
+"8,Female,White,44,5,Kids 1,[008] Female / Kids 1 / White / 44Kg"
+"9,Female,Grey,16,5,Kids 1,[009] Female / Kids 1 / Grey / 16Kg"
+"10,Female,Grey,18,5,Kids 1,[010] Female / Kids 1 / Grey / 18Kg"
+"11,Female,Grey,21,5,Kids 1,[011] Female / Kids 1 / Grey / 21Kg"
+"12,Female,Grey,24,5,Kids 1,[012] Female / Kids 1 / Grey / 24Kg"
+"13,Female,Grey,28,5,Kids 1,[013] Female / Kids 1 / Grey / 28Kg"
+"14,Female,Grey,32,5,Kids 1,[014] Female / Kids 1 / Grey / 32Kg"
+"15,Female,Grey,36,5,Kids 1,[015] Female / Kids 1 / Grey / 36Kg"
+"16,Female,Grey,44,5,Kids 1,[016] Female / Kids 1 / Grey / 44Kg"
+"17,Female,White,17,7,Kids 2,[017] Female / Kids 2 / White / 17Kg"
+"18,Female,White,19,7,Kids 2,[018] Female / Kids 2 / White / 19Kg"
+"19,Female,White,22,7,Kids 2,[019] Female / Kids 2 / White / 22Kg"
+"20,Female,White,25,7,Kids 2,[020] Female / Kids 2 / White / 25Kg"
+"21,Female,White,29,7,Kids 2,[021] Female / Kids 2 / White / 29Kg"
+"22,Female,White,33,7,Kids 2,[022] Female / Kids 2 / White / 33Kg"
+"23,Female,White,37,7,Kids 2,[023] Female / Kids 2 / White / 37Kg"
+"24,Female,White,44,7,Kids 2,[024] Female / Kids 2 / White / 44Kg"
+"25,Female,Grey,17,7,Kids 2,[025] Female / Kids 2 / Grey / 17Kg"
+"26,Female,Grey,19,7,Kids 2,[026] Female / Kids 2 / Grey / 19Kg"
+"27,Female,Grey,22,7,Kids 2,[027] Female / Kids 2 / Grey / 22Kg"
+"28,Female,Grey,25,7,Kids 2,[028] Female / Kids 2 / Grey / 25Kg"
+"29,Female,Grey,29,7,Kids 2,[029] Female / Kids 2 / Grey / 29Kg"
+"30,Female,Grey,33,7,Kids 2,[030] Female / Kids 2 / Grey / 33Kg"
+"31,Female,Grey,37,7,Kids 2,[031] Female / Kids 2 / Grey / 37Kg"
+"32,Female,Grey,44,7,Kids 2,[032] Female / Kids 2 / Grey / 44Kg"
+"33,Female,Yellow,17,7,Kids 2,[033] Female / Kids 2 / Yellow / 17Kg"
+"34,Female,Yellow,19,7,Kids 2,[034] Female / Kids 2 / Yellow / 19Kg"
+"35,Female,Yellow,22,7,Kids 2,[035] Female / Kids 2 / Yellow / 22Kg"
+"36,Female,Yellow,25,7,Kids 2,[036] Female / Kids 2 / Yellow / 25Kg"
+"37,Female,Yellow,29,7,Kids 2,[037] Female / Kids 2 / Yellow / 29Kg"
+"38,Female,Yellow,33,7,Kids 2,[038] Female / Kids 2 / Yellow / 33Kg"
+"39,Female,Yellow,37,7,Kids 2,[039] Female / Kids 2 / Yellow / 37Kg"
+"40,Female,Yellow,44,7,Kids 2,[040] Female / Kids 2 / Yellow / 44Kg"
+"41,Female,White,20,9,Kids 3,[041] Female / Kids 3 / White / 20Kg"
+"42,Female,White,22,9,Kids 3,[042] Female / Kids 3 / White / 22Kg"
+"43,Female,White,25,9,Kids 3,[043] Female / Kids 3 / White / 25Kg"
+"44,Female,White,28,9,Kids 3,[044] Female / Kids 3 / White / 28Kg"
+"45,Female,White,32,9,Kids 3,[045] Female / Kids 3 / White / 32Kg"
+"46,Female,White,36,9,Kids 3,[046] Female / Kids 3 / White / 36Kg"
+"47,Female,White,40,9,Kids 3,[047] Female / Kids 3 / White / 40Kg"
+"48,Female,White,48,9,Kids 3,[048] Female / Kids 3 / White / 48Kg"
+"49,Female,Grey,20,9,Kids 3,[049] Female / Kids 3 / Grey / 20Kg"
+"50,Female,Grey,22,9,Kids 3,[050] Female / Kids 3 / Grey / 22Kg"
+"51,Female,Grey,25,9,Kids 3,[051] Female / Kids 3 / Grey / 25Kg"
+"52,Female,Grey,28,9,Kids 3,[052] Female / Kids 3 / Grey / 28Kg"
+"53,Female,Grey,32,9,Kids 3,[053] Female / Kids 3 / Grey / 32Kg"
+"54,Female,Grey,36,9,Kids 3,[054] Female / Kids 3 / Grey / 36Kg"
+"55,Female,Grey,40,9,Kids 3,[055] Female / Kids 3 / Grey / 40Kg"
+"56,Female,Grey,48,9,Kids 3,[056] Female / Kids 3 / Grey / 48Kg"
+"57,Female,Yellow,20,9,Kids 3,[057] Female / Kids 3 / Yellow / 20Kg"
+"58,Female,Yellow,22,9,Kids 3,[058] Female / Kids 3 / Yellow / 22Kg"
+"59,Female,Yellow,25,9,Kids 3,[059] Female / Kids 3 / Yellow / 25Kg"
+"60,Female,Yellow,28,9,Kids 3,[060] Female / Kids 3 / Yellow / 28Kg"
+"61,Female,Yellow,32,9,Kids 3,[061] Female / Kids 3 / Yellow / 32Kg"
+"62,Female,Yellow,36,9,Kids 3,[062] Female / Kids 3 / Yellow / 36Kg"
+"63,Female,Yellow,40,9,Kids 3,[063] Female / Kids 3 / Yellow / 40Kg"
+"64,Female,Yellow,48,9,Kids 3,[064] Female / Kids 3 / Yellow / 48Kg"
+"65,Female,White,22,11,Infant,[065] Female / Infant / White / 22Kg"
+"66,Female,White,25,11,Infant,[066] Female / Infant / White / 25Kg"
+"67,Female,White,28,11,Infant,[067] Female / Infant / White / 28Kg"
+"68,Female,White,32,11,Infant,[068] Female / Infant / White / 32Kg"
+"69,Female,White,36,11,Infant,[069] Female / Infant / White / 36Kg"
+"70,Female,White,40,11,Infant,[070] Female / Infant / White / 40Kg"
+"71,Female,White,44,11,Infant,[071] Female / Infant / White / 44Kg"
+"72,Female,White,48,11,Infant,[072] Female / Infant / White / 48Kg"
+"73,Female,White,60,11,Infant,[073] Female / Infant / White / 60Kg"
+"74,Female,Grey,22,11,Infant,[074] Female / Infant / Grey / 22Kg"
+"75,Female,Grey,25,11,Infant,[075] Female / Infant / Grey / 25Kg"
+"76,Female,Grey,28,11,Infant,[076] Female / Infant / Grey / 28Kg"
+"77,Female,Grey,32,11,Infant,[077] Female / Infant / Grey / 32Kg"
+"78,Female,Grey,36,11,Infant,[078] Female / Infant / Grey / 36Kg"
+"79,Female,Grey,40,11,Infant,[079] Female / Infant / Grey / 40Kg"
+"80,Female,Grey,44,11,Infant,[080] Female / Infant / Grey / 44Kg"
+"81,Female,Grey,48,11,Infant,[081] Female / Infant / Grey / 48Kg"
+"82,Female,Grey,60,11,Infant,[082] Female / Infant / Grey / 60Kg"
+"83,Female,Yellow,22,11,Infant,[083] Female / Infant / Yellow / 22Kg"
+"84,Female,Yellow,25,11,Infant,[084] Female / Infant / Yellow / 25Kg"
+"85,Female,Yellow,28,11,Infant,[085] Female / Infant / Yellow / 28Kg"
+"86,Female,Yellow,32,11,Infant,[086] Female / Infant / Yellow / 32Kg"
+"87,Female,Yellow,36,11,Infant,[087] Female / Infant / Yellow / 36Kg"
+"88,Female,Yellow,40,11,Infant,[088] Female / Infant / Yellow / 40Kg"
+"89,Female,Yellow,44,11,Infant,[089] Female / Infant / Yellow / 44Kg"
+"90,Female,Yellow,48,11,Infant,[090] Female / Infant / Yellow / 48Kg"
+"91,Female,Yellow,60,11,Infant,[091] Female / Infant / Yellow / 60Kg"
+"92,Female,Orange,22,11,Infant,[092] Female / Infant / Orange / 22Kg"
+"93,Female,Orange,25,11,Infant,[093] Female / Infant / Orange / 25Kg"
+"94,Female,Orange,28,11,Infant,[094] Female / Infant / Orange / 28Kg"
+"95,Female,Orange,32,11,Infant,[095] Female / Infant / Orange / 32Kg"
+"96,Female,Orange,36,11,Infant,[096] Female / Infant / Orange / 36Kg"
+"97,Female,Orange,40,11,Infant,[097] Female / Infant / Orange / 40Kg"
+"98,Female,Orange,44,11,Infant,[098] Female / Infant / Orange / 44Kg"
+"99,Female,Orange,48,11,Infant,[099] Female / Infant / Orange / 48Kg"
+"100,Female,Orange,60,11,Infant,[100] Female / Infant / Orange / 60Kg"
+"101,Female,White,32,13,Junior,[101] Female / Junior / White / 32Kg"
+"102,Female,White,36,13,Junior,[102] Female / Junior / White / 36Kg"
+"103,Female,White,40,13,Junior,[103] Female / Junior / White / 40Kg"
+"104,Female,White,44,13,Junior,[104] Female / Junior / White / 44Kg"
+"105,Female,White,48,13,Junior,[105] Female / Junior / White / 48Kg"
+"106,Female,White,52,13,Junior,[106] Female / Junior / White / 52Kg"
+"107,Female,White,57,13,Junior,[107] Female / Junior / White / 57Kg"
+"108,Female,White,63,13,Junior,[108] Female / Junior / White / 63Kg"
+"109,Female,White,75,13,Junior,[109] Female / Junior / White / 75Kg"
+"110,Female,Grey,32,13,Junior,[110] Female / Junior / Grey / 32Kg"
+"111,Female,Grey,36,13,Junior,[111] Female / Junior / Grey / 36Kg"
+"112,Female,Grey,40,13,Junior,[112] Female / Junior / Grey / 40Kg"
+"113,Female,Grey,44,13,Junior,[113] Female / Junior / Grey / 44Kg"
+"114,Female,Grey,48,13,Junior,[114] Female / Junior / Grey / 48Kg"
+"115,Female,Grey,52,13,Junior,[115] Female / Junior / Grey / 52Kg"
+"116,Female,Grey,57,13,Junior,[116] Female / Junior / Grey / 57Kg"
+"117,Female,Grey,63,13,Junior,[117] Female / Junior / Grey / 63Kg"
+"118,Female,Grey,75,13,Junior,[118] Female / Junior / Grey / 75Kg"
+"119,Female,Yellow,32,13,Junior,[119] Female / Junior / Yellow / 32Kg"
+"120,Female,Yellow,36,13,Junior,[120] Female / Junior / Yellow / 36Kg"
+"121,Female,Yellow,40,13,Junior,[121] Female / Junior / Yellow / 40Kg"
+"122,Female,Yellow,44,13,Junior,[122] Female / Junior / Yellow / 44Kg"
+"123,Female,Yellow,48,13,Junior,[123] Female / Junior / Yellow / 48Kg"
+"124,Female,Yellow,52,13,Junior,[124] Female / Junior / Yellow / 52Kg"
+"125,Female,Yellow,57,13,Junior,[125] Female / Junior / Yellow / 57Kg"
+"126,Female,Yellow,63,13,Junior,[126] Female / Junior / Yellow / 63Kg"
+"127,Female,Yellow,75,13,Junior,[127] Female / Junior / Yellow / 75Kg"
+"128,Female,Orange,32,13,Junior,[128] Female / Junior / Orange / 32Kg"
+"129,Female,Orange,32,13,Junior,[129] Female / Junior / Orange / 32Kg"
+"130,Female,Orange,36,13,Junior,[130] Female / Junior / Orange / 36Kg"
+"131,Female,Orange,36,13,Junior,[131] Female / Junior / Orange / 36Kg"
+"132,Female,Orange,40,13,Junior,[132] Female / Junior / Orange / 40Kg"
+"133,Female,Orange,40,13,Junior,[133] Female / Junior / Orange / 40Kg"
+"134,Female,Orange,44,13,Junior,[134] Female / Junior / Orange / 44Kg"
+"135,Female,Orange,44,13,Junior,[135] Female / Junior / Orange / 44Kg"
+"136,Female,Orange,48,13,Junior,[136] Female / Junior / Orange / 48Kg"
+"137,Female,Orange,48,13,Junior,[137] Female / Junior / Orange / 48Kg"
+"138,Female,Orange,52,13,Junior,[138] Female / Junior / Orange / 52Kg"
+"139,Female,Orange,52,13,Junior,[139] Female / Junior / Orange / 52Kg"
+"140,Female,Orange,57,13,Junior,[140] Female / Junior / Orange / 57Kg"
+"141,Female,Orange,57,13,Junior,[141] Female / Junior / Orange / 57Kg"
+"142,Female,Orange,63,13,Junior,[142] Female / Junior / Orange / 63Kg"
+"143,Female,Orange,63,13,Junior,[143] Female / Junior / Orange / 63Kg"
+"144,Female,Orange,75,13,Junior,[144] Female / Junior / Orange / 75Kg"
+"145,Female,Orange,75,13,Junior,[145] Female / Junior / Orange / 75Kg"
+"146,Female,White,36,15,Teen,[146] Female / Teen / White / 36Kg"
+"147,Female,White,40,15,Teen,[147] Female / Teen / White / 40Kg"
+"148,Female,White,44,15,Teen,[148] Female / Teen / White / 44Kg"
+"149,Female,White,48,15,Teen,[149] Female / Teen / White / 48Kg"
+"150,Female,White,52,15,Teen,[150] Female / Teen / White / 52Kg"
+"151,Female,White,57,15,Teen,[151] Female / Teen / White / 57Kg"
+"152,Female,White,63,15,Teen,[152] Female / Teen / White / 63Kg"
+"153,Female,White,68,15,Teen,[153] Female / Teen / White / 68Kg"
+"154,Female,White,80,15,Teen,[154] Female / Teen / White / 80Kg"
+"155,Female,Grey,36,15,Teen,[155] Female / Teen / Grey / 36Kg"
+"156,Female,Grey,40,15,Teen,[156] Female / Teen / Grey / 40Kg"
+"157,Female,Grey,44,15,Teen,[157] Female / Teen / Grey / 44Kg"
+"158,Female,Grey,48,15,Teen,[158] Female / Teen / Grey / 48Kg"
+"159,Female,Grey,52,15,Teen,[159] Female / Teen / Grey / 52Kg"
+"160,Female,Grey,57,15,Teen,[160] Female / Teen / Grey / 57Kg"
+"161,Female,Grey,63,15,Teen,[161] Female / Teen / Grey / 63Kg"
+"162,Female,Grey,68,15,Teen,[162] Female / Teen / Grey / 68Kg"
+"163,Female,Grey,80,15,Teen,[163] Female / Teen / Grey / 80Kg"
+"164,Female,Yellow,36,15,Teen,[164] Female / Teen / Yellow / 36Kg"
+"165,Female,Yellow,40,15,Teen,[165] Female / Teen / Yellow / 40Kg"
+"166,Female,Yellow,44,15,Teen,[166] Female / Teen / Yellow / 44Kg"
+"167,Female,Yellow,48,15,Teen,[167] Female / Teen / Yellow / 48Kg"
+"168,Female,Yellow,52,15,Teen,[168] Female / Teen / Yellow / 52Kg"
+"169,Female,Yellow,57,15,Teen,[169] Female / Teen / Yellow / 57Kg"
+"170,Female,Yellow,63,15,Teen,[170] Female / Teen / Yellow / 63Kg"
+"171,Female,Yellow,68,15,Teen,[171] Female / Teen / Yellow / 68Kg"
+"172,Female,Yellow,80,15,Teen,[172] Female / Teen / Yellow / 80Kg"
+"173,Female,Orange,36,15,Teen,[173] Female / Teen / Orange / 36Kg"
+"174,Female,Orange,40,15,Teen,[174] Female / Teen / Orange / 40Kg"
+"175,Female,Orange,44,15,Teen,[175] Female / Teen / Orange / 44Kg"
+"176,Female,Orange,48,15,Teen,[176] Female / Teen / Orange / 48Kg"
+"177,Female,Orange,52,15,Teen,[177] Female / Teen / Orange / 52Kg"
+"178,Female,Orange,57,15,Teen,[178] Female / Teen / Orange / 57Kg"
+"179,Female,Orange,63,15,Teen,[179] Female / Teen / Orange / 63Kg"
+"180,Female,Orange,68,15,Teen,[180] Female / Teen / Orange / 68Kg"
+"181,Female,Orange,80,15,Teen,[181] Female / Teen / Orange / 80Kg"
+"182,Female,White,40,17,Juvenile,[182] Female / Juvenile / White / 40Kg"
+"183,Female,White,40,17,Juvenile,[183] Female / Juvenile / White / 40Kg"
+"184,Female,White,44,17,Juvenile,[184] Female / Juvenile / White / 44Kg"
+"185,Female,White,44,17,Juvenile,[185] Female / Juvenile / White / 44Kg"
+"186,Female,White,48,17,Juvenile,[186] Female / Juvenile / White / 48Kg"
+"187,Female,White,48,17,Juvenile,[187] Female / Juvenile / White / 48Kg"
+"188,Female,White,52,17,Juvenile,[188] Female / Juvenile / White / 52Kg"
+"189,Female,White,52,17,Juvenile,[189] Female / Juvenile / White / 52Kg"
+"190,Female,White,57,17,Juvenile,[190] Female / Juvenile / White / 57Kg"
+"191,Female,White,57,17,Juvenile,[191] Female / Juvenile / White / 57Kg"
+"192,Female,White,63,17,Juvenile,[192] Female / Juvenile / White / 63Kg"
+"193,Female,White,63,17,Juvenile,[193] Female / Juvenile / White / 63Kg"
+"194,Female,White,70,17,Juvenile,[194] Female / Juvenile / White / 70Kg"
+"195,Female,White,70,17,Juvenile,[195] Female / Juvenile / White / 70Kg"
+"196,Female,White,82,17,Juvenile,[196] Female / Juvenile / White / 82Kg"
+"197,Female,White,82,17,Juvenile,[197] Female / Juvenile / White / 82Kg"
+"198,Female,Blue,40,17,Juvenile,[198] Female / Juvenile / Blue / 40Kg"
+"199,Female,Blue,44,17,Juvenile,[199] Female / Juvenile / Blue / 44Kg"
+"200,Female,Blue,48,17,Juvenile,[200] Female / Juvenile / Blue / 48Kg"
+"201,Female,Blue,52,17,Juvenile,[201] Female / Juvenile / Blue / 52Kg"
+"202,Female,Blue,57,17,Juvenile,[202] Female / Juvenile / Blue / 57Kg"
+"203,Female,Blue,63,17,Juvenile,[203] Female / Juvenile / Blue / 63Kg"
+"204,Female,Blue,70,17,Juvenile,[204] Female / Juvenile / Blue / 70Kg"
+"205,Female,Blue,82,17,Juvenile,[205] Female / Juvenile / Blue / 82Kg"
+"206,Female,Purple,40,17,Juvenile,[206] Female / Juvenile / Purple / 40Kg"
+"207,Female,Purple,44,17,Juvenile,[207] Female / Juvenile / Purple / 44Kg"
+"208,Female,Purple,48,17,Juvenile,[208] Female / Juvenile / Purple / 48Kg"
+"209,Female,Purple,52,17,Juvenile,[209] Female / Juvenile / Purple / 52Kg"
+"210,Female,Purple,57,17,Juvenile,[210] Female / Juvenile / Purple / 57Kg"
+"211,Female,Purple,63,17,Juvenile,[211] Female / Juvenile / Purple / 63Kg"
+"212,Female,Purple,70,17,Juvenile,[212] Female / Juvenile / Purple / 70Kg"
+"213,Female,Purple,82,17,Juvenile,[213] Female / Juvenile / Purple / 82Kg"
+"214,Female,White,49,18,Adult,[214] Female / Adult / White / 49Kg"
+"215,Female,White,49,18,Adult,[215] Female / Adult / White / 49Kg"
+"216,Female,White,55,18,Adult,[216] Female / Adult / White / 55Kg"
+"217,Female,White,55,18,Adult,[217] Female / Adult / White / 55Kg"
+"218,Female,White,62,18,Adult,[218] Female / Adult / White / 62Kg"
+"219,Female,White,62,18,Adult,[219] Female / Adult / White / 62Kg"
+"220,Female,White,70,18,Adult,[220] Female / Adult / White / 70Kg"
+"221,Female,White,70,18,Adult,[221] Female / Adult / White / 70Kg"
+"222,Female,White,95,18,Adult,[222] Female / Adult / White / 95Kg"
+"223,Female,White,95,18,Adult,[223] Female / Adult / White / 95Kg"
+"224,Female,Blue,49,18,Adult,[224] Female / Adult / Blue / 49Kg"
+"225,Female,Blue,55,18,Adult,[225] Female / Adult / Blue / 55Kg"
+"226,Female,Blue,62,18,Adult,[226] Female / Adult / Blue / 62Kg"
+"227,Female,Blue,70,18,Adult,[227] Female / Adult / Blue / 70Kg"
+"228,Female,Blue,95,18,Adult,[228] Female / Adult / Blue / 95Kg"
+"229,Female,Purple,49,18,Adult,[229] Female / Adult / Purple / 49Kg"
+"230,Female,Purple,55,18,Adult,[230] Female / Adult / Purple / 55Kg"
+"231,Female,Purple,62,18,Adult,[231] Female / Adult / Purple / 62Kg"
+"232,Female,Purple,70,18,Adult,[232] Female / Adult / Purple / 70Kg"
+"233,Female,Purple,95,18,Adult,[233] Female / Adult / Purple / 95Kg"
+"234,Male,White,16,5,Kids 1,[234] Male / Kids 1 / White / 16Kg"
+"235,Male,White,18,5,Kids 1,[235] Male / Kids 1 / White / 18Kg"
+"236,Male,White,21,5,Kids 1,[236] Male / Kids 1 / White / 21Kg"
+"237,Male,White,24,5,Kids 1,[237] Male / Kids 1 / White / 24Kg"
+"238,Male,White,28,5,Kids 1,[238] Male / Kids 1 / White / 28Kg"
+"239,Male,White,32,5,Kids 1,[239] Male / Kids 1 / White / 32Kg"
+"240,Male,White,36,5,Kids 1,[240] Male / Kids 1 / White / 36Kg"
+"241,Male,White,44,5,Kids 1,[241] Male / Kids 1 / White / 44Kg"
+"242,Male,Grey,16,5,Kids 1,[242] Male / Kids 1 / Grey / 16Kg"
+"243,Male,Grey,18,5,Kids 1,[243] Male / Kids 1 / Grey / 18Kg"
+"244,Male,Grey,21,5,Kids 1,[244] Male / Kids 1 / Grey / 21Kg"
+"245,Male,Grey,24,5,Kids 1,[245] Male / Kids 1 / Grey / 24Kg"
+"246,Male,Grey,28,5,Kids 1,[246] Male / Kids 1 / Grey / 28Kg"
+"247,Male,Grey,32,5,Kids 1,[247] Male / Kids 1 / Grey / 32Kg"
+"248,Male,Grey,36,5,Kids 1,[248] Male / Kids 1 / Grey / 36Kg"
+"249,Male,Grey,44,5,Kids 1,[249] Male / Kids 1 / Grey / 44Kg"
+"250,Male,White,18,7,Kids 2,[250] Male / Kids 2 / White / 18Kg"
+"251,Male,White,20,7,Kids 2,[251] Male / Kids 2 / White / 20Kg"
+"252,Male,White,23,7,Kids 2,[252] Male / Kids 2 / White / 23Kg"
+"253,Male,White,26,7,Kids 2,[253] Male / Kids 2 / White / 26Kg"
+"254,Male,White,30,7,Kids 2,[254] Male / Kids 2 / White / 30Kg"
+"255,Male,White,34,7,Kids 2,[255] Male / Kids 2 / White / 34Kg"
+"256,Male,White,38,7,Kids 2,[256] Male / Kids 2 / White / 38Kg"
+"257,Male,White,46,7,Kids 2,[257] Male / Kids 2 / White / 46Kg"
+"258,Male,Grey,18,7,Kids 2,[258] Male / Kids 2 / Grey / 18Kg"
+"259,Male,Grey,20,7,Kids 2,[259] Male / Kids 2 / Grey / 20Kg"
+"260,Male,Grey,23,7,Kids 2,[260] Male / Kids 2 / Grey / 23Kg"
+"261,Male,Grey,26,7,Kids 2,[261] Male / Kids 2 / Grey / 26Kg"
+"262,Male,Grey,30,7,Kids 2,[262] Male / Kids 2 / Grey / 30Kg"
+"263,Male,Grey,34,7,Kids 2,[263] Male / Kids 2 / Grey / 34Kg"
+"264,Male,Grey,38,7,Kids 2,[264] Male / Kids 2 / Grey / 38Kg"
+"265,Male,Grey,46,7,Kids 2,[265] Male / Kids 2 / Grey / 46Kg"
+"266,Male,Yellow,18,7,Kids 2,[266] Male / Kids 2 / Yellow / 18Kg"
+"267,Male,Yellow,20,7,Kids 2,[267] Male / Kids 2 / Yellow / 20Kg"
+"268,Male,Yellow,23,7,Kids 2,[268] Male / Kids 2 / Yellow / 23Kg"
+"269,Male,Yellow,26,7,Kids 2,[269] Male / Kids 2 / Yellow / 26Kg"
+"270,Male,Yellow,30,7,Kids 2,[270] Male / Kids 2 / Yellow / 30Kg"
+"271,Male,Yellow,34,7,Kids 2,[271] Male / Kids 2 / Yellow / 34Kg"
+"272,Male,Yellow,38,7,Kids 2,[272] Male / Kids 2 / Yellow / 38Kg"
+"273,Male,Yellow,46,7,Kids 2,[273] Male / Kids 2 / Yellow / 46Kg"
+"274,Male,White,21,9,Kids 3,[274] Male / Kids 3 / White / 21Kg"
+"275,Male,White,24,9,Kids 3,[275] Male / Kids 3 / White / 24Kg"
+"276,Male,White,27,9,Kids 3,[276] Male / Kids 3 / White / 27Kg"
+"277,Male,White,30,9,Kids 3,[277] Male / Kids 3 / White / 30Kg"
+"278,Male,White,34,9,Kids 3,[278] Male / Kids 3 / White / 34Kg"
+"279,Male,White,38,9,Kids 3,[279] Male / Kids 3 / White / 38Kg"
+"280,Male,White,42,9,Kids 3,[280] Male / Kids 3 / White / 42Kg"
+"281,Male,White,50,9,Kids 3,[281] Male / Kids 3 / White / 50Kg"
+"282,Male,Grey,21,9,Kids 3,[282] Male / Kids 3 / Grey / 21Kg"
+"283,Male,Grey,24,9,Kids 3,[283] Male / Kids 3 / Grey / 24Kg"
+"284,Male,Grey,27,9,Kids 3,[284] Male / Kids 3 / Grey / 27Kg"
+"285,Male,Grey,30,9,Kids 3,[285] Male / Kids 3 / Grey / 30Kg"
+"286,Male,Grey,34,9,Kids 3,[286] Male / Kids 3 / Grey / 34Kg"
+"287,Male,Grey,38,9,Kids 3,[287] Male / Kids 3 / Grey / 38Kg"
+"288,Male,Grey,42,9,Kids 3,[288] Male / Kids 3 / Grey / 42Kg"
+"289,Male,Grey,50,9,Kids 3,[289] Male / Kids 3 / Grey / 50Kg"
+"290,Male,Yellow,21,9,Kids 3,[290] Male / Kids 3 / Yellow / 21Kg"
+"291,Male,Yellow,24,9,Kids 3,[291] Male / Kids 3 / Yellow / 24Kg"
+"292,Male,Yellow,27,9,Kids 3,[292] Male / Kids 3 / Yellow / 27Kg"
+"293,Male,Yellow,30,9,Kids 3,[293] Male / Kids 3 / Yellow / 30Kg"
+"294,Male,Yellow,34,9,Kids 3,[294] Male / Kids 3 / Yellow / 34Kg"
+"295,Male,Yellow,38,9,Kids 3,[295] Male / Kids 3 / Yellow / 38Kg"
+"296,Male,Yellow,42,9,Kids 3,[296] Male / Kids 3 / Yellow / 42Kg"
+"297,Male,Yellow,50,9,Kids 3,[297] Male / Kids 3 / Yellow / 50Kg"
+"298,Male,White,24,11,Infant,[298] Male / Infant / White / 24Kg"
+"299,Male,White,27,11,Infant,[299] Male / Infant / White / 27Kg"
+"300,Male,White,30,11,Infant,[300] Male / Infant / White / 30Kg"
+"301,Male,White,34,11,Infant,[301] Male / Infant / White / 34Kg"
+"302,Male,White,38,11,Infant,[302] Male / Infant / White / 38Kg"
+"303,Male,White,42,11,Infant,[303] Male / Infant / White / 42Kg"
+"304,Male,White,46,11,Infant,[304] Male / Infant / White / 46Kg"
+"305,Male,White,50,11,Infant,[305] Male / Infant / White / 50Kg"
+"306,Male,White,62,11,Infant,[306] Male / Infant / White / 62Kg"
+"307,Male,Grey,24,11,Infant,[307] Male / Infant / Grey / 24Kg"
+"308,Male,Grey,27,11,Infant,[308] Male / Infant / Grey / 27Kg"
+"309,Male,Grey,30,11,Infant,[309] Male / Infant / Grey / 30Kg"
+"310,Male,Grey,34,11,Infant,[310] Male / Infant / Grey / 34Kg"
+"311,Male,Grey,38,11,Infant,[311] Male / Infant / Grey / 38Kg"
+"312,Male,Grey,42,11,Infant,[312] Male / Infant / Grey / 42Kg"
+"313,Male,Grey,46,11,Infant,[313] Male / Infant / Grey / 46Kg"
+"314,Male,Grey,50,11,Infant,[314] Male / Infant / Grey / 50Kg"
+"315,Male,Grey,62,11,Infant,[315] Male / Infant / Grey / 62Kg"
+"316,Male,Yellow,24,11,Infant,[316] Male / Infant / Yellow / 24Kg"
+"317,Male,Yellow,27,11,Infant,[317] Male / Infant / Yellow / 27Kg"
+"318,Male,Yellow,30,11,Infant,[318] Male / Infant / Yellow / 30Kg"
+"319,Male,Yellow,34,11,Infant,[319] Male / Infant / Yellow / 34Kg"
+"320,Male,Yellow,38,11,Infant,[320] Male / Infant / Yellow / 38Kg"
+"321,Male,Yellow,42,11,Infant,[321] Male / Infant / Yellow / 42Kg"
+"322,Male,Yellow,46,11,Infant,[322] Male / Infant / Yellow / 46Kg"
+"323,Male,Yellow,50,11,Infant,[323] Male / Infant / Yellow / 50Kg"
+"324,Male,Yellow,62,11,Infant,[324] Male / Infant / Yellow / 62Kg"
+"325,Male,Orange,27,11,Infant,[325] Male / Infant / Orange / 27Kg"
+"326,Male,Orange,30,11,Infant,[326] Male / Infant / Orange / 30Kg"
+"327,Male,Orange,34,11,Infant,[327] Male / Infant / Orange / 34Kg"
+"328,Male,Orange,38,11,Infant,[328] Male / Infant / Orange / 38Kg"
+"329,Male,Orange,42,11,Infant,[329] Male / Infant / Orange / 42Kg"
+"330,Male,Orange,46,11,Infant,[330] Male / Infant / Orange / 46Kg"
+"331,Male,Orange,50,11,Infant,[331] Male / Infant / Orange / 50Kg"
+"332,Male,Orange,62,11,Infant,[332] Male / Infant / Orange / 62Kg"
+"333,Male,White,34,13,Junior,[333] Male / Junior / White / 34Kg"
+"334,Male,White,37,13,Junior,[334] Male / Junior / White / 37Kg"
+"335,Male,White,41,13,Junior,[335] Male / Junior / White / 41Kg"
+"336,Male,White,45,13,Junior,[336] Male / Junior / White / 45Kg"
+"337,Male,White,50,13,Junior,[337] Male / Junior / White / 50Kg"
+"338,Male,White,55,13,Junior,[338] Male / Junior / White / 55Kg"
+"339,Male,White,60,13,Junior,[339] Male / Junior / White / 60Kg"
+"340,Male,White,66,13,Junior,[340] Male / Junior / White / 66Kg"
+"341,Male,White,78,13,Junior,[341] Male / Junior / White / 78Kg"
+"342,Male,Grey,34,13,Junior,[342] Male / Junior / Grey / 34Kg"
+"343,Male,Grey,37,13,Junior,[343] Male / Junior / Grey / 37Kg"
+"344,Male,Grey,41,13,Junior,[344] Male / Junior / Grey / 41Kg"
+"345,Male,Grey,45,13,Junior,[345] Male / Junior / Grey / 45Kg"
+"346,Male,Grey,50,13,Junior,[346] Male / Junior / Grey / 50Kg"
+"347,Male,Grey,55,13,Junior,[347] Male / Junior / Grey / 55Kg"
+"348,Male,Grey,60,13,Junior,[348] Male / Junior / Grey / 60Kg"
+"349,Male,Grey,66,13,Junior,[349] Male / Junior / Grey / 66Kg"
+"350,Male,Grey,78,13,Junior,[350] Male / Junior / Grey / 78Kg"
+"351,Male,Yellow,34,13,Junior,[351] Male / Junior / Yellow / 34Kg"
+"352,Male,Yellow,37,13,Junior,[352] Male / Junior / Yellow / 37Kg"
+"353,Male,Yellow,41,13,Junior,[353] Male / Junior / Yellow / 41Kg"
+"354,Male,Yellow,45,13,Junior,[354] Male / Junior / Yellow / 45Kg"
+"355,Male,Yellow,50,13,Junior,[355] Male / Junior / Yellow / 50Kg"
+"356,Male,Yellow,55,13,Junior,[356] Male / Junior / Yellow / 55Kg"
+"357,Male,Yellow,60,13,Junior,[357] Male / Junior / Yellow / 60Kg"
+"358,Male,Yellow,66,13,Junior,[358] Male / Junior / Yellow / 66Kg"
+"359,Male,Yellow,78,13,Junior,[359] Male / Junior / Yellow / 78Kg"
+"360,Male,Orange,34,13,Junior,[360] Male / Junior / Orange / 34Kg"
+"361,Male,Orange,34,13,Junior,[361] Male / Junior / Orange / 34Kg"
+"362,Male,Orange,37,13,Junior,[362] Male / Junior / Orange / 37Kg"
+"363,Male,Orange,37,13,Junior,[363] Male / Junior / Orange / 37Kg"
+"364,Male,Orange,41,13,Junior,[364] Male / Junior / Orange / 41Kg"
+"365,Male,Orange,41,13,Junior,[365] Male / Junior / Orange / 41Kg"
+"366,Male,Orange,45,13,Junior,[366] Male / Junior / Orange / 45Kg"
+"367,Male,Orange,45,13,Junior,[367] Male / Junior / Orange / 45Kg"
+"368,Male,Orange,50,13,Junior,[368] Male / Junior / Orange / 50Kg"
+"369,Male,Orange,50,13,Junior,[369] Male / Junior / Orange / 50Kg"
+"370,Male,Orange,55,13,Junior,[370] Male / Junior / Orange / 55Kg"
+"371,Male,Orange,55,13,Junior,[371] Male / Junior / Orange / 55Kg"
+"372,Male,Orange,60,13,Junior,[372] Male / Junior / Orange / 60Kg"
+"373,Male,Orange,60,13,Junior,[373] Male / Junior / Orange / 60Kg"
+"374,Male,Orange,66,13,Junior,[374] Male / Junior / Orange / 66Kg"
+"375,Male,Orange,66,13,Junior,[375] Male / Junior / Orange / 66Kg"
+"376,Male,Orange,78,13,Junior,[376] Male / Junior / Orange / 78Kg"
+"377,Male,Orange,78,13,Junior,[377] Male / Junior / Orange / 78Kg"
+"378,Male,White,38,15,Teen,[378] Male / Teen / White / 38Kg"
+"379,Male,White,42,15,Teen,[379] Male / Teen / White / 42Kg"
+"380,Male,White,46,15,Teen,[380] Male / Teen / White / 46Kg"
+"381,Male,White,50,15,Teen,[381] Male / Teen / White / 50Kg"
+"382,Male,White,56,15,Teen,[382] Male / Teen / White / 56Kg"
+"383,Male,White,62,15,Teen,[383] Male / Teen / White / 62Kg"
+"384,Male,White,67,15,Teen,[384] Male / Teen / White / 67Kg"
+"385,Male,White,72,15,Teen,[385] Male / Teen / White / 72Kg"
+"386,Male,White,84,15,Teen,[386] Male / Teen / White / 84Kg"
+"387,Male,Grey,38,15,Teen,[387] Male / Teen / Grey / 38Kg"
+"388,Male,Grey,42,15,Teen,[388] Male / Teen / Grey / 42Kg"
+"389,Male,Grey,46,15,Teen,[389] Male / Teen / Grey / 46Kg"
+"390,Male,Grey,50,15,Teen,[390] Male / Teen / Grey / 50Kg"
+"391,Male,Grey,56,15,Teen,[391] Male / Teen / Grey / 56Kg"
+"392,Male,Grey,62,15,Teen,[392] Male / Teen / Grey / 62Kg"
+"393,Male,Grey,67,15,Teen,[393] Male / Teen / Grey / 67Kg"
+"394,Male,Grey,72,15,Teen,[394] Male / Teen / Grey / 72Kg"
+"395,Male,Grey,84,15,Teen,[395] Male / Teen / Grey / 84Kg"
+"396,Male,Yellow,38,15,Teen,[396] Male / Teen / Yellow / 38Kg"
+"397,Male,Yellow,42,15,Teen,[397] Male / Teen / Yellow / 42Kg"
+"398,Male,Yellow,46,15,Teen,[398] Male / Teen / Yellow / 46Kg"
+"399,Male,Yellow,50,15,Teen,[399] Male / Teen / Yellow / 50Kg"
+"400,Male,Yellow,56,15,Teen,[400] Male / Teen / Yellow / 56Kg"
+"401,Male,Yellow,62,15,Teen,[401] Male / Teen / Yellow / 62Kg"
+"402,Male,Yellow,67,15,Teen,[402] Male / Teen / Yellow / 67Kg"
+"403,Male,Yellow,72,15,Teen,[403] Male / Teen / Yellow / 72Kg"
+"404,Male,Yellow,84,15,Teen,[404] Male / Teen / Yellow / 84Kg"
+"405,Male,Orange,38,15,Teen,[405] Male / Teen / Orange / 38Kg"
+"406,Male,Orange,38,15,Teen,[406] Male / Teen / Orange / 38Kg"
+"407,Male,Orange,42,15,Teen,[407] Male / Teen / Orange / 42Kg"
+"408,Male,Orange,42,15,Teen,[408] Male / Teen / Orange / 42Kg"
+"409,Male,Orange,46,15,Teen,[409] Male / Teen / Orange / 46Kg"
+"410,Male,Orange,46,15,Teen,[410] Male / Teen / Orange / 46Kg"
+"411,Male,Orange,50,15,Teen,[411] Male / Teen / Orange / 50Kg"
+"412,Male,Orange,50,15,Teen,[412] Male / Teen / Orange / 50Kg"
+"413,Male,Orange,56,15,Teen,[413] Male / Teen / Orange / 56Kg"
+"414,Male,Orange,56,15,Teen,[414] Male / Teen / Orange / 56Kg"
+"415,Male,Orange,62,15,Teen,[415] Male / Teen / Orange / 62Kg"
+"416,Male,Orange,62,15,Teen,[416] Male / Teen / Orange / 62Kg"
+"417,Male,Orange,67,15,Teen,[417] Male / Teen / Orange / 67Kg"
+"418,Male,Orange,67,15,Teen,[418] Male / Teen / Orange / 67Kg"
+"419,Male,Orange,72,15,Teen,[419] Male / Teen / Orange / 72Kg"
+"420,Male,Orange,72,15,Teen,[420] Male / Teen / Orange / 72Kg"
+"421,Male,Orange,84,15,Teen,[421] Male / Teen / Orange / 84Kg"
+"422,Male,Orange,84,15,Teen,[422] Male / Teen / Orange / 84Kg"
+"423,Male,White,46,17,Juvenile,[423] Male / Juvenile / White / 46Kg"
+"424,Male,White,50,17,Juvenile,[424] Male / Juvenile / White / 50Kg"
+"425,Male,White,55,17,Juvenile,[425] Male / Juvenile / White / 55Kg"
+"426,Male,White,60,17,Juvenile,[426] Male / Juvenile / White / 60Kg"
+"427,Male,White,66,17,Juvenile,[427] Male / Juvenile / White / 66Kg"
+"428,Male,White,73,17,Juvenile,[428] Male / Juvenile / White / 73Kg"
+"429,Male,White,81,17,Juvenile,[429] Male / Juvenile / White / 81Kg"
+"430,Male,White,94,17,Juvenile,[430] Male / Juvenile / White / 94Kg"
+"431,Male,Blue,46,17,Juvenile,[431] Male / Juvenile / Blue / 46Kg"
+"432,Male,Blue,50,17,Juvenile,[432] Male / Juvenile / Blue / 50Kg"
+"433,Male,Blue,55,17,Juvenile,[433] Male / Juvenile / Blue / 55Kg"
+"434,Male,Blue,60,17,Juvenile,[434] Male / Juvenile / Blue / 60Kg"
+"435,Male,Blue,66,17,Juvenile,[435] Male / Juvenile / Blue / 66Kg"
+"436,Male,Blue,73,17,Juvenile,[436] Male / Juvenile / Blue / 73Kg"
+"437,Male,Blue,81,17,Juvenile,[437] Male / Juvenile / Blue / 81Kg"
+"438,Male,Blue,94,17,Juvenile,[438] Male / Juvenile / Blue / 94Kg"
+"439,Male,Purple,46,17,Juvenile,[439] Male / Juvenile / Purple / 46Kg"
+"440,Male,Purple,50,17,Juvenile,[440] Male / Juvenile / Purple / 50Kg"
+"441,Male,Purple,55,17,Juvenile,[441] Male / Juvenile / Purple / 55Kg"
+"442,Male,Purple,60,17,Juvenile,[442] Male / Juvenile / Purple / 60Kg"
+"443,Male,Purple,66,17,Juvenile,[443] Male / Juvenile / Purple / 66Kg"
+"444,Male,Purple,73,17,Juvenile,[444] Male / Juvenile / Purple / 73Kg"
+"445,Male,Purple,81,17,Juvenile,[445] Male / Juvenile / Purple / 81Kg"
+"446,Male,Purple,94,17,Juvenile,[446] Male / Juvenile / Purple / 94Kg"
+"447,Male,White,56,18,Adult,[447] Male / Adult / White / 56Kg"
+"448,Male,White,56,18,Adult,[448] Male / Adult / White / 56Kg"
+"449,Male,White,62,18,Adult,[449] Male / Adult / White / 62Kg"
+"450,Male,White,62,18,Adult,[450] Male / Adult / White / 62Kg"
+"451,Male,White,69,18,Adult,[451] Male / Adult / White / 69Kg"
+"452,Male,White,69,18,Adult,[452] Male / Adult / White / 69Kg"
+"453,Male,White,77,18,Adult,[453] Male / Adult / White / 77Kg"
+"454,Male,White,77,18,Adult,[454] Male / Adult / White / 77Kg"
+"455,Male,White,85,18,Adult,[455] Male / Adult / White / 85Kg"
+"456,Male,White,85,18,Adult,[456] Male / Adult / White / 85Kg"
+"457,Male,White,94,18,Adult,[457] Male / Adult / White / 94Kg"
+"458,Male,White,94,18,Adult,[458] Male / Adult / White / 94Kg"
+"459,Male,White,120,18,Adult,[459] Male / Adult / White / 120Kg"
+"460,Male,White,120,18,Adult,[460] Male / Adult / White / 120Kg"
+"461,Male,Blue,56,18,Adult,[461] Male / Adult / Blue / 56Kg"
+"462,Male,Blue,62,18,Adult,[462] Male / Adult / Blue / 62Kg"
+"463,Male,Blue,69,18,Adult,[463] Male / Adult / Blue / 69Kg"
+"464,Male,Blue,77,18,Adult,[464] Male / Adult / Blue / 77Kg"
+"465,Male,Blue,85,18,Adult,[465] Male / Adult / Blue / 85Kg"
+"466,Male,Blue,94,18,Adult,[466] Male / Adult / Blue / 94Kg"
+"467,Male,Blue,120,18,Adult,[467] Male / Adult / Blue / 120Kg"
+"468,Male,Purple,56,18,Adult,[468] Male / Adult / Purple / 56Kg"
+"469,Male,Purple,62,18,Adult,[469] Male / Adult / Purple / 62Kg"
+"470,Male,Purple,69,18,Adult,[470] Male / Adult / Purple / 69Kg"
+"471,Male,Purple,77,18,Adult,[471] Male / Adult / Purple / 77Kg"
+"472,Male,Purple,85,18,Adult,[472] Male / Adult / Purple / 85Kg"
+"473,Male,Purple,94,18,Adult,[473] Male / Adult / Purple / 94Kg"
+"474,Male,Purple,120,18,Adult,[474] Male / Adult / Purple / 120Kg"

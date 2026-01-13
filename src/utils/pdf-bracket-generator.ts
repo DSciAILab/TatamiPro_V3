@@ -71,6 +71,7 @@ const drawMatch = (
   // Dynamic font sizing based on box height AND user preference
   const nameFontSize = Math.min(11 * fontSizeMultiplier, height * 0.28 * fontSizeMultiplier);
   const clubFontSize = Math.min(8 * fontSizeMultiplier, height * 0.20 * fontSizeMultiplier);
+  const idFontSize = Math.min(7 * fontSizeMultiplier, height * 0.18 * fontSizeMultiplier);
 
   let matchLabel = "";
   if (match.mat_fight_number) {

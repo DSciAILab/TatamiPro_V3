@@ -23,6 +23,7 @@ interface DivisionInfo {
   remainingFights: number;
   status: 'Not Generated' | 'In Progress' | 'Finished';
   fightDuration: number; // in minutes
+  _bracketId?: string;
 }
 
 interface MatGroup {
@@ -178,11 +179,13 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
       });
 
     // Build division info
-    const divisionsInfo: DivisionInfo[] = event.divisions
-      .filter(div => event.brackets?.[div.id])
-      .map(div => {
-        const bracket = event.brackets![div.id];
-        const matName = divisionMatMap.get(div.id) || 'Unassigned';
+    // Changed strategy: Iterate over BRACKETS, not divisions. 
+    // This supports multiple brackets for the same division (Split Brackets).
+    const divisionsInfo: DivisionInfo[] = Object.values(event.brackets || []).map((bracket): DivisionInfo | null => {
+        const division = event.divisions?.find(d => d.id === bracket.division_id);
+        if (!division) return null;
+
+        const matName = divisionMatMap.get(division.id) || 'Unassigned';
         
         // Count total and remaining fights
         let totalFights = 0;
@@ -226,19 +229,29 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
         }
 
         // Get fight duration from age_division_settings
-        const ageSetting = event.age_division_settings?.find(s => s.name === div.age_category_name);
+        const ageSetting = event.age_division_settings?.find(s => s.name === division.age_category_name);
         const fightDuration = ageSetting?.fight_duration || 5; // default 5 minutes
+        
+        // Use bracket participants for count (filtering BYEs)
+        const participantCount = bracket.participants.filter(p => p !== 'BYE').length;
+
+        // Clone division to avoid mutating original and append group name
+        const displayDivision = { ...division };
+        if (bracket.group_name) {
+            displayDivision.name = `${division.name} [${bracket.group_name}]`;
+        }
 
         return {
-          division: div,
+          division: displayDivision, // This "division" object might have a modified name now
           matName,
-          athleteCount: athletesByDivision.get(div.id) || 0,
+          athleteCount: participantCount,
           totalFights,
           remainingFights,
           status,
           fightDuration,
+          _bracketId: bracket.id // Store bracket ID to distinguish
         };
-      });
+      }).filter((item): item is DivisionInfo => item !== null);
 
     // Group by mat
     const groupsMap = new Map<string, MatGroup>();

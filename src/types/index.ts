@@ -103,6 +103,7 @@ export interface Bracket {
   winner_id?: string;
   runner_up_id?: string;
   third_place_winner_id?: string;
+  group_name?: string; // e.g. "Group A"
 }
 
 export interface CheckInConfig {
@@ -142,4 +143,11 @@ export interface Event {
   count_walkover_single_fight_categories: boolean;
   count_wo_champion_categories: boolean;
   check_in_config?: CheckInConfig; // New field for JSON config
+  // Bracket splitting configuration
+  max_athletes_per_bracket?: number;
+  is_bracket_splitting_enabled?: boolean;
+  // Check-in control
+  is_check_in_open?: boolean;
+  check_in_enabled_start?: string;
+  check_in_enabled_end?: string;
 }

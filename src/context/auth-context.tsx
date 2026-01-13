@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!user) return;
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('sjjp_profiles')
       .update(updates)
       .eq('id', user.id)
       .select()

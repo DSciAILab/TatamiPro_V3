@@ -17,6 +17,8 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
+import { Checkbox } from '@/components/ui/checkbox';
+
 interface CheckInTableProps {
   athletes: Athlete[];
   event: Event;
@@ -26,6 +28,10 @@ interface CheckInTableProps {
   onSearchChange?: (term: string) => void;
   viewMode?: 'list' | 'grid';
   onViewModeChange?: (mode: 'list' | 'grid') => void;
+  selectedAthleteIds?: string[];
+  onToggleSelectAthlete?: (athleteId: string) => void;
+  onSelectAll?: (checked: boolean) => void;
+  isBatchSelectionEnabled?: boolean;
 }
 
 const CheckInTable: React.FC<CheckInTableProps> = ({
@@ -37,6 +43,10 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   onSearchChange,
   viewMode = 'list',
   onViewModeChange,
+  selectedAthleteIds = [],
+  onToggleSelectAthlete,
+  onSelectAll,
+  isBatchSelectionEnabled = false,
 }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
 
@@ -104,6 +114,10 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
     // Default PENDENTE
     return <Badge variant="outline" className="border-orange-500 text-orange-500 whitespace-nowrap">Pending</Badge>;
   };
+  
+  const allSelectionCandidates = useMemo(() => sortedAthletes.filter(a => a.check_in_status === 'pending'), [sortedAthletes]);
+  const isAllSelected = allSelectionCandidates.length > 0 && allSelectionCandidates.every(a => selectedAthleteIds.includes(a.id));
+  const isIndeterminate = selectedAthleteIds.length > 0 && !isAllSelected;
 
   return (
     <div className="space-y-4">
@@ -120,6 +134,15 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
+              {isBatchSelectionEnabled && (
+                <TableHead className="w-[50px]">
+                  <Checkbox 
+                    checked={isAllSelected}
+                    onCheckedChange={(checked) => onSelectAll?.(!!checked)}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort('id_number')}>
                 ID {getSortIcon('id_number')}
               </TableHead>
@@ -141,13 +164,22 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
           <TableBody>
             {sortedAthletes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={isBatchSelectionEnabled ? 7 : 6} className="text-center h-24 text-muted-foreground">
                   No athletes found.
                 </TableCell>
               </TableRow>
             ) : (
               sortedAthletes.map((athlete) => (
                 <TableRow key={athlete.id}>
+                  {isBatchSelectionEnabled && (
+                    <TableCell>
+                      <Checkbox 
+                        checked={selectedAthleteIds.includes(athlete.id)}
+                        onCheckedChange={() => onToggleSelectAthlete?.(athlete.id)}
+                        disabled={athlete.check_in_status === 'checked_in'} // Only allow selecting pending
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
                       {athlete.emirates_id || athlete.school_id || '-'}
@@ -216,6 +248,14 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                 sortedAthletes.map((athlete) => (
                   <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                     <div className="flex items-center space-x-3 flex-grow">
+                      {isBatchSelectionEnabled && (
+                        <Checkbox 
+                            checked={selectedAthleteIds.includes(athlete.id)}
+                            onCheckedChange={() => onToggleSelectAthlete?.(athlete.id)}
+                            disabled={athlete.check_in_status === 'checked_in'}
+                            className="mr-2"
+                        />
+                      )}
                       {athlete.photo_url ? (
                         <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
                       ) : (

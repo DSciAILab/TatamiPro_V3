@@ -68,6 +68,10 @@ interface EventConfigTabProps {
   set_event_name: (name: string) => void;
   event_description: string;
   set_event_description: (description: string) => void;
+  max_athletes_per_bracket: number;
+  set_max_athletes_per_bracket: (value: number) => void;
+  is_bracket_splitting_enabled: boolean;
+  set_is_bracket_splitting_enabled: (value: boolean) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -114,6 +118,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_event_name,
   event_description,
   set_event_description,
+  max_athletes_per_bracket,
+  set_max_athletes_per_bracket,
+  is_bracket_splitting_enabled,
+  set_is_bracket_splitting_enabled,
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
@@ -228,6 +236,35 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       onCheckedChange={setIsWideLayout}
                     />
                     <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
+                  </div>
+
+                  <div className="mt-8 border-t pt-4">
+                    <h4 className="text-lg font-semibold mb-3">Configuração de Chaves (Brackets)</h4>
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                        id="bracket-splitting-enabled"
+                        checked={is_bracket_splitting_enabled}
+                        onCheckedChange={set_is_bracket_splitting_enabled}
+                        />
+                        <Label htmlFor="bracket-splitting-enabled">Dividir Categorias Grandes Automaticalmente</Label>
+                    </div>
+                    {is_bracket_splitting_enabled && (
+                        <div className="mt-4 max-w-xs">
+                        <Label htmlFor="max-athletes">Máximo de Atletas por Chave</Label>
+                        <Input
+                            id="max-athletes"
+                            type="number"
+                            min="2"
+                            value={max_athletes_per_bracket || 0}
+                            onChange={(e) => set_max_athletes_per_bracket(Number(e.target.value))}
+                            placeholder="Ex: 16"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Se uma categoria exceder este número, ela será dividida em chaves menores (Grupo A, Grupo B...). 
+                            Recomendado: 16 ou 32.
+                        </p>
+                        </div>
+                    )}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={handleExportJson} variant="outline">
