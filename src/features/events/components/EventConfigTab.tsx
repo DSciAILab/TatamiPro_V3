@@ -72,6 +72,8 @@ interface EventConfigTabProps {
   set_max_athletes_per_bracket: (value: number) => void;
   is_bracket_splitting_enabled: boolean;
   set_is_bracket_splitting_enabled: (value: boolean) => void;
+  enable_team_separation: boolean;
+  set_enable_team_separation: (value: boolean) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -122,6 +124,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_max_athletes_per_bracket,
   is_bracket_splitting_enabled,
   set_is_bracket_splitting_enabled,
+  enable_team_separation,
+  set_enable_team_separation,
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
@@ -265,6 +269,17 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                         </p>
                         </div>
                     )}
+                    <div className="flex items-center space-x-2 mt-4">
+                        <Switch
+                        id="enable-team-separation"
+                        checked={enable_team_separation}
+                        onCheckedChange={set_enable_team_separation}
+                        />
+                        <Label htmlFor="enable-team-separation">Evitar Lutas entre Mesma Equipe (Team Separation)</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-12">
+                        Se ativado, o sistema tentará colocar atletas da mesma equipe em lados opostos da chave.
+                    </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={handleExportJson} variant="outline">

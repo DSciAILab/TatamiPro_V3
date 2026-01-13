@@ -150,4 +150,6 @@ export interface Event {
   is_check_in_open?: boolean;
   check_in_enabled_start?: string;
   check_in_enabled_end?: string;
+  // Bracket settings
+  enable_team_separation?: boolean;
 }

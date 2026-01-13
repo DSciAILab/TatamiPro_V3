@@ -222,7 +222,8 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               
               const bracket = generateBracketForDivision(div, event.athletes || [], { 
                 thirdPlace: includeThirdPlaceFromEvent, 
-                explicitAthletes: groupAthletes
+                explicitAthletes: groupAthletes,
+                enableTeamSeparation: event.enable_team_separation
               });
 
               // Override properties for the virtual bracket
@@ -233,7 +234,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
         } else {
            // Standard generation
-           const bracket = generateBracketForDivision(div, event.athletes || [], { thirdPlace: includeThirdPlaceFromEvent });
+           const bracket = generateBracketForDivision(div, event.athletes || [], { 
+             thirdPlace: includeThirdPlaceFromEvent,
+             enableTeamSeparation: event.enable_team_separation
+           });
            newBrackets[div.id] = bracket;
         }
       });

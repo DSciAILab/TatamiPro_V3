@@ -56,6 +56,7 @@ interface GenerateBracketOptions {
   thirdPlace?: boolean;
   rngSeed?: number;
   explicitAthletes?: Athlete[];
+  enableTeamSeparation?: boolean;
 }
 
 /**
@@ -273,15 +274,39 @@ export const generateBracketForDivision = (
         availableSlots = availableSlots.filter(s => s !== slot);
         placedCount++;
       } else {
-        console.error("Erro crítico: Sem slots para atleta", athlete.name);
+        console.error("Erro crítico: Sem slots para atleta", athlete.first_name, athlete.last_name);
       }
     }
   };
 
   // 1. Distribuir Equipes
-  teams.forEach(team => {
-    distributeTeam(team.athletes);
-  });
+  if (options?.enableTeamSeparation) {
+    console.log("[BracketGenerator] Using Team Separation Logic");
+    teams.forEach(team => {
+      distributeTeam(team.athletes);
+    });
+  } else {
+    // Fallback: Se não estiver habilitado, tratar como seeds para colocar no array, ou melhor,
+    // se não usar a lógica de separação, devemos apenas jogar todos no pool de 'remainingUnseeded'?
+    // A logica acima JA separou eles em 'teams'. Se não formos distribuir por team,
+    // precisamos devolver eles para o pool geral ou distribuir aleatoriamente.
+    
+    // Na verdade, o código anterior (Step 58) removia eles de 'availableSlots' ao distribuir.
+    // Se não distribuirmos aqui, eles ficarão 'null' no finalParticipants?
+    // SIM.
+    
+    // Então se enableTeamSeparation for FALSE, precisamos distribuir esses atletas aleatoriamente.
+    // Vamos coletar todos os atletas de todos os times e tratar como solitários.
+    
+    const allTeamAthletes: Athlete[] = [];
+    teams.forEach(t => allTeamAthletes.push(...t.athletes));
+    
+    // Adicionar aos solitários para serem processados no passo 2
+    solitaryAthletes.push(...allTeamAthletes);
+    // Mas 'solitaryAthletes' já foi preenchido com atletas de times de tamanho 1.
+    // E 'teams' tem times de tamanho > 1.
+    // Então, ao jogar tudo em solitaryAthletes, o passo 2 vai cuidar de tudo.
+  }
 
   // 2. Distribuir Solitários (aleatoriamente nos slots restantes)
   shuffleArray(solitaryAthletes, rng);

@@ -12,6 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/hooks/use-permission';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventData } from '@/features/events/hooks/use-event-data';
+import { useCheckInMutation } from '@/features/events/hooks/use-check-in-mutation';
 import { useEventTabs } from '@/hooks/useEventTabs';
 
 import EventConfigTab from '@/features/events/components/EventConfigTab';
@@ -36,6 +37,9 @@ const EventDetail: React.FC = () => {
 
   // --- Data Fetching via Hook ---
   const { data: serverEvent, isLoading: isLoadingData, error: loadError } = useEventData(eventId);
+  
+  // Optimistic Mutations
+  const { checkInAthlete, batchCheckIn } = useCheckInMutation(eventId || '');
   
   // Local state for event (to allow optimistic updates / unsaved changes)
   const [event, setEvent] = useState<Event | null>(null);
@@ -400,69 +404,8 @@ const EventDetail: React.FC = () => {
     }
   };
   
-  const handleCheckInAthlete = async (updatedAthlete: Athlete) => {
-    if (!event || !eventId) return;
-    
-    console.log('[CheckIn] Updating athlete:', updatedAthlete.id, 'to status:', updatedAthlete.check_in_status);
-    console.log('[CheckIn] Weight:', updatedAthlete.registered_weight, 'Attempts:', updatedAthlete.weight_attempts?.length);
-    
-    try {
-      // Prepare update payload with all check-in related fields
-      const updatePayload: Record<string, any> = {
-        check_in_status: updatedAthlete.check_in_status,
-        registered_weight: updatedAthlete.registered_weight,
-        weight_attempts: updatedAthlete.weight_attempts,
-      };
-      
-      // Include division move fields if they exist
-      if (updatedAthlete.moved_to_division_id !== undefined) {
-        updatePayload.moved_to_division_id = updatedAthlete.moved_to_division_id;
-      }
-      if (updatedAthlete.move_reason !== undefined) {
-        updatePayload.move_reason = updatedAthlete.move_reason;
-      }
-      
-      const { data, error } = await supabase
-        .from('sjjp_athletes')
-        .update(updatePayload)
-        .eq('id', updatedAthlete.id)
-        .select();
-      
-      console.log('[CheckIn] Update result - data:', data, 'error:', error);
-      
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        console.error('[CheckIn] No data returned - possible RLS issue');
-        showError('Check-in update failed - no data returned. Check database permissions.');
-        return;
-      }
-      
-      // Update local state immediately for optimistic UI
-      setEvent(prev => {
-        if (!prev || !prev.athletes) return prev;
-        return {
-          ...prev,
-          athletes: prev.athletes.map(a =>
-            a.id === updatedAthlete.id ? { ...a, ...updatedAthlete } : a
-          )
-        };
-      });
-      
-      // Invalidate the cache to ensure fresh data on next render
-      // queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-      
-      const statusMessage = updatedAthlete.check_in_status === 'checked_in' 
-        ? 'checked in' 
-        : updatedAthlete.check_in_status === 'overweight'
-          ? 'marked as overweight'
-          : 'check-in cancelled';
-      
-      showSuccess(`${updatedAthlete.first_name} ${updatedAthlete.last_name} ${statusMessage} successfully!`);
-    } catch (error: any) {
-      showError(`Failed to update check-in: ${error.message}`);
-      console.error('[CheckIn] Error:', error);
-    }
+  const handleCheckInAthlete = (updatedAthlete: Athlete) => {
+    checkInAthlete({ athlete: updatedAthlete });
   };
 
 
@@ -478,38 +421,8 @@ const EventDetail: React.FC = () => {
     });
   };
 
-  const handleBatchCheckIn = async (athleteIds: string[]) => {
-    if (!event || !eventId) return;
-    
-    const toastId = showLoading(`Checking in ${athleteIds.length} athletes...`);
-    
-    try {
-      const { error } = await supabase
-        .from('sjjp_athletes')
-        .update({ check_in_status: 'checked_in' })
-        .in('id', athleteIds);
-
-      if (error) throw error;
-
-      // Update local state
-      setEvent(prev => {
-        if (!prev || !prev.athletes) return prev;
-        return {
-          ...prev,
-          athletes: prev.athletes.map(a =>
-            athleteIds.includes(a.id) ? { ...a, check_in_status: 'checked_in' } : a
-          )
-        };
-      });
-
-      // queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-      
-      dismissToast(toastId);
-      showSuccess(`${athleteIds.length} athletes checked in successfully!`);
-    } catch (error: any) {
-      dismissToast(toastId);
-      showError(`Failed to batch check-in: ${error.message}`);
-    }
+  const handleBatchCheckIn = (athleteIds: string[]) => {
+    batchCheckIn({ athleteIds });
   };
 
   // --- Derived State ---
@@ -628,6 +541,8 @@ const EventDetail: React.FC = () => {
             set_max_athletes_per_bracket={(value) => handleUpdateEventProperty('max_athletes_per_bracket', value)}
             is_bracket_splitting_enabled={event.is_bracket_splitting_enabled || false}
             set_is_bracket_splitting_enabled={(value) => handleUpdateEventProperty('is_bracket_splitting_enabled', value)}
+            enable_team_separation={event.enable_team_separation ?? true} // Default to true if undefined
+            set_enable_team_separation={(value) => handleUpdateEventProperty('enable_team_separation', value)}
           />
         </TabsContent>
 
