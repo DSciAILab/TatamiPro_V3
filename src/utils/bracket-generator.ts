@@ -196,26 +196,113 @@ export const generateBracketForDivision = (
   }
 
   // 5. Criar pool de preenchimento com atletas não-seed e BYEs
-  // Atletas não-seed que não foram colocados como seeds (se houver seeds > 8)
+  // Melhoria: Separação de Equipes (Team Separation)
   const remainingUnseededAthletes = unseededAthletes.filter(a => !placedSeedIds.has(a.id));
   
-  // Pool de preenchimento: atletas não-seed embaralhados + BYEs
-  const fillers: (Athlete | 'BYE')[] = [
-    ...shuffleArray(remainingUnseededAthletes, rng),
-    ...Array(numByes).fill('BYE')
-  ];
-  shuffleArray(fillers, rng); // Embaralhar o pool de preenchimento para distribuição balanceada
+  // Agrupar por equipe
+  const athletesByTeam: Record<string, Athlete[]> = {};
+  const solitaryAthletes: Athlete[] = [];
 
-  // 6. Preencher slots restantes com o pool de preenchimento
+  remainingUnseededAthletes.forEach(a => {
+    const team = a.club || 'Unknown';
+    if (!athletesByTeam[team]) {
+      athletesByTeam[team] = [];
+    }
+    athletesByTeam[team].push(a);
+  });
+
+  // Identificar times com mais de 1 atleta e solitários
+  const teams: { name: string, athletes: Athlete[] }[] = [];
+  Object.entries(athletesByTeam).forEach(([name, teamAthletes]) => {
+    if (teamAthletes.length > 1) {
+      teams.push({ name, athletes: teamAthletes });
+    } else {
+      solitaryAthletes.push(...teamAthletes);
+    }
+  });
+
+  // Ordenar equipes por tamanho (maiores primeiro para garantir melhor separação)
+  teams.sort((a, b) => b.athletes.length - a.athletes.length);
+
+  // Lista de índices vazios disponíveis
+  let availableSlots: number[] = [];
   for (let i = 0; i < bracketSize; i++) {
     if (finalParticipants[i] === null) {
-      if (fillers.length > 0) {
-        finalParticipants[i] = fillers.shift()!;
+      availableSlots.push(i);
+    }
+  }
+
+  // Função auxiliar para distribuir atletas de uma equipe
+  const distributeTeam = (teamAthletes: Athlete[]) => {
+    // Dividir slots disponíveis em Top e Bottom
+    const pivot = bracketSize / 2;
+    const topSlots = availableSlots.filter(s => s < pivot);
+    const bottomSlots = availableSlots.filter(s => s >= pivot);
+
+    // Embaralhar as opções dentro de cada metade para manter a aleatoriedade local
+    shuffleArray(topSlots, rng);
+    shuffleArray(bottomSlots, rng);
+
+    // Distribuir alternadamente
+    // Se a equipe for muito grande, balancear entre Top/Bottom
+    let placedCount = 0;
+    while (teamAthletes.length > 0) {
+      const athlete = teamAthletes.shift()!;
+      let slot: number | undefined;
+
+      // Tentar alternar: Top, Bottom, Top, Bottom...
+      if (placedCount % 2 === 0) {
+        // Tenta Top, se não der, tenta Bottom
+        if (topSlots.length > 0) {
+          slot = topSlots.pop();
+        } else if (bottomSlots.length > 0) {
+          slot = bottomSlots.pop();
+        }
       } else {
-        // Isso não deve acontecer se numByes e unseededAthletes forem calculados corretamente
-        console.warn("Faltam atletas ou BYEs para preencher o bracket.");
-        finalParticipants[i] = 'BYE'; // Fallback
+        // Tenta Bottom, se não der, tenta Top
+        if (bottomSlots.length > 0) {
+          slot = bottomSlots.pop();
+        } else if (topSlots.length > 0) {
+          slot = topSlots.pop();
+        }
       }
+
+      if (slot !== undefined) {
+        finalParticipants[slot] = athlete;
+        // Remover slot usado da lista global availableSlots
+        availableSlots = availableSlots.filter(s => s !== slot);
+        placedCount++;
+      } else {
+        console.error("Erro crítico: Sem slots para atleta", athlete.name);
+      }
+    }
+  };
+
+  // 1. Distribuir Equipes
+  teams.forEach(team => {
+    distributeTeam(team.athletes);
+  });
+
+  // 2. Distribuir Solitários (aleatoriamente nos slots restantes)
+  shuffleArray(solitaryAthletes, rng);
+  solitaryAthletes.forEach(athlete => {
+    // Re-embaralhar availableSlots para cada inserção ou apenas pegar random?
+    // Shuffle inicial já garante aleatoriedade, mas vamos embaralhar availableSlots uma vez antes de preencher
+    // Na verdade, shuffleArray(availableSlots, rng) antes desse loop seria o ideal.
+    if (availableSlots.length > 0) {
+        // Embaralhar a cada iteração é custoso mas garante max randomness, mas um shuffle antes é O(N).
+        // Vamos fazer um swap aleatório para pegar um slot.
+        const randIndex = Math.floor(rng() * availableSlots.length);
+        const slot = availableSlots[randIndex];
+        finalParticipants[slot] = athlete;
+        availableSlots.splice(randIndex, 1);
+    }
+  });
+
+  // 3. Preencher restantes com BYE
+  for (let i = 0; i < bracketSize; i++) {
+    if (finalParticipants[i] === null) {
+      finalParticipants[i] = 'BYE';
     }
   }
 
