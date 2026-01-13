@@ -58,6 +58,7 @@ const manualDivisionIdOptionalSchema = z.string().optional(); // New schema
 const fileListSchema = typeof window === 'undefined' ? z.any() : z.instanceof(FileList);
 
 const AthleteProfileEditForm: React.FC<AthleteProfileEditFormProps> = ({ athlete, onSave, onCancel, mandatoryFieldsConfig, ageDivisionSettings, divisions = [] }) => {
+  const { t } = useTranslations();
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formValues, setFormValues] = useState<FormValues | null>(null);

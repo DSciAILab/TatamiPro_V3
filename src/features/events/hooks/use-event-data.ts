@@ -70,7 +70,7 @@ export const useEventData = (eventId?: string) => {
     if (!eventData) throw new Error("Event not found.");
 
     // Data Processing
-    const processedAthletes = (athletesData || []).map(a => 
+    const processedAthletes = (athletesData || []).map((a: any) => 
       processAthleteData(a, divisionsData || [], eventData.age_division_settings || [])
     );
     
@@ -126,14 +126,53 @@ export const useEventData = (eventId?: string) => {
     
     // If offline mode, no real-time updates
     if (isOfflineMode) return;
+    
+    // Helper to safely update cache
+    const updateEventCache = (updater: (oldData: Event) => Event) => {
+      queryClient.setQueryData<Event>(['event', eventId, false, false], (oldData) => {
+         if (!oldData) return oldData;
+         return updater(oldData);
+      });
+      // Also update the general key just in case variations exist
+       queryClient.setQueryData<Event>(['event', eventId], (oldData) => {
+         if (!oldData) return oldData;
+         return updater(oldData);
+      });
+    };
 
     // Use Supabase real-time for cloud mode
     const channel = supabase
       .channel(`event-${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_events', filter: `id=eq.${eventId}` }, 
-        () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }))
+      // Event updates
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sjjp_events', filter: `id=eq.${eventId}` }, 
+        (payload) => {
+             updateEventCache(oldData => ({ ...oldData, ...payload.new }));
+        })
+      // Athlete updates - SMART CACHE UPDATE
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_athletes', filter: `event_id=eq.${eventId}` }, 
-        () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }))
+        (payload) => {
+            updateEventCache(oldData => {
+                 const divisions = oldData.divisions || [];
+                 const ageSettings = oldData.age_division_settings || [];
+                 
+                 let newAthletes = [...(oldData.athletes || [])];
+                 
+                 if (payload.eventType === 'INSERT') {
+                     const processed = processAthleteData(payload.new, divisions, ageSettings);
+                     newAthletes.push(processed);
+                 } else if (payload.eventType === 'UPDATE') {
+                     // Check if only check-in status changed to avoid expensive reprocessing if possible? 
+                     // But processAthleteData is fast enough for one item.
+                     const processed = processAthleteData(payload.new, divisions, ageSettings);
+                     newAthletes = newAthletes.map(a => a.id === payload.new.id ? processed : a);
+                 } else if (payload.eventType === 'DELETE') {
+                     newAthletes = newAthletes.filter(a => a.id !== payload.old.id);
+                 }
+                 
+                 return { ...oldData, athletes: newAthletes };
+            });
+        })
+      // Division updates - For now, still invalidate because it affects athlete calculation
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_divisions', filter: `event_id=eq.${eventId}` }, 
         () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }))
       .subscribe();

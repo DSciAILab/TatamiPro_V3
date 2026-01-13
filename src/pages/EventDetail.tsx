@@ -450,7 +450,7 @@ const EventDetail: React.FC = () => {
       });
       
       // Invalidate the cache to ensure fresh data on next render
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      // queryClient.invalidateQueries({ queryKey: ['event', eventId] });
       
       const statusMessage = updatedAthlete.check_in_status === 'checked_in' 
         ? 'checked in' 
@@ -502,7 +502,7 @@ const EventDetail: React.FC = () => {
         };
       });
 
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      // queryClient.invalidateQueries({ queryKey: ['event', eventId] });
       
       dismissToast(toastId);
       showSuccess(`${athleteIds.length} athletes checked in successfully!`);

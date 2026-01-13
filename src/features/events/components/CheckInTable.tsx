@@ -18,6 +18,15 @@ export interface SortConfig {
 }
 
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 
 interface CheckInTableProps {
   athletes: Athlete[];
@@ -49,6 +58,13 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   isBatchSelectionEnabled = false,
 }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+
+  // Reset page when search or sort changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortConfig, viewMode]);
 
   const handleSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -115,6 +131,68 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
     return <Badge variant="outline" className="border-orange-500 text-orange-500 whitespace-nowrap">Pending</Badge>;
   };
   
+  const totalPages = Math.ceil(sortedAthletes.length / itemsPerPage);
+  const paginatedAthletes = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedAthletes.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedAthletes, currentPage]);
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <Pagination className="mt-4">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+          
+          {/* Simple pagination logic: show first, last, and current window */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(page => 
+              page === 1 || 
+              page === totalPages || 
+              (page >= currentPage - 1 && page <= currentPage + 1)
+            )
+            .map((page, index, array) => {
+              // Add ellipsis if gap
+              const prevPage = array[index - 1];
+              const showEllipsis = prevPage && page - prevPage > 1;
+
+              return (
+                <React.Fragment key={page}>
+                  {showEllipsis && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  <PaginationItem>
+                    <PaginationLink
+                      isActive={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                </React.Fragment>
+              );
+            })}
+
+          <PaginationItem>
+            <PaginationNext 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+  
   const allSelectionCandidates = useMemo(() => sortedAthletes.filter(a => a.check_in_status === 'pending'), [sortedAthletes]);
   const isAllSelected = allSelectionCandidates.length > 0 && allSelectionCandidates.every(a => selectedAthleteIds.includes(a.id));
   const isIndeterminate = selectedAthleteIds.length > 0 && !isAllSelected;
@@ -130,6 +208,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
       />
 
       {viewMode === 'list' ? (
+      <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -169,7 +248,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              sortedAthletes.map((athlete) => (
+              paginatedAthletes.map((athlete) => (
                 <TableRow key={athlete.id}>
                   {isBatchSelectionEnabled && (
                     <TableCell>
@@ -240,12 +319,15 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
           </TableBody>
         </Table>
       </div>
+      {renderPagination()}
+      </>
       ) : (
+        <>
         <ul className="space-y-4">
              {sortedAthletes.length === 0 ? (
                  <p className="text-muted-foreground text-center py-8">No athletes found.</p>
              ) : (
-                sortedAthletes.map((athlete) => (
+                paginatedAthletes.map((athlete) => (
                   <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
                     <div className="flex items-center space-x-3 flex-grow">
                       {isBatchSelectionEnabled && (
@@ -316,6 +398,8 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                 ))
             )}
         </ul>
+        {renderPagination()}
+        </>
       )}
     </div>
   );
