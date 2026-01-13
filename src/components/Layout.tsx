@@ -12,6 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { cn } from '@/lib/utils';
+import { version } from '../../package.json';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,8 +53,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="text-2xl font-bold text-primary">
+            <Link to="/" className="text-2xl font-bold text-primary flex items-baseline">
               TatamiPro
+              <span className="text-xs font-normal text-muted-foreground ml-2">v{version}</span>
             </Link>
             <nav className="hidden md:flex items-center space-x-2">
               {profile?.role !== 'staff' && (

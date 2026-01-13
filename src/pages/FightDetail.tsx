@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Match, Athlete, Bracket, FightResultType, Event } from '@/types/index';
+import { Match, Athlete, Bracket, FightResultType, Event, Division } from '@/types/index';
 import { UserRound, Trophy, ArrowLeft, ArrowRight, List } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,9 @@ const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOfflineMode, trackChange } = useOffline(); // Use offline hook
+  // const { isOfflineMode, trackChange } = useOffline(); // Use offline hook
+  const isOfflineMode = false;
+  const trackChange = async (table: string, action: 'create' | 'update' | 'delete', data: any) => {};
   
   const [event, setEvent] = useState<Event | null>(null);
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
@@ -64,37 +66,70 @@ const FightDetail: React.FC = () => {
     if (!eventId || !divisionId || !matchId) return;
     setLoading(true);
     try {
-      let eventData, athletesData, divisionsData;
+      let eventData: Event;
+      let athletesData: Athlete[] = [];
+      let divisionsData: Division[] = [];
 
       if (isOfflineMode) {
-        // FETCH FROM LOCAL DB
-        eventData = await db.events.get(eventId);
-        if (!eventData) throw new Error("Event not found locally. Please sync online first.");
+        // FETCH FROM LOCAL DB (OPTIMIZED)
+        const eData = await db.events.get(eventId);
+        if (!eData) throw new Error("Event not found locally. Please sync online first.");
+        eventData = eData;
+
+        // Extract match first to know which athletes to fetch
+        const bracket = eData.brackets?.[divisionId];
+        if (!bracket) throw new Error("Bracket não encontrado para esta divisão.");
         
-        athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
-        divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
+        const match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
+        if (!match) throw new Error("Luta não encontrada.");
+        
+        const fighterIds = [match.fighter1_id, match.fighter2_id].filter(id => id && id !== 'BYE') as string[];
+        
+        if (fighterIds.length > 0) {
+          athletesData = await db.athletes.where('id').anyOf(fighterIds).toArray();
+        }
+        
+        const dData = await db.divisions.get(divisionId);
+        if (dData) divisionsData = [dData];
       } else {
-        // FETCH FROM SUPABASE
+        // FETCH FROM SUPABASE (OPTIMIZED)
+        // 1. Fetch Event first to get brackets
         const { data: eData, error: eventError } = await supabase.from('sjjp_events').select('*').eq('id', eventId).single();
         if (eventError) throw eventError;
         eventData = eData;
 
-        const { data: aData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').eq('event_id', eventId);
-        if (athletesError) throw athletesError;
-        athletesData = aData;
+        const bracket = eventData.brackets?.[divisionId];
+        if (!bracket) throw new Error("Bracket não encontrado para esta divisão.");
+
+        const match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
+        if (!match) throw new Error("Luta não encontrada.");
+
+        // 2. Determine necessary fighter IDs
+        const fighterIds = [match.fighter1_id, match.fighter2_id].filter(id => id && id !== 'BYE') as string[];
+
+        // 3. Fetch ONLY involved athletes
+        if (fighterIds.length > 0) {
+          const { data: aData, error: athletesError } = await supabase.from('sjjp_athletes').select('*').in('id', fighterIds);
+          if (athletesError) throw athletesError;
+          athletesData = aData;
+        }
         
-        const { data: dData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('event_id', eventId);
+        // 4. Fetch ONLY the relevant division (optional context)
+        const { data: dData, error: divisionsError } = await supabase.from('sjjp_divisions').select('*').eq('id', divisionId);
         if (divisionsError) throw divisionsError;
         divisionsData = dData;
       }
 
-      const processedAthletes = (athletesData || []).map(a => processAthleteData(a, divisionsData || []));
+      // No need to process ALL athletes against ALL divisions anymore.
+      // We process only the fetched athletes.
+      const processedAthletes = athletesData.map(a => processAthleteData(a, divisionsData));
+
       const fullEventData: Event = {
         ...eventData,
-        athletes: processedAthletes,
-        divisions: divisionsData || [],
-        check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
-        check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
+        athletes: processedAthletes, // Now contains only relevant athletes
+        divisions: divisionsData,    // Now contains only relevant division
+        check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time as unknown as string) : undefined,
+        check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time as unknown as string) : undefined,
       };
       setEvent(fullEventData);
 
@@ -108,11 +143,7 @@ const FightDetail: React.FC = () => {
           setSelectedResultType(match.result?.type);
           setResultDetails(match.result?.details);
           setShowPostFightOptions(!!match.winner_id);
-        } else {
-          throw new Error("Luta não encontrada.");
         }
-      } else {
-        throw new Error("Bracket não encontrado para esta divisão.");
       }
     } catch (error: any) {
       showError(error.message);
