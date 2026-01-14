@@ -6,7 +6,9 @@ CREATE OR REPLACE FUNCTION public.update_match_result(
   p_event_id UUID,
   p_bracket_id TEXT,
   p_match_id TEXT,
-  p_match_data JSONB
+  p_match_data JSONB,
+  p_bracket_winner_id TEXT DEFAULT NULL,
+  p_bracket_runner_up_id TEXT DEFAULT NULL
 )
 RETURNS VOID AS $$
 DECLARE
@@ -53,9 +55,6 @@ BEGIN
             
             IF v_match ->> 'id' = p_match_id THEN
                 -- Found the match! Replace it with new data
-                -- We merge the new data to ensure we don't lose fields if p_match_data is partial,
-                -- but usually p_match_data should be the full match object.
-                -- For safety in this specific use case, we assume p_match_data IS the full new match object provided by frontend.
                 v_round := jsonb_set(v_round, ARRAY[v_match_idx::text], p_match_data);
                 v_found := TRUE;
             END IF;
@@ -82,6 +81,15 @@ BEGIN
       IF v_rounds IS NOT NULL THEN
          v_bracket := jsonb_set(v_bracket, '{rounds}', v_updated_rounds);
       END IF;
+
+      -- Update bracket winner/runner-up if provided (for final match)
+      IF p_bracket_winner_id IS NOT NULL THEN
+         v_bracket := jsonb_set(v_bracket, '{winner_id}', to_jsonb(p_bracket_winner_id));
+      END IF;
+      
+      IF p_bracket_runner_up_id IS NOT NULL THEN
+         v_bracket := jsonb_set(v_bracket, '{runner_up_id}', to_jsonb(p_bracket_runner_up_id));
+      END IF;
       
       -- Put the updated bracket back into the brackets object
       v_updated_brackets := jsonb_set(v_brackets, ARRAY[p_bracket_id], v_bracket);
@@ -98,5 +106,5 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission to authenticated users (staff/admins)
-GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB) TO service_role;
+GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO service_role;

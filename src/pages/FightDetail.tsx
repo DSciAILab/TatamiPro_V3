@@ -262,7 +262,9 @@ const FightDetail: React.FC = () => {
                 eventId, 
                 bracketId: divisionId!, 
                 matchId: match.id, 
-                matchData: match 
+                matchData: match,
+                bracketWinnerId: updatedBracket.winner_id,
+                bracketRunnerUpId: updatedBracket.runner_up_id
              });
         }
         

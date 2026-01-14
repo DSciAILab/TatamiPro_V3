@@ -8,19 +8,23 @@ interface UpdateMatchParams {
   bracketId: string;
   matchId: string;
   matchData: Match;
+  bracketWinnerId?: string;
+  bracketRunnerUpId?: string;
 }
 
 export const useUpdateMatchResult = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ eventId, bracketId, matchId, matchData }: UpdateMatchParams) => {
+    mutationFn: async ({ eventId, bracketId, matchId, matchData, bracketWinnerId, bracketRunnerUpId }: UpdateMatchParams) => {
       console.log(`[RPC] Updating match ${matchId} in bracket ${bracketId} via atomic function...`);
       const { error } = await supabase.rpc('update_match_result', {
         p_event_id: eventId,
         p_bracket_id: bracketId,
         p_match_id: matchId,
-        p_match_data: matchData
+        p_match_data: matchData,
+        p_bracket_winner_id: bracketWinnerId,
+        p_bracket_runner_up_id: bracketRunnerUpId
       });
 
       if (error) {
