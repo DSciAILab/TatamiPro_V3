@@ -23,6 +23,7 @@ import AttendanceManagement from '@/features/events/components/AttendanceManagem
 import LLMChat from '@/components/LLMChat';
 import ResultsTab from '@/components/ResultsTab';
 import EventStaffTab from '@/features/events/components/EventStaffTab';
+import EventSidebar from '@/components/EventSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SaveChangesButton from '@/components/SaveChangesButton';
 import { PageSkeleton } from '@/components/skeletons';
@@ -482,148 +483,173 @@ const EventDetail: React.FC = () => {
 
   return (
     <Layout>
-      <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
-      <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex w-full overflow-x-auto">
-          {visibleTabs.map(tab => (
-            <TabsTrigger key={tab.value} value={tab.value} className="flex-1 min-w-[80px]">{tab.label}</TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="config" className="mt-6">
-          <EventConfigTab
-            event={event}
-            configSubTab={configSubTab}
-            setConfigSubTab={setConfigSubTab}
-            is_active={event.is_active}
-            set_is_active={(value) => handleUpdateEventProperty('is_active', value)}
-            handleExportJson={() => {}} // Placeholder, implement if needed
-            check_in_start_time={event.check_in_start_time}
-            set_check_in_start_time={(date) => handleUpdateEventProperty('check_in_start_time', date)}
-            check_in_end_time={event.check_in_end_time}
-            set_check_in_end_time={(date) => handleUpdateEventProperty('check_in_end_time', date)}
-            num_fight_areas={event.num_fight_areas || 1}
-            set_num_fight_areas={(value) => handleUpdateEventProperty('num_fight_areas', value)}
-            is_attendance_mandatory_before_check_in={event.is_attendance_mandatory_before_check_in || false}
-            set_is_attendance_mandatory_before_check_in={(value) => handleUpdateEventProperty('is_attendance_mandatory_before_check_in', value)}
-            is_weight_check_enabled={event.is_weight_check_enabled ?? true}
-            set_is_weight_check_enabled={(value) => handleUpdateEventProperty('is_weight_check_enabled', value)}
-            is_belt_grouping_enabled={event.is_belt_grouping_enabled ?? true}
-            set_is_belt_grouping_enabled={(value) => handleUpdateEventProperty('is_belt_grouping_enabled', value)}
-            is_overweight_auto_move_enabled={event.is_overweight_auto_move_enabled ?? false}
-            set_is_overweight_auto_move_enabled={(value) => handleUpdateEventProperty('is_overweight_auto_move_enabled', value)}
-            include_third_place={event.include_third_place || false}
-            set_include_third_place={(value) => handleUpdateEventProperty('include_third_place', value)}
-            check_in_scan_mode={event.check_in_scan_mode || 'qr'}
-            set_check_in_scan_mode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
-            handleUpdateDivisions={handleUpdateDivisions}
-            handleUpdateAgeDivisionSettings={handleUpdateAgeDivisionSettings}
-            champion_points={event.champion_points || 9}
-            set_champion_points={(value) => handleUpdateEventProperty('champion_points', value)}
-            runner_up_points={event.runner_up_points || 3}
-            set_runner_up_points={(value) => handleUpdateEventProperty('runner_up_points', value)}
-            third_place_points={event.third_place_points || 1}
-            set_third_place_points={(value) => handleUpdateEventProperty('third_place_points', value)}
-            count_single_club_categories={event.count_single_club_categories ?? true}
-            set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
-            count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
-            set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
-            count_wo_champion_categories={event.count_wo_champion_categories ?? false}
-            set_count_wo_champion_categories={(value) => handleUpdateEventProperty('count_wo_champion_categories', value)}
-            userRole={userRole as any}
-            event_name={event.name}
-            set_event_name={(value) => handleUpdateEventProperty('name', value)}
-            event_description={event.description}
-            set_event_description={(value) => handleUpdateEventProperty('description', value)}
-            max_athletes_per_bracket={event.max_athletes_per_bracket || 0}
-            set_max_athletes_per_bracket={(value) => handleUpdateEventProperty('max_athletes_per_bracket', value)}
-            is_bracket_splitting_enabled={event.is_bracket_splitting_enabled || false}
-            set_is_bracket_splitting_enabled={(value) => handleUpdateEventProperty('is_bracket_splitting_enabled', value)}
-            enable_team_separation={event.enable_team_separation ?? true} // Default to true if undefined
-            set_enable_team_separation={(value) => handleUpdateEventProperty('enable_team_separation', value)}
+      <div className="flex min-h-[calc(100vh-8rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 -mb-8">
+        {/* Sidebar Navigation - sticky full height */}
+        <div className="sticky top-16 h-[calc(100vh-4rem)] flex-shrink-0">
+          <EventSidebar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            visibleTabs={visibleTabs}
           />
-        </TabsContent>
+        </div>
 
-        <TabsContent value="staff" className="mt-6">
-          <EventStaffTab eventId={eventId!} />
-        </TabsContent>
+        {/* Main Content Area */}
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+          {/* Event Header */}
+          <div className="mb-6">
+            <h1 className="text-4xl font-bold">{event.name}</h1>
+            <p className="text-lg text-muted-foreground">{event.description}</p>
+          </div>
+          {activeTab === 'config' && (
+            <EventConfigTab
+              event={event}
+              configSubTab={configSubTab}
+              setConfigSubTab={setConfigSubTab}
+              is_active={event.is_active}
+              set_is_active={(value) => handleUpdateEventProperty('is_active', value)}
+              handleExportJson={() => {}} // Placeholder, implement if needed
+              check_in_start_time={event.check_in_start_time}
+              set_check_in_start_time={(date) => handleUpdateEventProperty('check_in_start_time', date)}
+              check_in_end_time={event.check_in_end_time}
+              set_check_in_end_time={(date) => handleUpdateEventProperty('check_in_end_time', date)}
+              num_fight_areas={event.num_fight_areas || 1}
+              set_num_fight_areas={(value) => handleUpdateEventProperty('num_fight_areas', value)}
+              is_attendance_mandatory_before_check_in={event.is_attendance_mandatory_before_check_in || false}
+              set_is_attendance_mandatory_before_check_in={(value) => handleUpdateEventProperty('is_attendance_mandatory_before_check_in', value)}
+              is_weight_check_enabled={event.is_weight_check_enabled ?? true}
+              set_is_weight_check_enabled={(value) => handleUpdateEventProperty('is_weight_check_enabled', value)}
+              is_belt_grouping_enabled={event.is_belt_grouping_enabled ?? true}
+              set_is_belt_grouping_enabled={(value) => handleUpdateEventProperty('is_belt_grouping_enabled', value)}
+              is_overweight_auto_move_enabled={event.is_overweight_auto_move_enabled ?? false}
+              set_is_overweight_auto_move_enabled={(value) => handleUpdateEventProperty('is_overweight_auto_move_enabled', value)}
+              include_third_place={event.include_third_place || false}
+              set_include_third_place={(value) => handleUpdateEventProperty('include_third_place', value)}
+              check_in_scan_mode={event.check_in_scan_mode || 'qr'}
+              set_check_in_scan_mode={(value) => handleUpdateEventProperty('check_in_scan_mode', value)}
+              handleUpdateDivisions={handleUpdateDivisions}
+              handleUpdateAgeDivisionSettings={handleUpdateAgeDivisionSettings}
+              champion_points={event.champion_points || 9}
+              set_champion_points={(value) => handleUpdateEventProperty('champion_points', value)}
+              runner_up_points={event.runner_up_points || 3}
+              set_runner_up_points={(value) => handleUpdateEventProperty('runner_up_points', value)}
+              third_place_points={event.third_place_points || 1}
+              set_third_place_points={(value) => handleUpdateEventProperty('third_place_points', value)}
+              count_single_club_categories={event.count_single_club_categories ?? true}
+              set_count_single_club_categories={(value) => handleUpdateEventProperty('count_single_club_categories', value)}
+              count_walkover_single_fight_categories={event.count_walkover_single_fight_categories ?? true}
+              set_count_walkover_single_fight_categories={(value) => handleUpdateEventProperty('count_walkover_single_fight_categories', value)}
+              count_wo_champion_categories={event.count_wo_champion_categories ?? false}
+              set_count_wo_champion_categories={(value) => handleUpdateEventProperty('count_wo_champion_categories', value)}
+              userRole={userRole as any}
+              event_name={event.name}
+              set_event_name={(value) => handleUpdateEventProperty('name', value)}
+              event_description={event.description}
+              set_event_description={(value) => handleUpdateEventProperty('description', value)}
+              max_athletes_per_bracket={event.max_athletes_per_bracket || 0}
+              set_max_athletes_per_bracket={(value) => handleUpdateEventProperty('max_athletes_per_bracket', value)}
+              is_bracket_splitting_enabled={event.is_bracket_splitting_enabled || false}
+              set_is_bracket_splitting_enabled={(value) => handleUpdateEventProperty('is_bracket_splitting_enabled', value)}
+              enable_team_separation={event.enable_team_separation ?? true}
+              set_enable_team_separation={(value) => handleUpdateEventProperty('enable_team_separation', value)}
+            />
+          )}
 
-        <TabsContent value="inscricoes" className="mt-6">
-          <RegistrationsTab
-            event={event}
-            userRole={userRole as any}
-            userClub={userClub}
-            inscricoesSubTab={inscricoesSubTab}
-            setInscricoesSubTab={setInscricoesSubTab}
-            editingAthlete={editingAthlete}
-            setEditingAthlete={setEditingAthlete}
-            handleAthleteUpdate={handleAthleteUpdate}
-            mandatoryFieldsConfig={event.check_in_config?.mandatoryFields || {}} 
-            filteredAthletesForDisplay={filteredAthletesForDisplayInscricoes}
-            registrationStatusFilter={registrationStatusFilter}
-            setRegistrationStatusFilter={setRegistrationStatusFilter}
-            coachTotalRegistrations={coachStats.total}
-            coachTotalApproved={coachStats.approved}
-            coachTotalPending={coachStats.pending}
-            coachTotalRejected={coachStats.rejected}
-            selectedAthletesForApproval={selectedAthletesForApproval}
-            handleToggleAthleteSelection={handleToggleAthleteSelection}
-            handleDeleteAthlete={handleDeleteAthlete}
-            handleDeleteSelectedAthletes={handleDeleteSelectedAthletes}
-            athletesUnderApproval={athletesUnderApproval}
-            handleSelectAllAthletes={handleSelectAllAthletes}
-            handleApproveSelected={() => handleApproveReject('approved')}
-            handleRejectSelected={() => handleApproveReject('rejected')}
-            ageDivisionSettings={event.age_division_settings || []}
-            onBatchUpdate={handleBatchAthleteUpdate}
-          />
-        </TabsContent>
+          {activeTab === 'staff' && (
+            <EventStaffTab eventId={eventId!} />
+          )}
 
-        <TabsContent value="attendance" className="mt-6">
-          <AttendanceManagement eventDivisions={event.divisions || []} eventName={event.name} onUpdateAthleteAttendance={handleUpdateAthleteAttendance} isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} userRole={userRole as any} athletes={event.athletes || []} />
-        </TabsContent>
-        <TabsContent value="checkin" className="mt-6">
-          <CheckInTab 
-            event={event} 
-            processedApprovedAthletes={processedApprovedAthletes}
-            filteredAthletesForCheckIn={filteredAthletesForCheckIn}
-            checkInFilter={checkInFilter} 
-            setCheckInFilter={setCheckInFilter}
-            totalApprovedAthletes={processedApprovedAthletes.length}
-            totalCheckedIn={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length}
-            totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            handleCheckInAthlete={handleCheckInAthlete}
-            handleBatchCheckIn={handleBatchCheckIn}
-          />
-        </TabsContent>
-        <TabsContent value="brackets" className="mt-6">
-          <BracketsTab 
-            event={event} 
-            userRole={userRole as any} 
-            handleUpdateMatAssignments={(assignments) => { 
-              const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...event, mat_assignments: assignments }); 
-              handleUpdateEventProperty('mat_assignments', assignments); 
-              handleUpdateBracketsAndFightOrder(updatedBrackets, matFightOrder); 
-            }} 
-            onUpdateBrackets={handleUpdateBracketsAndFightOrder} 
-            bracketsSubTab={bracketsSubTab} 
-            setBracketsSubTab={setBracketsSubTab} 
-            navSelectedMat={navSelectedMat}
-            navSelectedDivisionId={navSelectedDivisionId}
-          />
-        </TabsContent>
-        <TabsContent value="resultados" className="mt-6">
-          <ResultsTab event={event} />
-        </TabsContent>
-        <TabsContent value="llm" className="mt-6">
-          <Card><CardHeader><CardTitle>Questions & Answers</CardTitle></CardHeader><CardContent><LLMChat event={event} /></CardContent></Card>
-        </TabsContent>
+          {activeTab === 'inscricoes' && (
+            <RegistrationsTab
+              event={event}
+              userRole={userRole as any}
+              userClub={userClub}
+              inscricoesSubTab={inscricoesSubTab}
+              setInscricoesSubTab={setInscricoesSubTab}
+              editingAthlete={editingAthlete}
+              setEditingAthlete={setEditingAthlete}
+              handleAthleteUpdate={handleAthleteUpdate}
+              mandatoryFieldsConfig={event.check_in_config?.mandatoryFields || {}} 
+              filteredAthletesForDisplay={filteredAthletesForDisplayInscricoes}
+              registrationStatusFilter={registrationStatusFilter}
+              setRegistrationStatusFilter={setRegistrationStatusFilter}
+              coachTotalRegistrations={coachStats.total}
+              coachTotalApproved={coachStats.approved}
+              coachTotalPending={coachStats.pending}
+              coachTotalRejected={coachStats.rejected}
+              selectedAthletesForApproval={selectedAthletesForApproval}
+              handleToggleAthleteSelection={handleToggleAthleteSelection}
+              handleDeleteAthlete={handleDeleteAthlete}
+              handleDeleteSelectedAthletes={handleDeleteSelectedAthletes}
+              athletesUnderApproval={athletesUnderApproval}
+              handleSelectAllAthletes={handleSelectAllAthletes}
+              handleApproveSelected={() => handleApproveReject('approved')}
+              handleRejectSelected={() => handleApproveReject('rejected')}
+              ageDivisionSettings={event.age_division_settings || []}
+              onBatchUpdate={handleBatchAthleteUpdate}
+            />
+          )}
 
-      </Tabs>
+          {activeTab === 'attendance' && (
+            <AttendanceManagement 
+              eventDivisions={event.divisions || []} 
+              eventName={event.name} 
+              onUpdateAthleteAttendance={handleUpdateAthleteAttendance} 
+              isAttendanceMandatory={event.is_attendance_mandatory_before_check_in || false} 
+              userRole={userRole as any} 
+              athletes={event.athletes || []} 
+            />
+          )}
+
+          {activeTab === 'checkin' && (
+            <CheckInTab 
+              event={event} 
+              processedApprovedAthletes={processedApprovedAthletes}
+              filteredAthletesForCheckIn={filteredAthletesForCheckIn}
+              checkInFilter={checkInFilter} 
+              setCheckInFilter={setCheckInFilter}
+              totalApprovedAthletes={processedApprovedAthletes.length}
+              totalCheckedIn={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length}
+              totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              handleCheckInAthlete={handleCheckInAthlete}
+              handleBatchCheckIn={handleBatchCheckIn}
+            />
+          )}
+
+          {activeTab === 'brackets' && (
+            <BracketsTab 
+              event={event} 
+              userRole={userRole as any} 
+              handleUpdateMatAssignments={(assignments) => { 
+                const { updatedBrackets, matFightOrder } = generateMatFightOrder({ ...event, mat_assignments: assignments }); 
+                handleUpdateEventProperty('mat_assignments', assignments); 
+                handleUpdateBracketsAndFightOrder(updatedBrackets, matFightOrder); 
+              }} 
+              onUpdateBrackets={handleUpdateBracketsAndFightOrder} 
+              bracketsSubTab={bracketsSubTab} 
+              setBracketsSubTab={setBracketsSubTab} 
+              navSelectedMat={navSelectedMat}
+              navSelectedDivisionId={navSelectedDivisionId}
+            />
+          )}
+
+          {activeTab === 'resultados' && (
+            <ResultsTab event={event} />
+          )}
+
+          {activeTab === 'llm' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Questions & Answers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LLMChat event={event} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
       <SaveChangesButton onSave={handleSaveChanges} isSaving={isSaving} hasUnsavedChanges={hasUnsavedChanges} />
     </Layout>
   );
