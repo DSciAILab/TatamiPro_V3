@@ -19,7 +19,7 @@ interface BracketMatchCardProps {
   divisionId: string;
   isPublic?: boolean;
   basePath?: string;
-  source?: 'brackets' | 'mat-control';
+  source?: 'brackets' | 'mat-control' | 'division-bracket-view';
 }
 
 const getShortMatchIdentifier = (fullMatchId: string): string => {

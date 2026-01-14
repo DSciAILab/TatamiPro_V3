@@ -138,7 +138,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           divisionId={bracket.division_id}
                           isPublic={isPublic}
                           basePath={basePath}
-                          source="brackets"
+                          source={source || "brackets"}
                         />
                       </div>
                     ))}

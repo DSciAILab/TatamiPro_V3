@@ -158,13 +158,23 @@ export const useEventData = (eventId?: string) => {
              console.log('[Realtime] Athlete change detected - invalidating cache to force sync');
              queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false });
         })
-      // Division updates - For now, still invalidate because it affects athlete calculation
+      // Division updates
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_divisions', filter: `event_id=eq.${eventId}` }, 
         () => queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false }))
       .subscribe();
 
+    // 2. Broadcast Channel (Direct Client-to-Client Sync)
+    // Listens for explicit signals from other clients (faster than DB)
+    const syncChannel = supabase.channel(`event-sync:${eventId}`)
+      .on('broadcast', { event: 'match-update' }, (payload) => {
+        console.log('[Realtime] Broadcast received:', payload);
+        queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false });
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(syncChannel);
     };
   }, [eventId, isOfflineMode, isLocalServerMode, queryClient]);
 

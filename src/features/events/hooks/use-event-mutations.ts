@@ -83,11 +83,26 @@ export const useUpdateMatchResult = () => {
         queryClient.setQueryData(['event', newTodo.eventId], context.previousEvent);
       }
     },
-    onSuccess: (_, { eventId }) => {
-      // The update_match_result RPC updates the database, which triggers the realtime subscription.
-      // The verify global sync logic we added earlier will then invalidate the query and re-fetch.
-      // So technically we don't need to do much here, but invalidating explicitly is safe.
+    onSuccess: async (_, { eventId, bracketId, matchId }) => {
+      // 1. Invalidate local queries immediately
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+
+      // 2. Broadcast update to other clients via Supabase Realtime
+      // This is faster and more reliable than waiting for Postgres changes
+      const channel = supabase.channel(`event-sync:${eventId}`);
+      
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'match-update',
+            payload: { bracketId, matchId, timestamp: Date.now() },
+          }).then(() => {
+             console.log('[Broadcast] Match update signal sent');
+             supabase.removeChannel(channel);
+          });
+        }
+      });
     }
   });
 };
