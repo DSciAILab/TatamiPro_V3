@@ -77,7 +77,23 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   };
 
   const fightsForSelectedMatAndCategory = useMemo(() => {
-    if (!mat_fight_order || !brackets) return [];
+    // FALLBACK: If mat_fight_order is missing, use matches from brackets directly
+    if (!mat_fight_order || Object.keys(mat_fight_order).length === 0) {
+      const fights: Match[] = [];
+      const currentBracket = brackets?.[selectedDivisionId];
+      if (currentBracket) {
+         if (currentBracket.rounds) {
+             currentBracket.rounds.flat().forEach(m => fights.push(m));
+         }
+         if (currentBracket.third_place_match) {
+             fights.push(currentBracket.third_place_match);
+         }
+      }
+      return fights.sort((a, b) => {
+         if (a.round !== b.round) return a.round - b.round;
+         return (a.match_number || 0) - (b.match_number || 0);
+      });
+    }
 
     const fights: Match[] = [];
 
@@ -100,6 +116,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       });
     }
     
+    // Sort logic...
     return fights.sort((a, b) => {
       if (selectedMat === 'all-mats') {
         const matNameA = a._mat_name || '';
