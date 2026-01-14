@@ -184,6 +184,28 @@ const FightDetail: React.FC = () => {
     loadFightData();
   }, [loadFightData]);
 
+  // Realtime Subscription for Live Updates
+  useEffect(() => {
+    if (!eventId || isOfflineMode) return;
+    
+    console.log('[FightDetail] Subscribing to realtime updates...');
+    const channel = supabase
+      .channel(`fight-detail-${eventId}`)
+      .on(
+        'postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'sjjp_events', filter: `id=eq.${eventId}` }, 
+        () => {
+             console.log('[FightDetail] Event update detected, reloading data...');
+             loadFightData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, isOfflineMode, loadFightData]);
+
   const athletesMap = useMemo(() => {
     return new Map(event?.athletes?.map(athlete => [athlete.id, athlete]) || []);
   }, [event?.athletes]);
