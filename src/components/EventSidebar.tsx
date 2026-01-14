@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Settings,
   Users,
@@ -18,6 +20,7 @@ import {
   PinOff,
   Calendar,
   ArrowLeft,
+  Menu,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -54,6 +57,8 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
   eventDescription,
 }) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Persist sidebar state in localStorage
   const [isExpanded, setIsExpanded] = useState(() => {
@@ -106,6 +111,87 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
     ...tab,
     icon: TAB_ICONS[tab.value] || <Settings className="h-5 w-5" />,
   }));
+
+  const handleTabChange = (tab: string) => {
+    onTabChange(tab);
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  // Mobile Sheet Sidebar
+  if (isMobile) {
+    return (
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-72 p-0">
+          <div className="flex flex-col h-full bg-card">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate('/events');
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium text-sm">Navigation</span>
+              <div className="w-8" /> {/* Spacer for alignment */}
+            </div>
+
+            {/* Event Info */}
+            {eventName && (
+              <div className="px-4 py-3 border-b">
+                <h2 className="font-semibold text-sm truncate" title={eventName}>
+                  {eventName}
+                </h2>
+                {eventDescription && (
+                  <p className="text-xs text-muted-foreground truncate" title={eventDescription}>
+                    {eventDescription}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Navigation Items */}
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+              {tabItems.map((tab) => {
+                const isActive = activeTab === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => handleTabChange(tab.value)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-3 rounded-md transition-colors",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      isActive && "bg-primary text-primary-foreground font-medium"
+                    )}
+                  >
+                    <span className="flex-shrink-0">
+                      {tab.icon}
+                    </span>
+                    <span className="truncate text-sm">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={0}>

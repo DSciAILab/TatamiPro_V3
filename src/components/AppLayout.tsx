@@ -137,11 +137,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Main Area: Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Full height, hidden on mobile unless toggled */}
+        {/* Sidebar - Desktop: shown as sidebar, Mobile: renders floating menu button */}
         {sidebar && (
-          <aside className="hidden lg:flex flex-shrink-0">
-            {sidebar}
-          </aside>
+          <>
+            {/* Desktop sidebar */}
+            <aside className="hidden lg:flex flex-shrink-0">
+              {sidebar}
+            </aside>
+            {/* Mobile sidebar (renders its own FAB trigger) */}
+            <div className="lg:hidden">
+              {sidebar}
+            </div>
+          </>
         )}
 
         {/* Main Content */}
@@ -160,15 +167,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </main>
       </div>
-
-      {/* Mobile Bottom Navigation (native app-like) */}
-      {sidebar && (
-        <nav className="lg:hidden flex-shrink-0 border-t bg-background">
-          <div className="flex items-center justify-around h-14">
-            {/* Mobile navigation will be injected by EventDetail */}
-          </div>
-        </nav>
-      )}
     </div>
   );
 };
