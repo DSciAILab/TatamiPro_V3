@@ -468,7 +468,15 @@ const FightDetail: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    navigate(-1); // Go back to previous page
+    // Navigate back to Event Detail with brackets tab and mat control center sub-tab
+    navigate(`/events/${eventId}`, {
+      state: {
+        activeTab: 'brackets',
+        bracketsSubTab: 'mat-control',
+        selectedMat: currentMatch?._mat_name || null,
+        selectedDivisionId: divisionId || null,
+      }
+    });
   };
 
   const handleAdvanceToNextRound = () => {
@@ -477,7 +485,7 @@ const FightDetail: React.FC = () => {
     if (nextFight) {
       navigate(`/events/${eventId}/fights/${divisionId}/${nextFight.id}`);
     } else {
-      navigate(-1);
+      handleGoBack();
     }
   };
 
