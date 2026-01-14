@@ -14,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { version } from '../../package.json';
+
 const OfflineIndicator: React.FC = () => {
   const { isOfflineMode, toggleOfflineMode, syncData, hasPendingChanges, isSyncing } = useOffline();
 
@@ -43,7 +45,10 @@ const OfflineIndicator: React.FC = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Status da Conexão</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex justify-between items-center">
+            <span>Status da Conexão</span>
+            <span className="text-xs text-muted-foreground font-normal">v{version}</span>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={syncData} disabled={isSyncing}>
             <CloudDownload className="mr-2 h-4 w-4" />

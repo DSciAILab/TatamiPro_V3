@@ -7,7 +7,8 @@ DROP FUNCTION IF EXISTS public.update_match_result(UUID, TEXT, TEXT, JSONB);
 DROP FUNCTION IF EXISTS public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT);
 
 -- Create the single, flexible function
-CREATE OR REPLACE FUNCTION public.update_match_result(
+-- Create the single, flexible function (v2 to avoid cache issues)
+CREATE OR REPLACE FUNCTION public.update_match_result_v2(
   p_event_id UUID,
   p_bracket_id TEXT,
   p_match_id TEXT,
@@ -111,5 +112,5 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission to authenticated users (staff/admins)
-GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.update_match_result_v2(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_match_result_v2(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO service_role;

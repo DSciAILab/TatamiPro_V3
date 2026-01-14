@@ -18,13 +18,13 @@ export const useUpdateMatchResult = () => {
   return useMutation({
     mutationFn: async ({ eventId, bracketId, matchId, matchData, bracketWinnerId, bracketRunnerUpId }: UpdateMatchParams) => {
       console.log(`[RPC] Updating match ${matchId} in bracket ${bracketId} via atomic function...`);
-      const { error } = await supabase.rpc('update_match_result', {
+      const { error } = await supabase.rpc('update_match_result_v2', {
         p_event_id: eventId,
         p_bracket_id: bracketId,
         p_match_id: matchId,
         p_match_data: matchData,
-        p_bracket_winner_id: bracketWinnerId,
-        p_bracket_runner_up_id: bracketRunnerUpId
+        p_bracket_winner_id: bracketWinnerId || null,
+        p_bracket_runner_up_id: bracketRunnerUpId || null
       });
 
       if (error) {
