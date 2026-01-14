@@ -15,6 +15,7 @@ interface UseEventTabsResult {
   // New state properties for bracket management restoration
   navSelectedMat: string | null;
   navSelectedDivisionId: string | null;
+  navDivisionDetailTab: string | null;
 }
 
 export const useEventTabs = (): UseEventTabsResult => {
@@ -28,6 +29,7 @@ export const useEventTabs = (): UseEventTabsResult => {
   // New state properties derived from navigation state
   const [navSelectedMat, setNavSelectedMat] = useState<string | null>(null);
   const [navSelectedDivisionId, setNavSelectedDivisionId] = useState<string | null>(null);
+  const [navDivisionDetailTab, setNavDivisionDetailTab] = useState<string | null>(null);
 
   useEffect(() => {
     if (location.state?.activeTab) {
@@ -44,15 +46,23 @@ export const useEventTabs = (): UseEventTabsResult => {
     }
     
     // Capture and reset navigation state for Mat/Division selection
-    if (location.state?.selectedMat) {
-      setNavSelectedMat(location.state.selectedMat);
+    // Support both 'selectedMat' (legacy) and 'navSelectedMat' (new) keys
+    if (location.state?.navSelectedMat || location.state?.selectedMat) {
+      setNavSelectedMat(location.state?.navSelectedMat || location.state?.selectedMat);
     } else {
       setNavSelectedMat(null);
     }
-    if (location.state?.selectedDivisionId) {
-      setNavSelectedDivisionId(location.state.selectedDivisionId);
+
+    if (location.state?.navSelectedDivisionId || location.state?.selectedDivisionId) {
+      setNavSelectedDivisionId(location.state?.navSelectedDivisionId || location.state?.selectedDivisionId);
     } else {
       setNavSelectedDivisionId(null);
+    }
+
+    if (location.state?.navDivisionDetailTab) {
+      setNavDivisionDetailTab(location.state.navDivisionDetailTab);
+    } else {
+      setNavDivisionDetailTab(null);
     }
   }, [location.state]);
 
@@ -67,5 +77,6 @@ export const useEventTabs = (): UseEventTabsResult => {
     setBracketsSubTab,
     navSelectedMat,
     navSelectedDivisionId,
+    navDivisionDetailTab,
   };
 };

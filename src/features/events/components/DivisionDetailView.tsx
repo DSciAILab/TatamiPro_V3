@@ -16,9 +16,10 @@ interface DivisionDetailViewProps {
   /** Custom base path for fight navigation (for staff pages) */
   baseFightPath?: string;
   isPublic?: boolean;
+  initialTab?: string;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath, isPublic = false }) => {
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath, isPublic = false, initialTab }) => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'last_name', direction: 'asc' });
   
   // Consider moved_to_division_id for athletes who were moved to this division
@@ -75,7 +76,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
         </Button>
       </div>
 
-      <Tabs defaultValue="fight_order" className="w-full">
+      <Tabs defaultValue={initialTab || "fight_order"} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
           <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>
@@ -91,6 +92,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               onUpdateBracket={() => {}} // Read-only view
               fightViewMode="grid1"
               baseFightPath={baseFightPath}
+              source="division-fight-order"
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">Fight order not available.</p>
@@ -104,7 +106,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               division={division}
               eventId={event.id}
               isPublic={false}
-              source="mat-control"
+              source="division-bracket-view"
               basePath={baseFightPath}
             />
           ) : (

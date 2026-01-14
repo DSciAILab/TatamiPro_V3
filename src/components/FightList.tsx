@@ -13,10 +13,11 @@ interface FightListProps {
   selectedCategoryKey: string;
   selectedDivisionId: string;
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
-  fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket';
+  fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket' | 'list';
   /** Custom base path for fight navigation (for staff pages) */
   baseFightPath?: string;
   isPublic?: boolean;
+  source?: 'brackets' | 'mat-control' | 'division-fight-order';
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -30,7 +31,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false, source }) => {
   const { athletes, brackets, mat_fight_order } = event;
   
   // Build fight URL based on baseFightPath or default
@@ -186,10 +187,12 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     return <p className="text-muted-foreground">No fights found for this category in {selectedMat === 'all-mats' ? 'all areas' : selectedMat}.</p>;
   }
 
-  const gridClasses = {
+  const gridClasses: Record<string, string> = {
     grid3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
     grid2: 'grid-cols-1 md:grid-cols-2',
     grid1: 'grid-cols-1',
+    list: 'grid-cols-1',
+    bracket: 'grid-cols-1', // Should not be reached but safekeeping
   };
 
   const renderMatchCard = (match: Match) => {
@@ -257,6 +260,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           key={match.id}
           to={buildFightUrl(selectedDivisionId, match.id)}
           className={cardClasses}
+          state={{ source }}
         >
           {cardContent}
         </Link>

@@ -87,13 +87,21 @@ const drawMatch = (
   doc.text(matchLabel, x + width - labelW - 1, y + matchNumSize); 
   doc.setTextColor(0, 0, 0);
 
-  const drawSlot = (fighter: Athlete | 'BYE' | undefined, slotY: number, isWinner: boolean) => {
+  const drawSlot = (fighter: Athlete | 'BYE' | undefined, slotY: number, isWinner: boolean, isRedBelt: boolean) => {
+    // 1. Draw Background
     if (isWinner) {
       // Winner highlight - green background
       doc.setFillColor(220, 252, 231); // Green-100
       doc.rect(x + 0.5, slotY + 0.5, width - 1, slotHeight - 0.5, 'F');
-      
-      // Winner accent bar on the left
+    }
+
+    // 2. Draw Side Bar (Indicator)
+    if (isRedBelt) {
+      // Red Belt Indicator (Always Red for Fighter 1)
+      doc.setFillColor(220, 38, 38); // Red-600
+      doc.rect(x, slotY, 2, slotHeight, 'F');
+    } else if (isWinner) {
+      // Winner accent bar for Fighter 2 (Green)
       doc.setFillColor(34, 197, 94); // Green-500
       doc.rect(x, slotY, 2, slotHeight, 'F');
     }
@@ -112,14 +120,14 @@ const drawMatch = (
     doc.setFontSize(idFontSize);
     doc.setTextColor(100, 100, 100);
     const idWidth = doc.getTextWidth(idDisplay);
-    doc.text(idDisplay, x + paddingX, slotY + (slotHeight * 0.45));
+    doc.text(idDisplay, x + paddingX + 2, slotY + (slotHeight * 0.45)); // +2 padding to clear sidebar
 
     // Name
     doc.setFont('helvetica', isWinner ? 'bold' : 'normal');
     doc.setFontSize(nameFontSize);
     doc.setTextColor(isWinner ? 21 : 0, isWinner ? 128 : 0, isWinner ? 61 : 0); // Green-800 for winners
-    const fitName = fitText(doc, name, width - (paddingX * 2) - (isWinner ? 2 : 0));
-    doc.text(fitName, x + paddingX + (isWinner ? 2 : 0), slotY + (slotHeight * 0.45));
+    const fitName = fitText(doc, name, width - (paddingX * 2) - 4); // -4 to account for sidebar + padding
+    doc.text(fitName, x + paddingX + 2 + idWidth, slotY + (slotHeight * 0.45)); // +2 offset for sidebar
     doc.setTextColor(0, 0, 0);
 
     // Club
@@ -127,13 +135,13 @@ const drawMatch = (
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139); // Slate-500
       doc.setFontSize(clubFontSize);
-      const fitClub = fitText(doc, club, width - (paddingX * 2) - (isWinner ? 2 : 0));
-      doc.text(fitClub, x + paddingX + (isWinner ? 2 : 0), slotY + (slotHeight * 0.85));
+      const fitClub = fitText(doc, club, width - (paddingX * 2) - 4);
+      doc.text(fitClub, x + paddingX + 2, slotY + (slotHeight * 0.85)); // +2 offset for sidebar
       doc.setTextColor(0, 0, 0);
     }
   };
 
-  drawSlot(fighter1, y, fighter1IsWinner);
+  drawSlot(fighter1, y, fighter1IsWinner, true); // true = Red Belt
 
   // Separator Line (dashed effect)
   doc.setDrawColor(203, 213, 225); // Slate-300
@@ -141,7 +149,7 @@ const drawMatch = (
   doc.line(x + 2, y + slotHeight, x + width - 2, y + slotHeight);
 
   // Draw Slot 2
-  drawSlot(fighter2, y + slotHeight, fighter2IsWinner);
+  drawSlot(fighter2, y + slotHeight, fighter2IsWinner, false); // false = Not Red Belt
 };
 
 const drawBracketLines = (

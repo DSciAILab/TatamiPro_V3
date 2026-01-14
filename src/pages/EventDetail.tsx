@@ -77,6 +77,7 @@ const EventDetail: React.FC = () => {
     setBracketsSubTab,
     navSelectedMat,
     navSelectedDivisionId,
+    navDivisionDetailTab,
   } = useEventTabs();
 
   // --- UI State ---
@@ -651,6 +652,7 @@ const EventDetail: React.FC = () => {
               setBracketsSubTab={setBracketsSubTab} 
               navSelectedMat={navSelectedMat}
               navSelectedDivisionId={navSelectedDivisionId}
+              navDivisionDetailTab={navDivisionDetailTab}
             />
           )}
 

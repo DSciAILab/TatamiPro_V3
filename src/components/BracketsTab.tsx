@@ -42,6 +42,7 @@ interface BracketsTabProps {
   setBracketsSubTab: (value: string) => void;
   navSelectedMat: string | null;
   navSelectedDivisionId: string | null;
+  navDivisionDetailTab: string | null;
 }
 
 const BracketsTab: React.FC<BracketsTabProps> = ({
@@ -54,6 +55,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   setBracketsSubTab,
   navSelectedMat,
   navSelectedDivisionId,
+  navDivisionDetailTab,
 }) => {
   const navigate = useNavigate();
 
@@ -95,7 +97,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
       if (division) {
         setSelectedDivisionForDetail(division);
-        setBracketsSubTab('manage-fights');
+        setBracketsSubTab('fight-overview');
       }
     }
   }, [navSelectedMat, navSelectedDivisionId, event.divisions, setBracketsSubTab]);
@@ -602,6 +604,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                         setSelectedDivisionForDetail(null);
                         setBracketsSubTab('mat-control');
                       }}
+                      initialTab={navDivisionDetailTab || undefined}
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">

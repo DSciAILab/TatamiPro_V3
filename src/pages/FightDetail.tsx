@@ -346,9 +346,9 @@ const FightDetail: React.FC = () => {
     let matchFound = false;
 
     const processMatchUpdate = (match: Match) => {
-      match.winner_id = selectedWinnerId;
+      match.winner_id = selectedWinnerId!;
       match.loser_id = loserId;
-      match.result = { type: selectedResultType, winner_id: selectedWinnerId, loser_id: loserId, details: resultDetails };
+      match.result = { type: selectedResultType!, winner_id: selectedWinnerId!, loser_id: loserId, details: resultDetails };
       matchFound = true;
 
       if (match.next_match_id) {
@@ -569,16 +569,65 @@ const FightDetail: React.FC = () => {
     }
   };
 
+  // Read source from navigation state to decide where "Back" button goes
+  const navigationSource = (location.state as any)?.source;
+
   const handleGoBack = () => {
-    // Navigate back to Event Detail with brackets tab and mat control center sub-tab
-    navigate(`/events/${eventId}`, {
-      state: {
-        activeTab: 'brackets',
-        bracketsSubTab: 'mat-control',
-        selectedMat: currentMatch?._mat_name || null,
-        selectedDivisionId: divisionId || null,
-      }
-    });
+    // If we came from 'division-fight-order', go back to Division Details (Fight Order tab)
+    if (navigationSource === 'division-fight-order') {
+       navigate(`/events/${eventId}`, { 
+        state: { 
+          activeTab: 'brackets',
+          bracketsSubTab: 'fight-overview', // IMPORTANT: Show division detail
+          navSelectedDivisionId: currentMatch?._division_id,
+          navDivisionDetailTab: 'fight_order' // Specific tab in DivisionDetail
+        } 
+      });
+      return;
+    }
+
+    // If we came from 'division-bracket-view', go back to Division Details (Bracket tab)
+    if (navigationSource === 'division-bracket-view') {
+       navigate(`/events/${eventId}`, { 
+        state: { 
+          activeTab: 'brackets',
+          bracketsSubTab: 'fight-overview', // IMPORTANT: Show division detail
+          navSelectedDivisionId: currentMatch?._division_id,
+          navDivisionDetailTab: 'bracket' // Specific tab in DivisionDetail
+        } 
+      });
+      return;
+    }
+
+    // If we came specificallly from 'mat-control' (main list)
+    if (navigationSource === 'mat-control') {
+      navigate(`/events/${eventId}`, { 
+        state: { 
+          activeTab: 'brackets',
+          bracketsSubTab: 'mat-control',
+          // Try to preserve the selected match/division context if possible (optional improvement)
+          navSelectedMat: currentMatch?._mat_name, // Optional: if MatControl supports this
+          navSelectedDivisionId: currentMatch?._division_id 
+        } 
+      });
+      return;
+    }
+
+    // If we came from 'brackets', go back to general brackets tab
+    if (navigationSource === 'brackets') {
+       navigate(`/events/${eventId}`, { 
+        state: { 
+          activeTab: 'brackets',
+          bracketsSubTab: 'generate-brackets', // Or whatever default brackets view
+          navSelectedDivisionId: currentMatch?._division_id 
+        } 
+      });
+      return;
+    }
+
+
+    // Default fallback (existing logic improved)
+    navigate(`/events/${eventId}`, { state: { activeTab: 'brackets' } });
   };
 
   const handleAdvanceToNextRound = () => {

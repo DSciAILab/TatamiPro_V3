@@ -12,7 +12,7 @@ interface BracketViewProps {
   eventId: string;
   isPublic?: boolean;
   basePath?: string;
-  source?: 'brackets' | 'mat-control';
+  source?: 'brackets' | 'mat-control' | 'division-bracket-view';
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
