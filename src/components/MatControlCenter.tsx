@@ -547,7 +547,8 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                             <TableRow
                               className={cn(
                                 "cursor-pointer hover:bg-muted/50",
-                                divInfo.status === 'Finished' && "opacity-60",
+                                divInfo.status === 'Finished' && "text-green-600 line-through decoration-green-600 opacity-80",
+                                divInfo.status === 'In Progress' && "text-blue-600 font-bold",
                                 isExpanded && "bg-muted/30"
                               )}
                               onClick={() => toggleDivisionExpansion(divInfo.division.id)}
