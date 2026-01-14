@@ -187,8 +187,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         <div className="flex-grow ml-24 space-y-2">
           <div className={cn(
             "flex items-center p-1 rounded-md",
-            match.winner_id === match.fighter1_id ? 'bg-green-100 dark:bg-green-900' :
-            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-red-100 dark:bg-red-950' : ''
+            match.winner_id === match.fighter1_id ? 'bg-success/20' :
+            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/20' : ''
           )}>
             {getFighterPhoto(match.fighter1_id)}
             <div className="ml-2">
@@ -198,8 +198,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           </div>
           <div className={cn(
             "flex items-center p-1 rounded-md",
-            match.winner_id === match.fighter2_id ? 'bg-green-100 dark:bg-green-900' :
-            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-red-100 dark:bg-red-950' : ''
+            match.winner_id === match.fighter2_id ? 'bg-success/20' :
+            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/20' : ''
           )}>
             {getFighterPhoto(match.fighter2_id)}
             <div className="ml-2">
@@ -213,7 +213,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const cardClasses = cn(
       "block border-2 rounded-md transition-colors",
-      match.winner_id ? 'border-green-500' : 'border-gray-200 dark:border-gray-700',
+      match.winner_id ? 'border-success' : 'border-border',
       isFightRecordable && !isPublic ? 'hover:border-primary' : 'cursor-default'
     );
 

@@ -388,7 +388,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                 <TabsTrigger value="wo-champions" className="relative">
                   WO Champions
                   {singleAthleteDivisions.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-orange-500 text-white rounded-full">
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-pending text-pending-foreground rounded-full">
                       {singleAthleteDivisions.length}
                     </span>
                   )}
@@ -505,7 +505,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
             <TabsContent value="wo-champions" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-orange-600 dark:text-orange-400">Single-Athlete Divisions</CardTitle>
+                  <CardTitle className="text-pending">Single-Athlete Divisions</CardTitle>
                   <CardDescription>These divisions have only 1 athlete. Declare them champion by WO (walkover) to count their points.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -525,12 +525,12 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                               </p>
                             </div>
                             {isAlreadyChampion ? (
-                              <span className="text-sm text-green-600 font-medium">✓ Champion by WO</span>
+                              <span className="text-sm text-success font-medium">✓ Champion by WO</span>
                             ) : (
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
+                                className="border-pending/50 text-pending hover:bg-pending/10"
                                 onClick={() => declareSingleAthleteChampion(item.division.id, athlete.id)}
                               >
                                 Declare Champion by WO
@@ -654,7 +654,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowOngoingWarningDialog(false)}>Cancel</AlertDialogCancel>
             {userRole === 'admin' && (
-              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogAction onClick={confirmRegenerateOngoingAction} className="bg-destructive hover:bg-destructive/90">
                 Regenerate (Admin Override)
               </AlertDialogAction>
             )}

@@ -97,7 +97,7 @@ const AthleteListTable: React.FC<AthleteListTableProps> = ({
   const getStatusBadge = (athlete: Athlete) => {
     // 1. Check-in Status (High Priority)
     if (athlete.check_in_status === 'checked_in') {
-      return <Badge className="bg-green-600 hover:bg-green-700 whitespace-nowrap">Checked In</Badge>;
+      return <Badge variant="success" className="whitespace-nowrap">Checked In</Badge>;
     }
 
     // 2. Overweight
@@ -118,9 +118,9 @@ const AthleteListTable: React.FC<AthleteListTableProps> = ({
     // 5. Registration Status
     switch (athlete.registration_status) {
       case 'approved': 
-        return <Badge variant="outline" className="border-green-600 text-green-600 whitespace-nowrap">Registered</Badge>;
+        return <Badge variant="outline" className="border-success text-success whitespace-nowrap">Registered</Badge>;
       case 'under_approval': 
-        return <Badge variant="outline" className="text-orange-500 border-orange-500 whitespace-nowrap">Pending</Badge>;
+        return <Badge variant="pending" className="whitespace-nowrap">Pending</Badge>;
       case 'rejected': 
         return <Badge variant="destructive" className="whitespace-nowrap">Rejected</Badge>;
       default: 

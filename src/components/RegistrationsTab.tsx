@@ -120,7 +120,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
           <span>Manage Registrations</span>
           {userRole === 'admin' && (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 no-print">
+              <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-info border-info/20 bg-info/10 hover:bg-info/20 no-print">
                 <Share2 className="h-4 w-4" /> Athlete Link
               </Button>
               <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 no-print">
@@ -151,45 +151,45 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                   <div
                     className={cn(
                       "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-                      'hover:bg-blue-100 dark:hover:bg-blue-900'
+                      registrationStatusFilter === 'all' ? 'bg-info/20 border-info' : 'bg-info/5',
+                      'hover:bg-info/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('all')}
                   >
-                    <p className="text-2xl font-bold text-blue-600">{coachTotalRegistrations}</p>
+                    <p className="text-2xl font-bold text-info">{coachTotalRegistrations}</p>
                     <p className="text-sm text-muted-foreground">{t('all')}</p>
                   </div>
                   <div
                     className={cn(
                       "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'approved' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-                      'hover:bg-green-100 dark:hover:bg-green-900'
+                      registrationStatusFilter === 'approved' ? 'bg-success/20 border-success' : 'bg-success/5',
+                      'hover:bg-success/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('approved')}
                   >
-                    <p className="text-2xl font-bold text-green-600">{coachTotalApproved}</p>
+                    <p className="text-2xl font-bold text-success">{coachTotalApproved}</p>
                     <p className="text-sm text-muted-foreground">Approved</p>
                   </div>
                   <div
                     className={cn(
                       "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'under_approval' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-                      'hover:bg-orange-100 dark:hover:bg-orange-900'
+                      registrationStatusFilter === 'under_approval' ? 'bg-pending/20 border-pending' : 'bg-pending/5',
+                      'hover:bg-pending/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('under_approval')}
                   >
-                    <p className="text-2xl font-bold text-orange-600">{coachTotalPending}</p>
+                    <p className="text-2xl font-bold text-pending">{coachTotalPending}</p>
                     <p className="text-sm text-muted-foreground">Pending</p>
                   </div>
                   <div
                     className={cn(
                       "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'rejected' ? 'bg-red-200 dark:bg-red-800 border-red-500' : 'bg-red-50 dark:bg-red-950',
-                      registrationStatusFilter === 'rejected' ? 'hover:bg-red-300 dark:hover:bg-red-700' : 'hover:bg-red-100 dark:hover:bg-red-900'
+                      registrationStatusFilter === 'rejected' ? 'bg-destructive/20 border-destructive' : 'bg-destructive/5',
+                      'hover:bg-destructive/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('rejected')}
                   >
-                    <p className="text-2xl font-bold text-red-600">{coachTotalRejected}</p>
+                    <p className="text-2xl font-bold text-destructive">{coachTotalRejected}</p>
                     <p className="text-sm text-muted-foreground">Rejected</p>
                   </div>
                 </div>
@@ -294,7 +294,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-sm text-orange-500 font-semibold">Awaiting Approval</span>
+                              <span className="text-sm text-pending font-semibold">Awaiting Approval</span>
                               {userRole === 'admin' && (
                                 <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
                                   <Edit className="h-4 w-4" />

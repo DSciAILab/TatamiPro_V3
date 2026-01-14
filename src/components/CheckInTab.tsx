@@ -111,7 +111,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 <Badge variant="destructive">Check-in Closed</Badge>
               )}
               {event.is_check_in_open && (
-                <Badge variant="outline" className="text-green-600 border-green-600">Check-in Open</Badge>
+                <Badge variant="outline" className="text-success border-success">Check-in Open</Badge>
               )}
             </div>
           </CardTitle>
@@ -132,34 +132,34 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
             <div
               className={cn(
                 "p-3 border rounded-md cursor-pointer transition-colors",
-                checkInFilter === 'checked_in' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-                checkInFilter === 'checked_in' ? 'hover:bg-green-300 dark:hover:bg-green-700' : 'hover:bg-green-100 dark:hover:bg-green-900'
+                checkInFilter === 'checked_in' ? 'bg-success/20 border-success' : 'bg-success/5',
+                checkInFilter === 'checked_in' ? 'hover:bg-success/30' : 'hover:bg-success/10'
               )}
               onClick={() => setCheckInFilter('checked_in')}
             >
-              <p className="text-2xl font-bold text-green-600">{totalCheckedIn}</p>
+              <p className="text-2xl font-bold text-success">{totalCheckedIn}</p>
               <p className="text-sm text-muted-foreground">Checked In</p>
             </div>
             <div
               className={cn(
                 "p-3 border rounded-md cursor-pointer transition-colors",
-                checkInFilter === 'pending' ? 'bg-orange-200 dark:bg-orange-800 border-orange-500' : 'bg-orange-50 dark:bg-orange-950',
-                checkInFilter === 'pending' ? 'hover:bg-orange-300 dark:hover:bg-orange-700' : 'hover:bg-orange-100 dark:hover:bg-orange-900'
+                checkInFilter === 'pending' ? 'bg-pending/20 border-pending' : 'bg-pending/5',
+                checkInFilter === 'pending' ? 'hover:bg-pending/30' : 'hover:bg-pending/10'
               )}
               onClick={() => setCheckInFilter('pending')}
             >
-              <p className="text-2xl font-bold text-orange-600">{totalPendingCheckIn}</p>
+              <p className="text-2xl font-bold text-pending">{totalPendingCheckIn}</p>
               <p className="text-sm text-muted-foreground">Remaining</p>
             </div>
             <div
               className={cn(
                 "p-3 border rounded-md cursor-pointer transition-colors",
-                checkInFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-                checkInFilter === 'all' ? 'hover:bg-blue-300 dark:hover:bg-blue-700' : 'hover:bg-blue-100 dark:hover:bg-blue-900'
+                checkInFilter === 'all' ? 'bg-info/20 border-info' : 'bg-info/5',
+                checkInFilter === 'all' ? 'hover:bg-info/30' : 'hover:bg-info/10'
               )}
               onClick={() => setCheckInFilter('all')}
             >
-              <p className="text-2xl font-bold text-blue-600">{totalApprovedAthletes}</p>
+              <p className="text-2xl font-bold text-info">{totalApprovedAthletes}</p>
               <p className="text-sm text-muted-foreground">Total Approved</p>
             </div>
           </div>
@@ -212,7 +212,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                     <path d="M9 16c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
                   </svg>
                   Face ID
-                  <Badge variant="outline" className="ml-1 bg-amber-50 text-amber-700 border-amber-300 text-xs">
+                  <Badge variant="warning" className="ml-1 text-xs">
                     Beta
                   </Badge>
                 </Button>
@@ -221,7 +221,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     Face ID Check-in
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                    <Badge variant="warning">
                       Beta
                     </Badge>
                   </DialogTitle>
@@ -235,7 +235,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
 
             {/* Batch Check-in Button */}
             {isBatchCheckInEnabled && selectedAthleteIds.length > 0 && (
-                <Button onClick={onBatchCheckIn} className="bg-green-600 hover:bg-green-700 text-white animate-in fade-in zoom-in">
+                <Button onClick={onBatchCheckIn} className="bg-success hover:bg-success/90 text-success-foreground animate-in fade-in zoom-in">
                     Batch Check-in ({selectedAthleteIds.length})
                 </Button>
             )}

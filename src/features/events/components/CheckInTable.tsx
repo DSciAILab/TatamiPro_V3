@@ -108,7 +108,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
 
   const getStatusBadge = (athlete: Athlete) => {
      if (athlete.check_in_status === 'checked_in') {
-      return <Badge className="bg-green-600 hover:bg-green-700 whitespace-nowrap">Checked In</Badge>;
+      return <Badge variant="success" className="whitespace-nowrap">Checked In</Badge>;
     }
     if (athlete.check_in_status === 'overweight') {
         return (
@@ -128,7 +128,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
     }
     
     // Default PENDENTE
-    return <Badge variant="outline" className="border-orange-500 text-orange-500 whitespace-nowrap">Pending</Badge>;
+    return <Badge variant="pending" className="whitespace-nowrap">Pending</Badge>;
   };
   
   const totalPages = Math.ceil(sortedAthletes.length / itemsPerPage);
@@ -361,24 +361,24 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                         {athlete.weight_attempts && athlete.weight_attempts.length > 0 ? (
                            <WeightHistory attempts={athlete.weight_attempts} />
                         ) : athlete.registered_weight ? (
-                          <p className="text-xs text-gray-500">Last Weight: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
+                          <p className="text-xs text-muted-foreground">Last Weight: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
                         ) : null}
                       </div>
                     </div>
                     <div className="flex flex-col items-end space-y-2">
                       <div className="flex items-center space-x-2">
                         {athlete.check_in_status === 'checked_in' && (
-                          <span className="flex items-center text-green-600 font-semibold text-sm">
+                          <span className="flex items-center text-success font-semibold text-sm">
                             <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
                           </span>
                         )}
                         {athlete.check_in_status === 'overweight' && (
-                          <span className="flex items-center text-red-600 font-semibold text-sm">
+                          <span className="flex items-center text-destructive font-semibold text-sm">
                             <XCircle className="h-4 w-4 mr-1" /> Overweight ({athlete.registered_weight}kg)
                           </span>
                         )}
                         {athlete.check_in_status === 'pending' && (
-                          <span className="flex items-center text-orange-500 font-semibold text-sm">
+                          <span className="flex items-center text-pending font-semibold text-sm">
                             <Scale className="h-4 w-4 mr-1" /> Pending
                           </span>
                         )}

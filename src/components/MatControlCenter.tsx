@@ -375,11 +375,11 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
   const getStatusBadge = (status: DivisionInfo['status']) => {
     switch (status) {
       case 'Finished':
-        return <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Finished</span>;
+        return <span className="px-2 py-0.5 text-xs rounded-full bg-success/20 text-success">Finished</span>;
       case 'In Progress':
-        return <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">In Progress</span>;
+        return <span className="px-2 py-0.5 text-xs rounded-full bg-info/20 text-info">In Progress</span>;
       default:
-        return <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Pending</span>;
+        return <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Pending</span>;
     }
   };
 
@@ -403,34 +403,34 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
         <div
           className={cn(
             "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'all' ? 'bg-blue-200 dark:bg-blue-800 border-blue-500' : 'bg-blue-50 dark:bg-blue-950',
-            'hover:bg-blue-100 dark:hover:bg-blue-900'
+            statusFilter === 'all' ? 'bg-info/20 border-info' : 'bg-info/5',
+            'hover:bg-info/10'
           )}
           onClick={() => updateStatusFilter('all')}
         >
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totals.total}</p>
+          <p className="text-2xl font-bold text-info">{totals.total}</p>
           <p className="text-sm text-muted-foreground">Todas</p>
         </div>
         <div
           className={cn(
             "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'active' ? 'bg-green-200 dark:bg-green-800 border-green-500' : 'bg-green-50 dark:bg-green-950',
-            'hover:bg-green-100 dark:hover:bg-green-900'
+            statusFilter === 'active' ? 'bg-success/20 border-success' : 'bg-success/5',
+            'hover:bg-success/10'
           )}
           onClick={() => updateStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
         >
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totals.active}</p>
+          <p className="text-2xl font-bold text-success">{totals.active}</p>
           <p className="text-sm text-muted-foreground">Ativas</p>
         </div>
         <div
           className={cn(
             "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'finished' ? 'bg-yellow-200 dark:bg-yellow-800 border-yellow-500' : 'bg-yellow-50 dark:bg-yellow-950',
-            'hover:bg-yellow-100 dark:hover:bg-yellow-900'
+            statusFilter === 'finished' ? 'bg-warning/20 border-warning' : 'bg-warning/5',
+            'hover:bg-warning/10'
           )}
           onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
         >
-          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totals.finished}</p>
+          <p className="text-2xl font-bold text-warning">{totals.finished}</p>
           <p className="text-sm text-muted-foreground">Finalizadas</p>
         </div>
       </div>
@@ -480,11 +480,11 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                       </span>
                     </div>
                     <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                      <div className="flex items-center gap-2 text-pending">
                         <Swords className="h-4 w-4" />
                         <span className="font-medium">{group.remainingFights} fights left</span>
                       </div>
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <div className="flex items-center gap-2 text-info">
                         <Clock className="h-4 w-4" />
                         <span className="font-medium">~{formatTime(group.estimatedRemainingTime)}</span>
                       </div>
@@ -587,11 +587,11 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                                           key={athlete.id}
                                           className={cn(
                                             "flex items-center justify-between p-2 rounded-md",
-                                            status.placing === '1st' && "bg-yellow-100 dark:bg-yellow-900/30",
-                                            status.placing === '2nd' && "bg-gray-200 dark:bg-gray-700/50",
-                                            status.placing === '3rd' && "bg-orange-100 dark:bg-orange-900/30",
-                                            status.placing === 'eliminated' && "bg-red-50 dark:bg-red-900/20",
-                                            status.placing === 'active' && "bg-blue-50 dark:bg-blue-900/20"
+                                            status.placing === '1st' && "bg-warning/20",
+                                            status.placing === '2nd' && "bg-muted",
+                                            status.placing === '3rd' && "bg-pending/20",
+                                            status.placing === 'eliminated' && "bg-destructive/10",
+                                            status.placing === 'active' && "bg-info/20"
                                           )}
                                         >
                                           <div className="flex items-center gap-3">
@@ -609,7 +609,7 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                                             <div>
                                               <p className={cn(
                                                 "font-medium",
-                                                status.placing === 'eliminated' && "line-through text-red-600 dark:text-red-400"
+                                                status.placing === 'eliminated' && "line-through text-destructive"
                                               )}>
                                                 {athlete.first_name} {athlete.last_name}
                                               </p>
@@ -619,13 +619,13 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                                           
                                           <div className="flex items-center gap-2">
                                             {status.placing === '1st' && (
-                                              <Badge className="bg-yellow-500 text-white">🥇 1º Lugar</Badge>
+                                              <Badge variant="warning">🥇 1º Lugar</Badge>
                                             )}
                                             {status.placing === '2nd' && (
-                                              <Badge className="bg-gray-400 text-white">🥈 2º Lugar</Badge>
+                                              <Badge variant="secondary">🥈 2º Lugar</Badge>
                                             )}
                                             {status.placing === '3rd' && (
-                                              <Badge className="bg-orange-500 text-white">🥉 3º Lugar</Badge>
+                                              <Badge variant="pending">🥉 3º Lugar</Badge>
                                             )}
                                             {status.placing === 'eliminated' && (
                                               <Badge variant="destructive">
@@ -633,7 +633,7 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
                                               </Badge>
                                             )}
                                             {status.placing === 'active' && (
-                                              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                                              <Badge variant="info">
                                                 Em Competição
                                               </Badge>
                                             )}

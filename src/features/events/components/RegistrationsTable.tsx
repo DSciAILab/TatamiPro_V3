@@ -92,7 +92,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   const getStatusBadge = (athlete: Athlete) => {
     // 1. Check-in Status (High Priority)
     if (athlete.check_in_status === 'checked_in') {
-      return <Badge className="bg-green-600 hover:bg-green-700 whitespace-nowrap">Checked In</Badge>;
+      return <Badge variant="success" className="whitespace-nowrap">Checked In</Badge>;
     }
 
     // 2. Overweight
@@ -113,9 +113,9 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     // 5. Registration Status
     switch (athlete.registration_status) {
       case 'approved': 
-        return <Badge variant="outline" className="border-green-600 text-green-600 whitespace-nowrap">Registered</Badge>;
+        return <Badge variant="outline" className="border-success text-success whitespace-nowrap">Registered</Badge>;
       case 'under_approval': 
-        return <Badge variant="outline" className="text-orange-500 border-orange-500 whitespace-nowrap">Pending</Badge>;
+        return <Badge variant="pending" className="whitespace-nowrap">Pending</Badge>;
       case 'rejected': 
         return <Badge variant="destructive" className="whitespace-nowrap">Rejected</Badge>;
       default: 
@@ -219,7 +219,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
@@ -272,9 +272,9 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                         <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
                         <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
                         <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
-                        <p className="text-xs text-gray-500">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-green-600' : athlete.registration_status === 'under_approval' ? 'text-orange-500' : 'text-red-600'}`}>{athlete.registration_status === 'under_approval' ? 'Pending Approval' : athlete.registration_status === 'approved' ? 'Approved' : 'Rejected'}</span></p>
+                        <p className="text-xs text-muted-foreground">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-success' : athlete.registration_status === 'under_approval' ? 'text-pending' : 'text-destructive'}`}>{athlete.registration_status === 'under_approval' ? 'Pending Approval' : athlete.registration_status === 'approved' ? 'Approved' : 'Rejected'}</span></p>
                         {athlete.move_reason && (
-                        <p className="text-xs text-blue-500">
+                        <p className="text-xs text-info">
                             <span className="font-semibold">Moved:</span> {athlete.move_reason}
                         </p>
                         )}
@@ -301,7 +301,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
                                 <Trash2 className="h-4 w-4" />
                                 </Button>
                             </AlertDialogTrigger>

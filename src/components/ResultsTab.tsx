@@ -151,12 +151,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
     <div className="space-y-6">
       {/* Filter Stats Cards */}
       <div className="grid grid-cols-2 gap-4 text-center">
-        <div className="p-3 border rounded-md bg-green-50 dark:bg-green-950">
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{allCompletedDivisions.length}</p>
+        <div className="p-3 border rounded-md bg-success/10">
+          <p className="text-2xl font-bold text-success">{allCompletedDivisions.length}</p>
           <p className="text-sm text-muted-foreground">Completed Divisions</p>
         </div>
-        <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-950">
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{filteredDivisions.length}</p>
+        <div className="p-3 border rounded-md bg-info/10">
+          <p className="text-2xl font-bold text-info">{filteredDivisions.length}</p>
           <p className="text-sm text-muted-foreground">Showing</p>
         </div>
       </div>
@@ -204,7 +204,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                     <AccordionTrigger className="flex items-center gap-2">
                       <span>{division.name}</span>
                       {!countsForPoints && (
-                        <Badge variant="outline" className="ml-2 text-xs bg-yellow-50 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                        <Badge variant="warning" className="ml-2 text-xs">
                           <AlertTriangle className="h-3 w-3 mr-1" />
                           No Points
                         </Badge>
@@ -222,7 +222,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                           <span className="font-semibold w-20">1st Place:</span>
                           {getAthleteDisplay(bracket?.winner_id)}
                           {countsForPoints && (
-                            <Badge className="ml-2 bg-yellow-500 text-white">+{championPoints} pts</Badge>
+                            <Badge variant="warning" className="ml-2">+{championPoints} pts</Badge>
                           )}
                         </li>
                         <li className="flex items-center space-x-2">
@@ -230,7 +230,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                           <span className="font-semibold w-20">2nd Place:</span>
                           {getAthleteDisplay(bracket?.runner_up_id)}
                           {countsForPoints && (
-                            <Badge className="ml-2 bg-gray-400 text-white">+{runnerUpPoints} pts</Badge>
+                            <Badge variant="secondary" className="ml-2">+{runnerUpPoints} pts</Badge>
                           )}
                         </li>
                         {bracket?.third_place_winner_id ? (
@@ -239,7 +239,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                             <span className="font-semibold w-20">3rd Place:</span>
                             {getAthleteDisplay(bracket.third_place_winner_id)}
                             {countsForPoints && (
-                              <Badge className="ml-2 bg-orange-500 text-white">+{thirdPlacePoints} pts</Badge>
+                              <Badge variant="pending" className="ml-2">+{thirdPlacePoints} pts</Badge>
                             )}
                           </li>
                         ) : (
@@ -252,7 +252,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
                                   <span className="font-semibold w-20">3rd Place:</span>
                                   {getAthleteDisplay(match.loser_id)}
                                   {countsForPoints && (
-                                    <Badge className="ml-2 bg-orange-500 text-white">+{thirdPlacePoints} pts</Badge>
+                                    <Badge variant="pending" className="ml-2">+{thirdPlacePoints} pts</Badge>
                                   )}
                                 </li>
                               )

@@ -274,16 +274,16 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
                     </TableCell>
                     <TableCell>{athlete.club}</TableCell>
                     <TableCell>
-                      {athlete.check_in_status === 'checked_in' && <Badge variant="default" className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" /> OK</Badge>}
+                      {athlete.check_in_status === 'checked_in' && <Badge variant="success"><CheckCircle className="w-3 h-3 mr-1" /> OK</Badge>}
                       {athlete.check_in_status === 'overweight' && <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Over</Badge>}
-                      {athlete.check_in_status === 'pending' && <Badge variant="outline" className="text-orange-500 border-orange-500"><Scale className="w-3 h-3 mr-1" /> Pendente</Badge>}
+                      {athlete.check_in_status === 'pending' && <Badge variant="pending"><Scale className="w-3 h-3 mr-1" /> Pendente</Badge>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Input
                           type="number"
                           inputMode="decimal"
-                          className={`h-8 w-24 ${athlete.check_in_status === 'checked_in' ? 'border-green-500 bg-green-50 dark:bg-green-950' : ''}`}
+                          className={`h-8 w-24 ${athlete.check_in_status === 'checked_in' ? 'border-success bg-success/10' : ''}`}
                           placeholder="0.0"
                           value={currentInputValue}
                           onChange={(e) => handleWeightChange(athlete.id, e.target.value)}
