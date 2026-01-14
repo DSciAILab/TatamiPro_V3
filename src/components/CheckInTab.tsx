@@ -115,30 +115,36 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
                 <Badge
-                  variant={checkInFilter === 'all' ? 'info' : 'outline'}
+                  variant="outline"
                   className={cn(
-                    "cursor-pointer transition-all px-3 py-1",
-                    checkInFilter === 'all' ? 'ring-2 ring-info/50' : 'hover:bg-info/10'
+                    "cursor-pointer transition-all px-3 py-1 border",
+                    checkInFilter === 'all' 
+                      ? "bg-info text-white border-info hover:bg-info/90" 
+                      : "border-info text-info hover:bg-info/10"
                   )}
                   onClick={() => setCheckInFilter('all')}
                 >
                   Total Approved: {totalApprovedAthletes}
                 </Badge>
                 <Badge
-                  variant={checkInFilter === 'checked_in' ? 'success' : 'outline'}
+                  variant="outline"
                   className={cn(
-                    "cursor-pointer transition-all px-3 py-1",
-                    checkInFilter === 'checked_in' ? 'ring-2 ring-success/50' : 'hover:bg-success/10'
+                    "cursor-pointer transition-all px-3 py-1 border",
+                    checkInFilter === 'checked_in' 
+                      ? "bg-success text-white border-success hover:bg-success/90" 
+                      : "border-success text-success hover:bg-success/10"
                   )}
                   onClick={() => setCheckInFilter('checked_in')}
                 >
                   Checked In: {totalCheckedIn}
                 </Badge>
                 <Badge
-                  variant={checkInFilter === 'pending' ? 'pending' : 'outline'}
+                  variant="outline"
                   className={cn(
-                    "cursor-pointer transition-all px-3 py-1",
-                    checkInFilter === 'pending' ? 'ring-2 ring-pending/50' : 'hover:bg-pending/10'
+                    "cursor-pointer transition-all px-3 py-1 border",
+                    checkInFilter === 'pending' 
+                      ? "bg-pending text-white border-pending hover:bg-pending/90" 
+                      : "border-pending text-pending hover:bg-pending/10"
                   )}
                   onClick={() => setCheckInFilter('pending')}
                 >

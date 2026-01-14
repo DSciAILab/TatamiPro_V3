@@ -9,13 +9,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { LayoutGrid, Swords, Printer } from 'lucide-react';
+import { LayoutGrid, Swords, Printer, Medal } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import MatCategoryList from '@/components/MatCategory';
 import {
@@ -59,6 +61,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const [bracketSearchTerm, setBracketSearchTerm] = useState('');
   const [selectedDivisionIdForBracket, setSelectedDivisionIdForBracket] = useState<string | 'all'>('all');
   const [showRegenerateConfirmDialog, setShowRegenerateConfirmDialog] = useState(false);
   const [divisionsToConfirmRegenerate, setDivisionsToConfirmRegenerate] = useState<Division[]>([]);
@@ -365,25 +368,16 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   const isBracketStaffOnly = staffRole === 'bracket';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Brackets</CardTitle>
-        <CardDescription>
-          {isBracketStaffOnly 
-            ? 'Gerencie as lutas a partir do Mat Control.'
-            : 'Generate and view the event brackets.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {(userRole || isBracketStaffOnly) && (
-          <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
-            {/* Bracket staff only sees Mat Control tab */}
+    <div className="space-y-6">
+      {(userRole || isBracketStaffOnly) && (
+        <Tabs value={bracketsSubTab} onValueChange={setBracketsSubTab} className="w-full">
+          <div className="flex items-center justify-between mb-4">
             {isBracketStaffOnly ? (
-              <TabsList className="grid w-full grid-cols-1">
+              <TabsList>
                 <TabsTrigger value="mat-control">Mat Control</TabsTrigger>
               </TabsList>
             ) : (
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList>
                 <TabsTrigger value="generate-brackets">
                   <LayoutGrid className="mr-2 h-4 w-4" /> Generate
                 </TabsTrigger>
@@ -399,226 +393,230 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                 </TabsTrigger>
               </TabsList>
             )}
+          </div>
 
-            <TabsContent value="mat-distribution" className="mt-6">
-              <MatDistribution event={event} onUpdateMatAssignments={handleUpdateMatAssignments} isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true} />
-            </TabsContent>
+          <TabsContent value="mat-distribution" className="mt-0">
+             <MatDistribution event={event} onUpdateMatAssignments={handleUpdateMatAssignments} isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true} />
+          </TabsContent>
 
-            <TabsContent value="generate-brackets" className="mt-6">
-              <Card className="mb-6">
+          <TabsContent value="generate-brackets" className="mt-0">
+             <Card>
                 <CardHeader>
-                  <CardTitle>Generation Options</CardTitle>
-                  <CardDescription>Select divisions and options to generate the brackets.</CardDescription>
+                    <CardTitle>Generate Brackets</CardTitle>
+                    <CardDescription>Select divisions to generate brackets and manage fight matching.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="division-select">Division</Label>
-                    <Select value={selectedDivisionIdForBracket} onValueChange={(value: string | 'all') => setSelectedDivisionIdForBracket(value)}>
-                      <SelectTrigger id="division-select">
-                        <SelectValue placeholder="Select a division or all" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Divisions</SelectItem>
-                        {availableDivisionsForBracketGeneration.map(div => {
-                          // Support for split brackets: find all brackets for this division
-                          const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
-                          
-                          let statusIndicator = '⚪'; // No bracket
-                          let statusText = 'Não gerado';
-                          
-                          if (divisionBrackets.length > 0) {
-                             const allFinished = divisionBrackets.every(b => b.winner_id);
-                             const anyInProgress = divisionBrackets.some(b => {
-                                // Check for in-progress fights
-                                if (!b.rounds) return false;
-                                return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
-                             });
+                <CardContent className="space-y-6">
+                    {/* Generation Toolbar */}
+                    <div className="flex flex-col md:flex-row gap-4 items-end bg-muted/40 p-4 rounded-lg border">
+                    <div className="flex-1 space-y-2 w-full md:w-auto">
+                        <Label htmlFor="division-select">Division to Generate</Label>
+                        <Select value={selectedDivisionIdForBracket} onValueChange={(value: string | 'all') => setSelectedDivisionIdForBracket(value)}>
+                        <SelectTrigger id="division-select" className="bg-background">
+                            <SelectValue placeholder="Select a division or all" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Divisions</SelectItem>
+                            {availableDivisionsForBracketGeneration.map(div => {
+                            const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
+                            let statusIndicator = '⚪'; 
+                            let statusText = 'Não gerado';
+                            
+                            if (divisionBrackets.length > 0) {
+                                const allFinished = divisionBrackets.every(b => b.winner_id);
+                                const anyInProgress = divisionBrackets.some(b => {
+                                    if (!b.rounds) return false;
+                                    return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
+                                });
 
-                             if (allFinished) {
-                               statusIndicator = '✅'; // Finished
-                               statusText = 'Finalizado';
-                             } else if (anyInProgress) {
-                               statusIndicator = '🔄'; // In progress
-                               statusText = 'Em progresso';
-                             } else {
-                               statusIndicator = '📋'; // Generated but not started
-                               statusText = 'Gerado';
-                             }
-                             
-                             if (divisionBrackets.length > 1) {
-                                 statusText += ` (${divisionBrackets.length} groups)`;
-                             }
-                          }
-                          
-                          return (
-                            <SelectItem key={div.id} value={div.id}>
-                              <span className="flex items-center gap-2">
-                                <span title={statusText}>{statusIndicator}</span>
-                                {div.name}
-                              </span>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-between space-x-2 p-3 border rounded-md bg-muted/50">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="include-ongoing-toggle" className="font-medium">
-                        Include brackets with results
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        {includeOngoingBrackets 
-                          ? "Will regenerate ALL brackets, including those with results (Admin)" 
-                          : "Will regenerate ONLY brackets without results"}
-                      </p>
+                                if (allFinished) {
+                                    statusIndicator = '✅'; 
+                                    statusText = 'Finalizado';
+                                } else if (anyInProgress) {
+                                    statusIndicator = '🔄'; 
+                                    statusText = 'Em progresso';
+                                } else {
+                                    statusIndicator = '📋'; 
+                                    statusText = 'Gerado';
+                                }
+                                
+                                if (divisionBrackets.length > 1) {
+                                    statusText += ` (${divisionBrackets.length} groups)`;
+                                }
+                            }
+                            
+                            return (
+                                <SelectItem key={div.id} value={div.id}>
+                                <span className="flex items-center gap-2">
+                                    <span title={statusText}>{statusIndicator}</span>
+                                    {div.name}
+                                </span>
+                                </SelectItem>
+                            );
+                            })}
+                        </SelectContent>
+                        </Select>
                     </div>
-                    <Switch 
-                      id="include-ongoing-toggle"
-                      checked={includeOngoingBrackets}
-                      onCheckedChange={setIncludeOngoingBrackets}
-                      disabled={userRole !== 'admin'}
-                    />
-                  </div>
-                  <Button onClick={handleGenerateBrackets} className="w-full">
-                    <LayoutGrid className="mr-2 h-4 w-4" /> Generate Bracket(s)
-                  </Button>
-                  {Object.keys(brackets).length > 0 && (
-                    <Button className="w-full mt-2" variant="outline" onClick={() => navigate(`/events/${event.id}/print-brackets`)}>
-                      <Printer className="mr-2 h-4 w-4" /> Print Brackets (PDF)
+
+                    <div className="flex items-center space-x-2 border p-2 rounded-md bg-background h-10">
+                        <Switch 
+                        id="include-ongoing-toggle"
+                        checked={includeOngoingBrackets}
+                        onCheckedChange={setIncludeOngoingBrackets}
+                        disabled={userRole !== 'admin'}
+                        />
+                        <Label htmlFor="include-ongoing-toggle" className="text-sm font-normal cursor-pointer">
+                        Re-gen Results
+                        </Label>
+                    </div>
+
+                    <Button onClick={handleGenerateBrackets} className="">
+                        <LayoutGrid className="mr-2 h-4 w-4" /> Generate
                     </Button>
-                  )}
+                    
+                    {Object.keys(brackets).length > 0 && (
+                        <Button variant="outline" onClick={() => navigate(`/events/${event.id}/print-brackets`)}>
+                        <Printer className="mr-2 h-4 w-4" /> Print PDF
+                        </Button>
+                    )}
+                    </div>
+
+                    <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <h3 className="text-lg font-semibold tracking-tight whitespace-nowrap">Generated Brackets</h3>
+                        <div className="relative flex-1">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search brackets by division name..." 
+                            className="pl-8 w-full" 
+                            value={bracketSearchTerm}
+                            onChange={(e) => setBracketSearchTerm(e.target.value)}
+                        />
+                        </div>
+                    </div>
+
+                    {Object.keys(brackets).length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
+                        No brackets generated yet. Select a division above to start.
+                        </div>
+                    ) : (
+                        <div className="space-y-8">
+                        {Object.values(brackets)
+                            .filter(bracket => {
+                                if (!bracketSearchTerm) return true;
+                                const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                                const term = bracketSearchTerm.toLowerCase();
+                                
+                                // Search by division name, bracket ID, or group name
+                                return (
+                                    division?.name.toLowerCase().includes(term) ||
+                                    bracket.id.toLowerCase().includes(term) ||
+                                    (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
+                                );
+                            })
+                            .map(bracket => {
+                            const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                            if (!division) return null;
+                            return (<BracketView key={bracket.id} bracket={bracket} allAthletes={event.athletes || []} division={division} eventId={event.id} />);
+                        })}
+                        {Object.values(brackets).filter(bracket => {
+                                if (!bracketSearchTerm) return true;
+                                const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                                const term = bracketSearchTerm.toLowerCase();
+                                return (
+                                    division?.name.toLowerCase().includes(term) ||
+                                    bracket.id.toLowerCase().includes(term) ||
+                                    (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
+                                );
+                        }).length === 0 && Object.keys(brackets).length > 0 && (
+                            <p className="text-muted-foreground text-center py-8">No brackets matching your search.</p>
+                        )}
+                        </div>
+                    )}
+                    </div>
                 </CardContent>
-              </Card>
+             </Card>
+          </TabsContent>
 
-
-              <h2 className="text-2xl font-bold mt-8 mb-4">Generated Brackets</h2>
-              {Object.keys(brackets).length === 0 ? (
-                <p className="text-muted-foreground">No brackets generated yet. Use the options above to get started.</p>
-              ) : (
-                <div className="space-y-8">
-                  {Object.values(brackets).map(bracket => {
-                    const division = event?.divisions?.find(d => d.id === bracket.division_id);
-                    if (!division) return null;
-                    return (<BracketView key={bracket.id} bracket={bracket} allAthletes={event.athletes || []} division={division} eventId={event.id} />);
-                  })}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="wo-champions" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-pending">Single-Athlete Divisions</CardTitle>
-                  <CardDescription>These divisions have only 1 athlete. Declare them champion by WO (walkover) to count their points.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {singleAthleteDivisions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">No single-athlete divisions found. All divisions have 2+ checked-in athletes.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {singleAthleteDivisions.map(item => {
-                        const athlete = item.athletes[0];
-                        const isAlreadyChampion = item.hasExistingBracket && event.brackets?.[item.division.id]?.winner_id === athlete.id;
-                        return (
-                          <div key={item.division.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                            <div>
-                              <p className="font-medium">[{item.division.id.slice(-3).toUpperCase()}] {item.division.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {athlete.first_name} {athlete.last_name} ({athlete.club})
-                              </p>
-                            </div>
-                            {isAlreadyChampion ? (
-                              <span className="text-sm text-success font-medium">✓ Champion by WO</span>
-                            ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="border-pending/50 text-pending hover:bg-pending/10"
-                                onClick={() => declareSingleAthleteChampion(item.division.id, athlete.id)}
-                              >
-                                Declare Champion by WO
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="manage-fights" className="mt-6">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Swords className="h-5 w-5 text-muted-foreground" />
-                    Mat and Category Selection
-                  </CardTitle>
-                  <CardDescription>Section temporarily disabled for maintenance.</CardDescription>
-                </CardHeader>
-                <CardContent className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                      <Swords className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-medium">Temporarily Unavailable</p>
-                      <p className="text-sm">This section is under maintenance. Please use the "Overview" or "Mat Control" tabs instead.</p>
-                    </div>
+          <TabsContent value="wo-champions" className="mt-0">
+             <div className="rounded-md border bg-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-pending">Single-Athlete Divisions</h3>
+                    <p className="text-sm text-muted-foreground">Declare champions by WO (walkover).</p>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
 
-            <TabsContent value="mat-control" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mat Control Center</CardTitle>
-                  <CardDescription>Complete overview of all mats with remaining fights and estimated time.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <MatControlCenter
-                    event={event}
-                    onDivisionSelect={(division) => {
-                      setSelectedDivisionForDetail(division);
-                      setBracketsSubTab('fight-overview');
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+                {singleAthleteDivisions.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No single-athlete divisions found.</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {singleAthleteDivisions.map(item => {
+                      const athlete = item.athletes[0];
+                      const isAlreadyChampion = item.hasExistingBracket && event.brackets?.[item.division.id]?.winner_id === athlete.id;
+                      return (
+                        <div key={item.division.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                          <div>
+                            <p className="font-medium">[{item.division.id.slice(-3).toUpperCase()}] {item.division.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {athlete.first_name} {athlete.last_name} ({athlete.club})
+                            </p>
+                          </div>
+                          {isAlreadyChampion ? (
+                            <span className="text-sm text-success font-medium flex items-center gap-1">
+                              <Medal className="h-4 w-4" /> Champion by WO
+                            </span>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-pending/50 text-pending hover:bg-pending/10"
+                              onClick={() => declareSingleAthleteChampion(item.division.id, athlete.id)}
+                            >
+                              Declare Champion
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+             </div>
+          </TabsContent>
 
-            {/* Hidden tab - only accessible via Mat Control */}
-            <TabsContent value="fight-overview" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Division Details</CardTitle>
-                  <CardDescription>View and manage fights for the selected division.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {selectedDivisionForDetail ? (
-                    <DivisionDetailView
-                      event={event}
-                      division={selectedDivisionForDetail}
-                      onBack={() => {
-                        setSelectedDivisionForDetail(null);
-                        setBracketsSubTab('mat-control');
-                      }}
-                      initialTab={navDivisionDetailTab || undefined}
-                    />
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No division selected. Please select a division from Mat Control.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-      </CardContent>
+          <TabsContent value="manage-fights" className="mt-0">
+             <div className="text-center py-12 text-muted-foreground">Section temporarily disabled.</div>
+          </TabsContent>
+
+          <TabsContent value="mat-control" className="mt-0">
+             <MatControlCenter
+               event={event}
+               onDivisionSelect={(division) => {
+                 setSelectedDivisionForDetail(division);
+                 setBracketsSubTab('fight-overview');
+               }}
+             />
+          </TabsContent>
+
+          {/* Hidden tab - only accessible via Mat Control */}
+          <TabsContent value="fight-overview" className="mt-0">
+             {selectedDivisionForDetail ? (
+               <DivisionDetailView
+                 event={event}
+                 division={selectedDivisionForDetail}
+                 onBack={() => {
+                   setSelectedDivisionForDetail(null);
+                   setBracketsSubTab('mat-control');
+                 }}
+                 initialTab={navDivisionDetailTab || undefined}
+               />
+             ) : (
+               <div className="text-center py-8 text-muted-foreground">
+                 <p>No division selected.</p>
+               </div>
+             )}
+          </TabsContent>
+        </Tabs>
+      )}
       <AlertDialog open={showRegenerateConfirmDialog} onOpenChange={setShowRegenerateConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -666,7 +664,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 };
 

@@ -138,40 +138,48 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
                   <Badge
-                    variant={registrationStatusFilter === 'all' ? 'info' : 'outline'}
+                    variant="outline"
                     className={cn(
-                      "cursor-pointer transition-all px-3 py-1",
-                      registrationStatusFilter === 'all' ? 'ring-2 ring-info/50' : 'hover:bg-info/10'
+                      "cursor-pointer transition-all px-3 py-1 border",
+                      registrationStatusFilter === 'all' 
+                        ? "bg-info text-white border-info hover:bg-info/90" 
+                        : "border-info text-info hover:bg-info/10"
                     )}
                     onClick={() => handleRegistrationBoxClick('all')}
                   >
                     {t('all')}: {coachTotalRegistrations}
                   </Badge>
                   <Badge
-                    variant={registrationStatusFilter === 'approved' ? 'success' : 'outline'}
+                    variant="outline"
                     className={cn(
-                      "cursor-pointer transition-all px-3 py-1",
-                      registrationStatusFilter === 'approved' ? 'ring-2 ring-success/50' : 'hover:bg-success/10'
+                      "cursor-pointer transition-all px-3 py-1 border",
+                      registrationStatusFilter === 'approved' 
+                        ? "bg-success text-white border-success hover:bg-success/90" 
+                        : "border-success text-success hover:bg-success/10"
                     )}
                     onClick={() => handleRegistrationBoxClick('approved')}
                   >
                     Approved: {coachTotalApproved}
                   </Badge>
                   <Badge
-                    variant={registrationStatusFilter === 'under_approval' ? 'pending' : 'outline'}
+                    variant="outline"
                     className={cn(
-                      "cursor-pointer transition-all px-3 py-1",
-                      registrationStatusFilter === 'under_approval' ? 'ring-2 ring-pending/50' : 'hover:bg-pending/10'
+                      "cursor-pointer transition-all px-3 py-1 border",
+                      registrationStatusFilter === 'under_approval' 
+                        ? "bg-pending text-white border-pending hover:bg-pending/90" 
+                        : "border-pending text-pending hover:bg-pending/10"
                     )}
                     onClick={() => handleRegistrationBoxClick('under_approval')}
                   >
                     Pending: {coachTotalPending}
                   </Badge>
                   <Badge
-                    variant={registrationStatusFilter === 'rejected' ? 'destructive' : 'outline'}
+                    variant="outline"
                     className={cn(
-                      "cursor-pointer transition-all px-3 py-1",
-                      registrationStatusFilter === 'rejected' ? 'ring-2 ring-destructive/50' : 'hover:bg-destructive/10'
+                      "cursor-pointer transition-all px-3 py-1 border",
+                      registrationStatusFilter === 'rejected' 
+                        ? "bg-destructive text-white border-destructive hover:bg-destructive/90" 
+                        : "border-destructive text-destructive hover:bg-destructive/10"
                     )}
                     onClick={() => handleRegistrationBoxClick('rejected')}
                   >

@@ -399,40 +399,39 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
   return (
     <div className="space-y-4">
       {/* Status Filter Cards - 3 options */}
-      <div className="grid grid-cols-3 gap-4 text-center">
-        <div
-          className={cn(
-            "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'all' ? 'bg-info/20 border-info' : 'bg-info/5',
-            'hover:bg-info/10'
-          )}
+      {/* Status Filter Badges */}
+      <div className="flex items-center gap-2">
+        <Badge
+          variant={statusFilter === 'all' ? "default" : "outline"}
+          className="cursor-pointer h-8 px-3 text-sm hover:opacity-80 transition-all font-medium"
           onClick={() => updateStatusFilter('all')}
         >
-          <p className="text-2xl font-bold text-info">{totals.total}</p>
-          <p className="text-sm text-muted-foreground">Todas</p>
-        </div>
-        <div
+          Todas <span className="ml-1.5 opacity-70 text-xs">({totals.total})</span>
+        </Badge>
+        <Badge
+          variant="outline"
           className={cn(
-            "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'active' ? 'bg-success/20 border-success' : 'bg-success/5',
-            'hover:bg-success/10'
+            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-success/50",
+            statusFilter === 'active' 
+              ? "bg-success/15 text-success hover:bg-success/25" 
+              : "text-muted-foreground hover:text-success hover:bg-success/5"
           )}
           onClick={() => updateStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
         >
-          <p className="text-2xl font-bold text-success">{totals.active}</p>
-          <p className="text-sm text-muted-foreground">Ativas</p>
-        </div>
-        <div
+          Ativas <span className="ml-1.5 opacity-70 text-xs">({totals.active})</span>
+        </Badge>
+        <Badge
+          variant="outline"
           className={cn(
-            "p-3 border rounded-md cursor-pointer transition-colors",
-            statusFilter === 'finished' ? 'bg-warning/20 border-warning' : 'bg-warning/5',
-            'hover:bg-warning/10'
+            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-warning/50",
+            statusFilter === 'finished' 
+              ? "bg-warning/15 text-warning hover:bg-warning/25" 
+              : "text-muted-foreground hover:text-warning hover:bg-warning/5"
           )}
           onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
         >
-          <p className="text-2xl font-bold text-warning">{totals.finished}</p>
-          <p className="text-sm text-muted-foreground">Finalizadas</p>
-        </div>
+          Finalizadas <span className="ml-1.5 opacity-70 text-xs text-xs">({totals.finished})</span>
+        </Badge>
       </div>
 
       {/* Search Bar */}

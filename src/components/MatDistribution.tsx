@@ -178,8 +178,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
 
   return (
     <div className="space-y-6 p-4">
-      <h2 className="text-2xl font-bold">Distribuição dos Mats</h2>
-      <p className="text-muted-foreground">Arraste e solte as categorias para os mats ou use a auto-distribuição.</p>
+      <p className="text-muted-foreground text-center">Arraste e solte as categorias para os mats ou use a auto-distribuição.</p>
 
       <div className="flex justify-end space-x-2">
         <Button onClick={handleAutoDistribute}>Auto Distribuição dos Mats</Button>
