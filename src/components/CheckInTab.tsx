@@ -45,7 +45,6 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
 }) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedAthleteId, setScannedAthleteId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [isFaceCaptureOpen, setIsFaceCaptureOpen] = useState(false);
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
 
@@ -252,8 +251,6 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
               setSearchTerm(term);
               setScannedAthleteId(null);
             }}
-            viewMode={viewMode === 'table' ? 'list' : 'grid'}
-            onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
             selectedAthleteIds={selectedAthleteIds}
             onToggleSelectAthlete={handleToggleSelectAthlete}
             onSelectAll={handleSelectAll}

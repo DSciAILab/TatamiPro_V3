@@ -2,6 +2,11 @@
 -- This prevents race conditions where concurrent updates to different matches would overwrite each other
 -- if the entire brackets JSON was sent from the client.
 
+-- Drop potentially ambiguous overloaded versions first
+DROP FUNCTION IF EXISTS public.update_match_result(UUID, TEXT, TEXT, JSONB);
+DROP FUNCTION IF EXISTS public.update_match_result(UUID, TEXT, TEXT, JSONB, TEXT, TEXT);
+
+-- Create the single, flexible function
 CREATE OR REPLACE FUNCTION public.update_match_result(
   p_event_id UUID,
   p_bracket_id TEXT,

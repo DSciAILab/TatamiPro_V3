@@ -35,8 +35,6 @@ interface CheckInTableProps {
   onCheckIn: (athlete: Athlete) => void;
   searchTerm?: string;
   onSearchChange?: (term: string) => void;
-  viewMode?: 'list' | 'grid';
-  onViewModeChange?: (mode: 'list' | 'grid') => void;
   selectedAthleteIds?: string[];
   onToggleSelectAthlete?: (athleteId: string) => void;
   onSelectAll?: (checked: boolean) => void;
@@ -50,8 +48,6 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   onCheckIn,
   searchTerm = '',
   onSearchChange,
-  viewMode = 'list',
-  onViewModeChange,
   selectedAthleteIds = [],
   onToggleSelectAthlete,
   onSelectAll,
@@ -60,11 +56,11 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
-
+  
   // Reset page when search or sort changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortConfig, viewMode]);
+  }, [searchTerm, sortConfig]);
 
   const handleSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -202,13 +198,9 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
       <TableToolbar
         searchTerm={searchTerm}
         onSearchChange={onSearchChange || (() => {})}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange || (() => {})}
         placeholder="Search athlete (name, club, division...)"
       />
 
-      {viewMode === 'list' ? (
-      <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -320,87 +312,6 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
         </Table>
       </div>
       {renderPagination()}
-      </>
-      ) : (
-        <>
-        <ul className="space-y-4">
-             {sortedAthletes.length === 0 ? (
-                 <p className="text-muted-foreground text-center py-8">No athletes found.</p>
-             ) : (
-                paginatedAthletes.map((athlete) => (
-                  <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
-                    <div className="flex items-center space-x-3 flex-grow">
-                      {isBatchSelectionEnabled && (
-                        <Checkbox 
-                            checked={selectedAthleteIds.includes(athlete.id)}
-                            onCheckedChange={() => onToggleSelectAthlete?.(athlete.id)}
-                            disabled={athlete.check_in_status === 'checked_in'}
-                            className="mr-2"
-                        />
-                      )}
-                      {athlete.photo_url ? (
-                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <UserRound className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                        {athlete.move_reason ? (
-                          <>
-                             <p className="font-medium text-foreground">{formatMoveReason(athlete.move_reason)}</p>
-                             <p className="text-sm text-muted-foreground line-through opacity-70">
-                               {getAthleteDisplayString(athlete, athlete._division)}
-                             </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division)}</p>
-                        )}
-                        
-                        {athlete.weight_attempts && athlete.weight_attempts.length > 0 ? (
-                           <WeightHistory attempts={athlete.weight_attempts} />
-                        ) : athlete.registered_weight ? (
-                          <p className="text-xs text-muted-foreground">Last Weight: <span className="font-semibold">{athlete.registered_weight}kg</span></p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2">
-                        {athlete.check_in_status === 'checked_in' && (
-                          <span className="flex items-center text-success font-semibold text-sm">
-                            <CheckCircle className="h-4 w-4 mr-1" /> Check-in OK
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'overweight' && (
-                          <span className="flex items-center text-destructive font-semibold text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Overweight ({athlete.registered_weight}kg)
-                          </span>
-                        )}
-                        {athlete.check_in_status === 'pending' && (
-                          <span className="flex items-center text-pending font-semibold text-sm">
-                            <Scale className="h-4 w-4 mr-1" /> Pending
-                          </span>
-                        )}
-                      </div>
-                      <CheckInForm
-                        athlete={athlete}
-                        onCheckIn={onCheckIn}
-                        isCheckInAllowed={!!(isCheckInAllowedGlobally && (event.is_attendance_mandatory_before_check_in ? athlete.attendance_status === 'present' : true))}
-                        divisionMaxWeight={athlete._division?.max_weight}
-                        isWeightCheckEnabled={event.is_weight_check_enabled ?? true}
-                        isOverweightAutoMoveEnabled={event.is_overweight_auto_move_enabled ?? false}
-                        eventDivisions={event.divisions || []}
-                        isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true}
-                      />
-                    </div>
-                  </li>
-                ))
-            )}
-        </ul>
-        {renderPagination()}
-        </>
-      )}
     </div>
   );
 };
