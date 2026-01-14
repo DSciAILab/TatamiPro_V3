@@ -60,6 +60,11 @@ const OfflineIndicator: React.FC = () => {
               </>
             )}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => window.location.reload()} className="text-destructive focus:text-destructive">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Recarregar (Force Reload)
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
