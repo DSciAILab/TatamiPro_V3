@@ -137,13 +137,22 @@ const FightDetail: React.FC = () => {
       const bracket = fullEventData.brackets?.[divisionId];
       if (bracket) {
         setCurrentBracket(bracket);
-        const match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
+        console.log('[FightDetail] Searching for matchId:', matchId, 'in division:', divisionId);
+        const allMatches = bracket.rounds.flat();
+        if (bracket.third_place_match) allMatches.push(bracket.third_place_match);
+        
+        const match = allMatches.find(m => m.id === matchId);
+        
+        console.log('[FightDetail] Match found?', match ? 'Yes' : 'No', match?.id);
+        
         if (match) {
           setCurrentMatch(match);
           setSelectedWinnerId(match.winner_id);
           setSelectedResultType(match.result?.type);
           setResultDetails(match.result?.details);
           setShowPostFightOptions(!!match.winner_id);
+        } else {
+            console.error('[FightDetail] Match NOT FOUND. Available IDs:', allMatches.map(m => m.id));
         }
       }
     } catch (error: any) {
