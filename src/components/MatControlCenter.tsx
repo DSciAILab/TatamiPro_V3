@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Clock, Swords, ChevronDown, ChevronRight, ArrowUpDown, Trophy, Medal, UserRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Clock, Swords, ChevronDown, ChevronRight, ArrowUpDown, Trophy, Medal, UserRound, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MatControlCenterProps {
@@ -401,76 +402,100 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
 
   return (
     <div className="space-y-4">
-      {/* Status Filter Cards - 3 options */}
-      {/* Status Filter Badges */}
-      {/* Status Filter Badges */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Badge
-          variant={statusFilter === 'all' ? "default" : "outline"}
-          className="cursor-pointer h-8 px-3 text-sm hover:opacity-80 transition-all font-medium whitespace-nowrap"
-          onClick={() => updateStatusFilter('all')}
-        >
-          Todas <span className="ml-1.5 opacity-70 text-xs">({totals.total})</span>
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn(
-            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-info/50 whitespace-nowrap",
-            statusFilter === 'in_progress' 
-              ? "bg-info/15 text-info hover:bg-info/25" 
-              : "text-muted-foreground hover:text-info hover:bg-info/5"
-          )}
-          onClick={() => updateStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
-        >
-          Em Progresso <span className="ml-1.5 opacity-70 text-xs">({totals.inProgress})</span>
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn(
-            "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
-            statusFilter === 'pending' 
-              ? "bg-orange-500/15 text-orange-600 border-orange-500 hover:bg-orange-500/25" 
-              : "text-muted-foreground border-border hover:text-orange-500 hover:border-orange-500 hover:bg-orange-500/5"
-          )}
-          onClick={() => updateStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-        >
-          Pendentes <span className="ml-1.5 opacity-70 text-xs">({totals.pending})</span>
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn(
-            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-success/50 whitespace-nowrap",
-            statusFilter === 'finished' 
-              ? "bg-success/15 text-success hover:bg-success/25" 
-              : "text-muted-foreground hover:text-success hover:bg-success/5"
-          )}
-          onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
-        >
-          Finalizadas <span className="ml-1.5 opacity-70 text-xs text-xs">({totals.finished})</span>
-        </Badge>
-      </div>
+      {/* Toolbar Card */}
+      <Card className="bg-muted/40">
+        <CardContent className="py-4 space-y-4">
+          {/* Status Filter Badges */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <Badge
+              variant={statusFilter === 'all' ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+                statusFilter === 'all' 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" // Active: Solid Primary
+                  : "bg-transparent text-muted-foreground border-muted-foreground/30 hover:text-foreground hover:border-foreground/50" // Inactive: Outline neutral
+              )}
+              onClick={() => updateStatusFilter('all')}
+            >
+              Todas <span className={cn("ml-1.5 text-xs", statusFilter === 'all' ? "opacity-70" : "opacity-50")}>({totals.total})</span>
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+                statusFilter === 'in_progress' 
+                  ? "bg-info text-white border-transparent hover:bg-info/90" // Active: Solid Info
+                  : "bg-transparent text-info border-info/50 hover:bg-info/10" // Inactive: Outline Info
+              )}
+              onClick={() => updateStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
+            >
+              Em Progresso <span className={cn("ml-1.5 text-xs", statusFilter === 'in_progress' ? "opacity-70" : "opacity-50")}>({totals.inProgress})</span>
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+                statusFilter === 'pending' 
+                  ? "bg-orange-500 text-white border-transparent hover:bg-orange-600" // Active: Solid Orange
+                  : "bg-transparent text-orange-500 border-orange-500/50 hover:bg-orange-500/10" // Inactive: Outline Orange
+              )}
+              onClick={() => updateStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+            >
+              Pendentes <span className={cn("ml-1.5 text-xs", statusFilter === 'pending' ? "opacity-70" : "opacity-50")}>({totals.pending})</span>
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+                statusFilter === 'finished' 
+                  ? "bg-success text-white border-transparent hover:bg-success/90" // Active: Solid Success
+                  : "bg-transparent text-success border-success/50 hover:bg-success/10" // Inactive: Outline Success
+              )}
+              onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
+            >
+              Finalizadas <span className={cn("ml-1.5 text-xs", statusFilter === 'finished' ? "opacity-70" : "opacity-50")}>({totals.finished})</span>
+            </Badge>
+          </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by division, athlete, mat... (comma for multiple)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button onClick={expandAll} className="text-sm text-muted-foreground hover:text-foreground">
-            Expand All
-          </button>
-          <span className="text-muted-foreground">|</span>
-          <button onClick={collapseAll} className="text-sm text-muted-foreground hover:text-foreground">
-            Collapse All
-          </button>
-        </div>
-      </div>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by division, athlete, mat... (comma for multiple)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                // If all are expanded, collapse; otherwise expand
+                if (expandedMats.size === matGroups.length) {
+                  collapseAll();
+                } else {
+                  expandAll();
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              {expandedMats.size === matGroups.length ? (
+                <>
+                  <ChevronsDownUp className="h-4 w-4" />
+                  Collapse All
+                </>
+              ) : (
+                <>
+                  <ChevronsUpDown className="h-4 w-4" />
+                  Expand All
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Mat Groups */}
       <div className="space-y-4">

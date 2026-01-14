@@ -8,6 +8,9 @@ import { ArrowLeft } from 'lucide-react';
 import AthleteListTable from '@/components/AthleteListTable';
 import BracketView from '@/components/BracketView';
 import FightList from '@/components/FightList';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -21,7 +24,9 @@ interface DivisionDetailViewProps {
 
 const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath, isPublic = false, initialTab }) => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'last_name', direction: 'asc' });
-  
+  const [showAllMatFights, setShowAllMatFights] = useState(false);
+  const [groupBy, setGroupBy] = useState<'stage' | 'division' | 'order'>('order');
+
   // Consider moved_to_division_id for athletes who were moved to this division
   const athletesInDivision = (event.athletes || []).filter(a => {
     const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
@@ -35,6 +40,14 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
   useEffect(() => {
     setActiveTab(initialTab || "fight_order");
   }, [initialTab]);
+
+  // Find the mat assigned to this division
+  const assignedMat = useMemo(() => {
+    if (!event.mat_assignments) return null;
+    return Object.keys(event.mat_assignments).find(mat => 
+      event.mat_assignments![mat].includes(division.id)
+    );
+  }, [event.mat_assignments, division.id]);
 
   const handleSort = (key: string) => {
     setSortConfig(prevConfig => ({
@@ -90,16 +103,48 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
           <TabsTrigger value="athletes">Athlete List</TabsTrigger>
         </TabsList>
         <TabsContent value="fight_order" className="mt-4">
+          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+             {assignedMat && (
+                 <div className="flex items-center space-x-4">
+                     <div className="flex items-center space-x-2">
+                        <Switch 
+                            id="show-all-mat-fights" 
+                            checked={showAllMatFights}
+                            onCheckedChange={setShowAllMatFights}
+                        />
+                        <Label htmlFor="show-all-mat-fights">Show all fights on {assignedMat}</Label>
+                     </div>
+
+                     {showAllMatFights && (
+                         <div className="flex items-center space-x-2">
+                             <Label htmlFor="group-by" className="text-sm text-muted-foreground whitespace-nowrap">Group by:</Label>
+                             <Select value={groupBy} onValueChange={(v: any) => setGroupBy(v)}>
+                                <SelectTrigger className="w-[140px] h-8">
+                                    <SelectValue placeholder="Select group" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="order">Schedule Order</SelectItem>
+                                    <SelectItem value="division">Division</SelectItem>
+                                    <SelectItem value="stage">Round / Stage</SelectItem>
+                                </SelectContent>
+                             </Select>
+                         </div>
+                     )}
+                 </div>
+             )}
+          </div>
           {bracket ? (
             <FightList
               event={event}
-              selectedMat="all-mats"
+              selectedMat={showAllMatFights && assignedMat ? assignedMat : "all-mats"}
               selectedCategoryKey={division.id}
               selectedDivisionId={division.id}
               onUpdateBracket={() => {}} // Read-only view
               fightViewMode="grid1"
               baseFightPath={baseFightPath}
               source="division-fight-order"
+              showAllMatFights={showAllMatFights}
+              groupBy={showAllMatFights ? groupBy : 'stage'} 
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">Fight order not available.</p>

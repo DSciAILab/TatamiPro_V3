@@ -18,9 +18,12 @@ interface FightListProps {
   baseFightPath?: string;
   isPublic?: boolean;
   source?: 'brackets' | 'mat-control' | 'division-fight-order';
+  showAllMatFights?: boolean;
+  groupBy?: 'stage' | 'division' | 'order';
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
+  if (totalRounds === 0) return `Rodada ${roundIndex + 1}`;
   const roundFromEnd = totalRounds - roundIndex;
   switch (roundFromEnd) {
     case 1: return 'Final';
@@ -31,7 +34,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false, source }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false, source, showAllMatFights = false, groupBy = 'order' }) => {
   const { athletes, brackets, mat_fight_order } = event;
   
   // Build fight URL based on baseFightPath or default
@@ -87,8 +90,17 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           if (Array.isArray(matMatchesIds)) {
             matMatchesIds.forEach((matchId: string) => {
               const match = allMatchesMap.get(matchId);
-              if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-                fights.push(match);
+              // Filter logic:
+              // If showAllMatFights is true, we skip the division check (assuming we want everything on that mat, 
+              // BUT here selectedMat is 'all-mats' so we'd get EVERYTHING in event? 
+              // Usually showAllMatFights is used with a specific selectedMat.
+              // Let's stick to safe logic: if showAllMatFights is true, accept match regardless of division (but still verify mat later if needed)
+              // If false, strictly enforce division.
+              
+              if (match && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
+                 if (showAllMatFights || match._division_id === selectedDivisionId) {
+                     fights.push(match);
+                 }
               }
             });
           }
@@ -98,8 +110,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         if (Array.isArray(matMatchesIds)) {
           matMatchesIds.forEach((matchId: string) => {
             const match = allMatchesMap.get(matchId);
-            if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-              fights.push(match);
+            if (match && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
+               if (showAllMatFights || match._division_id === selectedDivisionId) {
+                   fights.push(match);
+               }
             }
           });
         }
@@ -107,7 +121,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     }
 
     // 2. FALLBACK: If map-based approach yielded NO fights, try getting from bracket directly
-    if (fights.length === 0) {
+    // Only use fallback if we are NOT in showAllMatFights mode (because fallback is division-specific)
+    if (fights.length === 0 && !showAllMatFights) {
       console.log('FightList: No fights found via mat_fight_order, using bracket fallback.');
       const currentBracket = brackets?.[selectedDivisionId];
       if (currentBracket) {
@@ -142,27 +157,79 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         }
       }
       // If round is available, use it, otherwise rely on fight number
-      if (a.round !== b.round) return a.round - b.round;
-      return (a.mat_fight_number || 0) - (b.mat_fight_number || 0);
-    });
-  }, [mat_fight_order, selectedMat, selectedDivisionId, allMatchesMap, brackets]);
-
-  const groupedFightsByRound = useMemo(() => {
-    const groups: Record<number, Match[]> = {};
-    fightsForSelectedMatAndCategory.forEach(fight => {
-      if (!groups[fight.round]) {
-        groups[fight.round] = [];
+      // Actually strictly respecting mat_fight_order index would be better but simple sort works if numbered correctly
+      if (a.mat_fight_number !== undefined && b.mat_fight_number !== undefined && a.mat_fight_number !== b.mat_fight_number) {
+          return a.mat_fight_number - b.mat_fight_number;
       }
-      groups[fight.round].push(fight);
+      
+      if (a.round !== b.round) return a.round - b.round;
+      return (a.match_number || 0) - (b.match_number || 0);
+    });
+  }, [mat_fight_order, selectedMat, selectedDivisionId, allMatchesMap, brackets, showAllMatFights]);
+
+  const groupedFights = useMemo(() => {
+    // If 'order' selected (or default for showAll), we can still wrap in a single group or just return listed
+    if (groupBy === 'order') {
+        const title = showAllMatFights ? `Schedule Order` : 'Fight Order';
+        return [{
+            title,
+            matches: fightsForSelectedMatAndCategory
+        }];
+    }
+
+    const groups: Record<string, Match[]> = {};
+    const groupTitles: Record<string, string> = {}; 
+
+    fightsForSelectedMatAndCategory.forEach(fight => {
+      let groupKey = '';
+      
+      if (groupBy === 'division') {
+          groupKey = fight._division_id || 'Unknown';
+          if (!groupTitles[groupKey]) {
+             const div = event.divisions?.find(d => d.id === groupKey);
+             groupTitles[groupKey] = div ? div.name : 'Unknown Division';
+          }
+      } else if (groupBy === 'stage') {
+          // Robust stage naming
+          const divId = fight._division_id;
+          const bracket = event.brackets?.[divId || ''];
+          const totalRounds = bracket?.rounds.length || 0;
+          // Use a key that sorts correctly? roundIndex. 
+          // But purely by name grouping might split same stage if total rounds differ?
+          // E.g. "Final" is always Final. "Semi-final" always Semi.
+          const rName = getRoundName((fight.round || 1) - 1, totalRounds);
+          groupKey = rName;
+          groupTitles[groupKey] = rName;
+      }
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(fight);
     });
 
-    return Object.entries(groups)
-      .sort(([roundNumA], [roundNumB]) => Number(roundNumA) - Number(roundNumB))
-      .map(([roundNum, matches]) => ({
-        roundNumber: Number(roundNum),
-        matches: matches.sort((a, b) => (a.mat_fight_number || 0) - (b.mat_fight_number || 0)),
-      }));
-  }, [fightsForSelectedMatAndCategory]);
+    return Object.entries(groups).map(([key, matches]) => {
+        return {
+            title: groupTitles[key] || key,
+            matches: matches.sort((a, b) => (a.mat_fight_number || 0) - (b.mat_fight_number || 0))
+        };
+    }).sort((a, b) => {
+        if (groupBy === 'stage') {
+             // Heuristic sort for stages: "Octavas" < "Quartas" < "Semi" < "Final" ?
+             // Or just use the first match's round index if consistent?
+             // Actually, alphabetical might be bad.
+             // Let's try to map back to a sort heuristic.
+             // Simplest: use round number of first match? 
+             // But "Final" (round 3) > "Semi" (round 2). We want Order of occurrence usually.
+             // Existing logic sorted by roundIndex ascending.
+             const roundA = a.matches[0]?.round || 0;
+             const roundB = b.matches[0]?.round || 0;
+             return roundA - roundB;
+        }
+        return a.title.localeCompare(b.title);
+    });
+
+  }, [fightsForSelectedMatAndCategory, groupBy, event.divisions, event.brackets, showAllMatFights]);
 
   const currentBracket = brackets?.[selectedDivisionId];
   const totalRoundsInBracket = currentBracket?.rounds.length || 0;
@@ -215,7 +282,32 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     const fightNumberDisplay = `${matNumberDisplay}-${match.mat_fight_number}`;
 
     const cardContent = (
-      <div className="relative flex p-4">
+      <div className="relative flex p-4 pb-2 pt-2">
+         {/* ... (existing content structure needs adaptation) */}
+         {/* Actually, let's wrap the existing content in a div and put header above it if needed */}
+      </div>
+    );
+    
+    // REDO render to accommodate header nicely
+    
+    const divisionId = match._division_id;
+    const matchDivision = event.divisions?.find(d => d.id === divisionId);
+    const matchBracket = event.brackets?.[divisionId || ''];
+    let headerInfo = null;
+
+    if (showAllMatFights && matchDivision) {
+        const totalRounds = matchBracket?.rounds.length || 0;
+        const roundName = getRoundName((match.round || 1) - 1, totalRounds); 
+        
+        headerInfo = (
+             <div className="px-4 pt-2 text-xs text-muted-foreground mb-1">
+                 <span className="font-semibold text-muted-foreground/80">{matchDivision.name}</span> <span className="mx-1">|</span> {roundName}
+             </div>
+        );
+    }
+
+    const innerContent = (
+      <div className="relative flex p-4 pt-2">
         <div className="flex-shrink-0 w-16 text-center absolute top-4 left-4">
           <span className="text-2xl font-extrabold text-primary">{fightNumberDisplay}</span>
           <p className="text-xs text-muted-foreground mt-1">{resultTime}</p>
@@ -248,6 +340,14 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       </div>
     );
 
+    const fullCardContent = (
+        <div>
+            {headerInfo}
+            {innerContent}
+        </div>
+    );
+
+
     const cardClasses = cn(
       "block border-2 rounded-md transition-colors",
       match.winner_id ? 'border-success' : 'border-border',
@@ -262,13 +362,13 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           className={cardClasses}
           state={{ source }}
         >
-          {cardContent}
+          {fullCardContent}
         </Link>
       );
     } else {
       return (
         <div key={match.id} className={cardClasses}>
-          {cardContent}
+          {fullCardContent}
         </div>
       );
     }
@@ -276,10 +376,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
   return (
     <div className="space-y-6">
-      {groupedFightsByRound.map(({ roundNumber, matches }) => (
-        <div key={roundNumber} className="space-y-4">
+      {groupedFights.map(({ title, matches }) => (
+        <div key={title} className="space-y-4">
           <h3 className="text-xl font-semibold mt-6 mb-2">
-            {getRoundName(roundNumber - 1, totalRoundsInBracket)}
+            {title}
           </h3>
           <div className={cn("grid gap-4", gridClasses[fightViewMode])}>
             {matches.map(match => renderMatchCard(match))}

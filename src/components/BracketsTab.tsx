@@ -379,7 +379,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                 <TabsTrigger value="mat-control">Mat Control</TabsTrigger>
               </TabsList>
             ) : (
-              <TabsList>
+              <TabsList className="w-full justify-start">
                 <TabsTrigger value="generate-brackets">
                   <LayoutGrid className="mr-2 h-4 w-4" /> Generate
                 </TabsTrigger>
@@ -401,198 +401,180 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
              <MatDistribution event={event} onUpdateMatAssignments={handleUpdateMatAssignments} isBeltGroupingEnabled={event.is_belt_grouping_enabled ?? true} />
           </TabsContent>
 
-          <TabsContent value="generate-brackets" className="mt-0">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Generate Brackets</CardTitle>
-                    <CardDescription>Select divisions to generate brackets and manage fight matching.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Generation Toolbar Refactored */}
-                    <div className="flex flex-col gap-4">
-                      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-                         {/* Left: Division Select + Search */}
-                         <div className="flex flex-col md:flex-row gap-4 w-full xl:flex-1 items-center">
-                            <div className="w-full md:flex-[0.4]">
-                                <Select value={selectedDivisionIdForBracket} onValueChange={(value: string | 'all') => setSelectedDivisionIdForBracket(value)}>
-                                <SelectTrigger id="division-select" className="bg-background">
-                                    <SelectValue placeholder="Select a division or all" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Divisions</SelectItem>
-                                    {availableDivisionsForBracketGeneration.map(div => {
-                                    const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
-                                    let statusIndicator = <Circle className="h-4 w-4 text-muted-foreground opacity-50" />; 
-                                    let statusText = 'Não gerado';
-                                    
-                                    if (divisionBrackets.length > 0) {
-                                        const allFinished = divisionBrackets.every(b => b.winner_id);
-                                        const anyInProgress = divisionBrackets.some(b => {
-                                            if (!b.rounds) return false;
-                                            return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
-                                        });
-
-                                        if (allFinished) {
-                                            statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
-                                            statusText = 'Finalizado';
-                                        } else if (anyInProgress) {
-                                            statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
-                                            statusText = 'Em progresso';
-                                        } else {
-                                            statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
-                                            statusText = 'Gerado';
-                                        }
-                                        
-                                        if (divisionBrackets.length > 1) {
-                                            statusText += ` (${divisionBrackets.length} groups)`;
-                                        }
-                                    }
-                                    
-                                    return (
-                                        <SelectItem key={div.id} value={div.id}>
-                                        <span className="flex items-center gap-2">
-                                            <span title={statusText} className="flex items-center">{statusIndicator}</span>
-                                            {div.name}
-                                        </span>
-                                        </SelectItem>
-                                    );
-                                    })}
-                                </SelectContent>
-                                </Select>
-                            </div>
-                            
-                            {/* Integrated Search */}
-                            <div className="relative w-full md:flex-1">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Search brackets..." 
-                                    className="pl-8 w-full" 
-                                    value={bracketSearchTerm}
-                                    onChange={(e) => setBracketSearchTerm(e.target.value)}
-                                />
-                            </div>
-                         </div>
-
-                         {/* Right: Actions */}
-                         <div className="flex items-center gap-2 w-full xl:w-auto">
-                            {/* Smart Generate Button */}
-                            {(() => {
-                                const isRegenMode = selectedDivisionIdForBracket === 'all' 
-                                    ? availableDivisionsForBracketGeneration.some(div => event.brackets?.[div.id])
-                                    : !!event.brackets?.[selectedDivisionIdForBracket];
-
-                                return (
-                                    <Button 
-                                        onClick={() => {
-                                            if (isRegenMode) setIncludeOngoingBrackets(true);
-                                            handleGenerateBrackets();
-                                            // Reset flag after? No, handleGenerateBrackets uses current state. 
-                                            // Ideally handleGenerateBrackets should take a param, but we can rely on pre-setting state in a wrapper provided we handle async or state batching.
-                                            // React state updates might differ.
-                                            // Better approach: Modify handleGenerateBrackets to check 'isRegenMode' passed or inferred?
-                                            // For now, let's assume standard Generate flow but set state parallel.
-                                            // Actually, setIncludeOngoingBrackets(true) inside onClick might not be reflected in handleGenerateBrackets immediately if it uses state closing over.
-                                            // SAFE FIX: We will just rely on the existing handleGenerateBrackets logic but we need to ensure 'includeOngoingBrackets' matches user intent.
-                                        }} 
-                                        className={cn(isRegenMode ? "bg-orange-500 hover:bg-orange-600" : "")}
-                                    >
-                                        <LayoutGrid className="mr-2 h-4 w-4" /> 
-                                        {isRegenMode ? "Regenerate Brackets" : "Generate Brackets"}
-                                    </Button>
-                                );
-                            })()}
-
-                            {Object.keys(brackets).length > 0 && (
-                                <Button variant="outline" onClick={() => navigate(`/events/${event.id}/print-brackets`)}>
-                                <Printer className="mr-2 h-4 w-4" /> Print PDF
-                                </Button>
-                            )}
-                         </div>
-                      </div>
-
-                      {/* Filters */}
-                      <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
-                            {[
-                                { id: 'all', label: 'Total', count: Object.keys(brackets).length, color: 'primary' },
-                                { id: 'finished', label: 'Finished', count: Object.values(brackets).filter(b => b.winner_id).length, color: 'success' },
-                                { id: 'in_progress', label: 'In Progress', count: Object.values(brackets).filter(b => !b.winner_id && b.rounds?.flat().some(m => m.winner_id)).length, color: 'blue-500' },
-                                { id: 'generated', label: 'Pending', count: Object.values(brackets).filter(b => !b.winner_id && !b.rounds?.flat().some(m => m.winner_id)).length, color: 'orange-500' }
-                            ].map(filter => (
-                                <Badge
-                                    key={filter.id}
-                                    variant="outline"
-                                    className={cn(
-                                        "cursor-pointer transition-all px-3 py-1 border",
-                                        // Dynamic color logic
-                                        bracketStatusFilter === filter.id 
-                                            ? `bg-${filter.color} text-white border-${filter.color}` 
-                                            : `border-${filter.color} text-${filter.color} hover:bg-${filter.color}/10`,
-                                        // Adjust for non-standard colors like blue-500/orange-500 which might not work directly in border-X without definition
-                                        // Using specific tailwind classes for standard colors
-                                        filter.color === 'blue-500' && (bracketStatusFilter === filter.id ? "bg-blue-500 border-blue-500" : "text-blue-500 border-blue-500 hover:bg-blue-50"),
-                                        filter.color === 'orange-500' && (bracketStatusFilter === filter.id ? "bg-orange-500 border-orange-500" : "text-orange-500 border-orange-500 hover:bg-orange-50"),
-                                        filter.color === 'success' && (bracketStatusFilter === filter.id ? "bg-success border-success" : "text-success border-success hover:bg-success/10"),
-                                        filter.color === 'primary' && (bracketStatusFilter === filter.id ? "bg-primary border-primary" : "text-primary border-primary hover:bg-primary/10")
-                                    )}
-                                    onClick={() => setBracketStatusFilter(filter.id as any)}
-                                >
-                                    {filter.label}: {filter.count}
-                                </Badge>
-                            ))}
-                      </div>
+          <TabsContent value="generate-brackets" className="mt-4 space-y-6">
+             {/* Header Section with Gray Background */}
+             <div className="bg-muted/20 border rounded-lg p-6 space-y-4">
+                {/* Top Row: Filters and Actions */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    {/* Filters - Left */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
+                        {[
+                            { id: 'all', label: 'Total', count: Object.keys(brackets).length, color: 'secondary' },
+                            { id: 'finished', label: 'Finished', count: Object.values(brackets).filter(b => b.winner_id).length, color: 'success' },
+                            { id: 'in_progress', label: 'In Progress', count: Object.values(brackets).filter(b => !b.winner_id && b.rounds?.flat().some(m => m.winner_id)).length, color: 'blue-500' },
+                            { id: 'generated', label: 'Pending', count: Object.values(brackets).filter(b => !b.winner_id && !b.rounds?.flat().some(m => m.winner_id)).length, color: 'orange-500' }
+                        ].map(filter => (
+                            <Badge
+                                key={filter.id}
+                                variant="outline"
+                                className={cn(
+                                    "cursor-pointer transition-all px-3 py-1 border",
+                                    // Dynamic color logic
+                                    filter.color === 'secondary' && (bracketStatusFilter === filter.id ? "bg-secondary text-secondary-foreground border-transparent" : "bg-transparent text-muted-foreground border-muted-foreground/30 hover:text-foreground"),
+                                    filter.color === 'blue-500' && (bracketStatusFilter === filter.id ? "bg-blue-500 text-white border-transparent" : "bg-transparent text-blue-500 border-blue-500/50 hover:bg-blue-500/10"),
+                                    filter.color === 'orange-500' && (bracketStatusFilter === filter.id ? "bg-orange-500 text-white border-transparent" : "bg-transparent text-orange-500 border-orange-500/50 hover:bg-orange-500/10"),
+                                    filter.color === 'success' && (bracketStatusFilter === filter.id ? "bg-success text-white border-transparent" : "bg-transparent text-success border-success/50 hover:bg-success/10"),
+                                )}
+                                onClick={() => setBracketStatusFilter(filter.id as any)}
+                            >
+                                {filter.label}: {filter.count}
+                            </Badge>
+                        ))}
                     </div>
-                                        
-                    {Object.keys(brackets).length === 0 ? (
-                        <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
-                        No brackets generated yet. Select a division above to start.
-                        </div>
-                    ) : (
-                        <div className="space-y-8">
-                        {Object.values(brackets)
-                            .filter(bracket => {
-                                // Status Filter
-                                const isFinished = !!bracket.winner_id;
-                                const isInProgress = !isFinished && bracket.rounds?.flat().some(m => m.winner_id !== undefined);
-                                
-                                if (bracketStatusFilter === 'finished' && !isFinished) return false;
-                                if (bracketStatusFilter === 'in_progress' && !isInProgress) return false;
-                                if (bracketStatusFilter === 'generated' && (isFinished || isInProgress)) return false;
 
-                                // Search Filter
-                                if (!bracketSearchTerm) return true;
-                                const division = event?.divisions?.find(d => d.id === bracket.division_id);
-                                const term = bracketSearchTerm.toLowerCase();
-                                
-                                // Search by division name, bracket ID, or group name
-                                return (
-                                    division?.name.toLowerCase().includes(term) ||
-                                    bracket.id.toLowerCase().includes(term) ||
-                                    (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
-                                );
-                            })
-                            .map(bracket => {
-                            const division = event?.divisions?.find(d => d.id === bracket.division_id);
-                            if (!division) return null;
-                            return (<BracketView key={bracket.id} bracket={bracket} allAthletes={event.athletes || []} division={division} eventId={event.id} />);
-                        })}
-                        {Object.values(brackets).filter(bracket => {
-                                if (!bracketSearchTerm) return true;
-                                const division = event?.divisions?.find(d => d.id === bracket.division_id);
-                                const term = bracketSearchTerm.toLowerCase();
-                                return (
-                                    division?.name.toLowerCase().includes(term) ||
-                                    bracket.id.toLowerCase().includes(term) ||
-                                    (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
-                                );
-                        }).length === 0 && Object.keys(brackets).length > 0 && (
-                            <p className="text-muted-foreground text-center py-8">No brackets matching your search.</p>
+                    {/* Actions - Right (Moved from bottom) */}
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        {/* Smart Generate Button */}
+                        {(() => {
+                            const isRegenMode = selectedDivisionIdForBracket === 'all' 
+                                ? availableDivisionsForBracketGeneration.some(div => event.brackets?.[div.id])
+                                : !!event.brackets?.[selectedDivisionIdForBracket];
+
+                            return (
+                                <Button 
+                                    onClick={() => {
+                                        if (isRegenMode) setIncludeOngoingBrackets(true);
+                                        handleGenerateBrackets();
+                                    }} 
+                                    className={cn(isRegenMode ? "bg-orange-500 hover:bg-orange-600" : "")}
+                                >
+                                    <LayoutGrid className="mr-2 h-4 w-4" /> 
+                                    {isRegenMode ? "Regenerate Brackets" : "Generate Brackets"}
+                                </Button>
+                            );
+                        })()}
+
+                        {Object.keys(brackets).length > 0 && (
+                            <Button variant="outline" className="bg-background" onClick={() => navigate(`/events/${event.id}/print-brackets`)}>
+                            <Printer className="mr-2 h-4 w-4" /> Print PDF
+                            </Button>
                         )}
-                        </div>
-                    )}
+                    </div>
+                </div>
 
-                </CardContent>
-             </Card>
+                {/* Bottom Row: Inputs (Full Width) */}
+                <div className="flex flex-col md:flex-row gap-4 w-full">
+                    {/* Left: Division Select */}
+                    <div className="w-full md:flex-1">
+                        <Select value={selectedDivisionIdForBracket} onValueChange={(value: string | 'all') => setSelectedDivisionIdForBracket(value)}>
+                        <SelectTrigger id="division-select" className="bg-background w-full">
+                            <SelectValue placeholder="Select a division or all" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Divisions</SelectItem>
+                            {availableDivisionsForBracketGeneration.map(div => {
+                            const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
+                            let statusIndicator = <Circle className="h-4 w-4 text-muted-foreground opacity-50" />; 
+                            let statusText = 'Não gerado';
+                            
+                            if (divisionBrackets.length > 0) {
+                                const allFinished = divisionBrackets.every(b => b.winner_id);
+                                const anyInProgress = divisionBrackets.some(b => {
+                                    if (!b.rounds) return false;
+                                    return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
+                                });
+
+                                if (allFinished) {
+                                    statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
+                                    statusText = 'Finalizado';
+                                } else if (anyInProgress) {
+                                    statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
+                                    statusText = 'Em progresso';
+                                } else {
+                                    statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
+                                    statusText = 'Gerado';
+                                }
+                                
+                                if (divisionBrackets.length > 1) {
+                                    statusText += ` (${divisionBrackets.length} groups)`;
+                                }
+                            }
+                            
+                            return (
+                                <SelectItem key={div.id} value={div.id}>
+                                <span className="flex items-center gap-2">
+                                    <span title={statusText} className="flex items-center">{statusIndicator}</span>
+                                    {div.name}
+                                </span>
+                                </SelectItem>
+                            );
+                            })}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    {/* Right: Integrated Search */}
+                    <div className="relative w-full md:flex-1">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search brackets..." 
+                            className="pl-8 w-full bg-background" 
+                            value={bracketSearchTerm}
+                            onChange={(e) => setBracketSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+             </div>
+
+             {/* Brackets Grid */}
+             {Object.keys(brackets).length === 0 ? (
+                 <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
+                 No brackets generated yet. Select a division above to start.
+                 </div>
+             ) : (
+                 <div className="space-y-8">
+                 {Object.values(brackets)
+                     .filter(bracket => {
+                         // Status Filter
+                         const isFinished = !!bracket.winner_id;
+                         const isInProgress = !isFinished && bracket.rounds?.flat().some(m => m.winner_id !== undefined);
+                         
+                         if (bracketStatusFilter === 'finished' && !isFinished) return false;
+                         if (bracketStatusFilter === 'in_progress' && !isInProgress) return false;
+                         if (bracketStatusFilter === 'generated' && (isFinished || isInProgress)) return false;
+
+                         // Search Filter
+                         if (!bracketSearchTerm) return true;
+                         const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                         const term = bracketSearchTerm.toLowerCase();
+                         
+                         // Search by division name, bracket ID, or group name
+                         return (
+                             division?.name.toLowerCase().includes(term) ||
+                             bracket.id.toLowerCase().includes(term) ||
+                             (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
+                         );
+                     })
+                     .map(bracket => {
+                     const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                     if (!division) return null;
+                     return (<BracketView key={bracket.id} bracket={bracket} allAthletes={event.athletes || []} division={division} eventId={event.id} />);
+                 })}
+                 {Object.values(brackets).filter(bracket => {
+                         if (!bracketSearchTerm) return true;
+                         const division = event?.divisions?.find(d => d.id === bracket.division_id);
+                         const term = bracketSearchTerm.toLowerCase();
+                         return (
+                             division?.name.toLowerCase().includes(term) ||
+                             bracket.id.toLowerCase().includes(term) ||
+                             (bracket.group_name && bracket.group_name.toLowerCase().includes(term))
+                         );
+                 }).length === 0 && Object.keys(brackets).length > 0 && (
+                     <p className="text-muted-foreground text-center py-8">No brackets matching your search.</p>
+                 )}
+                 </div>
+             )}
           </TabsContent>
 
           <TabsContent value="wo-champions" className="mt-0">
