@@ -5,7 +5,7 @@ import { Event, Athlete } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QrCodeIcon, Barcode, Download } from 'lucide-react';
+import { QrCodeIcon, Barcode, Download, Search } from 'lucide-react';
 import CheckInTable from '@/features/events/components/CheckInTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import QrScanner from '@/components/QrScanner';
@@ -250,84 +250,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
                 </div>
             </CardContent>
           </Card>
-              {event.is_check_in_open && (
-                 <Badge variant="outline" className="text-success border-success mr-2 hidden md:flex">Check-in Open</Badge>
-              )}
-              
-              <Button onClick={handleDownloadPdf} variant="outline" size="sm" className="gap-2 no-print">
-                <Download className="h-4 w-4" /> Download PDF
-              </Button>
 
-              {event.check_in_scan_mode === 'qr' && (
-                <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <QrCodeIcon className="mr-2 h-4 w-4" /> Scan QR
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Scan Athlete QR Code</DialogTitle>
-                    </DialogHeader>
-                    <QrScanner
-                      onScanSuccess={(qrCodeId) => {
-                        const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
-                        if (athlete) {
-                          setScannedAthleteId(qrCodeId);
-                          setSearchTerm('');
-                          showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
-                          setIsScannerOpen(false);
-                        } else {
-                          showError('QR Code not recognized or athlete not found.');
-                        }
-                      }}
-                    />
-                  </DialogContent>
-                </Dialog>
-              )}
-
-              {event.check_in_scan_mode === 'barcode' && (
-                <Button variant="outline" size="sm" disabled>
-                  <Barcode className="mr-2 h-4 w-4" /> Scan Barcode
-                </Button>
-              )}
-
-              {/* Face ID Dialog Button */}
-              <Dialog open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="9" cy="10" r="1.5" />
-                      <circle cx="15" cy="10" r="1.5" />
-                      <path d="M9 16c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
-                    </svg>
-                    Face ID
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      Face ID Check-in
-                      <Badge variant="warning">
-                        Beta
-                      </Badge>
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <FaceCapture onCapture={handleFaceCapture} />
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              {/* Batch Check-in Button */}
-              {isBatchCheckInEnabled && selectedAthleteIds.length > 0 && (
-                <Button onClick={onBatchCheckIn} className="bg-success hover:bg-success/90 text-success-foreground animate-in fade-in zoom-in" size="sm">
-                    Batch Check-in ({selectedAthleteIds.length})
-                </Button>
-              )}
-            </div>
-          </div>
 
           {/* Athletes Table - Full Width */}
           <CheckInTable

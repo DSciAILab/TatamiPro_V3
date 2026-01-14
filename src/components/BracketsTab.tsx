@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { LayoutGrid, Swords, Printer, Medal } from 'lucide-react';
+import { LayoutGrid, Swords, Printer, Medal, Circle, CheckCircle2, RefreshCw, ClipboardList, Search } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
 import { generateBracketForDivision } from '@/utils/bracket-generator';
@@ -18,7 +18,7 @@ import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+
 import { showSuccess, showError } from '@/utils/toast';
 import MatCategoryList from '@/components/MatCategory';
 import {
