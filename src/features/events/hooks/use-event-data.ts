@@ -142,10 +142,14 @@ export const useEventData = (eventId?: string) => {
     // Use Supabase real-time for cloud mode
     const channel = supabase
       .channel(`event-${eventId}`)
-      // Event updates
+      // Event updates (including brackets and mat_fight_order)
+      // NOTE: We invalidate and refetch instead of using payload directly because
+      // Supabase Realtime may truncate large JSONB columns like brackets
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sjjp_events', filter: `id=eq.${eventId}` }, 
         (payload) => {
-             updateEventCache(oldData => ({ ...oldData, ...payload.new }));
+             console.log('[Realtime] Event UPDATE received - invalidating cache to refetch fresh data');
+             // Force refetch instead of using potentially incomplete payload
+             queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false });
         })
       // Athlete updates - SMART CACHE UPDATE
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_athletes', filter: `event_id=eq.${eventId}` }, 
@@ -173,7 +177,7 @@ export const useEventData = (eventId?: string) => {
         })
       // Division updates - For now, still invalidate because it affects athlete calculation
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_divisions', filter: `event_id=eq.${eventId}` }, 
-        () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }))
+        () => queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false }))
       .subscribe();
 
     return () => {
