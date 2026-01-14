@@ -145,7 +145,11 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     : `/events/${eventId}/fights/${divisionId}/${match.id}`;
 
   return (
-    <Link to={linkPath} className="block">
+    <Link 
+      to={linkPath} 
+      className="block"
+      state={{ match }} // Pass internal match state to avoid fetch delays/race conditions
+    >
       {cardContent}
     </Link>
   );

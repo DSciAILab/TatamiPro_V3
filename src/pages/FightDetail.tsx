@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   // const { isOfflineMode, trackChange } = useOffline(); // Use offline hook
   const isOfflineMode = false;
@@ -102,7 +103,22 @@ const FightDetail: React.FC = () => {
         const bracket = eventData.brackets?.[divisionId];
         if (!bracket) throw new Error("Bracket não encontrado para esta divisão.");
 
-        const match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
+        let match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
+        
+        // Navigation State Fallback/Override logic
+        // If we have match data in navigation state (from BracketView), use it if:
+        // 1. Match not found in DB bracket
+        // 2. DB match is missing fighters that are present in state match (sync lag)
+        const stateMatch = location.state?.match as Match | undefined;
+        if (stateMatch && stateMatch.id === matchId) {
+           if (!match || 
+               (!match.fighter1_id && stateMatch.fighter1_id) || 
+               (!match.fighter2_id && stateMatch.fighter2_id)) {
+               console.log('[FightDetail] Using match data from navigation state (sync lag compensation)');
+               match = stateMatch;
+           }
+        }
+        
         if (!match) throw new Error("Luta não encontrada.");
 
         // 2. Determine necessary fighter IDs
