@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Event, AgeCategory, DivisionGender, DivisionBelt } from '@/types/index';
 import { showSuccess } from '@/utils/toast';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical, Trash2, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MatDistributionProps {
   event: Event;
@@ -35,6 +36,29 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
     });
     return initialAssignments;
   });
+
+  const [expandedMats, setExpandedMats] = useState<Set<string>>(() => new Set(matNames));
+
+    // Update expandedMats when matNames changes if needed (optional reset or merge)
+    useEffect(() => {
+        setExpandedMats(prev => {
+            const newSet = new Set(prev);
+            matNames.forEach(m => newSet.add(m)); // Ensure new mats are expanded by default
+            return newSet;
+        });
+    }, [matNames]);
+
+    const toggleMatExpansion = (matName: string) => {
+        setExpandedMats(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(matName)) {
+                newSet.delete(matName);
+            } else {
+                newSet.add(matName);
+            }
+            return newSet;
+        });
+    };
 
   const allCategoryGroups = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
@@ -184,19 +208,25 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
         <Button onClick={handleAutoDistribute}>Auto Distribuição dos Mats</Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {matNames.map(matName => (
           <Card
             key={matName}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, matName)}
-            className="min-h-[200px] flex flex-col"
+            className="flex flex-col"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-medium">{matName}</CardTitle>
-              <span className="text-sm text-muted-foreground">Tempo: {getTotalFightTimeOnMat(matName)} min</span>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => toggleMatExpansion(matName)}>
+              <div className="flex flex-col">
+                  <CardTitle className="text-lg font-medium">{matName}</CardTitle>
+                  <span className="text-sm text-muted-foreground">Tempo: {getTotalFightTimeOnMat(matName)} min</span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); toggleMatExpansion(matName); }}>
+                 <ChevronDown className={cn("h-4 w-4 transition-transform", expandedMats.has(matName) ? "rotate-180" : "")} /> 
+              </Button>
             </CardHeader>
-            <CardContent className="flex-1 pt-0">
+            {expandedMats.has(matName) && (
+            <CardContent className="flex-1 pt-4">
               {matAssignments[matName].length === 0 ? (
                 <p className="text-muted-foreground text-sm">Arraste categorias para cá.</p>
               ) : (
@@ -210,7 +240,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
                         onDragStart={(e) => handleDragStart(e, categoryKey)}
                         className="flex items-center justify-between p-2 border rounded-md bg-secondary/50 cursor-grab"
                       >
-                        <span className="text-sm">{group?.display} ({group?.athleteCount || 0} atletas / {group?.totalFightTime || 0} min)</span>
+                        <span className="text-sm">{group?.display} ({group?.athleteCount || 0} / {group?.totalFightTime || 0}m)</span>
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveFromMat(matName, categoryKey)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -220,6 +250,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
                 </ul>
               )}
             </CardContent>
+            )}
           </Card>
         ))}
       </div>
@@ -236,7 +267,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
               onDragStart={(e) => handleDragStart(e, group.key)}
               className="p-3 flex items-center justify-between bg-card hover:bg-accent cursor-grab"
             >
-              <span className="font-medium">{group.display} ({group.athleteCount} atletas / {group.totalFightTime} min)</span>
+              <span className="font-medium">{group.display} ({group.athleteCount} / {group.totalFightTime}m)</span>
               <GripVertical className="h-5 w-5 text-muted-foreground" />
             </Card>
           ))}

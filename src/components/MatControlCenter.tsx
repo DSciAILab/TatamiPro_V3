@@ -62,11 +62,11 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
   const [expandedDivisions, setExpandedDivisions] = useState<Set<string>>(new Set());
   
   // Persist status filter in localStorage
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'finished'>(() => {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'pending' | 'finished'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(`matControl_filter_${event.id}`);
-      if (saved && ['all', 'active', 'finished'].includes(saved)) {
-        return saved as 'all' | 'active' | 'finished';
+      if (saved && ['all', 'in_progress', 'pending', 'finished'].includes(saved)) {
+        return saved as 'all' | 'in_progress' | 'pending' | 'finished';
       }
     }
     return 'all';
@@ -81,7 +81,7 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
   };
 
   // Save status filter to localStorage whenever it changes
-  const updateStatusFilter = (newFilter: 'all' | 'active' | 'finished') => {
+  const updateStatusFilter = (newFilter: 'all' | 'in_progress' | 'pending' | 'finished') => {
     setStatusFilter(newFilter);
     if (typeof window !== 'undefined') {
       localStorage.setItem(`matControl_filter_${event.id}`, newFilter);
@@ -292,8 +292,10 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
       // Apply status filter
       if (statusFilter === 'finished') {
         filteredDivisions = filteredDivisions.filter(d => d.status === 'Finished');
-      } else if (statusFilter === 'active') {
-        filteredDivisions = filteredDivisions.filter(d => d.status !== 'Finished');
+      } else if (statusFilter === 'in_progress') {
+        filteredDivisions = filteredDivisions.filter(d => d.status === 'In Progress');
+      } else if (statusFilter === 'pending') {
+         filteredDivisions = filteredDivisions.filter(d => d.status === 'Not Generated' || d.status === 'Pending' as any); // Handle potential status variance
       }
       
       // Apply search
@@ -340,9 +342,10 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
   // Calculate totals
   const totals = useMemo(() => {
     const finished = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'Finished').length, 0);
-    const active = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status !== 'Finished').length, 0);
-    const total = finished + active;
-    return { total, finished, active };
+    const inProgress = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'In Progress').length, 0);
+    const pending = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'Not Generated').length, 0); 
+    const total = finished + inProgress + pending;
+    return { total, finished, inProgress, pending };
   }, [matGroups]);
 
   const toggleMat = (matName: string) => {
@@ -400,10 +403,11 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
     <div className="space-y-4">
       {/* Status Filter Cards - 3 options */}
       {/* Status Filter Badges */}
-      <div className="flex items-center gap-2">
+      {/* Status Filter Badges */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
         <Badge
           variant={statusFilter === 'all' ? "default" : "outline"}
-          className="cursor-pointer h-8 px-3 text-sm hover:opacity-80 transition-all font-medium"
+          className="cursor-pointer h-8 px-3 text-sm hover:opacity-80 transition-all font-medium whitespace-nowrap"
           onClick={() => updateStatusFilter('all')}
         >
           Todas <span className="ml-1.5 opacity-70 text-xs">({totals.total})</span>
@@ -411,22 +415,34 @@ const MatControlCenter: React.FC<MatControlCenterProps> = ({ event, onDivisionSe
         <Badge
           variant="outline"
           className={cn(
-            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-success/50",
-            statusFilter === 'active' 
-              ? "bg-success/15 text-success hover:bg-success/25" 
-              : "text-muted-foreground hover:text-success hover:bg-success/5"
+            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-info/50 whitespace-nowrap",
+            statusFilter === 'in_progress' 
+              ? "bg-info/15 text-info hover:bg-info/25" 
+              : "text-muted-foreground hover:text-info hover:bg-info/5"
           )}
-          onClick={() => updateStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+          onClick={() => updateStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
         >
-          Ativas <span className="ml-1.5 opacity-70 text-xs">({totals.active})</span>
+          Em Progresso <span className="ml-1.5 opacity-70 text-xs">({totals.inProgress})</span>
         </Badge>
         <Badge
           variant="outline"
           className={cn(
-            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-warning/50",
+            "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+            statusFilter === 'pending' 
+              ? "bg-orange-500/15 text-orange-600 border-orange-500 hover:bg-orange-500/25" 
+              : "text-muted-foreground border-border hover:text-orange-500 hover:border-orange-500 hover:bg-orange-500/5"
+          )}
+          onClick={() => updateStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+        >
+          Pendentes <span className="ml-1.5 opacity-70 text-xs">({totals.pending})</span>
+        </Badge>
+        <Badge
+          variant="outline"
+          className={cn(
+            "cursor-pointer h-8 px-3 text-sm transition-all font-medium border-success/50 whitespace-nowrap",
             statusFilter === 'finished' 
-              ? "bg-warning/15 text-warning hover:bg-warning/25" 
-              : "text-muted-foreground hover:text-warning hover:bg-warning/5"
+              ? "bg-success/15 text-success hover:bg-success/25" 
+              : "text-muted-foreground hover:text-success hover:bg-success/5"
           )}
           onClick={() => updateStatusFilter(statusFilter === 'finished' ? 'all' : 'finished')}
         >
