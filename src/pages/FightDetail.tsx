@@ -29,6 +29,7 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { parseISO } from 'date-fns';
 import { useOffline } from '@/context/offline-context'; // Import offline context
 import { db } from '@/lib/local-db'; // Import local DB
+import { useUpdateMatchResult } from '@/features/events/hooks/use-event-mutations';
 
 const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch: boolean = false): string => {
   if (isThirdPlaceMatch) return 'Luta pelo 3º Lugar';
@@ -210,37 +211,84 @@ const FightDetail: React.FC = () => {
     );
   };
 
+  // Use the atomic match update hook
+  const { mutateAsync: updateMatchResult } = useUpdateMatchResult();
+
   const handleUpdateBracket = async (updatedBracket: Bracket) => {
-    if (!event || !eventId) return;
+    if (!event || !eventId || !currentMatch) return;
     const toastId = showLoading('Salvando resultado...');
 
-    const updatedBrackets = {
-      ...event.brackets,
-      [divisionId!]: updatedBracket,
-    };
+    // We still calculate the next state for local optimistic interactions, 
+    // but for ONLINE saving we now use the atomic RPC.
     
-    const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
-      ...event,
-      brackets: updatedBrackets,
-    });
-
-    const updateData = { brackets: finalBrackets, mat_fight_order: newMatFightOrder };
+    // NOTE: generateMatFightOrder is simpler on backend if we just trust the result.
+    // For now we assume the backend RPC handles just the data persistence.
+    // Mat assignments and order usually don't change just by setting a result.
 
     try {
       if (isOfflineMode) {
-        // SAVE LOCALLY
+        // SAVE LOCALLY (Old Logic)
+        const updatedBrackets = {
+           ...event.brackets,
+           [divisionId!]: updatedBracket,
+        };
+        const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
+            ...event,
+            brackets: updatedBrackets,
+        });
+        const updateData = { brackets: finalBrackets, mat_fight_order: newMatFightOrder };
+
         await trackChange('events', 'update', { id: eventId, ...updateData });
         const localEvent = await db.events.get(eventId);
         if (localEvent) {
           await db.events.put({ ...localEvent, ...updateData });
         }
-        showSuccess(isOfflineMode ? "Resultado salvo localmente." : "Resultado registrado!");
+        showSuccess("Resultado salvo localmente.");
       } else {
-        // SAVE ONLINE
-        const { error } = await supabase.from('sjjp_events').update(updateData).eq('id', eventId);
-        if (error) throw error;
-        showSuccess(`Resultado da luta ${currentMatch?.mat_fight_number} registrado!`);
-        // Invalidate React Query cache to ensure EventDetail gets fresh data
+        // SAVE ONLINE (ATOMIC UPDATE via RPC)
+        // We update the specific matches that changed to avoid race conditions.
+        // This includes the current match (result) and potentially the next match (fighter propagation).
+        
+        const allMatches = updatedBracket.rounds.flat();
+        if (updatedBracket.third_place_match) allMatches.push(updatedBracket.third_place_match);
+        
+        const match = allMatches.find(m => m.id === currentMatch.id);
+        const nextMatchId = match?.next_match_id;
+        const nextMatch = nextMatchId ? allMatches.find(m => m.id === nextMatchId) : null;
+        
+        // 1. Update main match
+        if (match) {
+             await updateMatchResult({ 
+                eventId, 
+                bracketId: divisionId!, 
+                matchId: match.id, 
+                matchData: match 
+             });
+        }
+        
+        // 2. Update next match if it exists (propagation)
+        if (nextMatch) {
+             await updateMatchResult({ 
+                eventId, 
+                bracketId: divisionId!, 
+                matchId: nextMatch.id, 
+                matchData: nextMatch 
+             });
+        }
+
+        // 3. Update third place match if affected (propagation)
+        // Check if current match feeds into third place match
+        if (updatedBracket.third_place_match && updatedBracket.third_place_match.prev_match_ids?.includes(currentMatch.id)) {
+            await updateMatchResult({ 
+                eventId, 
+                bracketId: divisionId!, 
+                matchId: updatedBracket.third_place_match.id, 
+                matchData: updatedBracket.third_place_match 
+             });
+        }
+        
+        showSuccess(`Resultado registrado!`);
+        // Invalidate to ensure consistency
         queryClient.invalidateQueries({ queryKey: ['event', eventId] });
       }
       

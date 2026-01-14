@@ -77,46 +77,61 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   };
 
   const fightsForSelectedMatAndCategory = useMemo(() => {
-    // FALLBACK: If mat_fight_order is missing, use matches from brackets directly
-    if (!mat_fight_order || Object.keys(mat_fight_order).length === 0) {
-      const fights: Match[] = [];
+    // 1. Try to get fights from explicit order first
+    let fights: Match[] = [];
+
+    if (mat_fight_order && Object.keys(mat_fight_order).length > 0) {
+      if (selectedMat === 'all-mats') {
+        Object.values(mat_fight_order).forEach((matMatchesIds: any) => {
+          if (Array.isArray(matMatchesIds)) {
+            matMatchesIds.forEach((matchId: string) => {
+              const match = allMatchesMap.get(matchId);
+              if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
+                fights.push(match);
+              }
+            });
+          }
+        });
+      } else if (selectedMat) {
+        const matMatchesIds = mat_fight_order[selectedMat] || [];
+        if (Array.isArray(matMatchesIds)) {
+          matMatchesIds.forEach((matchId: string) => {
+            const match = allMatchesMap.get(matchId);
+            if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
+              fights.push(match);
+            }
+          });
+        }
+      }
+    }
+
+    // 2. FALLBACK: If map-based approach yielded NO fights, try getting from bracket directly
+    if (fights.length === 0) {
+      console.log('FightList: No fights found via mat_fight_order, using bracket fallback.');
       const currentBracket = brackets?.[selectedDivisionId];
       if (currentBracket) {
          if (currentBracket.rounds) {
-             currentBracket.rounds.flat().forEach(m => fights.push(m));
+             currentBracket.rounds.flat().forEach(m => {
+                 // Filter out BYEs if needed, or keeping them? Original logic had them.
+                 // Actually, usually we hide BYE vs BYE.
+                 if (!(m.fighter1_id === 'BYE' && m.fighter2_id === 'BYE')) {
+                    fights.push(m);
+                 }
+             });
          }
          if (currentBracket.third_place_match) {
              fights.push(currentBracket.third_place_match);
          }
       }
+      
+      // Explicitly sort for bracket view: Early rounds first
       return fights.sort((a, b) => {
          if (a.round !== b.round) return a.round - b.round;
          return (a.match_number || 0) - (b.match_number || 0);
       });
     }
-
-    const fights: Match[] = [];
-
-    if (selectedMat === 'all-mats') {
-      Object.values(mat_fight_order).forEach((matMatchesIds: any) => {
-        matMatchesIds.forEach((matchId: string) => {
-          const match = allMatchesMap.get(matchId);
-          if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-            fights.push(match);
-          }
-        });
-      });
-    } else if (selectedMat) {
-      const matMatchesIds = mat_fight_order[selectedMat] || [];
-      matMatchesIds.forEach((matchId: string) => {
-        const match = allMatchesMap.get(matchId);
-        if (match && match._division_id === selectedDivisionId && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-          fights.push(match);
-        }
-      });
-    }
     
-    // Sort logic...
+    // Sort logic for standard view (Mat Order)
     return fights.sort((a, b) => {
       if (selectedMat === 'all-mats') {
         const matNameA = a._mat_name || '';
@@ -125,6 +140,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           return matNameA.localeCompare(matNameB);
         }
       }
+      // If round is available, use it, otherwise rely on fight number
       if (a.round !== b.round) return a.round - b.round;
       return (a.mat_fight_number || 0) - (b.mat_fight_number || 0);
     });
