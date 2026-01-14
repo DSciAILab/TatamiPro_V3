@@ -127,17 +127,16 @@ export const useEventData = (eventId?: string) => {
     // If offline mode, no real-time updates
     if (isOfflineMode) return;
     
-    // Helper to safely update cache
+    // Helper to safely update cache - use predicate to match all variations of event query
     const updateEventCache = (updater: (oldData: Event) => Event) => {
-      queryClient.setQueryData<Event>(['event', eventId, false, false], (oldData) => {
-         if (!oldData) return oldData;
-         return updater(oldData);
-      });
-      // Also update the general key just in case variations exist
-       queryClient.setQueryData<Event>(['event', eventId], (oldData) => {
-         if (!oldData) return oldData;
-         return updater(oldData);
-      });
+      // Invalidate and update all queries that start with ['event', eventId]
+      queryClient.setQueriesData<Event>(
+        { queryKey: ['event', eventId], exact: false },
+        (oldData) => {
+          if (!oldData) return oldData;
+          return updater(oldData);
+        }
+      );
     };
 
     // Use Supabase real-time for cloud mode
