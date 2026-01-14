@@ -43,28 +43,30 @@ export const useEventData = (eventId?: string) => {
       athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
       divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
     } else {
-      // Fetch from Supabase
-      const { data: eData, error: eventError } = await supabase
-        .from('sjjp_events')
-        .select('*')
-        .eq('id', eventId)
-        .single();
-      if (eventError) throw eventError;
-      eventData = eData;
+      // Fetch from Supabase in Parallel for maximized performance (PERF-001)
+      const [eventRes, athletesRes, divisionsRes] = await Promise.all([
+        supabase
+          .from('sjjp_events')
+          .select('*')
+          .eq('id', eventId)
+          .single(),
+        supabase
+          .from('sjjp_athletes')
+          .select('*')
+          .eq('event_id', eventId),
+        supabase
+          .from('sjjp_divisions')
+          .select('*')
+          .eq('event_id', eventId)
+      ]);
 
-      const { data: aData, error: athletesError } = await supabase
-        .from('sjjp_athletes')
-        .select('*')
-        .eq('event_id', eventId);
-      if (athletesError) throw athletesError;
-      athletesData = aData;
+      if (eventRes.error) throw eventRes.error;
+      if (athletesRes.error) throw athletesRes.error;
+      if (divisionsRes.error) throw divisionsRes.error;
 
-      const { data: dData, error: divisionsError } = await supabase
-        .from('sjjp_divisions')
-        .select('*')
-        .eq('event_id', eventId);
-      if (divisionsError) throw divisionsError;
-      divisionsData = dData;
+      eventData = eventRes.data;
+      athletesData = athletesRes.data;
+      divisionsData = divisionsRes.data;
     }
 
     if (!eventData) throw new Error("Event not found.");
