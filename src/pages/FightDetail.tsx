@@ -535,13 +535,24 @@ const FightDetail: React.FC = () => {
   const fightNumberDisplay = `${matNumber}-${currentMatch.mat_fight_number}`;
   const currentRoundName = getRoundName(currentMatch.round - 1, currentBracket.rounds.length, currentMatch.round === -1);
 
+  const getDivisionName = () => {
+    // Try to find division in the loaded divisions list
+    const division = event?.divisions?.find(d => d.id === divisionId);
+    return division ? division.name : '';
+  };
+
   return (
     <Layout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{currentMatch._mat_name} - Luta {fightNumberDisplay}</h1>
-        <Button onClick={handleGoBack} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-        </Button>
+      <div className="flex flex-col mb-6">
+        <div className="flex justify-between items-start">
+           <div>
+               <h2 className="text-lg text-muted-foreground mb-1">{getDivisionName()}</h2>
+               <h1 className="text-3xl font-bold">{currentMatch._mat_name} - Luta {fightNumberDisplay}</h1>
+           </div>
+           <Button onClick={handleGoBack} variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+           </Button>
+        </div>
       </div>
 
       <Card className={`mb-6 border-2 ${mainCardBorderClass}`}>
