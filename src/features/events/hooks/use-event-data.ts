@@ -151,29 +151,12 @@ export const useEventData = (eventId?: string) => {
              // Force refetch instead of using potentially incomplete payload
              queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false });
         })
-      // Athlete updates - SMART CACHE UPDATE
+      // Athlete updates - STRICT SYNC: Invalidate & Refetch
+      // Replaces previous optimistic logic to guarantee consistency across all devices
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_athletes', filter: `event_id=eq.${eventId}` }, 
         (payload) => {
-            updateEventCache(oldData => {
-                 const divisions = oldData.divisions || [];
-                 const ageSettings = oldData.age_division_settings || [];
-                 
-                 let newAthletes = [...(oldData.athletes || [])];
-                 
-                 if (payload.eventType === 'INSERT') {
-                     const processed = processAthleteData(payload.new, divisions, ageSettings);
-                     newAthletes.push(processed);
-                 } else if (payload.eventType === 'UPDATE') {
-                     // Check if only check-in status changed to avoid expensive reprocessing if possible? 
-                     // But processAthleteData is fast enough for one item.
-                     const processed = processAthleteData(payload.new, divisions, ageSettings);
-                     newAthletes = newAthletes.map(a => a.id === payload.new.id ? processed : a);
-                 } else if (payload.eventType === 'DELETE') {
-                     newAthletes = newAthletes.filter(a => a.id !== payload.old.id);
-                 }
-                 
-                 return { ...oldData, athletes: newAthletes };
-            });
+             console.log('[Realtime] Athlete change detected - invalidating cache to force sync');
+             queryClient.invalidateQueries({ queryKey: ['event', eventId], exact: false });
         })
       // Division updates - For now, still invalidate because it affects athlete calculation
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sjjp_divisions', filter: `event_id=eq.${eventId}` }, 
