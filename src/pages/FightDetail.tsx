@@ -579,7 +579,7 @@ const FightDetail: React.FC = () => {
         state: { 
           activeTab: 'brackets',
           bracketsSubTab: 'fight-overview', // IMPORTANT: Show division detail
-          navSelectedDivisionId: currentMatch?._division_id,
+          navSelectedDivisionId: divisionId,
           navDivisionDetailTab: 'fight_order' // Specific tab in DivisionDetail
         } 
       });
@@ -592,7 +592,7 @@ const FightDetail: React.FC = () => {
         state: { 
           activeTab: 'brackets',
           bracketsSubTab: 'fight-overview', // IMPORTANT: Show division detail
-          navSelectedDivisionId: currentMatch?._division_id,
+          navSelectedDivisionId: divisionId,
           navDivisionDetailTab: 'bracket' // Specific tab in DivisionDetail
         } 
       });
@@ -607,7 +607,7 @@ const FightDetail: React.FC = () => {
           bracketsSubTab: 'mat-control',
           // Try to preserve the selected match/division context if possible (optional improvement)
           navSelectedMat: currentMatch?._mat_name, // Optional: if MatControl supports this
-          navSelectedDivisionId: currentMatch?._division_id 
+          navSelectedDivisionId: divisionId
         } 
       });
       return;
@@ -619,7 +619,7 @@ const FightDetail: React.FC = () => {
         state: { 
           activeTab: 'brackets',
           bracketsSubTab: 'generate-brackets', // Or whatever default brackets view
-          navSelectedDivisionId: currentMatch?._division_id 
+          navSelectedDivisionId: divisionId 
         } 
       });
       return;

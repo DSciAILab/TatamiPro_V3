@@ -29,6 +29,13 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
   });
   const bracket = event.brackets?.[division.id];
 
+  const [activeTab, setActiveTab] = useState(initialTab || "fight_order");
+  
+  // Update active tab when initialTab prop changes (e.g. navigation back)
+  useEffect(() => {
+    setActiveTab(initialTab || "fight_order");
+  }, [initialTab]);
+
   const handleSort = (key: string) => {
     setSortConfig(prevConfig => ({
       key,
@@ -76,7 +83,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
         </Button>
       </div>
 
-      <Tabs defaultValue={initialTab || "fight_order"} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
           <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>

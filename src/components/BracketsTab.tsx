@@ -92,8 +92,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   useEffect(() => {
-    if (navSelectedMat && navSelectedDivisionId) {
-      setSelectedMat(navSelectedMat);
+    if (navSelectedDivisionId) {
+      if (navSelectedMat) {
+         setSelectedMat(navSelectedMat);
+      }
       const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
       if (division) {
         setSelectedDivisionForDetail(division);
