@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Event, Athlete, AgeDivisionSetting } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,12 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Share2, Search, Printer } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Share2, Search, Printer, Download } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
+import { generateCheckInPdf } from '@/utils/pdf-checkin-generator';
 import RegistrationsTable from '@/features/events/components/RegistrationsTable';
 import BatchEditTab from '@/features/events/components/BatchEditTab';
 import { useTranslations } from '@/hooks/use-translations';
@@ -81,7 +84,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   const { t } = useTranslations();
 
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+
 
   const handleRegistrationBoxClick = (filterType: 'all' | 'approved' | 'under_approval' | 'rejected') => {
     const newFilter = (registrationStatusFilter === filterType ? 'all' : filterType);
@@ -114,102 +117,111 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   }, [filteredAthletesForDisplay, searchTerm]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Manage Registrations</span>
+    <div className="space-y-6">
+      <Tabs value={inscricoesSubTab} onValueChange={setInscricoesSubTab} className="w-full">
+        <TabsList className="w-full flex mb-6">
+          <TabsTrigger value="registered-athletes" className="flex-1">Registered Athletes</TabsTrigger>
           {userRole === 'admin' && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-info border-info/20 bg-info/10 hover:bg-info/20 no-print">
-                <Share2 className="h-4 w-4" /> Athlete Link
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 no-print">
-                <Printer className="h-4 w-4" /> Print
-              </Button>
-            </div>
+            <TabsTrigger value="approvals" className="flex-1">Approvals ({athletesUnderApproval.length})</TabsTrigger>
           )}
-        </CardTitle>
-        <CardDescription>Register athletes in the event divisions.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={inscricoesSubTab} onValueChange={setInscricoesSubTab}>
-          <TabsList className="w-full flex">
-            <TabsTrigger value="registered-athletes" className="flex-1">Registered Athletes</TabsTrigger>
-            {userRole === 'admin' && (
-              <TabsTrigger value="approvals" className="flex-1">Approvals ({athletesUnderApproval.length})</TabsTrigger>
-            )}
-            {userRole === 'admin' && (
-              <TabsTrigger value="batch-edit" className="flex-1">Batch Edit</TabsTrigger>
-            )}
-          </TabsList>
+          {userRole === 'admin' && (
+            <TabsTrigger value="batch-edit" className="flex-1">Batch Edit</TabsTrigger>
+          )}
+        </TabsList>
 
-          <TabsContent value="registered-athletes" className="mt-6">
-            {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
-              <div className="mb-6 space-y-4">
-                <h3 className="text-xl font-semibold">{userRole === 'admin' ? 'All Registrations' : `My Registrations (${userClub})`}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div
+        <TabsContent value="registered-athletes">
+          {/* Toolbar: Filters + Buttons */}
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+            {/* Left Side: Filters */}
+            <div className="flex-1">
+              {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
+                  <Badge
+                    variant={registrationStatusFilter === 'all' ? 'info' : 'outline'}
                     className={cn(
-                      "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'all' ? 'bg-info/20 border-info' : 'bg-info/5',
-                      'hover:bg-info/10'
+                      "cursor-pointer transition-all px-3 py-1",
+                      registrationStatusFilter === 'all' ? 'ring-2 ring-info/50' : 'hover:bg-info/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('all')}
                   >
-                    <p className="text-2xl font-bold text-info">{coachTotalRegistrations}</p>
-                    <p className="text-sm text-muted-foreground">{t('all')}</p>
-                  </div>
-                  <div
+                    {t('all')}: {coachTotalRegistrations}
+                  </Badge>
+                  <Badge
+                    variant={registrationStatusFilter === 'approved' ? 'success' : 'outline'}
                     className={cn(
-                      "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'approved' ? 'bg-success/20 border-success' : 'bg-success/5',
-                      'hover:bg-success/10'
+                      "cursor-pointer transition-all px-3 py-1",
+                      registrationStatusFilter === 'approved' ? 'ring-2 ring-success/50' : 'hover:bg-success/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('approved')}
                   >
-                    <p className="text-2xl font-bold text-success">{coachTotalApproved}</p>
-                    <p className="text-sm text-muted-foreground">Approved</p>
-                  </div>
-                  <div
+                    Approved: {coachTotalApproved}
+                  </Badge>
+                  <Badge
+                    variant={registrationStatusFilter === 'under_approval' ? 'pending' : 'outline'}
                     className={cn(
-                      "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'under_approval' ? 'bg-pending/20 border-pending' : 'bg-pending/5',
-                      'hover:bg-pending/10'
+                      "cursor-pointer transition-all px-3 py-1",
+                      registrationStatusFilter === 'under_approval' ? 'ring-2 ring-pending/50' : 'hover:bg-pending/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('under_approval')}
                   >
-                    <p className="text-2xl font-bold text-pending">{coachTotalPending}</p>
-                    <p className="text-sm text-muted-foreground">Pending</p>
-                  </div>
-                  <div
+                    Pending: {coachTotalPending}
+                  </Badge>
+                  <Badge
+                    variant={registrationStatusFilter === 'rejected' ? 'destructive' : 'outline'}
                     className={cn(
-                      "p-3 border rounded-md cursor-pointer transition-colors",
-                      registrationStatusFilter === 'rejected' ? 'bg-destructive/20 border-destructive' : 'bg-destructive/5',
-                      'hover:bg-destructive/10'
+                      "cursor-pointer transition-all px-3 py-1",
+                      registrationStatusFilter === 'rejected' ? 'ring-2 ring-destructive/50' : 'hover:bg-destructive/10'
                     )}
                     onClick={() => handleRegistrationBoxClick('rejected')}
                   >
-                    <p className="text-2xl font-bold text-destructive">{coachTotalRejected}</p>
-                    <p className="text-sm text-muted-foreground">Rejected</p>
-                  </div>
+                    Rejected: {coachTotalRejected}
+                  </Badge>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {userRole && !editingAthlete && (
-              <div className="mb-6 space-y-2">
-                <Link to={`/events/${event.id}/registration-options`}>
-                  <Button className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Athlete (Manual)
+            {/* Right Side: Actions */}
+            <div className="flex items-center gap-2">
+              {!editingAthlete && userRole && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="gap-1">
+                      <PlusCircle className="h-4 w-4" />
+                      Add Athlete
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to={`/events/${event.id}/registration-options`} className="cursor-pointer">
+                        <UserRound className="mr-2 h-4 w-4" />
+                        Manual Registration
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/events/${event.id}/import-athletes`} className="cursor-pointer">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Batch Import
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {userRole === 'admin' && (
+                <>
+                  <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-info border-info/20 bg-info/10 hover:bg-info/20 no-print">
+                    <Share2 className="h-4 w-4" /> Athlete Link
                   </Button>
-                </Link>
-                <Link to={`/events/${event.id}/import-athletes`}>
-                  <Button className="w-full" variant="secondary">Batch Import Athletes</Button>
-                </Link>
-              </div>
-            )}
-
-            {userRole && editingAthlete && (
+                  <Button variant="outline" size="sm" onClick={() => generateCheckInPdf(event, filteredAthletesForDisplay, 'Registrations Report')} className="gap-2 no-print">
+                    <Download className="h-4 w-4" /> Download PDF
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+          {userRole && editingAthlete && (
+            <div className="mb-6">
               <AthleteProfileEditForm
                 athlete={editingAthlete}
                 onSave={handleAthleteUpdate}
@@ -218,89 +230,86 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                 ageDivisionSettings={ageDivisionSettings}
                 divisions={event.divisions}
               />
-            )}
-
-            <div className="mt-8 mb-4">
-              <h3 className="text-xl font-semibold mb-4">Registered Athletes ({filteredAthletes.length})</h3>
-              
-              <RegistrationsTable
-                athletes={filteredAthletes}
-                onEdit={setEditingAthlete}
-                onDelete={handleDeleteAthlete}
-                userRole={userRole}
-                divisions={event.divisions}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                viewMode={viewMode === 'table' ? 'list' : 'grid'}
-                onViewModeChange={(mode) => setViewMode(mode === 'list' ? 'table' : 'cards')}
-                selectedAthletes={selectedAthletesForApproval}
-                onToggleSelection={handleToggleAthleteSelection}
-              />
             </div>
-          </TabsContent>
+          )}
 
-          {userRole === 'admin' && (
-            <TabsContent value="approvals" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Registration Approvals</CardTitle>
-                  <CardDescription>Review and approve or reject pending registrations.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {athletesUnderApproval.length === 0 ? (
-                    <p className="text-muted-foreground">No registrations awaiting approval.</p>
-                  ) : (
-                    <>
-                      <div className="flex items-center space-x-2 mb-4">
-                        <Checkbox
-                          id="selectAll"
-                          checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
-                          onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
-                        />
-                        <Label htmlFor="selectAll">Select All</Label>
-                      </div>
-                      <div className="flex space-x-2 mb-4">
-                        <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
-                          Approve Selected ({selectedAthletesForApproval.length})
-                        </Button>
-                        <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
-                          Reject Selected ({selectedAthletesForApproval.length})
-                        </Button>
-                      </div>
-                      <ul className="space-y-2">
-                        {athletesUnderApproval.map((athlete) => (
-                          <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
-                            <div className="flex items-center space-x-4">
-                              <Checkbox
-                                checked={selectedAthletesForApproval.includes(athlete.id)}
-                                onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                              />
-                              {athlete.photo_url ? (
-                                <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                  <UserRound className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
-                              <div className="flex-grow">
-                                <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                                <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                                <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
-                                {athlete.payment_proof_url && (
-                                  <p className="text-xs text-blue-500">
-                                    <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">View Receipt</a>
-                                  </p>
-                                )}
+          <div className="mb-4">
+            <RegistrationsTable
+              athletes={filteredAthletes}
+              onEdit={setEditingAthlete}
+              onDelete={handleDeleteAthlete}
+              userRole={userRole}
+              divisions={event.divisions}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedAthletes={selectedAthletesForApproval}
+              onToggleSelection={handleToggleAthleteSelection}
+            />
+          </div>
+        </TabsContent>
+
+        {userRole === 'admin' && (
+          <TabsContent value="approvals" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registration Approvals</CardTitle>
+                <CardDescription>Review and approve or reject pending registrations.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {athletesUnderApproval.length === 0 ? (
+                  <p className="text-muted-foreground">No registrations awaiting approval.</p>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="selectAll"
+                        checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
+                        onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
+                      />
+                      <Label htmlFor="selectAll">Select All</Label>
+                    </div>
+                    <div className="flex space-x-2 mb-4">
+                      <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
+                        Approve Selected ({selectedAthletesForApproval.length})
+                      </Button>
+                      <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
+                        Reject Selected ({selectedAthletesForApproval.length})
+                      </Button>
+                    </div>
+                    <ul className="space-y-2">
+                      {athletesUnderApproval.map((athlete) => (
+                        <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
+                          <div className="flex items-center space-x-4">
+                            <Checkbox
+                              checked={selectedAthletesForApproval.includes(athlete.id)}
+                              onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
+                            />
+                            {athlete.photo_url ? (
+                              <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                <UserRound className="h-5 w-5 text-muted-foreground" />
                               </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-pending font-semibold">Awaiting Approval</span>
-                              {userRole === 'admin' && (
-                                <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                            )}
+                            <div className="flex-grow">
+                              <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
+                              <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
+                              <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
+                              {athlete.payment_proof_url && (
+                                <p className="text-xs text-blue-500">
+                                  <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">View Receipt</a>
+                                </p>
                               )}
-                              <AlertDialog>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-pending font-semibold">Awaiting Approval</span>
+                            {userRole === 'admin' && (
+                              <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
                                     <Trash2 className="h-4 w-4" />
@@ -333,20 +342,14 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
           {userRole === 'admin' && (
             <TabsContent value="batch-edit" className="mt-6">
               <BatchEditTab 
-                athletes={filteredAthletesForDisplay} // Use filtered or all? Likely all approved/pending for admins? 
-                // Using filteredAthletesForDisplay respects the filter logic (except text search inside components).
-                // But BatchEditTab has its own internal search.
-                // Let's pass filteredAthletesForDisplay but ensure it includes what we want. 
-                // Ideally, batch edit should probably access ALL athletes or have its own fetching?
-                // For now, consistent with what's on screen.
+                athletes={filteredAthletesForDisplay} 
                 divisions={event.divisions || []}
                 onUpdatesSaved={(updated) => onBatchUpdate?.(updated)}
               />
             </TabsContent>
           )}
         </Tabs>
-      </CardContent>
-    </Card>
+      </div>
   );
 };
 

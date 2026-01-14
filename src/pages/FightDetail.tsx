@@ -635,9 +635,10 @@ const FightDetail: React.FC = () => {
         <CardContent className="grid gap-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
-              className={cn("flex flex-col items-center p-4 border rounded-md transition-colors", isFightCompleted ? (currentMatch.winner_id === currentMatch.fighter1_id ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-red-500 bg-red-50 dark:bg-red-950') : (selectedWinnerId === currentMatch.fighter1_id && isFightRecordable ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' : 'border-gray-200 dark:border-gray-700'), isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70')}
+              className={cn("flex flex-col items-center p-4 border rounded-md transition-colors relative overflow-hidden", isFightCompleted ? (currentMatch.winner_id === currentMatch.fighter1_id ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-red-500 bg-red-50 dark:bg-red-950') : (selectedWinnerId === currentMatch.fighter1_id && isFightRecordable ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' : 'border-gray-200 dark:border-gray-700'), isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70')}
               onClick={() => isFightRecordable && !isFightCompleted && setSelectedWinnerId(currentMatch.fighter1_id)}
             >
+              <div className="absolute left-0 top-0 bottom-0 w-2 bg-red-600" />
               {getFighterPhoto(fighter1Athlete)}
               <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter1Athlete)}</span>
             </div>

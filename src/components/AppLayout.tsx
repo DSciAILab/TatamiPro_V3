@@ -3,10 +3,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/mode-toggle';
-import { LanguageToggle } from '@/components/LanguageToggle';
+import { useTheme } from "next-themes";
+import { useLanguage } from "@/context/language-context";
 import { showSuccess } from '@/utils/toast';
-import { LogOut, User, Settings, ArrowLeft } from 'lucide-react';
+import { LogOut, User, Settings, ArrowLeft, Moon, Sun, Languages } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +19,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import OfflineIndicator from '@/components/OfflineIndicator';
@@ -46,6 +50,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslations();
   const { session, profile } = useAuth();
+  const { setTheme } = useTheme();
+  const { setLanguage } = useLanguage();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -64,37 +70,35 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Top Header Bar */}
       <header className="h-14 flex-shrink-0 border-b bg-background z-50">
         <div className="h-full px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 overflow-hidden mr-4">
             {/* Back Button */}
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => navigate(backUrl)}
-              className="lg:hidden"
+              className="lg:hidden flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             
             {/* Logo */}
-            <Link to="/" className="text-xl font-bold text-primary flex items-baseline">
+            <Link to="/" className="text-xl font-bold text-primary flex items-baseline flex-shrink-0">
               TatamiPro
               <span className="text-xs font-normal text-muted-foreground ml-1">v{version}</span>
             </Link>
 
             {/* Event Title (desktop only) */}
             {title && (
-              <div className="hidden md:flex items-center gap-2 ml-4 pl-4 border-l">
-                <span className="font-semibold truncate max-w-[300px]">{title}</span>
+              <div className="hidden md:flex items-center gap-2 ml-4 pl-4 border-l overflow-hidden">
+                <span className="font-semibold truncate">{title}</span>
               </div>
             )}
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <ConnectionStatus />
             <OfflineIndicator />
-            <LanguageToggle />
-            <ModeToggle />
             {session && profile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -121,6 +125,47 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                     <Settings className="mr-2 h-4 w-4" />
                     <span>{t('security')}</span>
                   </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                      <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                      <span className="ml-6">Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          Light
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          Dark
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("system")}>
+                          System
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Languages className="mr-2 h-4 w-4" />
+                      <span>Language</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setLanguage("pt")}>
+                          Português
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLanguage("en")}>
+                          English
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />

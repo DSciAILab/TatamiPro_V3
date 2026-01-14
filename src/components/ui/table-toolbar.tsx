@@ -6,8 +6,8 @@ import { Search } from 'lucide-react';
 interface TableToolbarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  viewMode: 'list' | 'grid';
-  onViewModeChange: (mode: 'list' | 'grid') => void;
+  viewMode?: 'list' | 'grid';
+  onViewModeChange?: (mode: 'list' | 'grid') => void;
   placeholder?: string;
   children?: React.ReactNode; // For extra actions
 }
@@ -22,7 +22,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-4 items-center justify-between">
-      <div className="relative flex-1 w-full md:max-w-md">
+      <div className="relative flex-1 w-full">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={placeholder}
@@ -33,7 +33,9 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
       </div>
       <div className="flex items-center gap-2 w-full md:w-auto justify-end">
         {children}
-        <ViewToggle viewMode={viewMode} onToggle={onViewModeChange} />
+        {viewMode && onViewModeChange && (
+          <ViewToggle viewMode={viewMode} onToggle={onViewModeChange} />
+        )}
       </div>
     </div>
   );

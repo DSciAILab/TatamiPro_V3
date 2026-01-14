@@ -96,7 +96,19 @@ const EventDetail: React.FC = () => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
 
-
+  const pageHeader = useMemo(() => {
+    switch (activeTab) {
+      case 'config': return { title: 'Configuration', description: 'Manage event settings and defaults.' };
+      case 'staff': return { title: 'Staff Access', description: 'Manage staff permissions and roles.' };
+      case 'inscricoes': return { title: 'Registrations', description: 'Manage registrations' };
+      case 'attendance': return { title: 'Attendance', description: 'Track athlete attendance status.' };
+      case 'checkin': return { title: 'Check-in', description: 'Process weigh-ins and check-ins.' };
+      case 'brackets': return { title: 'Brackets', description: 'View and manage tournament brackets.' };
+      case 'resultados': return { title: 'Results', description: 'View tournament results.' };
+      case 'llm': return { title: 'AI Assistant', description: 'Analyze event data with AI.' };
+      default: return { title: event?.name || 'Event', description: event?.description || '' };
+    }
+  }, [activeTab, event]);
 
   const handleSaveChanges = async () => {
     if (!event || !eventId || !hasUnsavedChanges) return;
@@ -500,8 +512,11 @@ const EventDetail: React.FC = () => {
     >
       {/* Event Header - visible on all screens */}
       <div className="mb-6">
-        <h1 className="text-3xl lg:text-4xl font-bold">{event.name}</h1>
-        <p className="text-lg text-muted-foreground">{event.description}</p>
+        <h1 className="text-3xl lg:text-4xl font-bold flex items-center flex-wrap gap-3">
+          {pageHeader.title} 
+          <span className="text-xl lg:text-2xl text-muted-foreground font-medium">|</span>
+          <span className="text-lg lg:text-xl text-muted-foreground font-normal">{pageHeader.description}</span>
+        </h1>
       </div>
           {activeTab === 'config' && (
             <EventConfigTab

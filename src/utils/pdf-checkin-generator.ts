@@ -8,7 +8,7 @@ interface AthletesByDivision {
   athletes: Athlete[];
 }
 
-export const generateCheckInPdf = (event: Event, athletes: Athlete[]) => {
+export const generateCheckInPdf = (event: Event, athletes: Athlete[], reportTitle: string = 'Check-In Report') => {
   const doc = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -59,7 +59,7 @@ export const generateCheckInPdf = (event: Event, athletes: Athlete[]) => {
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.text('Check-In Report', PAGE_WIDTH / 2, y, { align: 'center' });
+  doc.text(reportTitle, PAGE_WIDTH / 2, y, { align: 'center' });
   y += 5;
 
   doc.setFontSize(9);

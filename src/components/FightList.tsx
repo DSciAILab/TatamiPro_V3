@@ -219,10 +219,11 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         </div>
         <div className="flex-grow ml-24 space-y-2">
           <div className={cn(
-            "flex items-center p-1 rounded-md",
+            "flex items-center p-1 rounded-md relative overflow-hidden",
             match.winner_id === match.fighter1_id ? 'bg-success/20' :
             (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/20' : ''
           )}>
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600" />
             {getFighterPhoto(match.fighter1_id)}
             <div className="ml-2">
               <p className="text-base flex items-center">{fighter1Display}</p>

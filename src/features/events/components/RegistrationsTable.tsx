@@ -30,8 +30,6 @@ interface RegistrationsTableProps {
   divisions?: Division[];
   searchTerm?: string;
   onSearchChange?: (term: string) => void;
-  viewMode?: 'list' | 'grid';
-  onViewModeChange?: (mode: 'list' | 'grid') => void;
   selectedAthletes?: string[];
   onToggleSelection?: (id: string) => void;
 }
@@ -44,8 +42,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   divisions = [],
   searchTerm = '',
   onSearchChange,
-  viewMode = 'list',
-  onViewModeChange,
   selectedAthletes = [],
   onToggleSelection,
 }) => {
@@ -128,12 +124,9 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       <TableToolbar
         searchTerm={searchTerm}
         onSearchChange={onSearchChange || (() => {})}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange || (() => {})}
         placeholder="Search by name, category or team..."
       />
 
-      {viewMode === 'list' ? (
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -246,86 +239,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           </TableBody>
         </Table>
       </div>
-      ) : (
-        <ul className="space-y-4">
-            {sortedAthletes.length === 0 ? (
-                 <p className="text-muted-foreground text-center py-8">No athletes found.</p>
-             ) : (
-                sortedAthletes.map((athlete) => (
-                <li key={athlete.id} className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-2 md:space-y-0 md:space-x-4 p-3 border rounded-md">
-                    <div className="flex items-center space-x-4">
-                    {userRole && onToggleSelection ? (
-                        <Checkbox
-                        checked={selectedAthletes.includes(athlete.id)}
-                        onCheckedChange={() => onToggleSelection(athlete.id)}
-                        className={athlete.registration_status !== 'under_approval' ? 'invisible' : ''}
-                        />
-                    ) : null}
-                    {athlete.photo_url ? (
-                        <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                        <UserRound className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                    )}
-                    <div>
-                        <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                        <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                        <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
-                        <p className="text-xs text-muted-foreground">Status: <span className={`font-semibold ${athlete.registration_status === 'approved' ? 'text-success' : athlete.registration_status === 'under_approval' ? 'text-pending' : 'text-destructive'}`}>{athlete.registration_status === 'under_approval' ? 'Pending Approval' : athlete.registration_status === 'approved' ? 'Approved' : 'Rejected'}</span></p>
-                        {athlete.move_reason && (
-                        <p className="text-xs text-info">
-                            <span className="font-semibold">Moved:</span> {athlete.move_reason}
-                        </p>
-                        )}
-                    </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                    {athlete.registration_qr_code_id && (
-                        <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon">
-                            <QrCodeIcon className="h-4 w-4" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-2">
-                            <QrCodeGenerator value={athlete.registration_qr_code_id} size={100} />
-                            <p className="text-xs text-center mt-1 text-muted-foreground">ID: {athlete.registration_qr_code_id}</p>
-                        </PopoverContent>
-                        </Popover>
-                    )}
-                    {userRole && (
-                        <>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(athlete)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
-                                <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso removerá permanentemente a inscrição de {athlete.first_name} {athlete.last_name}.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(athlete.id)}>Remove</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                            </AlertDialog>
-                        </>
-                    )}
-                    </div>
-                </li>
-                ))
-            )}
-        </ul>
-      )}
     </div>
   );
 };
