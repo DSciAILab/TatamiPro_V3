@@ -130,104 +130,118 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
         </TabsList>
 
         <TabsContent value="registered-athletes">
-          {/* Toolbar: Filters + Buttons */}
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
-            {/* Left Side: Filters */}
-            <div className="flex-1">
-              {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "cursor-pointer transition-all px-3 py-1 border",
-                      registrationStatusFilter === 'all' 
-                        ? "bg-info text-white border-info hover:bg-info/90" 
-                        : "border-info text-info hover:bg-info/10"
-                    )}
-                    onClick={() => handleRegistrationBoxClick('all')}
-                  >
-                    {t('all')}: {coachTotalRegistrations}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "cursor-pointer transition-all px-3 py-1 border",
-                      registrationStatusFilter === 'approved' 
-                        ? "bg-success text-white border-success hover:bg-success/90" 
-                        : "border-success text-success hover:bg-success/10"
-                    )}
-                    onClick={() => handleRegistrationBoxClick('approved')}
-                  >
-                    Approved: {coachTotalApproved}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "cursor-pointer transition-all px-3 py-1 border",
-                      registrationStatusFilter === 'under_approval' 
-                        ? "bg-pending text-white border-pending hover:bg-pending/90" 
-                        : "border-pending text-pending hover:bg-pending/10"
-                    )}
-                    onClick={() => handleRegistrationBoxClick('under_approval')}
-                  >
-                    Pending: {coachTotalPending}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "cursor-pointer transition-all px-3 py-1 border",
-                      registrationStatusFilter === 'rejected' 
-                        ? "bg-destructive text-white border-destructive hover:bg-destructive/90" 
-                        : "border-destructive text-destructive hover:bg-destructive/10"
-                    )}
-                    onClick={() => handleRegistrationBoxClick('rejected')}
-                  >
-                    Rejected: {coachTotalRejected}
-                  </Badge>
+        <Card className="mb-6 bg-muted/40">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                {/* Left Side: Filters */}
+                <div className="flex-1">
+                  {userRole && (userRole === 'admin' || (userRole === 'coach' && userClub)) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all px-3 py-1 border",
+                          registrationStatusFilter === 'all' 
+                            ? "bg-info text-white border-info hover:bg-info/90" 
+                            : "border-info text-info hover:bg-info/10"
+                        )}
+                        onClick={() => handleRegistrationBoxClick('all')}
+                      >
+                        {t('all')}: {coachTotalRegistrations}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all px-3 py-1 border",
+                          registrationStatusFilter === 'approved' 
+                            ? "bg-success text-white border-success hover:bg-success/90" 
+                            : "border-success text-success hover:bg-success/10"
+                        )}
+                        onClick={() => handleRegistrationBoxClick('approved')}
+                      >
+                        Approved: {coachTotalApproved}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all px-3 py-1 border",
+                          registrationStatusFilter === 'under_approval' 
+                            ? "bg-pending text-white border-pending hover:bg-pending/90" 
+                            : "border-pending text-pending hover:bg-pending/10"
+                        )}
+                        onClick={() => handleRegistrationBoxClick('under_approval')}
+                      >
+                        Pending: {coachTotalPending}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all px-3 py-1 border",
+                          registrationStatusFilter === 'rejected' 
+                            ? "bg-destructive text-white border-destructive hover:bg-destructive/90" 
+                            : "border-destructive text-destructive hover:bg-destructive/10"
+                        )}
+                        onClick={() => handleRegistrationBoxClick('rejected')}
+                      >
+                        Rejected: {coachTotalRejected}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Right Side: Actions */}
-            <div className="flex items-center gap-2">
-              {!editingAthlete && userRole && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" className="gap-1">
-                      <PlusCircle className="h-4 w-4" />
-                      Add Athlete
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link to={`/events/${event.id}/registration-options`} className="cursor-pointer">
-                        <UserRound className="mr-2 h-4 w-4" />
-                        Manual Registration
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to={`/events/${event.id}/import-athletes`} className="cursor-pointer">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Batch Import
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                {/* Right Side: Actions */}
+                <div className="flex items-center gap-2">
+                  {!editingAthlete && userRole && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" className="gap-1">
+                          <PlusCircle className="h-4 w-4" />
+                          Add Athlete
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link to={`/events/${event.id}/registration-options`} className="cursor-pointer">
+                            <UserRound className="mr-2 h-4 w-4" />
+                            Manual Registration
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/events/${event.id}/import-athletes`} className="cursor-pointer">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Batch Import
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
 
-              {userRole === 'admin' && (
-                <>
-                  <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-info border-info/20 bg-info/10 hover:bg-info/20 no-print">
-                    <Share2 className="h-4 w-4" /> Athlete Link
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => generateCheckInPdf(event, filteredAthletesForDisplay, 'Registrations Report')} className="gap-2 no-print">
-                    <Download className="h-4 w-4" /> Download PDF
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+                  {userRole === 'admin' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-2 text-info border-info/20 bg-info/10 hover:bg-info/20 no-print">
+                        <Share2 className="h-4 w-4" /> Athlete Link
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => generateCheckInPdf(event, filteredAthletesForDisplay, 'Registrations Report')} className="gap-2 no-print">
+                        <Download className="h-4 w-4" /> Download PDF
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+               {/* Search Bar - Moved Inside Card */}
+               <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, category or team..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+            </CardContent>
+          </Card>
           {userRole && editingAthlete && (
             <div className="mb-6">
               <AthleteProfileEditForm
@@ -252,6 +266,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
               onSearchChange={setSearchTerm}
               selectedAthletes={selectedAthletesForApproval}
               onToggleSelection={handleToggleAthleteSelection}
+              hideSearch={true}
             />
           </div>
         </TabsContent>

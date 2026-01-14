@@ -6,6 +6,7 @@ import { Event, Bracket, Division } from '@/types/index';
 import { StaffRole } from '@/types/staff-access';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -418,7 +419,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                             <SelectItem value="all">All Divisions</SelectItem>
                             {availableDivisionsForBracketGeneration.map(div => {
                             const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
-                            let statusIndicator = '⚪'; 
+                            let statusIndicator = <Circle className="h-4 w-4 text-muted-foreground opacity-50" />; 
                             let statusText = 'Não gerado';
                             
                             if (divisionBrackets.length > 0) {
@@ -429,13 +430,13 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                                 });
 
                                 if (allFinished) {
-                                    statusIndicator = '✅'; 
+                                    statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
                                     statusText = 'Finalizado';
                                 } else if (anyInProgress) {
-                                    statusIndicator = '🔄'; 
+                                    statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
                                     statusText = 'Em progresso';
                                 } else {
-                                    statusIndicator = '📋'; 
+                                    statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
                                     statusText = 'Gerado';
                                 }
                                 
@@ -447,7 +448,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                             return (
                                 <SelectItem key={div.id} value={div.id}>
                                 <span className="flex items-center gap-2">
-                                    <span title={statusText}>{statusIndicator}</span>
+                                    <span title={statusText} className="flex items-center">{statusIndicator}</span>
                                     {div.name}
                                 </span>
                                 </SelectItem>
@@ -481,18 +482,42 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                     </div>
 
                     <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <h3 className="text-lg font-semibold tracking-tight whitespace-nowrap">Generated Brackets</h3>
-                        <div className="relative flex-1">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search brackets by division name..." 
-                            className="pl-8 w-full" 
-                            value={bracketSearchTerm}
-                            onChange={(e) => setBracketSearchTerm(e.target.value)}
-                        />
+                    {/* Generated Brackets Toolbar */}
+                    <Card className="mb-6 bg-muted/40">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                           <div>
+                                <h3 className="text-sm font-medium text-muted-foreground mb-2">Filters</h3>
+                                <div className="flex items-center gap-2">
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                        "cursor-pointer transition-all px-3 py-1 border hover:bg-muted/10",
+                                        "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                                        )}
+                                    >
+                                        Total: {Object.keys(brackets).length}
+                                    </Badge>
+                                </div>
+                           </div>
+                           <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => window.print()}>
+                                    <Printer className="h-4 w-4 mr-2" /> Print All
+                                </Button>
+                           </div>
                         </div>
-                    </div>
+
+                         <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search brackets by division name..." 
+                                className="pl-8 w-full" 
+                                value={bracketSearchTerm}
+                                onChange={(e) => setBracketSearchTerm(e.target.value)}
+                            />
+                        </div>
+                      </CardContent>
+                    </Card>
 
                     {Object.keys(brackets).length === 0 ? (
                         <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">

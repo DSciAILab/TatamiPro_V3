@@ -39,6 +39,7 @@ interface CheckInTableProps {
   onToggleSelectAthlete?: (athleteId: string) => void;
   onSelectAll?: (checked: boolean) => void;
   isBatchSelectionEnabled?: boolean;
+  hideSearch?: boolean;
 }
 
 const CheckInTable: React.FC<CheckInTableProps> = ({
@@ -52,6 +53,7 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
   onToggleSelectAthlete,
   onSelectAll,
   isBatchSelectionEnabled = false,
+  hideSearch = false,
 }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);

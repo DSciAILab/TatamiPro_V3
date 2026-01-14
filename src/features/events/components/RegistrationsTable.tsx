@@ -32,6 +32,7 @@ interface RegistrationsTableProps {
   onSearchChange?: (term: string) => void;
   selectedAthletes?: string[];
   onToggleSelection?: (id: string) => void;
+  hideSearch?: boolean;
 }
 
 const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
@@ -44,6 +45,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   onSearchChange,
   selectedAthletes = [],
   onToggleSelection,
+  hideSearch = false,
 }) => {
   const { t } = useTranslations();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
@@ -121,11 +123,13 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <TableToolbar
-        searchTerm={searchTerm}
-        onSearchChange={onSearchChange || (() => {})}
-        placeholder="Search by name, category or team..."
-      />
+      {!hideSearch && (
+        <TableToolbar
+          searchTerm={searchTerm}
+          onSearchChange={onSearchChange || (() => {})}
+          placeholder="Search by name, category or team..."
+        />
+      )}
 
       <div className="rounded-md border">
         <Table>

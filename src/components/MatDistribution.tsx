@@ -184,7 +184,7 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
         <Button onClick={handleAutoDistribute}>Auto Distribuição dos Mats</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {matNames.map(matName => (
           <Card
             key={matName}

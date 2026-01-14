@@ -189,186 +189,175 @@ const BatchEditTab: React.FC<BatchEditTabProps> = ({ athletes, onUpdatesSaved, d
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Batch Edit</CardTitle>
-          <CardDescription>
-            View and edit athletes like a spreadsheet. Use the find and replace tool for bulk corrections.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg border items-end">
-            <div className="space-y-2 flex-grow">
-              <span className="text-sm font-medium">Find and Replace</span>
-              <div className="flex gap-2">
-                <div className="w-1/3 min-w-[120px]">
-                  <Select value={replaceTargetField} onValueChange={(v: EditableField) => setReplaceTargetField(v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(FIELD_LABELS).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Input 
-                  placeholder="Text to find..." 
-                  value={findText} 
-                  onChange={e => setFindText(e.target.value)}
-                  className="flex-grow"
-                />
-              </div>
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg border items-end">
+        <div className="space-y-2 flex-grow">
+          <span className="text-sm font-medium">Find and Replace</span>
+          <div className="flex gap-2">
+            <div className="w-1/3 min-w-[120px]">
+              <Select value={replaceTargetField} onValueChange={(v: EditableField) => setReplaceTargetField(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FIELD_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="hidden md:flex pb-3">
-              <ArrowRight className="text-muted-foreground w-4 h-4" />
-            </div>
-
-            <div className="space-y-2 flex-grow">
-              <span className="text-sm font-medium md:invisible">Replace with</span>
-               <div className="flex gap-2">
-                <Input 
-                  placeholder="Replace with..." 
-                  value={replaceText} 
-                  onChange={e => setReplaceText(e.target.value)}
-                  className="flex-grow"
-                />
-                <Button onClick={handleBatchReplace} variant="secondary">
-                  <Replace className="w-4 h-4 mr-2" />
-                  Apply
-                </Button>
-               </div>
-            </div>
+            <Input 
+              placeholder="Text to find..." 
+              value={findText} 
+              onChange={e => setFindText(e.target.value)}
+              className="flex-grow"
+            />
           </div>
+        </div>
+        
+        <div className="hidden md:flex pb-3">
+          <ArrowRight className="text-muted-foreground w-4 h-4" />
+        </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <div className="relative w-72">
-               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-               <Input 
-                 placeholder="Filter table..." 
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="pl-8"
-               />
-            </div>
+        <div className="space-y-2 flex-grow">
+          <span className="text-sm font-medium md:invisible">Replace with</span>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                   setLocalAthletes(athletes);
-                   setChangedAthleteIds(new Set());
-                }}
-                disabled={!hasChanges || isSaving}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Discard
-              </Button>
-              <Button 
-                onClick={handleSaveChanges} 
-                disabled={!hasChanges || isSaving}
-                className={hasChanges ? "animate-pulse" : ""}
-              >
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Save Changes ({changedAthleteIds.size})
-              </Button>
+            <Input 
+              placeholder="Replace with..." 
+              value={replaceText} 
+              onChange={e => setReplaceText(e.target.value)}
+              className="flex-grow min-w-[150px]"
+            />
+            <Button onClick={handleBatchReplace} variant="secondary">
+              <Replace className="w-4 h-4 mr-2" />
+              Apply
+            </Button>
+            <div className="w-px h-8 bg-border mx-2" /> {/* Separator */}
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                  setLocalAthletes(athletes);
+                  setChangedAthleteIds(new Set());
+              }}
+              disabled={!hasChanges || isSaving}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Discard
+            </Button>
+            <Button 
+              onClick={handleSaveChanges} 
+              disabled={!hasChanges || isSaving}
+              className={hasChanges ? "animate-pulse" : ""}
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Save Changes ({changedAthleteIds.size})
+            </Button>
             </div>
-          </div>
+        </div>
+      </div>
 
-          <div className="border rounded-md overflow-hidden">
-             <div className="max-h-[600px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                     <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('first_name')}>
-                        First Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('last_name')}>
-                        Last Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[200px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('club')}>
-                        Club <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[200px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('email')}>
-                        Email <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('phone')}>
-                        Phone <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nationality')}>
-                        Nationality <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-                     </TableHead>
-                     <TableHead className="w-[200px] text-muted-foreground">Info (Read-Only)</TableHead>
+      <div className="flex items-center justify-between mb-4">
+        <div className="relative w-full">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Filter table..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+        </div>
+      </div>
+
+      <div className="border rounded-md overflow-hidden">
+          <div className="max-h-[600px] overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                  <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('first_name')}>
+                    First Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('last_name')}>
+                    Last Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[200px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('club')}>
+                    Club <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[200px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('email')}>
+                    Email <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('phone')}>
+                    Phone <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[150px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nationality')}>
+                    Nationality <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                  </TableHead>
+                  <TableHead className="w-[200px] text-muted-foreground">Info (Read-Only)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAthletes.map(athlete => {
+                const isModified = changedAthleteIds.has(athlete.id);
+                return (
+                  <TableRow key={athlete.id} className={isModified ? "bg-yellow-50 dark:bg-yellow-900/10" : ""}>
+                    <TableCell className="p-1">
+                      <Input 
+                        value={athlete.first_name} 
+                        onChange={e => handleCellChange(athlete.id, 'first_name', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                    <TableCell className="p-1">
+                      <Input 
+                        value={athlete.last_name} 
+                        onChange={e => handleCellChange(athlete.id, 'last_name', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                    <TableCell className="p-1">
+                      <Input 
+                        value={athlete.club} 
+                        onChange={e => handleCellChange(athlete.id, 'club', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                      <TableCell className="p-1">
+                      <Input 
+                        value={athlete.email} 
+                        onChange={e => handleCellChange(athlete.id, 'email', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                      <TableCell className="p-1">
+                      <Input 
+                        value={athlete.phone} 
+                        onChange={e => handleCellChange(athlete.id, 'phone', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                      <TableCell className="p-1">
+                      <Input 
+                        value={athlete.nationality} 
+                        onChange={e => handleCellChange(athlete.id, 'nationality', e.target.value)}
+                        className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
+                      />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {athlete.belt} - {athlete.age_division} - {athlete.weight_division}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAthletes.map(athlete => {
-                    const isModified = changedAthleteIds.has(athlete.id);
-                    return (
-                      <TableRow key={athlete.id} className={isModified ? "bg-yellow-50 dark:bg-yellow-900/10" : ""}>
-                        <TableCell className="p-1">
-                          <Input 
-                            value={athlete.first_name} 
-                            onChange={e => handleCellChange(athlete.id, 'first_name', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input 
-                            value={athlete.last_name} 
-                            onChange={e => handleCellChange(athlete.id, 'last_name', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input 
-                            value={athlete.club} 
-                            onChange={e => handleCellChange(athlete.id, 'club', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                         <TableCell className="p-1">
-                          <Input 
-                            value={athlete.email} 
-                            onChange={e => handleCellChange(athlete.id, 'email', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                         <TableCell className="p-1">
-                          <Input 
-                            value={athlete.phone} 
-                            onChange={e => handleCellChange(athlete.id, 'phone', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                         <TableCell className="p-1">
-                          <Input 
-                            value={athlete.nationality} 
-                            onChange={e => handleCellChange(athlete.id, 'nationality', e.target.value)}
-                            className="h-8 border-transparent hover:border-input focus:border-input bg-transparent"
-                          />
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {athlete.belt} - {athlete.age_division} - {athlete.weight_division}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {filteredAthletes.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center h-24">
-                        No athletes found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-             </div>
+                );
+              })}
+              {filteredAthletes.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center h-24">
+                    No athletes found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 };
