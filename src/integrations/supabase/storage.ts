@@ -40,3 +40,30 @@ export const uploadFile = async (
 
   return data.publicUrl;
 };
+
+/**
+ * Gets a signed URL for a private file in Supabase Storage.
+ * Use this for documents that require authentication (e.g., athlete-documents).
+ *
+ * @param bucket The name of the storage bucket.
+ * @param path The full path to the file within the bucket.
+ * @param expiresIn Expiration time in seconds (default: 1 hour).
+ * @returns A signed URL valid for the specified duration.
+ * @throws An error if the signed URL cannot be generated.
+ */
+export const getSignedUrl = async (
+  bucket: string,
+  path: string,
+  expiresIn: number = 3600
+): Promise<string> => {
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, expiresIn);
+
+  if (error || !data?.signedUrl) {
+    console.error('Supabase Storage signed URL error:', error);
+    throw new Error(`Failed to get signed URL for ${bucket}/${path}`);
+  }
+
+  return data.signedUrl;
+};

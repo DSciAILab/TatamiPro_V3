@@ -34,10 +34,9 @@ const Events: React.FC = () => {
     
     const { data, error } = await supabase
       .from('sjjp_events')
-      .select('*')
+      .select('*') // Note: Partial select breaks Event[] type. Needs EventListItem type for full optimization.
       // .eq('app_id', appId) // Temporarily removed
       .order('event_date', { ascending: false });
-
     console.log('[EVENTS] Query result:', { data, error, count: data?.length });
 
     if (error) {

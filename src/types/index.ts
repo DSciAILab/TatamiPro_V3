@@ -164,3 +164,36 @@ export interface EventLead {
   phone?: string;
   created_at: Date;
 }
+
+// ============================================================
+// PARTIAL TYPES (for optimized SELECT queries)
+// Use these for list views where full Event/Athlete data is not needed
+// ============================================================
+
+/** Minimal event data for list views (Events.tsx) */
+export interface EventListItem {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  event_date: string;
+  is_active: boolean;
+}
+
+/** Minimal athlete data for public list views */
+export interface AthleteListItem {
+  id: string;
+  first_name: string;
+  last_name: string;
+  club: string;
+  belt: Belt;
+  age_division: string;
+  weight_division: string;
+  registration_status: 'under_approval' | 'approved' | 'rejected';
+}
+
+/** Athlete data for bracket display (excludes sensitive info) */
+export interface AthleteBracketItem extends AthleteListItem {
+  seed?: number | null;
+  photo_url?: string | null;
+}
