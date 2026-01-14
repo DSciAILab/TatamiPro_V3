@@ -19,6 +19,7 @@ interface BracketMatchCardProps {
   divisionId: string;
   isPublic?: boolean;
   basePath?: string;
+  source?: 'brackets' | 'mat-control';
 }
 
 const getShortMatchIdentifier = (fullMatchId: string): string => {
@@ -40,6 +41,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   divisionId,
   isPublic = false,
   basePath,
+  source,
 }) => {
   const { t } = useTranslations();
   const fighter1 = match.fighter1_id === 'BYE' ? 'BYE' : athletesMap.get(match.fighter1_id || '');
@@ -149,7 +151,7 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     <Link 
       to={linkPath} 
       className="block"
-      state={{ match }} // Pass internal match state to avoid fetch delays/race conditions
+      state={{ match, source }} // Pass internal match state and source for navigation context
     >
       {cardContent}
     </Link>

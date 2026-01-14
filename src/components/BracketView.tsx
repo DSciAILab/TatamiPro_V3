@@ -12,6 +12,7 @@ interface BracketViewProps {
   eventId: string;
   isPublic?: boolean;
   basePath?: string;
+  source?: 'brackets' | 'mat-control';
 }
 
 const getRoundName = (roundIndex: number, totalRounds: number): string => {
@@ -25,7 +26,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false, basePath }) => {
+const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, division, eventId, isPublic = false, basePath, source }) => {
   const athletesMap = useMemo(() => {
     return new Map(allAthletes.map(athlete => [athlete.id, athlete]));
   }, [allAthletes]);
@@ -137,6 +138,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                           divisionId={bracket.division_id}
                           isPublic={isPublic}
                           basePath={basePath}
+                          source="brackets"
                         />
                       </div>
                     ))}

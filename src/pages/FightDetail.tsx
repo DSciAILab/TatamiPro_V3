@@ -332,9 +332,14 @@ const FightDetail: React.FC = () => {
 
     const loserId = (currentMatch.fighter1_id === selectedWinnerId) ? currentMatch.fighter2_id : currentMatch.fighter1_id;
 
-    if (selectedWinnerId === 'BYE' || loserId === 'BYE' || !loserId || !currentMatch.fighter1_id || !currentMatch.fighter2_id) {
-      showError("Não é possível registrar resultado para esta luta.");
-      return;
+    // Allow BYE as loser
+    if (selectedWinnerId === 'BYE' || (!loserId && loserId !== 'BYE') || !currentMatch.fighter1_id || !currentMatch.fighter2_id) {
+       // Extra safety check: if it's a BYE fight, we allow it.
+       const isBye = currentMatch.fighter1_id === 'BYE' || currentMatch.fighter2_id === 'BYE';
+       if (!isBye) {
+          showError("Não é possível registrar resultado para esta luta.");
+          return;
+       }
     }
 
     const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket));
@@ -348,7 +353,7 @@ const FightDetail: React.FC = () => {
 
       if (match.next_match_id) {
         for (const nextRound of updatedBracket.rounds) {
-          const nextMatch = nextRound.find(m => m.id === match.next_match_id);
+          const nextMatch = match.next_match_id ? nextRound.find(m => m.id === match.next_match_id) : undefined;
           if (nextMatch) {
             if (nextMatch.prev_match_ids?.[0] === match.id) nextMatch.fighter1_id = selectedWinnerId;
             else if (nextMatch.prev_match_ids?.[1] === match.id) nextMatch.fighter2_id = selectedWinnerId;
@@ -651,7 +656,23 @@ const FightDetail: React.FC = () => {
             </div>
           </div>
 
-          {isByeFight ? <p className="text-center text-muted-foreground mt-4 text-lg">Esta luta envolve um BYE. O atleta avança automaticamente.</p>
+          {isByeFight ? (
+            <div className="text-center mt-4">
+               <p className="text-muted-foreground text-lg mb-4">Esta luta envolve um BYE. O atleta deve avançar automaticamente.</p>
+               {!isFightCompleted && (
+                 <Button onClick={() => {
+                   const winner = currentMatch.fighter1_id === 'BYE' ? currentMatch.fighter2_id : currentMatch.fighter1_id;
+                   if (winner) {
+                     setSelectedWinnerId(winner);
+                     setSelectedResultType('walkover');
+                     setTimeout(handleRecordResult, 100);
+                   }
+                 }}>
+                   Confirmar Avanço Automático
+                 </Button>
+               )}
+            </div>
+          )
           : isPendingFight ? <p className="text-center text-muted-foreground mt-4 text-lg">Aguardando adversário(s) para esta luta.</p>
           : isFightCompleted ? (
             <div className="text-center mt-4">

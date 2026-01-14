@@ -76,9 +76,9 @@ const generateDoubleEliminationFor3Athletes = (
 
   // Sort athletes by seed (if available) or randomly
   const sortedAthletes = [...athletes].sort((a, b) => {
-    if (a.seed !== undefined && b.seed !== undefined) return a.seed - b.seed;
-    if (a.seed !== undefined) return -1;
-    if (b.seed !== undefined) return 1;
+    const seedA = a.seed ?? 999999;
+    const seedB = b.seed ?? 999999;
+    if (seedA !== seedB) return seedA - seedB;
     return 0;
   });
 
@@ -308,21 +308,58 @@ export const generateBracketForDivision = (
     // Então, ao jogar tudo em solitaryAthletes, o passo 2 vai cuidar de tudo.
   }
 
-  // 2. Distribuir Solitários (aleatoriamente nos slots restantes)
+  // 2. Distribuir Solitários com Spread/Balanceamento Inteligente
   shuffleArray(solitaryAthletes, rng);
-  solitaryAthletes.forEach(athlete => {
-    // Re-embaralhar availableSlots para cada inserção ou apenas pegar random?
-    // Shuffle inicial já garante aleatoriedade, mas vamos embaralhar availableSlots uma vez antes de preencher
-    // Na verdade, shuffleArray(availableSlots, rng) antes desse loop seria o ideal.
-    if (availableSlots.length > 0) {
-        // Embaralhar a cada iteração é custoso mas garante max randomness, mas um shuffle antes é O(N).
-        // Vamos fazer um swap aleatório para pegar um slot.
-        const randIndex = Math.floor(rng() * availableSlots.length);
-        const slot = availableSlots[randIndex];
-        finalParticipants[slot] = athlete;
-        availableSlots.splice(randIndex, 1);
-    }
-  });
+  
+  // Agrupar slots por "Partida" (Match) para garantir distribuição uniforme
+  // Ex: Bracket 8 -> Matches: [0,1], [2,3], [4,5], [6,7]
+  // Queremos preencher um slot de cada match antes de colocar o segundo.
+  const slotsByMatch: number[][] = [];
+  for (let i = 0; i < bracketSize; i += 2) {
+      slotsByMatch.push([i, i + 1]);
+  }
+
+  // Ordenar matches por ocupação "Seeds" (para evitar colocar unseeded contra seed 1 de cara se possível, ou espalhar)
+  // Estratégia: Circular entre os matches que têm MENOS atletas alocados
+  
+  while (solitaryAthletes.length > 0) {
+      const athlete = solitaryAthletes.shift()!;
+      
+      // Encontrar matches com o menor número de ocupantes
+      let minOccupancy = 2;
+      slotsByMatch.forEach(slots => {
+          const occupancy = slots.filter(s => finalParticipants[s] !== null).length;
+          if (occupancy < minOccupancy) minOccupancy = occupancy;
+      });
+
+      // Se minOccupancy for 2, não tem espaço (não deveria acontecer se bracketSize for correto)
+      if (minOccupancy >= 2) {
+          console.error("Critical: No slots available for spread fill");
+          // Fallback: achar qualquer slot livre
+          const freeSlot = finalParticipants.findIndex(p => p === null);
+          if (freeSlot !== -1) finalParticipants[freeSlot] = athlete;
+          continue;
+      }
+
+      // Candidatos: Matches com minOccupancy
+      const candidateMatchIndices: number[] = [];
+      slotsByMatch.forEach((slots, idx) => {
+          const occupancy = slots.filter(s => finalParticipants[s] !== null).length;
+          if (occupancy === minOccupancy) candidateMatchIndices.push(idx);
+      });
+
+      // Escolher um match aleatório dos candidatos
+      const matchIdx = candidateMatchIndices[Math.floor(rng() * candidateMatchIndices.length)];
+      const matchSlots = slotsByMatch[matchIdx];
+      
+      // Dentro do match, pegar um slot vazio
+      const emptySlotsInMatch = matchSlots.filter(s => finalParticipants[s] === null);
+      // Embaralhar slots vazios (ex: slot 0 ou 1)
+      const slotIndex = Math.floor(rng() * emptySlotsInMatch.length);
+      const chosenSlot = emptySlotsInMatch[slotIndex];
+
+      finalParticipants[chosenSlot] = athlete;
+  }
 
   // 3. Preencher restantes com BYE
   for (let i = 0; i < bracketSize; i++) {

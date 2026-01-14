@@ -103,7 +103,8 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               allAthletes={event.athletes || []}
               division={division}
               eventId={event.id}
-              isPublic={isPublic}
+              isPublic={false}
+              source="mat-control"
               basePath={baseFightPath}
             />
           ) : (
