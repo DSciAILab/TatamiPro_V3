@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import AppLayout from '@/components/AppLayout';
 import Layout from '@/components/Layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Athlete, Event, Division, Bracket, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
@@ -481,25 +481,28 @@ const EventDetail: React.FC = () => {
   if (isLoadingData && !event) return <Layout><PageSkeleton /></Layout>;
   if (!event) return <Layout><div className="text-center text-xl mt-8">Event not found or access denied.</div></Layout>;
 
-  return (
-    <Layout>
-      <div className="flex min-h-[calc(100vh-8rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 -mb-8">
-        {/* Sidebar Navigation - sticky full height */}
-        <div className="sticky top-16 h-[calc(100vh-4rem)] flex-shrink-0">
-          <EventSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            visibleTabs={visibleTabs}
-          />
-        </div>
+  const sidebarElement = (
+    <EventSidebar
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      visibleTabs={visibleTabs}
+      eventName={event.name}
+      eventDescription={event.description}
+    />
+  );
 
-        {/* Main Content Area */}
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
-          {/* Event Header */}
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold">{event.name}</h1>
-            <p className="text-lg text-muted-foreground">{event.description}</p>
-          </div>
+  return (
+    <AppLayout
+      sidebar={sidebarElement}
+      title={event.name}
+      description={event.description}
+      backUrl="/events"
+    >
+      {/* Event Header - visible on all screens */}
+      <div className="mb-6">
+        <h1 className="text-3xl lg:text-4xl font-bold">{event.name}</h1>
+        <p className="text-lg text-muted-foreground">{event.description}</p>
+      </div>
           {activeTab === 'config' && (
             <EventConfigTab
               event={event}
@@ -551,6 +554,8 @@ const EventDetail: React.FC = () => {
               set_is_bracket_splitting_enabled={(value) => handleUpdateEventProperty('is_bracket_splitting_enabled', value)}
               enable_team_separation={event.enable_team_separation ?? true}
               set_enable_team_separation={(value) => handleUpdateEventProperty('enable_team_separation', value)}
+              is_lead_capture_enabled={event.is_lead_capture_enabled ?? false}
+              set_is_lead_capture_enabled={(value) => handleUpdateEventProperty('is_lead_capture_enabled', value)}
             />
           )}
 
@@ -648,10 +653,9 @@ const EventDetail: React.FC = () => {
               </CardContent>
             </Card>
           )}
-        </div>
-      </div>
+
       <SaveChangesButton onSave={handleSaveChanges} isSaving={isSaving} hasUnsavedChanges={hasUnsavedChanges} />
-    </Layout>
+    </AppLayout>
   );
 };
 

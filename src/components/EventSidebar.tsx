@@ -17,7 +17,9 @@ import {
   Pin,
   PinOff,
   Calendar,
+  ArrowLeft,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TabItem {
   value: string;
@@ -29,6 +31,8 @@ interface EventSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   visibleTabs: { value: string; label: string }[];
+  eventName?: string;
+  eventDescription?: string;
 }
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
@@ -46,7 +50,11 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
   activeTab,
   onTabChange,
   visibleTabs,
+  eventName,
+  eventDescription,
 }) => {
+  const navigate = useNavigate();
+  
   // Persist sidebar state in localStorage
   const [isExpanded, setIsExpanded] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -103,23 +111,41 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          "flex flex-col bg-card border-r transition-all duration-300 ease-in-out h-full",
-          showExpanded ? "w-56" : "w-16"
+          "flex flex-col h-full bg-card border-r transition-all duration-300 ease-in-out",
+          showExpanded ? "w-60" : "w-16"
         )}
         onMouseEnter={() => !isPinned && setIsHovered(true)}
         onMouseLeave={() => !isPinned && setIsHovered(false)}
       >
-        {/* Header with toggle buttons */}
+        {/* Back to Events + Controls */}
         <div className={cn(
-          "flex items-center p-3 border-b",
-          showExpanded ? "justify-between" : "justify-center"
+          "flex items-center p-3 border-b gap-2",
+          showExpanded ? "justify-between" : "justify-center flex-col"
         )}>
+          {/* Back Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => navigate('/events')}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Back to Events
+            </TooltipContent>
+          </Tooltip>
+
           {showExpanded && (
-            <span className="font-semibold text-sm text-foreground truncate">
+            <span className="font-medium text-sm text-foreground truncate flex-1">
               Navigation
             </span>
           )}
-          <div className="flex items-center gap-1">
+
+          <div className={cn("flex items-center gap-1", !showExpanded && "flex-col")}>
             {/* Pin/Unpin button */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -137,7 +163,7 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                {isPinned ? "Unpin (auto-expand on hover)" : "Pin sidebar"}
+                {isPinned ? "Unpin (auto-expand)" : "Pin sidebar"}
               </TooltipContent>
             </Tooltip>
 
@@ -166,6 +192,20 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
           </div>
         </div>
 
+        {/* Event Info (when expanded) */}
+        {showExpanded && eventName && (
+          <div className="px-3 py-3 border-b">
+            <h2 className="font-semibold text-sm truncate" title={eventName}>
+              {eventName}
+            </h2>
+            {eventDescription && (
+              <p className="text-xs text-muted-foreground truncate" title={eventDescription}>
+                {eventDescription}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Navigation Items */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {tabItems.map((tab) => {
@@ -178,14 +218,11 @@ const EventSidebar: React.FC<EventSidebarProps> = ({
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
                   "hover:bg-accent hover:text-accent-foreground",
-                  isActive && "bg-primary/10 text-primary font-medium",
+                  isActive && "bg-primary text-primary-foreground font-medium",
                   !showExpanded && "justify-center px-0"
                 )}
               >
-                <span className={cn(
-                  "flex-shrink-0",
-                  isActive && "text-primary"
-                )}>
+                <span className="flex-shrink-0">
                   {tab.icon}
                 </span>
                 {showExpanded && (

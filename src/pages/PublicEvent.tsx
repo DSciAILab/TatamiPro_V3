@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BracketView from '@/components/BracketView';
+import LeadCaptureModal, { hasSubmittedLead, markLeadSubmitted } from '@/components/LeadCaptureModal';
 
 const PublicEvent: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ const PublicEvent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('brackets');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('');
+  const [hasLeadAccess, setHasLeadAccess] = useState(false);
   const { t } = useTranslations();
 
   const fetchEventData = useCallback(async (isInitialLoad = false) => {
@@ -131,6 +133,26 @@ const PublicEvent: React.FC = () => {
 
   if (error || !event) {
     return <PublicLayout><div className="text-center text-xl mt-8 text-red-500">{error || "Event not found."}</div></PublicLayout>;
+  }
+
+  // Check if lead capture is required
+  const needsLeadCapture = event.is_lead_capture_enabled && !hasLeadAccess && !hasSubmittedLead(eventId || '');
+
+  // Block access if lead not submitted
+  if (needsLeadCapture) {
+    return (
+      <PublicLayout>
+        <LeadCaptureModal
+          eventId={eventId!}
+          isOpen={true}
+          onSuccess={() => setHasLeadAccess(true)}
+        />
+        <div className="text-center mt-8">
+          <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
+          <p className="text-lg text-muted-foreground">Complete o cadastro para acessar o evento.</p>
+        </div>
+      </PublicLayout>
+    );
   }
 
   return (

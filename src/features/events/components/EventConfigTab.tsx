@@ -74,6 +74,8 @@ interface EventConfigTabProps {
   set_is_bracket_splitting_enabled: (value: boolean) => void;
   enable_team_separation: boolean;
   set_enable_team_separation: (value: boolean) => void;
+  is_lead_capture_enabled: boolean;
+  set_is_lead_capture_enabled: (value: boolean) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -126,6 +128,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_is_bracket_splitting_enabled,
   enable_team_separation,
   set_enable_team_separation,
+  is_lead_capture_enabled,
+  set_is_lead_capture_enabled,
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
@@ -233,6 +237,18 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     />
                     <Label htmlFor="event-active">Evento Ativo (Visível Publicamente)</Label>
                   </div>
+                  {is_active && (
+                    <div className="flex items-center space-x-2 mt-2 ml-6">
+                      <Switch
+                        id="lead-capture-enabled"
+                        checked={is_lead_capture_enabled}
+                        onCheckedChange={set_is_lead_capture_enabled}
+                      />
+                      <Label htmlFor="lead-capture-enabled" className="text-sm">
+                        Capturar dados de visitantes (nome, email ou telefone)
+                      </Label>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
                       id="wide-layout"

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Match, Athlete, Bracket, FightResultType, Event, Division } from '@/types/index';
-import { UserRound, Trophy, ArrowLeft, ArrowRight, List } from 'lucide-react';
+import { UserRound, Trophy, ArrowLeft, ArrowRight, List, RotateCcw } from 'lucide-react';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 import {
@@ -61,6 +61,7 @@ const FightDetail: React.FC = () => {
   const [showPostFightOptions, setShowPostFightOptions] = useState(false);
   const [showRoundEndDialog, setShowRoundEndDialog] = useState(false);
   const [showDivisionCompleteDialog, setShowDivisionCompleteDialog] = useState(false);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
 
   const loadFightData = useCallback(async () => {
     if (!eventId || !divisionId || !matchId) return;
@@ -326,6 +327,118 @@ const FightDetail: React.FC = () => {
     }
   };
 
+  const handleRevertResult = async () => {
+    if (!currentMatch || !currentBracket) {
+      showError("Dados da luta não encontrados.");
+      return;
+    }
+
+    const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket));
+    let matchToRevert: Match | null = null;
+    
+    // Find the match in the bracket
+    if (currentMatch.round === -1 && updatedBracket.third_place_match?.id === currentMatch.id) {
+      matchToRevert = updatedBracket.third_place_match;
+    } else {
+      for (const round of updatedBracket.rounds) {
+        const found = round.find(m => m.id === currentMatch.id);
+        if (found) {
+          matchToRevert = found;
+          break;
+        }
+      }
+    }
+
+    if (!matchToRevert) {
+      showError("Luta não encontrada no bracket.");
+      return;
+    }
+
+    // Check if next match already has a result - prevent cascading issues
+    if (matchToRevert.next_match_id) {
+      for (const round of updatedBracket.rounds) {
+        const nextMatch = round.find(m => m.id === matchToRevert!.next_match_id);
+        if (nextMatch?.winner_id) {
+          showError("Não é possível reverter: a próxima luta já possui resultado. Reverta primeiro a luta seguinte.");
+          return;
+        }
+      }
+    }
+
+    // Check if third place match has result (for semi-final losers)
+    if (updatedBracket.third_place_match && matchToRevert.round === updatedBracket.rounds.length) {
+      // This is a semi-final, check if third place has result
+      if (updatedBracket.third_place_match.winner_id) {
+        showError("Não é possível reverter: a luta pelo 3º lugar já possui resultado. Reverta-a primeiro.");
+        return;
+      }
+    }
+
+    const previousWinnerId = matchToRevert.winner_id;
+    const previousLoserId = matchToRevert.loser_id;
+
+    // Clear the match result
+    matchToRevert.winner_id = undefined;
+    matchToRevert.loser_id = undefined;
+    matchToRevert.result = undefined;
+
+    // Clear winner from next match
+    if (matchToRevert.next_match_id && previousWinnerId) {
+      for (const round of updatedBracket.rounds) {
+        const nextMatch = round.find(m => m.id === matchToRevert!.next_match_id);
+        if (nextMatch) {
+          if (nextMatch.fighter1_id === previousWinnerId && nextMatch.prev_match_ids?.[0] === matchToRevert!.id) {
+            nextMatch.fighter1_id = undefined;
+          } else if (nextMatch.fighter2_id === previousWinnerId && nextMatch.prev_match_ids?.[1] === matchToRevert!.id) {
+            nextMatch.fighter2_id = undefined;
+          }
+          break;
+        }
+      }
+    }
+
+    // Clear loser from any match that received it (e.g., third place match)
+    if (previousLoserId) {
+      for (const round of updatedBracket.rounds) {
+        for (const m of round) {
+          if (m.id === matchToRevert!.next_match_id) continue;
+          if (m.fighter1_id === previousLoserId && m.prev_match_ids?.[0] === matchToRevert!.id) {
+            m.fighter1_id = undefined;
+          } else if (m.fighter2_id === previousLoserId && m.prev_match_ids?.[1] === matchToRevert!.id) {
+            m.fighter2_id = undefined;
+          }
+        }
+      }
+      // Also check third place match
+      if (updatedBracket.third_place_match) {
+        if (updatedBracket.third_place_match.fighter1_id === previousLoserId && 
+            updatedBracket.third_place_match.prev_match_ids?.[0] === matchToRevert!.id) {
+          updatedBracket.third_place_match.fighter1_id = undefined;
+        } else if (updatedBracket.third_place_match.fighter2_id === previousLoserId && 
+                   updatedBracket.third_place_match.prev_match_ids?.[1] === matchToRevert!.id) {
+          updatedBracket.third_place_match.fighter2_id = undefined;
+        }
+      }
+    }
+
+    // Clear bracket winner/runner-up if this was the final
+    const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
+    if (finalRound?.[0]?.id === matchToRevert!.id) {
+      updatedBracket.winner_id = undefined;
+      updatedBracket.runner_up_id = undefined;
+    }
+
+    // Clear third place winner if reverting third place match
+    if (currentMatch.round === -1 && updatedBracket.third_place_match?.id === currentMatch.id) {
+      updatedBracket.third_place_winner_id = undefined;
+    }
+
+    await handleUpdateBracket(updatedBracket);
+    setShowRevertDialog(false);
+    setShowPostFightOptions(false);
+    showSuccess("Resultado da luta revertido com sucesso!");
+  };
+
   // Find next fight in the SAME DIVISION (not mat)
   const findNextFightInDivision = (): Match | undefined => {
     if (!currentBracket || !currentMatch) return undefined;
@@ -428,6 +541,16 @@ const FightDetail: React.FC = () => {
               <p className="text-2xl font-bold text-green-600">Vencedor: {getFighterDisplay(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-2 h-6 w-6 text-yellow-500" /></p>
               <p className="text-lg text-muted-foreground mt-2">Tipo de Resultado: {currentMatch.result?.type}</p>
               {currentMatch.result?.details && <p className="text-md text-muted-foreground">{currentMatch.result.details}</p>}
+              
+              {/* Revert Result Button */}
+              <Button 
+                variant="outline" 
+                className="mt-4 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => setShowRevertDialog(true)}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reverter Resultado
+              </Button>
             </div>
           ) : (
             <>
@@ -459,6 +582,40 @@ const FightDetail: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Revert Result Confirmation Dialog */}
+      <AlertDialog open={showRevertDialog} onOpenChange={setShowRevertDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-destructive" />
+              Reverter Resultado
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="mb-2">
+                Tem certeza que deseja reverter o resultado desta luta?
+              </p>
+              <p className="text-sm">
+                Esta ação irá:
+              </p>
+              <ul className="list-disc list-inside text-sm mt-1 space-y-1">
+                <li>Remover o vencedor e perdedor desta luta</li>
+                <li>Remover o atleta avançado da próxima luta (se houver)</li>
+                <li>Permitir o registro de um novo resultado</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRevertResult}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Reversão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showRoundEndDialog} onOpenChange={setShowRoundEndDialog}>
         <AlertDialogContent>

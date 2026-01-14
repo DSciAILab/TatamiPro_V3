@@ -15,6 +15,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast
 import { usePermission } from '@/hooks/use-permission';
 import Papa from 'papaparse';
 import StaffAccessGenerator from '@/components/StaffAccessGenerator';
+import EventLeadsTable from '@/features/events/components/EventLeadsTable';
 
 interface EventStaffTabProps {
   eventId: string;
@@ -296,10 +297,14 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="team" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Equipe
+          </TabsTrigger>
+          <TabsTrigger value="visitors" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Visitantes
           </TabsTrigger>
           <TabsTrigger value="quick-access" className="flex items-center gap-2">
             <QrCode className="h-4 w-4" />
@@ -491,6 +496,11 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         {/* Tab: Acesso Rápido (QR) */}
         <TabsContent value="quick-access">
           <StaffAccessGenerator eventId={eventId} />
+        </TabsContent>
+
+        {/* Tab: Visitantes */}
+        <TabsContent value="visitors">
+          <EventLeadsTable eventId={eventId} />
         </TabsContent>
       </Tabs>
     </div>

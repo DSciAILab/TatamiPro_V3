@@ -152,4 +152,15 @@ export interface Event {
   check_in_enabled_end?: string;
   // Bracket settings
   enable_team_separation?: boolean;
+  // Lead capture for public pages
+  is_lead_capture_enabled?: boolean;
+}
+
+export interface EventLead {
+  id: string;
+  event_id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  created_at: Date;
 }
