@@ -14,6 +14,7 @@ import { processAthleteData } from '@/utils/athlete-utils';
 import { generateBracketPdf, BracketPdfOptions } from '@/utils/pdf-bracket-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { parseISO } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
@@ -26,6 +27,7 @@ const PrintBrackets: React.FC = () => {
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [matStaffName, setMatStaffName] = useState('');
   const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [includeSingleAthlete, setIncludeSingleAthlete] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -78,9 +80,24 @@ const PrintBrackets: React.FC = () => {
   }, [eventId]);
 
   const availableDivisions = useMemo(() => {
-    if (!event || !event.brackets) return [];
-    return (event.divisions || []).filter(div => event.brackets?.[div.id]);
-  }, [event]);
+    if (!event) return [];
+    return (event.divisions || []).filter(div => {
+      // 1. Has generated bracket
+      if (event.brackets?.[div.id]) return true;
+
+      // 2. Single athlete (if toggle enabled)
+      if (includeSingleAthlete) {
+        const athletesInDivision = (event.athletes || []).filter(a => {
+           const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+           return effectiveDivisionId === div.id && 
+                  a.registration_status === 'approved' && 
+                  a.check_in_status === 'checked_in';
+        });
+        return athletesInDivision.length === 1;
+      }
+      return false;
+    });
+  }, [event, includeSingleAthlete]);
 
   const athletesMap = useMemo(() => {
     if (!event || !event.athletes) return new Map();
@@ -124,7 +141,8 @@ const PrintBrackets: React.FC = () => {
         const pdfOptions: BracketPdfOptions = {
             fontSize,
             userName: currentUserEmail,
-            matStaffName: matStaffName || undefined
+            matStaffName: matStaffName || undefined,
+            includeSingleAthlete
         };
 
         generateBracketPdf(event, divisionsToPrint, athletesMap, pdfOptions);
@@ -167,7 +185,7 @@ const PrintBrackets: React.FC = () => {
           ) : (
             <>
               {/* Configuration Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-4 border rounded-md bg-muted/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 p-4 border rounded-md bg-muted/20">
                 <div className="space-y-2">
                     <Label htmlFor="font-size-select">Bracket Font Size</Label>
                     <Select value={fontSize} onValueChange={(v: 'small' | 'medium' | 'large') => setFontSize(v)}>
@@ -189,6 +207,19 @@ const PrintBrackets: React.FC = () => {
                         value={matStaffName}
                         onChange={(e) => setMatStaffName(e.target.value)}
                     />
+                </div>
+                <div className="flex flex-col space-y-3 justify-center">
+                   <Label htmlFor="include-single-athlete">Walkover / Single Athlete</Label>
+                   <div className="flex items-center space-x-2">
+                        <Switch 
+                            id="include-single-athlete" 
+                            checked={includeSingleAthlete}
+                            onCheckedChange={setIncludeSingleAthlete}
+                        />
+                        <Label htmlFor="include-single-athlete" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                            Include Single Athlete Brackets
+                        </Label>
+                   </div>
                 </div>
               </div>
 
