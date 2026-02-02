@@ -398,7 +398,8 @@ export const generateBracketPdf = (
       if (thirdPlace) thirdPlaceAthletes.push(thirdPlace);
     } else if (!bracket.third_place_match) {
       semiMatches.forEach(match => {
-        if (match.loser_id && match.loser_id !== 'BYE') {
+        // Only list a loser on the podium if the match definitively has a winner
+        if (match.winner_id && match.winner_id !== 'BYE' && match.loser_id && match.loser_id !== 'BYE') {
           const loser = athletesMap.get(match.loser_id);
           if (loser) thirdPlaceAthletes.push(loser);
         }
