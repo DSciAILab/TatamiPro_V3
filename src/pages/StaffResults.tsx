@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { connectionManager } from '@/lib/connection-manager';
 import { db } from '@/lib/local-db';

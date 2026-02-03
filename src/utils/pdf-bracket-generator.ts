@@ -212,6 +212,36 @@ const getFontSizeMultiplier = (size: 'small' | 'medium' | 'large'): number => {
   }
 };
 
+// Helper to get all brackets for a division (including split variants)
+const getBracketsForDivision = (
+  event: Event, 
+  divisionId: string
+): { bracketId: string; bracket: Bracket; groupName?: string }[] => {
+  if (!event.brackets) return [];
+  const results: { bracketId: string; bracket: Bracket; groupName?: string }[] = [];
+  
+  // Check for exact match
+  if (event.brackets[divisionId]) {
+    results.push({ bracketId: divisionId, bracket: event.brackets[divisionId] });
+  }
+  
+  // Check for split variants (divisionId-A, divisionId-B, etc.)
+  Object.entries(event.brackets).forEach(([key, bracket]) => {
+    if (key.startsWith(`${divisionId}-`)) {
+      results.push({ 
+        bracketId: key, 
+        bracket, 
+        groupName: bracket.group_name || key.split('-').pop() 
+      });
+    }
+  });
+  
+  // Sort by group name (A, B, C order)
+  results.sort((a, b) => (a.bracketId > b.bracketId ? 1 : -1));
+  
+  return results;
+};
+
 export const generateBracketPdf = (
   event: Event, 
   selectedDivisions: Division[], 
@@ -228,10 +258,11 @@ export const generateBracketPdf = (
   let pageAdded = false;
 
   selectedDivisions.forEach((division) => {
-    let bracket = event.brackets?.[division.id];
+    // Get all brackets for this division (including split variants)
+    let divisionBrackets = getBracketsForDivision(event, division.id);
     
     // Auto-generate temporary bracket for single athlete if allowed and missing
-    if (!bracket && options?.includeSingleAthlete) {
+    if (divisionBrackets.length === 0 && options?.includeSingleAthlete) {
         const divAthletes = (event.athletes || []).filter(a => {
              const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
              return effectiveDivisionId === division.id && 
@@ -240,7 +271,7 @@ export const generateBracketPdf = (
         });
         
         if (divAthletes.length === 1) {
-            bracket = {
+            const tempBracket: Bracket = {
                 id: `temp-${division.id}`,
                 division_id: division.id,
                 rounds: [],
@@ -248,299 +279,306 @@ export const generateBracketPdf = (
                 participants: divAthletes,
                 winner_id: divAthletes[0].id
             };
+            divisionBrackets.push({ bracketId: tempBracket.id, bracket: tempBracket });
         }
     }
 
-    // Check if valid bracket exists
-    const hasRounds = bracket && bracket.rounds && bracket.rounds.length > 0;
-    const isSingleAthlete = bracket && bracket.participants && bracket.participants.length === 1;
-    const isWalkover = !hasRounds && bracket?.winner_id && (isSingleAthlete || bracket.participants.length > 0);
+    // Skip if no brackets found
+    if (divisionBrackets.length === 0) return;
 
-    // If no rounds and not a walkover we want to print, skip
-    if (!bracket) return;
-    if (!hasRounds) {
-        if (!isWalkover) return;
-        if (!options?.includeSingleAthlete) return;
-    }
+    // Iterate over each bracket (may be multiple for split divisions)
+    divisionBrackets.forEach(({ bracket, groupName }) => {
+      // Check if valid bracket exists
+      const hasRounds = bracket && bracket.rounds && bracket.rounds.length > 0;
+      const isSingleAthlete = bracket && bracket.participants && bracket.participants.length === 1;
+      const isWalkover = !hasRounds && bracket?.winner_id && (isSingleAthlete || bracket.participants.length > 0);
 
-    if (pageAdded) doc.addPage();
-    pageAdded = true;
+      // If no rounds and not a walkover we want to print, skip
+      if (!hasRounds) {
+          if (!isWalkover) return;
+          if (!options?.includeSingleAthlete) return;
+      }
 
-    // Standard layout calculations (default to 1 so math doesn't break for WO)
-    const totalRounds = bracket.rounds?.length || 0;
-    const maxMatchesInColumn = totalRounds > 0 
-        ? Math.max(...bracket.rounds.map(r => r.length)) 
-        : 1;
+      if (pageAdded) doc.addPage();
+      pageAdded = true;
 
-    const availableWidth = PAGE_WIDTH - (2 * MARGIN);
-    const availableHeight = PAGE_HEIGHT - (2 * MARGIN) - HEADER_HEIGHT - FOOTER_HEIGHT;
+      // Standard layout calculations (default to 1 so math doesn't break for WO)
+      const totalRounds = bracket.rounds?.length || 0;
+      const maxMatchesInColumn = totalRounds > 0 
+          ? Math.max(...bracket.rounds.map((r: Match[]) => r.length)) 
+          : 1;
 
-    // If Walkover, use fixed reasonable dimensions or skip grid logic
-    // We'll just define cardWidth/Height to avoid errors, though we won't draw grid for WO
-    const widthFactor = totalRounds > 0 ? (totalRounds + 0.3 * Math.max(0, totalRounds - 1)) : 1;
-    let cardWidth = availableWidth / widthFactor;
-    
-    const MAX_CARD_WIDTH = 60;
-    if (cardWidth > MAX_CARD_WIDTH) cardWidth = MAX_CARD_WIDTH;
-    
-    const roundGap = cardWidth * 0.3;
+      const availableWidth = PAGE_WIDTH - (2 * MARGIN);
+      const availableHeight = PAGE_HEIGHT - (2 * MARGIN) - HEADER_HEIGHT - FOOTER_HEIGHT;
 
-    const heightFactor = maxMatchesInColumn + 0.2 * Math.max(0, maxMatchesInColumn - 1);
-    let cardHeight = availableHeight / heightFactor;
+      // If Walkover, use fixed reasonable dimensions or skip grid logic
+      // We'll just define cardWidth/Height to avoid errors, though we won't draw grid for WO
+      const widthFactor = totalRounds > 0 ? (totalRounds + 0.3 * Math.max(0, totalRounds - 1)) : 1;
+      let cardWidth = availableWidth / widthFactor;
+      
+      const MAX_CARD_WIDTH = 60;
+      if (cardWidth > MAX_CARD_WIDTH) cardWidth = MAX_CARD_WIDTH;
+      
+      const roundGap = cardWidth * 0.3;
 
-    const MAX_CARD_HEIGHT = 22;
-    const MIN_CARD_HEIGHT = 14;
+      const heightFactor = maxMatchesInColumn + 0.2 * Math.max(0, maxMatchesInColumn - 1);
+      let cardHeight = availableHeight / heightFactor;
 
-    if (cardHeight > MAX_CARD_HEIGHT) cardHeight = MAX_CARD_HEIGHT;
-    if (cardHeight < MIN_CARD_HEIGHT) cardHeight = MIN_CARD_HEIGHT; 
+      const MAX_CARD_HEIGHT = 22;
+      const MIN_CARD_HEIGHT = 14;
 
-    const matchVGap = cardHeight * 0.2;
-    const startXOffset = MARGIN;
-    
-    const totalContentHeight = (cardHeight * maxMatchesInColumn) + (matchVGap * (maxMatchesInColumn - 1));
-    const startYOffset = MARGIN + HEADER_HEIGHT + Math.max(0, (availableHeight - totalContentHeight) / 2);
+      if (cardHeight > MAX_CARD_HEIGHT) cardHeight = MAX_CARD_HEIGHT;
+      if (cardHeight < MIN_CARD_HEIGHT) cardHeight = MIN_CARD_HEIGHT; 
 
-    // --- Draw Header (Event Name + Division Name) ---
-    doc.setFillColor(51, 65, 85); // Slate-700
-    doc.rect(0, 0, PAGE_WIDTH, 18, 'F');
-    
-    // Event name
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(200, 200, 200);
-    doc.text(event.name, PAGE_WIDTH / 2, 7, { align: 'center' });
-    
-    // Division name
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(255, 255, 255);
-    doc.text(division.name, PAGE_WIDTH / 2, 14, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
+      const matchVGap = cardHeight * 0.2;
+      const startXOffset = MARGIN;
+      
+      const totalContentHeight = (cardHeight * maxMatchesInColumn) + (matchVGap * (maxMatchesInColumn - 1));
+      const startYOffset = MARGIN + HEADER_HEIGHT + Math.max(0, (availableHeight - totalContentHeight) / 2);
 
-    // --- CONTENT ---
-    if (isWalkover) {
-        // Draw Walkover Layout
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(100, 100, 100);
-        doc.text("CHAMPION BY WALKOVER", PAGE_WIDTH / 2, PAGE_HEIGHT / 2, { align: 'center' });
-    } else {
-        // Draw Standard Bracket Grid
-        // --- Draw Round Labels ---
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        for (let r = 0; r < totalRounds; r++) {
-            const roundName = getRoundName(r, totalRounds);
-            const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
-            
-            // Round label background
-            const labelWidth = 40;
-            const labelX = rX - labelWidth / 2;
-            doc.setFillColor(241, 245, 249); // Slate-100
-            doc.roundedRect(labelX, startYOffset - 10, labelWidth, 7, 1, 1, 'F');
-            
-            // Round label text
-            doc.setTextColor(71, 85, 105); // Slate-600
-            doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
-        }
-        doc.setTextColor(0); // Reset color
-        doc.setFont('helvetica', 'normal');
+      // --- Draw Header (Event Name + Division Name + Group Name) ---
+      doc.setFillColor(51, 65, 85); // Slate-700
+      doc.rect(0, 0, PAGE_WIDTH, 18, 'F');
+      
+      // Event name
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(200, 200, 200);
+      doc.text(event.name, PAGE_WIDTH / 2, 7, { align: 'center' });
+      
+      // Division name (with group suffix if split)
+      const divisionTitle = groupName ? `${division.name} - ${groupName}` : division.name;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text(divisionTitle, PAGE_WIDTH / 2, 14, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
 
-        const matchPositions = new Map<string, { x: number; y: number }>();
-
-        bracket.rounds.forEach((round, roundIndex) => {
-          const x = startXOffset + roundIndex * (cardWidth + roundGap);
-          
-          round.forEach((match, matchIndex) => {
-            let y;
-            if (roundIndex === 0) {
-              y = startYOffset + matchIndex * (cardHeight + matchVGap);
-            } else {
-              const p1Id = match.prev_match_ids?.[0];
-              const p2Id = match.prev_match_ids?.[1];
+      // --- CONTENT ---
+      if (isWalkover) {
+          // Draw Walkover Layout
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(100, 100, 100);
+          doc.text("CHAMPION BY WALKOVER", PAGE_WIDTH / 2, PAGE_HEIGHT / 2, { align: 'center' });
+      } else {
+          // Draw Standard Bracket Grid
+          // --- Draw Round Labels ---
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          for (let r = 0; r < totalRounds; r++) {
+              const roundName = getRoundName(r, totalRounds);
+              const rX = startXOffset + r * (cardWidth + roundGap) + (cardWidth / 2);
               
-              if (p1Id && p2Id) {
-                 const prevMatch1Pos = matchPositions.get(p1Id);
-                 const prevMatch2Pos = matchPositions.get(p2Id);
-                 
-                 if (prevMatch1Pos && prevMatch2Pos) {
-                     y = (prevMatch1Pos.y + prevMatch2Pos.y) / 2;
-                 } else {
-                     y = startYOffset + matchIndex * (cardHeight + matchVGap) * (2 ** roundIndex);
-                 }
-              } else {
-                  y = startYOffset; 
-              }
-            }
-            matchPositions.set(match.id, { x, y });
-          });
-        });
-
-        drawBracketLines(doc, matchPositions, bracket, cardWidth, cardHeight, roundGap);
-
-        bracket.rounds.flat().forEach(match => {
-          const pos = matchPositions.get(match.id);
-          if (pos) {
-            drawMatch(doc, pos.x, pos.y, cardWidth, cardHeight, match, athletesMap, fontSizeMultiplier);
+              // Round label background
+              const labelWidth = 40;
+              const labelX = rX - labelWidth / 2;
+              doc.setFillColor(241, 245, 249); // Slate-100
+              doc.roundedRect(labelX, startYOffset - 10, labelWidth, 7, 1, 1, 'F');
+              
+              // Round label text
+              doc.setTextColor(71, 85, 105); // Slate-600
+              doc.text(roundName, rX, startYOffset - 5, { align: 'center' });
           }
-        });
+          doc.setTextColor(0); // Reset color
+          doc.setFont('helvetica', 'normal');
 
-        // Pass 4: Third Place Match (if enabled)
-        if (bracket.third_place_match) {
-            const tpWidth = cardWidth;
-            const tpHeight = cardHeight;
-            const tpX = MARGIN;
-            const tpY = PAGE_HEIGHT - MARGIN - tpHeight - 8;
+          const matchPositions = new Map<string, { x: number; y: number }>();
 
-            // Third place match label with styled background
-            const labelWidth = 50;
-            doc.setFillColor(217, 119, 6); // Amber-600 (Bronze)
-            doc.roundedRect(tpX, tpY - 8, labelWidth, 6, 1, 1, 'F');
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            doc.text("3RD PLACE MATCH", tpX + labelWidth / 2, tpY - 4, { align: 'center' });
-            doc.setTextColor(0);
-            doc.setFont('helvetica', 'normal');
+          bracket.rounds.forEach((round: Match[], roundIndex: number) => {
+            const x = startXOffset + roundIndex * (cardWidth + roundGap);
             
-            drawMatch(doc, tpX, tpY, tpWidth, tpHeight, bracket.third_place_match, athletesMap, fontSizeMultiplier);
-        }
-    }
+            round.forEach((match: Match, matchIndex: number) => {
+              let y;
+              if (roundIndex === 0) {
+                y = startYOffset + matchIndex * (cardHeight + matchVGap);
+              } else {
+                const p1Id = match.prev_match_ids?.[0];
+                const p2Id = match.prev_match_ids?.[1];
+                
+                if (p1Id && p2Id) {
+                   const prevMatch1Pos = matchPositions.get(p1Id);
+                   const prevMatch2Pos = matchPositions.get(p2Id);
+                   
+                   if (prevMatch1Pos && prevMatch2Pos) {
+                       y = (prevMatch1Pos.y + prevMatch2Pos.y) / 2;
+                   } else {
+                       y = startYOffset + matchIndex * (cardHeight + matchVGap) * (2 ** roundIndex);
+                   }
+                } else {
+                    y = startYOffset; 
+                }
+              }
+              matchPositions.set(match.id, { x, y });
+            });
+          });
 
-    // Pass 5: Draw Podium Section (lower right corner) - Draw for both Standard and Walkover
-    const podiumX = PAGE_WIDTH - MARGIN - 85;
-    const podiumY = PAGE_HEIGHT - MARGIN - 55;
-    const podiumWidth = 85;
-    const podiumHeight = 55;
-    
-    // Podium header background
-    doc.setFillColor(51, 65, 85); // Slate-700
-    doc.roundedRect(podiumX, podiumY - 7, podiumWidth, 10, 2, 2, 'F');
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text("PODIUM", podiumX + podiumWidth / 2, podiumY - 1, { align: 'center' });
-    
-    // Podium container
-    doc.setFillColor(249, 250, 251); // Gray-50
-    doc.setDrawColor(226, 232, 240); // Slate-200
-    doc.roundedRect(podiumX, podiumY + 3, podiumWidth, podiumHeight - 3, 2, 2, 'FD');
-    
-    // Get placement info
-    let champion: Athlete | undefined;
-    let runnerUp: Athlete | undefined;
-    let thirdPlaceAthletes: Athlete[] = [];
+          drawBracketLines(doc, matchPositions, bracket, cardWidth, cardHeight, roundGap);
 
-    if (isWalkover) {
-        // Direct winner for Walkover
-        if (bracket.winner_id && bracket.winner_id !== 'BYE') {
-            champion = athletesMap.get(bracket.winner_id);
-        }
-    } else {
-        const finalMatch = bracket.rounds[bracket.rounds.length - 1]?.[0];
-        champion = finalMatch?.winner_id && finalMatch.winner_id !== 'BYE' 
-          ? athletesMap.get(finalMatch.winner_id) : undefined;
-        runnerUp = finalMatch?.loser_id && finalMatch.loser_id !== 'BYE'
-          ? athletesMap.get(finalMatch.loser_id) : undefined;
-        
-        // Determine 3rd place(s)
-        const semiMatches = bracket.rounds.length >= 2 ? bracket.rounds[bracket.rounds.length - 2] : [];
-
-        if (bracket.third_place_match?.winner_id && bracket.third_place_match.winner_id !== 'BYE') {
-          const thirdPlace = athletesMap.get(bracket.third_place_match.winner_id);
-          if (thirdPlace) thirdPlaceAthletes.push(thirdPlace);
-        } else if (!bracket.third_place_match) {
-          semiMatches.forEach(match => {
-            // Only list a loser on the podium if the match definitively has a winner
-            if (match.winner_id && match.winner_id !== 'BYE' && match.loser_id && match.loser_id !== 'BYE') {
-              const loser = athletesMap.get(match.loser_id);
-              if (loser) thirdPlaceAthletes.push(loser);
+          bracket.rounds.flat().forEach((match: Match) => {
+            const pos = matchPositions.get(match.id);
+            if (pos) {
+              drawMatch(doc, pos.x, pos.y, cardWidth, cardHeight, match, athletesMap, fontSizeMultiplier);
             }
           });
-        }
-    }
-    
-    // Draw placements with colored accent bars
-    doc.setFontSize(8);
-    let lineY = podiumY + 12;
-    const rowHeight = 15; // Increased spacing for club name
-    
-    // Helper to draw podium entry
-    const drawPodiumEntry = (label: string, labelColor: [number, number, number], barColor: [number, number, number], athlete?: Athlete, barHeightExtra: number = 0) => {
-        // Colored Bar
-        doc.setFillColor(...barColor);
-        doc.rect(podiumX + 3, lineY - 4, 3, rowHeight - 4 + barHeightExtra, 'F');
-        
-        // Rank Label
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...labelColor);
-        doc.text(label, podiumX + 9, lineY);
-        
-        // Athlete Info
-        doc.setTextColor(0);
-        doc.setFont('helvetica', 'normal');
-        
-        if (athlete) {
-            // Name
-            const name = fitText(doc, `${athlete.first_name} ${athlete.last_name}`, podiumWidth - 30);
-            doc.text(name, podiumX + 22, lineY);
-            
-            // Club (NEW)
-            doc.setFontSize(7);
-            doc.setTextColor(100, 116, 139); // Slate-500
-            const club = fitText(doc, athlete.club, podiumWidth - 30);
-            doc.text(club, podiumX + 22, lineY + 3.5);
-            
-            // Reset for next
-            doc.setFontSize(8); 
-            doc.setTextColor(0);
-        } else {
-            doc.setTextColor(156, 163, 175);
-            doc.text("(TBD)", podiumX + 22, lineY);
-            doc.setTextColor(0);
-        }
-    };
 
-    // 1st Place - Gold
-    drawPodiumEntry("1st", [161, 98, 7], [250, 204, 21], champion);
-    lineY += rowHeight;
-    
-    // 2nd Place - Silver
-    drawPodiumEntry("2nd", [75, 85, 99], [156, 163, 175], runnerUp);
-    lineY += rowHeight;
-    
-    // 3rd Place(s) - Bronze
-    if (thirdPlaceAthletes.length > 0) {
-        // Draw first 3rd place
-        drawPodiumEntry("3rd", [146, 64, 14], [217, 119, 6], thirdPlaceAthletes[0], thirdPlaceAthletes.length > 1 ? 4 : 0);
-        
-        if (thirdPlaceAthletes.length > 1) {
-            lineY += 8; // Small offset for second 3rd place
-             // Just name and club for second 3rd place, no new bar
-            const athlete2 = thirdPlaceAthletes[1];
-             if (athlete2) {
-                doc.setFont('helvetica', 'normal');
-                const name2 = fitText(doc, `${athlete2.first_name} ${athlete2.last_name}`, podiumWidth - 30);
-                doc.text(name2, podiumX + 22, lineY);
-                
-                doc.setFontSize(7);
-                doc.setTextColor(100, 116, 139);
-                const club2 = fitText(doc, athlete2.club, podiumWidth - 30);
-                doc.text(club2, podiumX + 22, lineY + 3.5);
-                
-                doc.setFontSize(8);
-                doc.setTextColor(0);
-             }
-        }
-    } else {
-         drawPodiumEntry("3rd", [146, 64, 14], [217, 119, 6], undefined);
-    }
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    const dateStr = new Date().toLocaleString();
-    const footerText = `Generated by: ${options?.userName || 'User'} | ${dateStr}${options?.matStaffName ? ` | Mat Staff: ${options.matStaffName}` : ''}`;
-    doc.text(footerText, MARGIN, PAGE_HEIGHT - 5);
+          // Pass 4: Third Place Match (if enabled)
+          if (bracket.third_place_match) {
+              const tpWidth = cardWidth;
+              const tpHeight = cardHeight;
+              const tpX = MARGIN;
+              const tpY = PAGE_HEIGHT - MARGIN - tpHeight - 8;
+
+              // Third place match label with styled background
+              const labelWidth = 50;
+              doc.setFillColor(217, 119, 6); // Amber-600 (Bronze)
+              doc.roundedRect(tpX, tpY - 8, labelWidth, 6, 1, 1, 'F');
+              doc.setFontSize(8);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(255, 255, 255);
+              doc.text("3RD PLACE MATCH", tpX + labelWidth / 2, tpY - 4, { align: 'center' });
+              doc.setTextColor(0);
+              doc.setFont('helvetica', 'normal');
+              
+              drawMatch(doc, tpX, tpY, tpWidth, tpHeight, bracket.third_place_match, athletesMap, fontSizeMultiplier);
+          }
+      }
+
+      // Pass 5: Draw Podium Section (lower right corner) - Draw for both Standard and Walkover
+      const podiumX = PAGE_WIDTH - MARGIN - 85;
+      const podiumY = PAGE_HEIGHT - MARGIN - 55;
+      const podiumWidth = 85;
+      const podiumHeight = 55;
+      
+      // Podium header background
+      doc.setFillColor(51, 65, 85); // Slate-700
+      doc.roundedRect(podiumX, podiumY - 7, podiumWidth, 10, 2, 2, 'F');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text("PODIUM", podiumX + podiumWidth / 2, podiumY - 1, { align: 'center' });
+      
+      // Podium container
+      doc.setFillColor(249, 250, 251); // Gray-50
+      doc.setDrawColor(226, 232, 240); // Slate-200
+      doc.roundedRect(podiumX, podiumY + 3, podiumWidth, podiumHeight - 3, 2, 2, 'FD');
+      
+      // Get placement info
+      let champion: Athlete | undefined;
+      let runnerUp: Athlete | undefined;
+      let thirdPlaceAthletes: Athlete[] = [];
+
+      if (isWalkover) {
+          // Direct winner for Walkover
+          if (bracket.winner_id && bracket.winner_id !== 'BYE') {
+              champion = athletesMap.get(bracket.winner_id);
+          }
+      } else {
+          const finalMatch = bracket.rounds[bracket.rounds.length - 1]?.[0];
+          champion = finalMatch?.winner_id && finalMatch.winner_id !== 'BYE' 
+            ? athletesMap.get(finalMatch.winner_id) : undefined;
+          runnerUp = finalMatch?.loser_id && finalMatch.loser_id !== 'BYE'
+            ? athletesMap.get(finalMatch.loser_id) : undefined;
+          
+          // Determine 3rd place(s)
+          const semiMatches = bracket.rounds.length >= 2 ? bracket.rounds[bracket.rounds.length - 2] : [];
+
+          if (bracket.third_place_match?.winner_id && bracket.third_place_match.winner_id !== 'BYE') {
+            const thirdPlace = athletesMap.get(bracket.third_place_match.winner_id);
+            if (thirdPlace) thirdPlaceAthletes.push(thirdPlace);
+          } else if (!bracket.third_place_match) {
+            semiMatches.forEach((match: Match) => {
+              // Only list a loser on the podium if the match definitively has a winner
+              if (match.winner_id && match.winner_id !== 'BYE' && match.loser_id && match.loser_id !== 'BYE') {
+                const loser = athletesMap.get(match.loser_id);
+                if (loser) thirdPlaceAthletes.push(loser);
+              }
+            });
+          }
+      }
+      
+      // Draw placements with colored accent bars
+      doc.setFontSize(8);
+      let lineY = podiumY + 12;
+      const rowHeight = 15; // Increased spacing for club name
+      
+      // Helper to draw podium entry
+      const drawPodiumEntry = (label: string, labelColor: [number, number, number], barColor: [number, number, number], athlete?: Athlete, barHeightExtra: number = 0) => {
+          // Colored Bar
+          doc.setFillColor(...barColor);
+          doc.rect(podiumX + 3, lineY - 4, 3, rowHeight - 4 + barHeightExtra, 'F');
+          
+          // Rank Label
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...labelColor);
+          doc.text(label, podiumX + 9, lineY);
+          
+          // Athlete Info
+          doc.setTextColor(0);
+          doc.setFont('helvetica', 'normal');
+          
+          if (athlete) {
+              // Name
+              const name = fitText(doc, `${athlete.first_name} ${athlete.last_name}`, podiumWidth - 30);
+              doc.text(name, podiumX + 22, lineY);
+              
+              // Club (NEW)
+              doc.setFontSize(7);
+              doc.setTextColor(100, 116, 139); // Slate-500
+              const club = fitText(doc, athlete.club, podiumWidth - 30);
+              doc.text(club, podiumX + 22, lineY + 3.5);
+              
+              // Reset for next
+              doc.setFontSize(8); 
+              doc.setTextColor(0);
+          } else {
+              doc.setTextColor(156, 163, 175);
+              doc.text("(TBD)", podiumX + 22, lineY);
+              doc.setTextColor(0);
+          }
+      };
+
+      // 1st Place - Gold
+      drawPodiumEntry("1st", [161, 98, 7], [250, 204, 21], champion);
+      lineY += rowHeight;
+      
+      // 2nd Place - Silver
+      drawPodiumEntry("2nd", [75, 85, 99], [156, 163, 175], runnerUp);
+      lineY += rowHeight;
+      
+      // 3rd Place(s) - Bronze
+      if (thirdPlaceAthletes.length > 0) {
+          // Draw first 3rd place
+          drawPodiumEntry("3rd", [146, 64, 14], [217, 119, 6], thirdPlaceAthletes[0], thirdPlaceAthletes.length > 1 ? 4 : 0);
+          
+          if (thirdPlaceAthletes.length > 1) {
+              lineY += 8; // Small offset for second 3rd place
+               // Just name and club for second 3rd place, no new bar
+              const athlete2 = thirdPlaceAthletes[1];
+               if (athlete2) {
+                  doc.setFont('helvetica', 'normal');
+                  const name2 = fitText(doc, `${athlete2.first_name} ${athlete2.last_name}`, podiumWidth - 30);
+                  doc.text(name2, podiumX + 22, lineY);
+                  
+                  doc.setFontSize(7);
+                  doc.setTextColor(100, 116, 139);
+                  const club2 = fitText(doc, athlete2.club, podiumWidth - 30);
+                  doc.text(club2, podiumX + 22, lineY + 3.5);
+                  
+                  doc.setFontSize(8);
+                  doc.setTextColor(0);
+               }
+          }
+      } else {
+           drawPodiumEntry("3rd", [146, 64, 14], [217, 119, 6], undefined);
+      }
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      const dateStr = new Date().toLocaleString();
+      const footerText = `Generated by: ${options?.userName || 'User'} | ${dateStr}${options?.matStaffName ? ` | Mat Staff: ${options.matStaffName}` : ''}`;
+      doc.text(footerText, MARGIN, PAGE_HEIGHT - 5);
+    }); // End of divisionBrackets.forEach
   });
 
   doc.save(`brackets_${event.name.replace(/\s+/g, '_')}.pdf`);

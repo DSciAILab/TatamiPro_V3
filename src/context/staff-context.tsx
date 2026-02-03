@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { db } from '@/lib/local-db';
 import { connectionManager } from '@/lib/connection-manager';
 import { showError } from '@/utils/toast';

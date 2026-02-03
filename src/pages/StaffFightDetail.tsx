@@ -24,7 +24,7 @@ import {
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { supabase } from '@/integrations/supabase/client';
 import { processAthleteData } from '@/utils/athlete-utils';
-import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { connectionManager } from '@/lib/connection-manager';
 import { db } from '@/lib/local-db';
 

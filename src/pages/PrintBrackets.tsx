@@ -79,11 +79,40 @@ const PrintBrackets: React.FC = () => {
     fetchEventData();
   }, [eventId]);
 
+  // Helper to check if division has any bracket (regular or split)
+  const hasBracketForDivision = (divId: string): boolean => {
+    if (!event?.brackets) return false;
+    // Check for exact match
+    if (event.brackets[divId]) return true;
+    // Check for split variants (divId-A, divId-B, etc.)
+    return Object.keys(event.brackets).some(key => key.startsWith(`${divId}-`));
+  };
+
+  // Get all brackets for a division (including split variants)
+  const getBracketsForDivision = (divId: string): { bracketId: string; bracket: any }[] => {
+    if (!event?.brackets) return [];
+    const results: { bracketId: string; bracket: any }[] = [];
+    
+    // Check for exact match
+    if (event.brackets[divId]) {
+      results.push({ bracketId: divId, bracket: event.brackets[divId] });
+    }
+    
+    // Check for split variants (divId-A, divId-B, etc.)
+    Object.entries(event.brackets).forEach(([key, bracket]) => {
+      if (key.startsWith(`${divId}-`)) {
+        results.push({ bracketId: key, bracket });
+      }
+    });
+    
+    return results;
+  };
+
   const availableDivisions = useMemo(() => {
     if (!event) return [];
     return (event.divisions || []).filter(div => {
-      // 1. Has generated bracket
-      if (event.brackets?.[div.id]) return true;
+      // 1. Has generated bracket (regular or split)
+      if (hasBracketForDivision(div.id)) return true;
 
       // 2. Single athlete (if toggle enabled)
       if (includeSingleAthlete) {

@@ -241,3 +241,46 @@ export const formatMoveReason = (reason: string | null | undefined): string | nu
 
   return cleanReason.trim();
 };
+
+/**
+ * Get athletes for a specific division, considering moved athletes.
+ * 
+ * This is the CENTRALIZED implementation - use this instead of duplicating the logic.
+ * The function handles:
+ * - Athletes with moved_to_division_id (uses that as effective division)
+ * - Athletes without moved_to_division_id (uses _division.id)
+ * 
+ * @param athletes - All athletes in the event
+ * @param divisionId - The division ID to filter by
+ * @param options - Optional filters for registration and check-in status
+ * @returns Athletes that belong to the specified division
+ */
+export interface GetAthletesForDivisionOptions {
+  /** Only include athletes with registration_status === 'approved' */
+  requireApproved?: boolean;
+  /** Only include athletes with check_in_status === 'checked_in' */
+  requireCheckedIn?: boolean;
+}
+
+export const getAthletesForDivision = (
+  athletes: Athlete[],
+  divisionId: string,
+  options: GetAthletesForDivisionOptions = {}
+): Athlete[] => {
+  const { requireApproved = false, requireCheckedIn = false } = options;
+  
+  return athletes.filter(a => {
+    // Status filters
+    if (requireApproved && a.registration_status !== 'approved') {
+      return false;
+    }
+    if (requireCheckedIn && a.check_in_status !== 'checked_in') {
+      return false;
+    }
+    
+    // Determine the effective division for this athlete
+    // If athlete was moved, use the new division; otherwise use original
+    const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
+    return effectiveDivisionId === divisionId;
+  });
+};

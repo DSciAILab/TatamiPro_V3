@@ -1,0 +1,13 @@
+[Error] Save Error:
+Object
+
+code: "PGRST204"
+
+details: null
+
+hint: null
+
+message: "Could not find the 'is_bracket_splitting_enabled' column of 'sjjp_events' in the schema cache"
+
+Object Prototype
+	(anonymous function) (EventDetail.tsx:204)

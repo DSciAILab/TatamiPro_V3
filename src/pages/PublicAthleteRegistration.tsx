@@ -56,7 +56,7 @@ const PublicAthleteRegistration: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, description, divisions(*), age_division_settings')
+        .select('id, name, description, divisions(*), age_division_settings, is_auto_approve_registrations_enabled')
         .eq('id', eventId)
         .single();
 
@@ -134,7 +134,7 @@ const PublicAthleteRegistration: React.FC = () => {
       email: `${uuidv4()}@placeholder.com`, // Placeholder
       age_division: selectedDivision.age_category_name,
       weight_division: selectedDivision.name,
-      registration_status: 'under_approval' as const,
+      registration_status: (event as any)?.is_auto_approve_registrations_enabled ? 'approved' as const : 'under_approval' as const,
       check_in_status: 'pending' as const,
       attendance_status: 'pending' as const,
       consent_accepted: true,

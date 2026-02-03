@@ -13,7 +13,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventData } from '@/features/events/hooks/use-event-data';
 import { useCheckInMutation } from '@/features/events/hooks/use-check-in-mutation';
-import { useEventTabs } from '@/hooks/useEventTabs';
+import { useEventTabs } from '@/hooks/use-event-tabs';
 
 import EventConfigTab from '@/features/events/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -572,6 +572,8 @@ const EventDetail: React.FC = () => {
               set_enable_team_separation={(value) => handleUpdateEventProperty('enable_team_separation', value)}
               is_lead_capture_enabled={event.is_lead_capture_enabled ?? false}
               set_is_lead_capture_enabled={(value) => handleUpdateEventProperty('is_lead_capture_enabled', value)}
+              is_auto_approve_registrations_enabled={event.is_auto_approve_registrations_enabled ?? false}
+              set_is_auto_approve_registrations_enabled={(value) => handleUpdateEventProperty('is_auto_approve_registrations_enabled', value)}
             />
           )}
 

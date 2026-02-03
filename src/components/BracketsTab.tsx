@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { LayoutGrid, Swords, Printer, Medal, Circle, CheckCircle2, RefreshCw, ClipboardList, Search } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
-import { generateBracketForDivision } from '@/utils/bracket-generator';
+import { generateBracketForDivision } from '@/features/brackets/utils/bracket-generator';
 import { generateMatFightOrder } from '@/utils/fight-order-generator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -154,15 +154,29 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   const hasOngoingFights = (divisionId: string): boolean => {
+    // Check regular bracket
     const bracket = event.brackets?.[divisionId];
-    if (!bracket || !bracket.rounds) return false;
-    return bracket.rounds.flat().some(match => match.winner_id !== undefined);
+    if (bracket && bracket.rounds?.flat().some(match => match.winner_id !== undefined)) {
+      return true;
+    }
+    // Check split variants (divisionId-A, divisionId-B, etc.)
+    const splitBrackets = Object.entries(event.brackets || {})
+      .filter(([key]) => key.startsWith(`${divisionId}-`))
+      .map(([, b]) => b);
+    return splitBrackets.some(b => b.rounds?.flat().some(match => match.winner_id !== undefined));
   };
 
   // Check if division is finished (has a declared winner)
   const isDivisionFinished = (divisionId: string): boolean => {
+    // Check regular bracket
     const bracket = event.brackets?.[divisionId];
-    return bracket?.winner_id !== undefined;
+    if (bracket?.winner_id !== undefined) return true;
+    // Check split variants - all must be finished
+    const splitBrackets = Object.entries(event.brackets || {})
+      .filter(([key]) => key.startsWith(`${divisionId}-`))
+      .map(([, b]) => b);
+    if (splitBrackets.length === 0) return false;
+    return splitBrackets.every(b => b.winner_id !== undefined);
   };
 
   // Division status counts
@@ -198,15 +212,25 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
         return newArray;
       };
 
+      // Start with existing brackets, but we'll remove old ones for divisions being regenerated
+      let cleanedBrackets = { ...event.brackets };
+      
+      // Remove all brackets for divisions being regenerated (both regular and split variants)
+      divisionsToGenerate.forEach(div => {
+        // Remove exact match (div.id)
+        delete cleanedBrackets[div.id];
+        // Remove split variants (div.id-A, div.id-B, etc.)
+        Object.keys(cleanedBrackets).forEach(key => {
+          if (key.startsWith(`${div.id}-`)) {
+            delete cleanedBrackets[key];
+          }
+        });
+      });
+
       divisionsToGenerate.forEach(div => {
         let athletes = getAthletesForDivision(div.id);
         const maxPerBracket = event.max_athletes_per_bracket;
         const splittingEnabled = event.is_bracket_splitting_enabled;
-
-        // Reset existing brackets for this division key prefix
-        // (This is tricky because keys usually match div.id. For splits, we use div.id-A, div.id-B)
-        // Ideally we should CLEANUP old brackets for this division before generating new ones.
-        // But for now, we will just generate new ones.
 
         if (splittingEnabled && maxPerBracket && maxPerBracket > 1 && athletes.length > maxPerBracket) {
            // Splitting logic
@@ -219,9 +243,11 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               groups.push(shuffledAthletes.slice(i, i + maxPerBracket));
            }
 
-           // If last group is too small (e.g. < 2), try to redistribute? 
-           // For MVP, just let it be. Or if last group is 1, merge with previous? 
-           // Let's stick to simple chunking for now as per plan.
+           // If last group has only 1 athlete, merge with previous group
+           if (groups.length > 1 && groups[groups.length - 1].length === 1) {
+              const lastAthlete = groups.pop()![0];
+              groups[groups.length - 1].push(lastAthlete);
+           }
 
            const groupLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
            
@@ -229,11 +255,15 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
               const groupSuffix = groupLetters[index] || `${index + 1}`;
               const bracketId = `${div.id}-${groupSuffix}`; // Virtual ID
               
+              console.log(`[BracketsTab] Generating split bracket ${bracketId} with ${groupAthletes.length} athletes:`, groupAthletes.map(a => `${a.first_name} ${a.last_name}`));
+              
               const bracket = generateBracketForDivision(div, event.athletes || [], { 
                 thirdPlace: includeThirdPlaceFromEvent, 
                 explicitAthletes: groupAthletes,
                 enableTeamSeparation: event.enable_team_separation
               });
+
+              console.log(`[BracketsTab] Generated bracket participants count:`, bracket.participants?.length, 'rounds:', bracket.rounds?.length);
 
               // Override properties for the virtual bracket
               bracket.id = bracketId; // Important: ID is customized
@@ -250,7 +280,9 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
            newBrackets[div.id] = bracket;
         }
       });
-      const mergedBrackets = { ...event.brackets, ...newBrackets };
+      
+      // Merge cleaned brackets with new brackets
+      const mergedBrackets = { ...cleanedBrackets, ...newBrackets };
       const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
         ...event,
         brackets: mergedBrackets,
@@ -319,7 +351,14 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       }
     }
 
-    const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => event.brackets?.[div.id]);
+    // Helper to check if division has any existing bracket (regular or split)
+    const hasBracketForDivision = (divId: string): boolean => {
+      if (event.brackets?.[divId]) return true;
+      // Check for split variants (divId-A, divId-B, etc.)
+      return Object.keys(event.brackets || {}).some(key => key.startsWith(`${divId}-`));
+    };
+
+    const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => hasBracketForDivision(div.id));
     if (divisionsThatWillBeRegenerated.length > 0) {
       setDivisionsToConfirmRegenerate(divisionsThatWillBeRegenerated);
       setShowRegenerateConfirmDialog(true);

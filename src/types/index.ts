@@ -154,6 +154,8 @@ export interface Event {
   enable_team_separation?: boolean;
   // Lead capture for public pages
   is_lead_capture_enabled?: boolean;
+  // Auto-approve registrations
+  is_auto_approve_registrations_enabled?: boolean;
 }
 
 export interface EventLead {

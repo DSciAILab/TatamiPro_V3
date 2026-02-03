@@ -93,7 +93,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{division.name}</CardTitle>
+          <CardTitle>{division.name}{bracket.group_name ? ` - ${bracket.group_name}` : ''}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">No bracket generated for this division yet.</p>
@@ -105,7 +105,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
   return (
     <Card className="p-4 bg-muted/20">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold mb-4">{division.name}</CardTitle>
+        <CardTitle className="text-2xl font-bold mb-4">{division.name}{bracket.group_name ? ` - ${bracket.group_name}` : ''}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center overflow-x-auto">
         <div className="flex space-x-8 p-4 relative"> {/* Este div é o container relativo para as linhas */}

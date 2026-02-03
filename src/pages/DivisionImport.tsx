@@ -13,11 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link2 } from "lucide-react";
-import { showError, showLoading, dismissToast } from '@/utils/toast';
+import { showError, showLoading, dismissToast, showSuccess } from '@/utils/toast';
 import { AgeCategory, DivisionBelt, DivisionGender } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { getAppId } from '@/lib/app-id';
+import { getStoredMapping, saveStoredMapping } from '@/utils/csv-mapping';
 
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
   'kids 1': { min: 4, max: 5 }, 'kids 2': { min: 6, max: 7 }, 'kids 3': { min: 8, max: 9 },
@@ -96,7 +97,7 @@ const DivisionImport: React.FC = () => {
   const parseCsvFile = (file: File | string) => {
       Papa.parse(file as any, {
         header: true, skipEmptyLines: true,
-        complete: (results) => {
+        complete: async (results) => {
           if (results.errors.length && results.data.length === 0) {
             showError('Erro ao parsear o arquivo CSV: ' + results.errors[0].message);
             return;
@@ -113,12 +114,28 @@ const DivisionImport: React.FC = () => {
           setCsvData(data);
           setStep('map');
 
-          // Auto-mapping
+          // Auto-mapping logic
            const autoMapping: Partial<Record<RequiredDivisionField, string>> = {};
+           
+           // 1. Try exact matches first (existing logic)
            Object.entries(requiredDivisionFields).forEach(([key, label]) => {
              const found = headers.find(h => h.toLowerCase().replace(/ /g, "") === label.toLowerCase().replace(/ /g, ""));
              if (found) autoMapping[key as RequiredDivisionField] = found;
            });
+
+           // 2. Try to fetch stored mapping from database
+           try {
+             const storedMapping = await getStoredMapping('division', headers);
+             if (storedMapping) {
+               console.log('Found stored mapping:', storedMapping);
+               // Merge with auto-mapping, giving priority to stored mapping
+               Object.assign(autoMapping, storedMapping);
+               showSuccess('Mapeamento de colunas sugerido com base em importações anteriores.');
+             }
+           } catch (err) {
+             console.error('Error fetching stored mapping:', err);
+           }
+
            setColumnMapping(prev => ({ ...prev, ...autoMapping }));
         },
         error: (err: any) => showError('Erro ao ler o arquivo: ' + err.message)
@@ -209,6 +226,9 @@ const DivisionImport: React.FC = () => {
         showError(`Erro ao salvar no banco de dados: ${error.message}`);
         return;
       }
+      
+      // Save the successful mapping for future use
+      await saveStoredMapping('division', csvHeaders, columnMapping as Record<string, string>);
     }
 
     dismissToast(loadingToast);
@@ -285,17 +305,24 @@ const DivisionImport: React.FC = () => {
           {step === 'map' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(requiredDivisionFields).map(([key, label]) => (
+                {Object.entries(requiredDivisionFields).map(([key, label]) => {
+                  // Get columns already used by OTHER fields (excluding current field)
+                  const usedColumns = Object.entries(columnMapping)
+                    .filter(([k, v]) => k !== key && v)
+                    .map(([_, v]) => v);
+                  const availableHeaders = csvHeaders.filter(h => h && h.trim() !== '' && !usedColumns.includes(h));
+                  
+                  return (
                   <div key={key}>
                     <Label htmlFor={`map-${key}`}>{label}</Label>
                     <Select onValueChange={(v) => handleMappingChange(key as RequiredDivisionField, v)} value={columnMapping[key as RequiredDivisionField] || ''}>
                       <SelectTrigger><SelectValue placeholder={`Selecione a coluna para ${label}`} /></SelectTrigger>
                       <SelectContent>
-                        {csvHeaders.filter(h => h && h.trim() !== '').map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                        {availableHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                ))}
+                )})}
               </div>
               <Button onClick={handleProcessImport} className="w-full">Processar</Button>
             </div>

@@ -76,6 +76,8 @@ interface EventConfigTabProps {
   set_enable_team_separation: (value: boolean) => void;
   is_lead_capture_enabled: boolean;
   set_is_lead_capture_enabled: (value: boolean) => void;
+  is_auto_approve_registrations_enabled: boolean;
+  set_is_auto_approve_registrations_enabled: (value: boolean) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -130,6 +132,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_enable_team_separation,
   is_lead_capture_enabled,
   set_is_lead_capture_enabled,
+  is_auto_approve_registrations_enabled,
+  set_is_auto_approve_registrations_enabled,
 }) => {
   const { t } = useTranslations();
   const { isWideLayout, setIsWideLayout } = useLayoutSettings();
@@ -249,6 +253,14 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                       </Label>
                     </div>
                   )}
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Switch
+                      id="auto-approve-registrations"
+                      checked={is_auto_approve_registrations_enabled}
+                      onCheckedChange={set_is_auto_approve_registrations_enabled}
+                    />
+                    <Label htmlFor="auto-approve-registrations">Aprovar inscrições automaticamente</Label>
+                  </div>
                   <div className="flex items-center space-x-2 mt-4">
                     <Switch
                       id="wide-layout"

@@ -155,6 +155,7 @@ export const generateBracketForDivision = (
   
   if (options?.explicitAthletes) {
       divisionAthletes = options.explicitAthletes;
+      console.log(`[BracketGenerator] Using EXPLICIT athletes (${divisionAthletes.length}):`, divisionAthletes.map(a => `${a.first_name} ${a.last_name}`));
   } else {
       divisionAthletes = athletes.filter(a => {
         if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') {
@@ -473,7 +474,7 @@ export const generateBracketForDivision = (
     }
   }
 
-  return {
+  const result = {
     id: division.id,
     division_id: division.id,
     rounds,
@@ -481,4 +482,8 @@ export const generateBracketForDivision = (
     bracket_size: bracketSize,
     participants: initialRoundParticipants, // A lista final de participantes na ordem do bracket
   };
+  
+  console.log(`[BracketGenerator] Returning bracket for ${division.name}: ${result.participants.filter(p => p !== 'BYE').length} athletes, ${result.rounds.length} rounds`);
+  
+  return result;
 };

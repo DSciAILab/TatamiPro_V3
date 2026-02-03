@@ -40,6 +40,7 @@ import { getAgeDivision, getWeightDivision } from "@/utils/athlete-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getAppId } from "@/lib/app-id";
+import { getStoredMapping, saveStoredMapping } from "@/utils/csv-mapping";
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
@@ -214,20 +215,22 @@ const BatchAthleteImport: React.FC = () => {
   } | null>(null);
   const [step, setStep] = useState<"upload" | "map" | "results">("upload");
   const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
+  const [isAutoApproveEnabled, setIsAutoApproveEnabled] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
       if (!eventId) return;
       const { data, error } = await supabase
         .from("sjjp_events")
-        .select("age_division_settings")
+        .select("age_division_settings, is_auto_approve_registrations_enabled")
         .eq("id", eventId)
         .single();
 
       if (error) {
-        showError("Failed to load age division settings.");
-      } else if (data && data.age_division_settings) {
-        setAgeSettings(data.age_division_settings);
+        showError("Failed to load event settings.");
+      } else if (data) {
+        if (data.age_division_settings) setAgeSettings(data.age_division_settings);
+        setIsAutoApproveEnabled(data.is_auto_approve_registrations_enabled ?? false);
       }
     };
     fetchSettings();
@@ -283,32 +286,56 @@ const BatchAthleteImport: React.FC = () => {
     }
   };
 
+  const handleParsedData = async (results: any) => {
+    if (results.errors.length) {
+      if (results.data.length === 0) {
+          showError("Erro ao parsear o arquivo CSV: " + results.errors[0].message);
+          return;
+      }
+    }
+    
+    const headers = results.meta.fields || Object.keys(results.data[0] || {});
+    if (headers.length === 0) {
+        showError("A planilha parece estar vazia ou sem cabeçalhos.");
+        return;
+    }
+
+    setCsvHeaders(headers);
+    setCsvData(results.data);
+    setStep("map");
+
+    const autoMapping: Partial<Record<RequiredAthleteField, string>> = {};
+    
+    // 1. Try exact/fuzzy matches (existing logic)
+    Object.entries(baseRequiredAthleteFields).forEach(([key, label]) => {
+      const found = headers.find(
+        (h: string) =>
+          h.toLowerCase().replace(/ /g, "") ===
+          label.toLowerCase().replace(/ /g, "")
+      );
+      if (found) autoMapping[key as RequiredAthleteField] = found;
+    });
+
+    // 2. Try to fetch stored mapping from database
+    try {
+        const storedMapping = await getStoredMapping('registration', headers);
+        if (storedMapping) {
+            console.log('Found stored mapping:', storedMapping);
+            Object.assign(autoMapping, storedMapping);
+            showSuccess('Mapeamento de colunas sugerido com base em importações anteriores.');
+        }
+    } catch (err: any) {
+        console.error('Error fetching stored mapping:', err);
+    }
+    
+    setColumnMapping((prev) => ({ ...prev, ...autoMapping }));
+  };
+
   const parseCsvFile = (file: File) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
-        if (results.errors.length) {
-          showError(
-            "Erro ao parsear o arquivo CSV: " + results.errors[0].message
-          );
-          return;
-        }
-        const headers = Object.keys(results.data[0] || {});
-        setCsvHeaders(headers);
-        setCsvData(results.data);
-        setStep("map");
-        const autoMapping: Partial<Record<RequiredAthleteField, string>> = {};
-        Object.entries(baseRequiredAthleteFields).forEach(([key, label]) => {
-          const found = headers.find(
-            (h) =>
-              h.toLowerCase().replace(/ /g, "") ===
-              label.toLowerCase().replace(/ /g, "")
-          );
-          if (found) autoMapping[key as RequiredAthleteField] = found;
-        });
-        setColumnMapping((prev) => ({ ...prev, ...autoMapping }));
-      },
+      complete: handleParsedData,
       error: (err: any) => showError("Erro ao ler o arquivo: " + err.message),
     });
   }
@@ -333,32 +360,7 @@ const BatchAthleteImport: React.FC = () => {
       Papa.parse(data.csvData, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
-          if (results.errors.length > 0 && results.data.length === 0) {
-             showError("Erro ao processar dados da planilha: " + results.errors[0].message);
-             return;
-          }
-          
-          const headers = results.meta.fields || [];
-           if (headers.length === 0) {
-            showError("A planilha parece estar vazia ou sem cabeçalhos.");
-            return;
-          }
-
-          setCsvHeaders(headers);
-          setCsvData(results.data);
-          setStep("map");
-          const autoMapping: Partial<Record<RequiredAthleteField, string>> = {};
-          Object.entries(baseRequiredAthleteFields).forEach(([key, label]) => {
-            const found = headers.find(
-              (h) =>
-                h.toLowerCase().replace(/ /g, "") ===
-                label.toLowerCase().replace(/ /g, "")
-            );
-            if (found) autoMapping[key as RequiredAthleteField] = found;
-          });
-          setColumnMapping((prev) => ({ ...prev, ...autoMapping }));
-        },
+        complete: handleParsedData,
         error: (err: any) => {
           showError("Erro ao processar CSV da planilha: " + err.message);
         }
@@ -451,7 +453,7 @@ const BatchAthleteImport: React.FC = () => {
           consent_date: new Date().toISOString(),
           consent_version: "1.0",
           payment_proof_url: data.payment_proof_url || undefined,
-          registration_status: "under_approval",
+          registration_status: isAutoApproveEnabled ? "approved" : "under_approval",
           check_in_status: "pending",
           attendance_status: "pending",
         });
@@ -495,6 +497,12 @@ const BatchAthleteImport: React.FC = () => {
     }
 
     dismissToast(loadingToast);
+    
+    if (successfulAthletesForDb.length > 0) {
+       // Save mapping
+       await saveStoredMapping('registration', csvHeaders, columnMapping as Record<string, string>);
+    }
+
     setImportResults({
       success: successfulAthletesForDb.length,
       failed: failedImports.length,
@@ -610,7 +618,14 @@ const BatchAthleteImport: React.FC = () => {
               <h3 className="text-xl font-semibold">Mapeamento de Colunas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(baseRequiredAthleteFields).map(
-                  ([key, label]) => (
+                  ([key, label]) => {
+                    // Get columns already used by OTHER fields (excluding current field)
+                    const usedColumns = Object.entries(columnMapping)
+                      .filter(([k, v]) => k !== key && v)
+                      .map(([_, v]) => v);
+                    const availableHeaders = csvHeaders.filter(h => !usedColumns.includes(h));
+                    
+                    return (
                     <div key={key}>
                       <Label htmlFor={`map-${key}`}>{label}</Label>
                       <Select
@@ -625,7 +640,7 @@ const BatchAthleteImport: React.FC = () => {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {csvHeaders.map((h) => (
+                          {availableHeaders.map((h) => (
                             <SelectItem key={h} value={h}>
                               {h}
                             </SelectItem>
@@ -633,7 +648,7 @@ const BatchAthleteImport: React.FC = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  )
+                  )}
                 )}
               </div>
               <Button onClick={handleProcessImport} className="w-full">
