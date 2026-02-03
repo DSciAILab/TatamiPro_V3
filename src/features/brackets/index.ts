@@ -27,9 +27,12 @@ export {
   type BracketStatus,
 } from './utils/bracket-utils';
 
-// Hooks (to be extracted from BracketsTab.tsx)
-// export { useBracketGeneration } from './hooks/use-bracket-generation';
-// export { useBracketFilters } from './hooks/use-bracket-filters';
+// Hooks
+export { 
+  useBracketGeneration,
+  type UseBracketGenerationOptions,
+  type UseBracketGenerationReturn,
+} from './hooks/use-bracket-generation';
 
 // Components (to be extracted from BracketsTab.tsx)
 // export { BracketsList } from './components/BracketsList';

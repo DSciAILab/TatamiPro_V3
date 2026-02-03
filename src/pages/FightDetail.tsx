@@ -30,18 +30,9 @@ import { parseISO } from 'date-fns';
 import { useOffline } from '@/context/offline-context'; // Import offline context
 import { db } from '@/lib/local-db'; // Import local DB
 import { useUpdateMatchResult } from '@/features/events/hooks/use-event-mutations';
+import { getRoundName, FIGHT_RESULT_TYPES } from '@/features/fights';
 
-const getRoundName = (roundIndex: number, totalRounds: number, isThirdPlaceMatch: boolean = false): string => {
-  if (isThirdPlaceMatch) return 'Luta pelo 3º Lugar';
-  const roundFromEnd = totalRounds - roundIndex;
-  switch (roundFromEnd) {
-    case 1: return 'Final';
-    case 2: return 'Semi-final';
-    case 3: return 'Quartas de Final';
-    case 4: return 'Oitavas de Final';
-    default: return `Rodada ${roundIndex + 1}`;
-  }
-};
+
 
 const FightDetail: React.FC = () => {
   const { eventId, divisionId, matchId } = useParams<{ eventId: string; divisionId: string; matchId: string }>();
@@ -652,11 +643,6 @@ const FightDetail: React.FC = () => {
   const isFightRecordable = !isByeFight && !isPendingFight;
 
   const mainCardBorderClass = isFightCompleted ? 'border-green-500' : isByeFight ? 'border-blue-500' : 'border-gray-300 dark:border-gray-700';
-  const fightResultTypes: { value: FightResultType; label: string }[] = [
-    { value: 'submission', label: 'Finalização' }, { value: 'points', label: 'Pontos' },
-    { value: 'decision', label: 'Decisão' }, { value: 'disqualification', label: 'Desclassificação' },
-    { value: 'walkover', label: 'W.O.' },
-  ];
   const matNumber = currentMatch._mat_name?.replace('Mat ', '') || 'N/A';
   const fightNumberDisplay = `${matNumber}-${currentMatch.mat_fight_number}`;
   const currentRoundName = getRoundName(currentMatch.round - 1, currentBracket.rounds.length, currentMatch.round === -1);
@@ -744,7 +730,7 @@ const FightDetail: React.FC = () => {
               <div className="grid gap-2">
                 <Label>Tipo de Resultado</Label>
                 <ToggleGroup type="single" value={selectedResultType} onValueChange={(value: FightResultType) => setSelectedResultType(value)} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                  {fightResultTypes.map(type => <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label} variant="outline" className={cn(selectedResultType === type.value && 'bg-blue-600 text-white hover:bg-blue-700')}>{type.label}</ToggleGroupItem>)}
+                  {FIGHT_RESULT_TYPES.map(type => <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label} variant="outline" className={cn(selectedResultType === type.value && 'bg-blue-600 text-white hover:bg-blue-700')}>{type.label}</ToggleGroupItem>)}
                 </ToggleGroup>
               </div>
               <div className="grid gap-2">

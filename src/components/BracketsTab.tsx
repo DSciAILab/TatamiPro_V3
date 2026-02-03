@@ -13,8 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { LayoutGrid, Swords, Printer, Medal, Circle, CheckCircle2, RefreshCw, ClipboardList, Search } from 'lucide-react';
 import MatDistribution from '@/components/MatDistribution';
 import BracketView from '@/components/BracketView';
-import { generateBracketForDivision } from '@/features/brackets/utils/bracket-generator';
-import { generateMatFightOrder } from '@/utils/fight-order-generator';
+import { useBracketGeneration } from '@/features/brackets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -85,7 +84,18 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   // Use event.brackets directly instead of local state to ensure real-time updates
   const brackets = event.brackets || {};
 
-  // Helper to get athlete count for a division (considering moved athletes)
+  // Use the bracket generation hook for all bracket-related logic
+  const {
+    availableDivisions: availableDivisionsForBracketGeneration,
+    singleAthleteDivisions,
+    generateBrackets: executeBracketGeneration,
+    declareSingleAthleteChampion,
+    hasOngoingFights,
+    isDivisionFinished,
+    divisionStatusCounts,
+  } = useBracketGeneration({ event, onUpdateBrackets });
+
+  // Local helper that still uses the logic from the hook filter (for display purposes)
   const getAthletesForDivision = (divisionId: string) => {
     return (event.athletes || []).filter(a => {
       if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') {
@@ -108,193 +118,6 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       }
     }
   }, [navSelectedMat, navSelectedDivisionId, event.divisions, setBracketsSubTab]);
-
-  const availableDivisionsForBracketGeneration = useMemo(() => {
-    if (!event) return [];
-    return (event.divisions || []).filter(div => {
-      const athletesInDivision = getAthletesForDivision(div.id);
-      return athletesInDivision.length >= 2;
-    });
-  }, [event]);
-
-  // Divisions with exactly 1 athlete (for WO champion declaration)
-  const singleAthleteDivisions = useMemo(() => {
-    if (!event) return [];
-    return (event.divisions || [])
-      .map(div => ({
-        division: div,
-        athletes: getAthletesForDivision(div.id),
-        hasExistingBracket: !!event.brackets?.[div.id]
-      }))
-      .filter(item => item.athletes.length === 1);
-  }, [event]);
-
-  // Function to declare champion by WO for single-athlete divisions
-  const declareSingleAthleteChampion = (divisionId: string, athleteId: string) => {
-    const division = event.divisions?.find(d => d.id === divisionId);
-    if (!division) return;
-
-    // Create a minimal bracket with the athlete as winner
-    const woChampionBracket: Bracket = {
-      id: divisionId,
-      division_id: divisionId,
-      rounds: [], // No rounds needed for WO
-      bracket_size: 1,
-      participants: [event.athletes?.find(a => a.id === athleteId)!],
-      winner_id: athleteId,
-      runner_up_id: undefined,
-      third_place_winner_id: undefined,
-    };
-
-    const mergedBrackets = { ...event.brackets, [divisionId]: woChampionBracket };
-    
-    // Update brackets without regenerating fight order for WO brackets
-    onUpdateBrackets(mergedBrackets, event.mat_fight_order || {}, true);
-    showSuccess(`Champion declared by WO for ${division.name}!`);
-  };
-
-  const hasOngoingFights = (divisionId: string): boolean => {
-    // Check regular bracket
-    const bracket = event.brackets?.[divisionId];
-    if (bracket && bracket.rounds?.flat().some(match => match.winner_id !== undefined)) {
-      return true;
-    }
-    // Check split variants (divisionId-A, divisionId-B, etc.)
-    const splitBrackets = Object.entries(event.brackets || {})
-      .filter(([key]) => key.startsWith(`${divisionId}-`))
-      .map(([, b]) => b);
-    return splitBrackets.some(b => b.rounds?.flat().some(match => match.winner_id !== undefined));
-  };
-
-  // Check if division is finished (has a declared winner)
-  const isDivisionFinished = (divisionId: string): boolean => {
-    // Check regular bracket
-    const bracket = event.brackets?.[divisionId];
-    if (bracket?.winner_id !== undefined) return true;
-    // Check split variants - all must be finished
-    const splitBrackets = Object.entries(event.brackets || {})
-      .filter(([key]) => key.startsWith(`${divisionId}-`))
-      .map(([, b]) => b);
-    if (splitBrackets.length === 0) return false;
-    return splitBrackets.every(b => b.winner_id !== undefined);
-  };
-
-  // Division status counts
-  const divisionStatusCounts = useMemo(() => {
-    const divisionsWithBrackets = (event.divisions || []).filter(div => event.brackets?.[div.id]);
-    const finished = divisionsWithBrackets.filter(div => isDivisionFinished(div.id)).length;
-    const active = divisionsWithBrackets.filter(div => hasOngoingFights(div.id) && !isDivisionFinished(div.id)).length;
-    const pending = divisionsWithBrackets.length - finished - active;
-    return {
-      total: divisionsWithBrackets.length,
-      finished,
-      active,
-      pending,
-    };
-  }, [event.brackets, event.divisions]);
-
-  const executeBracketGeneration = (divisionsToGenerate: Division[]) => {
-    if (!event) {
-      showError("Event not loaded.");
-      return;
-    }
-    const newBrackets: Record<string, Bracket> = {};
-    const includeThirdPlaceFromEvent = event.include_third_place || false;
-    try {
-      
-      // Helper function to shuffle array
-      const shuffleArray = <T,>(array: T[]): T[] => {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-      };
-
-      // Start with existing brackets, but we'll remove old ones for divisions being regenerated
-      let cleanedBrackets = { ...event.brackets };
-      
-      // Remove all brackets for divisions being regenerated (both regular and split variants)
-      divisionsToGenerate.forEach(div => {
-        // Remove exact match (div.id)
-        delete cleanedBrackets[div.id];
-        // Remove split variants (div.id-A, div.id-B, etc.)
-        Object.keys(cleanedBrackets).forEach(key => {
-          if (key.startsWith(`${div.id}-`)) {
-            delete cleanedBrackets[key];
-          }
-        });
-      });
-
-      divisionsToGenerate.forEach(div => {
-        let athletes = getAthletesForDivision(div.id);
-        const maxPerBracket = event.max_athletes_per_bracket;
-        const splittingEnabled = event.is_bracket_splitting_enabled;
-
-        if (splittingEnabled && maxPerBracket && maxPerBracket > 1 && athletes.length > maxPerBracket) {
-           // Splitting logic
-           const shuffledAthletes = shuffleArray(athletes);
-           const groups = [];
-           
-           // Calculate optimal split to avoid tiny last bracket
-           // Simple strategy: chunk by maxPerBracket
-           for (let i = 0; i < shuffledAthletes.length; i += maxPerBracket) {
-              groups.push(shuffledAthletes.slice(i, i + maxPerBracket));
-           }
-
-           // If last group has only 1 athlete, merge with previous group
-           if (groups.length > 1 && groups[groups.length - 1].length === 1) {
-              const lastAthlete = groups.pop()![0];
-              groups[groups.length - 1].push(lastAthlete);
-           }
-
-           const groupLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-           
-           groups.forEach((groupAthletes, index) => {
-              const groupSuffix = groupLetters[index] || `${index + 1}`;
-              const bracketId = `${div.id}-${groupSuffix}`; // Virtual ID
-              
-              console.log(`[BracketsTab] Generating split bracket ${bracketId} with ${groupAthletes.length} athletes:`, groupAthletes.map(a => `${a.first_name} ${a.last_name}`));
-              
-              const bracket = generateBracketForDivision(div, event.athletes || [], { 
-                thirdPlace: includeThirdPlaceFromEvent, 
-                explicitAthletes: groupAthletes,
-                enableTeamSeparation: event.enable_team_separation
-              });
-
-              console.log(`[BracketsTab] Generated bracket participants count:`, bracket.participants?.length, 'rounds:', bracket.rounds?.length);
-
-              // Override properties for the virtual bracket
-              bracket.id = bracketId; // Important: ID is customized
-              bracket.group_name = `Group ${groupSuffix}`;
-              newBrackets[bracketId] = bracket;
-           });
-
-        } else {
-           // Standard generation
-           const bracket = generateBracketForDivision(div, event.athletes || [], { 
-             thirdPlace: includeThirdPlaceFromEvent,
-             enableTeamSeparation: event.enable_team_separation
-           });
-           newBrackets[div.id] = bracket;
-        }
-      });
-      
-      // Merge cleaned brackets with new brackets
-      const mergedBrackets = { ...cleanedBrackets, ...newBrackets };
-      const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
-        ...event,
-        brackets: mergedBrackets,
-      });
-
-      onUpdateBrackets(finalBrackets, newMatFightOrder, true); // Auto-save after generation
-      showSuccess(`${divisionsToGenerate.length} bracket(s) generated successfully!`);
-    } catch (error: any) {
-      console.error("Error generating brackets:", error);
-      showError("Error generating brackets: " + error.message);
-    }
-  };
 
   const handleGenerateBrackets = () => {
     if (!event) {
