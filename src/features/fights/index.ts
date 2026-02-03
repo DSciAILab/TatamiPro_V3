@@ -27,11 +27,12 @@ export {
   FIGHT_RESULT_TYPES,
 } from './utils/fight-utils';
 
-// Hooks (to be extracted from FightDetail.tsx)
-// export { useFightResult } from './hooks/use-fight-result';
+// Hooks
+export { useFightResult } from './hooks/use-fight-result';
 // export { useFightNavigation } from './hooks/use-fight-navigation';
 
-// Components (to be extracted from FightDetail.tsx)
-// export { FighterCard } from './components/FighterCard';
+// Components
+export { FighterCard } from './components/FighterCard';
+export { ResultSelector } from './components/ResultSelector';
 // export { ResultSelector } from './components/ResultSelector';
 // export { FightDialogs } from './components/FightDialogs';

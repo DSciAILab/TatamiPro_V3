@@ -30,7 +30,7 @@ import { parseISO } from 'date-fns';
 import { useOffline } from '@/context/offline-context'; // Import offline context
 import { db } from '@/lib/local-db'; // Import local DB
 import { useUpdateMatchResult } from '@/features/events/hooks/use-event-mutations';
-import { getRoundName, FIGHT_RESULT_TYPES } from '@/features/fights';
+import { getRoundName, getFighterDisplayName, FIGHT_RESULT_TYPES, useFightResult, FighterCard, ResultSelector } from '@/features/fights';
 
 
 
@@ -48,13 +48,44 @@ const FightDetail: React.FC = () => {
   const [currentBracket, setCurrentBracket] = useState<Bracket | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [selectedWinnerId, setSelectedWinnerId] = useState<string | undefined>(undefined);
-  const [selectedResultType, setSelectedResultType] = useState<FightResultType | undefined>(undefined);
-  const [resultDetails, setResultDetails] = useState<string | undefined>(undefined);
-  const [showPostFightOptions, setShowPostFightOptions] = useState(false);
-  const [showRoundEndDialog, setShowRoundEndDialog] = useState(false);
-  const [showDivisionCompleteDialog, setShowDivisionCompleteDialog] = useState(false);
   const [showRevertDialog, setShowRevertDialog] = useState(false);
+  
+  // Use extracted fight result logic
+  const {
+    selectedWinnerId, setSelectedWinnerId,
+    selectedResultType, setSelectedResultType,
+    resultDetails, setResultDetails,
+    recordResult: handleRecordResult,
+    revertResult,
+    showDivisionCompleteDialog, setShowDivisionCompleteDialog,
+    showRoundEndDialog, setShowRoundEndDialog
+  } = useFightResult({
+    event,
+    eventId,
+    divisionId,
+    currentMatch,
+    currentBracket,
+    isOfflineMode,
+    trackChange,
+    onSuccess: async () => {
+      await loadFightData();
+    }
+  });
+
+  const [showPostFightOptions, setShowPostFightOptions] = useState(false);
+
+  const handleRevertResult = async () => {
+    await revertResult();
+    setShowRevertDialog(false);
+    setShowPostFightOptions(false);
+  };
+
+  // Update showPostFightOptions when currentMatch changes
+  useEffect(() => {
+    if (currentMatch) {
+      setShowPostFightOptions(!!currentMatch.winner_id);
+    }
+  }, [currentMatch]);
 
   const loadFightData = useCallback(async () => {
     if (!eventId || !divisionId || !matchId) return;
@@ -201,336 +232,9 @@ const FightDetail: React.FC = () => {
     return new Map(event?.athletes?.map(athlete => [athlete.id, athlete]) || []);
   }, [event?.athletes]);
 
-  const getFighterDisplay = (fighter: Athlete | 'BYE' | undefined) => {
-    if (fighter === 'BYE') return 'BYE';
-    if (!fighter) return 'Aguardando';
-    return `${fighter.first_name} ${fighter.last_name} (${fighter.club})`;
-  };
 
-  const getFighterPhoto = (fighter: Athlete | 'BYE' | undefined) => {
-    if (fighter === 'BYE' || !fighter) {
-      return (
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-          <UserRound className="h-6 w-6 text-muted-foreground" />
-        </div>
-      );
-    }
-    return fighter.photo_url ? (
-      <img src={fighter.photo_url} alt={fighter.first_name} className="w-12 h-12 rounded-full object-cover" />
-    ) : (
-      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-        <UserRound className="h-6 w-6 text-muted-foreground" />
-      </div>
-    );
-  };
 
-  // Use the atomic match update hook
-  const { mutateAsync: updateMatchResult } = useUpdateMatchResult();
 
-  const handleUpdateBracket = async (updatedBracket: Bracket) => {
-    if (!event || !eventId || !currentMatch) return;
-    const toastId = showLoading('Salvando resultado...');
-
-    // We still calculate the next state for local optimistic interactions, 
-    // but for ONLINE saving we now use the atomic RPC.
-    
-    // NOTE: generateMatFightOrder is simpler on backend if we just trust the result.
-    // For now we assume the backend RPC handles just the data persistence.
-    // Mat assignments and order usually don't change just by setting a result.
-
-    try {
-      if (isOfflineMode) {
-        // SAVE LOCALLY (Old Logic)
-        const updatedBrackets = {
-           ...event.brackets,
-           [divisionId!]: updatedBracket,
-        };
-        const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
-            ...event,
-            brackets: updatedBrackets,
-        });
-        const updateData = { brackets: finalBrackets, mat_fight_order: newMatFightOrder };
-
-        await trackChange('events', 'update', { id: eventId, ...updateData });
-        const localEvent = await db.events.get(eventId);
-        if (localEvent) {
-          await db.events.put({ ...localEvent, ...updateData });
-        }
-        showSuccess("Resultado salvo localmente.");
-      } else {
-        // SAVE ONLINE (ATOMIC UPDATE via RPC)
-        // We update the specific matches that changed to avoid race conditions.
-        // This includes the current match (result) and potentially the next match (fighter propagation).
-        
-        const allMatches = updatedBracket.rounds.flat();
-        if (updatedBracket.third_place_match) allMatches.push(updatedBracket.third_place_match);
-        
-        const match = allMatches.find(m => m.id === currentMatch.id);
-        const nextMatchId = match?.next_match_id;
-        const nextMatch = nextMatchId ? allMatches.find(m => m.id === nextMatchId) : null;
-        
-        // 1. Update main match
-        if (match) {
-             await updateMatchResult({ 
-                eventId, 
-                bracketId: divisionId!, 
-                matchId: match.id, 
-                matchData: match,
-                bracketWinnerId: updatedBracket.winner_id,
-                bracketRunnerUpId: updatedBracket.runner_up_id
-             });
-        }
-        
-        // 2. Update next match if it exists (propagation)
-        if (nextMatch) {
-             await updateMatchResult({ 
-                eventId, 
-                bracketId: divisionId!, 
-                matchId: nextMatch.id, 
-                matchData: nextMatch 
-             });
-        }
-
-        // 3. Update third place match if affected (propagation)
-        // Check if current match feeds into third place match
-        if (updatedBracket.third_place_match && updatedBracket.third_place_match.prev_match_ids?.includes(currentMatch.id)) {
-            await updateMatchResult({ 
-                eventId, 
-                bracketId: divisionId!, 
-                matchId: updatedBracket.third_place_match.id, 
-                matchData: updatedBracket.third_place_match 
-             });
-        }
-        
-        showSuccess(`Resultado registrado!`);
-        // Invalidate to ensure consistency
-        queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-      }
-      
-      await loadFightData();
-    } catch (error: any) {
-      showError(`Falha ao salvar o resultado: ${error.message}`);
-    } finally {
-      dismissToast(toastId);
-    }
-  };
-
-  const handleRecordResult = async () => {
-    if (!currentMatch || !currentBracket || !selectedWinnerId || !selectedResultType) {
-      showError("Por favor, selecione o vencedor e o tipo de resultado.");
-      return;
-    }
-
-    const loserId = (currentMatch.fighter1_id === selectedWinnerId) ? currentMatch.fighter2_id : currentMatch.fighter1_id;
-
-    // Allow BYE as loser
-    if (selectedWinnerId === 'BYE' || (!loserId && loserId !== 'BYE') || !currentMatch.fighter1_id || !currentMatch.fighter2_id) {
-       // Extra safety check: if it's a BYE fight, we allow it.
-       const isBye = currentMatch.fighter1_id === 'BYE' || currentMatch.fighter2_id === 'BYE';
-       if (!isBye) {
-          showError("Não é possível registrar resultado para esta luta.");
-          return;
-       }
-    }
-
-    const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket));
-    let matchFound = false;
-
-    const processMatchUpdate = (match: Match) => {
-      match.winner_id = selectedWinnerId!;
-      match.loser_id = loserId;
-      match.result = { type: selectedResultType!, winner_id: selectedWinnerId!, loser_id: loserId, details: resultDetails };
-      matchFound = true;
-
-      if (match.next_match_id) {
-        for (const nextRound of updatedBracket.rounds) {
-          const nextMatch = match.next_match_id ? nextRound.find(m => m.id === match.next_match_id) : undefined;
-          if (nextMatch) {
-            if (nextMatch.prev_match_ids?.[0] === match.id) nextMatch.fighter1_id = selectedWinnerId;
-            else if (nextMatch.prev_match_ids?.[1] === match.id) nextMatch.fighter2_id = selectedWinnerId;
-          }
-        }
-      }
-
-      // NOVO: Propagar perdedor para lutas que referenciam esta luta em prev_match_ids, MAS não são o destino do vencedor
-      // Isso é necessário para Double Elimination, chaves de 3, ou qualquer formato onde o perdedor avança
-      for (const round of updatedBracket.rounds) {
-        for (const m of round) {
-           if (m.id === match.next_match_id) continue; // Pula se for a luta do vencedor
-           
-           if (m.prev_match_ids?.[0] === match.id) {
-              m.fighter1_id = loserId; 
-           } else if (m.prev_match_ids?.[1] === match.id) {
-              m.fighter2_id = loserId;
-           }
-        }
-      }
-    };
-
-    if (currentMatch.round === -1 && updatedBracket.third_place_match?.id === currentMatch.id) {
-      processMatchUpdate(updatedBracket.third_place_match);
-      updatedBracket.third_place_winner_id = selectedWinnerId;
-    } else {
-      for (const round of updatedBracket.rounds) {
-        const targetMatch = round.find(m => m.id === currentMatch.id);
-        if (targetMatch) {
-          processMatchUpdate(targetMatch);
-          break;
-        }
-      }
-    }
-
-    if (updatedBracket.third_place_match && currentMatch.round > 0 && currentMatch.round === updatedBracket.rounds.length - 1) {
-      if (currentMatch.id === updatedBracket.third_place_match.prev_match_ids?.[0]) updatedBracket.third_place_match.fighter1_id = loserId;
-      else if (currentMatch.id === updatedBracket.third_place_match.prev_match_ids?.[1]) updatedBracket.third_place_match.fighter2_id = loserId;
-    }
-
-    if (matchFound) {
-      const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
-      if (finalRound?.[0]?.winner_id) {
-        updatedBracket.winner_id = finalRound[0].winner_id;
-        updatedBracket.runner_up_id = finalRound[0].loser_id;
-      }
-      await handleUpdateBracket(updatedBracket);
-      
-      // Check if division is complete (no more fights left)
-      const allMatches = updatedBracket.rounds.flat();
-      if (updatedBracket.third_place_match) {
-        allMatches.push(updatedBracket.third_place_match);
-      }
-      const hasRemainingFights = allMatches.some(m => 
-        !m.winner_id && 
-        m.fighter1_id && m.fighter1_id !== 'BYE' &&
-        m.fighter2_id && m.fighter2_id !== 'BYE'
-      );
-      
-      if (!hasRemainingFights && updatedBracket.winner_id) {
-        // Division is complete!
-        setShowDivisionCompleteDialog(true);
-      } else {
-        // Show next round dialog if current round is complete
-        const currentRoundMatches = currentBracket.rounds[currentMatch.round - 1];
-        const allMatchesInRoundCompleted = currentRoundMatches?.every(m => m.id === currentMatch.id || m.winner_id !== undefined);
-        if (allMatchesInRoundCompleted) {
-          setShowRoundEndDialog(true);
-        }
-      }
-    } else {
-      showError("Luta não encontrada no bracket.");
-    }
-  };
-
-  const handleRevertResult = async () => {
-    if (!currentMatch || !currentBracket) {
-      showError("Dados da luta não encontrados.");
-      return;
-    }
-
-    const updatedBracket: Bracket = JSON.parse(JSON.stringify(currentBracket));
-    let matchToRevert: Match | null = null;
-    
-    // Find the match in the bracket
-    if (currentMatch.round === -1 && updatedBracket.third_place_match?.id === currentMatch.id) {
-      matchToRevert = updatedBracket.third_place_match;
-    } else {
-      for (const round of updatedBracket.rounds) {
-        const found = round.find(m => m.id === currentMatch.id);
-        if (found) {
-          matchToRevert = found;
-          break;
-        }
-      }
-    }
-
-    if (!matchToRevert) {
-      showError("Luta não encontrada no bracket.");
-      return;
-    }
-
-    // Check if next match already has a result - prevent cascading issues
-    if (matchToRevert.next_match_id) {
-      for (const round of updatedBracket.rounds) {
-        const nextMatch = round.find(m => m.id === matchToRevert!.next_match_id);
-        if (nextMatch?.winner_id) {
-          showError("Não é possível reverter: a próxima luta já possui resultado. Reverta primeiro a luta seguinte.");
-          return;
-        }
-      }
-    }
-
-    // Check if third place match has result (for semi-final losers)
-    if (updatedBracket.third_place_match && matchToRevert.round === updatedBracket.rounds.length) {
-      // This is a semi-final, check if third place has result
-      if (updatedBracket.third_place_match.winner_id) {
-        showError("Não é possível reverter: a luta pelo 3º lugar já possui resultado. Reverta-a primeiro.");
-        return;
-      }
-    }
-
-    const previousWinnerId = matchToRevert.winner_id;
-    const previousLoserId = matchToRevert.loser_id;
-
-    // Clear the match result
-    matchToRevert.winner_id = undefined;
-    matchToRevert.loser_id = undefined;
-    matchToRevert.result = undefined;
-
-    // Clear winner from next match
-    if (matchToRevert.next_match_id && previousWinnerId) {
-      for (const round of updatedBracket.rounds) {
-        const nextMatch = round.find(m => m.id === matchToRevert!.next_match_id);
-        if (nextMatch) {
-          if (nextMatch.fighter1_id === previousWinnerId && nextMatch.prev_match_ids?.[0] === matchToRevert!.id) {
-            nextMatch.fighter1_id = undefined;
-          } else if (nextMatch.fighter2_id === previousWinnerId && nextMatch.prev_match_ids?.[1] === matchToRevert!.id) {
-            nextMatch.fighter2_id = undefined;
-          }
-          break;
-        }
-      }
-    }
-
-    // Clear loser from any match that received it (e.g., third place match)
-    if (previousLoserId) {
-      for (const round of updatedBracket.rounds) {
-        for (const m of round) {
-          if (m.id === matchToRevert!.next_match_id) continue;
-          if (m.fighter1_id === previousLoserId && m.prev_match_ids?.[0] === matchToRevert!.id) {
-            m.fighter1_id = undefined;
-          } else if (m.fighter2_id === previousLoserId && m.prev_match_ids?.[1] === matchToRevert!.id) {
-            m.fighter2_id = undefined;
-          }
-        }
-      }
-      // Also check third place match
-      if (updatedBracket.third_place_match) {
-        if (updatedBracket.third_place_match.fighter1_id === previousLoserId && 
-            updatedBracket.third_place_match.prev_match_ids?.[0] === matchToRevert!.id) {
-          updatedBracket.third_place_match.fighter1_id = undefined;
-        } else if (updatedBracket.third_place_match.fighter2_id === previousLoserId && 
-                   updatedBracket.third_place_match.prev_match_ids?.[1] === matchToRevert!.id) {
-          updatedBracket.third_place_match.fighter2_id = undefined;
-        }
-      }
-    }
-
-    // Clear bracket winner/runner-up if this was the final
-    const finalRound = updatedBracket.rounds[updatedBracket.rounds.length - 1];
-    if (finalRound?.[0]?.id === matchToRevert!.id) {
-      updatedBracket.winner_id = undefined;
-      updatedBracket.runner_up_id = undefined;
-    }
-
-    // Clear third place winner if reverting third place match
-    if (currentMatch.round === -1 && updatedBracket.third_place_match?.id === currentMatch.id) {
-      updatedBracket.third_place_winner_id = undefined;
-    }
-
-    await handleUpdateBracket(updatedBracket);
-    setShowRevertDialog(false);
-    setShowPostFightOptions(false);
-    showSuccess("Resultado da luta revertido com sucesso!");
-  };
 
   // Find next fight in the SAME DIVISION (not mat)
   const findNextFightInDivision = (): Match | undefined => {
@@ -674,21 +378,24 @@ const FightDetail: React.FC = () => {
         </CardHeader>
         <CardContent className="grid gap-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              className={cn("flex flex-col items-center p-4 border rounded-md transition-colors relative overflow-hidden", isFightCompleted ? (currentMatch.winner_id === currentMatch.fighter1_id ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-red-500 bg-red-50 dark:bg-red-950') : (selectedWinnerId === currentMatch.fighter1_id && isFightRecordable ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' : 'border-gray-200 dark:border-gray-700'), isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70')}
-              onClick={() => isFightRecordable && !isFightCompleted && setSelectedWinnerId(currentMatch.fighter1_id)}
-            >
-              <div className="absolute left-0 top-0 bottom-0 w-2 bg-red-600" />
-              {getFighterPhoto(fighter1Athlete)}
-              <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter1Athlete)}</span>
-            </div>
-            <div
-              className={cn("flex flex-col items-center p-4 border rounded-md transition-colors", isFightCompleted ? (currentMatch.winner_id === currentMatch.fighter2_id ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-red-500 bg-red-50 dark:bg-red-950') : (selectedWinnerId === currentMatch.fighter2_id && isFightRecordable ? 'border-blue-600 bg-blue-50 dark:bg-blue-950' : 'border-gray-200 dark:border-gray-700'), isFightRecordable ? 'cursor-pointer hover:bg-accent' : 'cursor-not-allowed opacity-70')}
-              onClick={() => isFightRecordable && !isFightCompleted && setSelectedWinnerId(currentMatch.fighter2_id)}
-            >
-              {getFighterPhoto(fighter2Athlete)}
-              <span className="text-xl font-medium mt-2 text-center">{getFighterDisplay(fighter2Athlete)}</span>
-            </div>
+            <FighterCard
+              fighter={fighter1Athlete}
+              isSelected={selectedWinnerId === currentMatch.fighter1_id}
+              isWinner={isFightCompleted && currentMatch.winner_id === currentMatch.fighter1_id}
+              isLoser={isFightCompleted && currentMatch.winner_id !== currentMatch.fighter1_id && currentMatch.winner_id !== undefined}
+              isRecordable={!!(isFightRecordable && !isFightCompleted)}
+              onClick={() => setSelectedWinnerId(currentMatch.fighter1_id)}
+              cornerColor="red"
+            />
+            <FighterCard
+              fighter={fighter2Athlete}
+              isSelected={selectedWinnerId === currentMatch.fighter2_id}
+              isWinner={isFightCompleted && currentMatch.winner_id === currentMatch.fighter2_id}
+              isLoser={isFightCompleted && currentMatch.winner_id !== currentMatch.fighter2_id && currentMatch.winner_id !== undefined}
+              isRecordable={!!(isFightRecordable && !isFightCompleted)}
+              onClick={() => setSelectedWinnerId(currentMatch.fighter2_id)}
+              cornerColor="blue"
+            />
           </div>
 
           {isByeFight ? (
@@ -711,7 +418,7 @@ const FightDetail: React.FC = () => {
           : isPendingFight ? <p className="text-center text-muted-foreground mt-4 text-lg">Aguardando adversário(s) para esta luta.</p>
           : isFightCompleted ? (
             <div className="text-center mt-4">
-              <p className="text-2xl font-bold text-green-600">Vencedor: {getFighterDisplay(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-2 h-6 w-6 text-yellow-500" /></p>
+              <p className="text-2xl font-bold text-green-600">Vencedor: {getFighterDisplayName(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-2 h-6 w-6 text-yellow-500" /></p>
               <p className="text-lg text-muted-foreground mt-2">Tipo de Resultado: {currentMatch.result?.type}</p>
               {currentMatch.result?.details && <p className="text-md text-muted-foreground">{currentMatch.result.details}</p>}
               
@@ -727,12 +434,11 @@ const FightDetail: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="grid gap-2">
-                <Label>Tipo de Resultado</Label>
-                <ToggleGroup type="single" value={selectedResultType} onValueChange={(value: FightResultType) => setSelectedResultType(value)} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                  {FIGHT_RESULT_TYPES.map(type => <ToggleGroupItem key={type.value} value={type.value} aria-label={type.label} variant="outline" className={cn(selectedResultType === type.value && 'bg-blue-600 text-white hover:bg-blue-700')}>{type.label}</ToggleGroupItem>)}
-                </ToggleGroup>
-              </div>
+              <ResultSelector
+                value={selectedResultType}
+                onChange={setSelectedResultType}
+                disabled={!isFightRecordable || isFightCompleted}
+              />
               <div className="grid gap-2">
                 <Label htmlFor="resultDetails">Detalhes (Opcional)</Label>
                 <Input id="resultDetails" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
