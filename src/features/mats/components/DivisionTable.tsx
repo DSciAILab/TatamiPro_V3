@@ -73,7 +73,7 @@ export const DivisionTable = ({
         {divisions.map(divInfo => {
           const isExpanded = expandedDivisions.has(divInfo.division.id);
           const bracket = event.brackets?.[divInfo.division.id];
-          const athletes = getAthletesForDivision(event.athletes || [], divInfo.division.id);
+          const athletes = getAthletesForDivision(event.athletes || [], divInfo.division.id, { requireApproved: true, requireCheckedIn: true });
           
           return (
             <React.Fragment key={divInfo.division.id}>
