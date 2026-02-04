@@ -1,38 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Match, Bracket } from '@/types/index';
-import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-
-interface UpdateMatchParams {
-  eventId: string;
-  bracketId: string;
-  matchId: string;
-  matchData: Match;
-  bracketWinnerId?: string;
-  bracketRunnerUpId?: string;
-}
+import { Match } from '@/types/index';
+import { showSuccess, showError } from '@/utils/toast';
+import { fightService, UpdateMatchParams } from '@/services/fight-service';
 
 export const useUpdateMatchResult = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ eventId, bracketId, matchId, matchData, bracketWinnerId, bracketRunnerUpId }: UpdateMatchParams) => {
-      console.log(`[RPC] Updating match ${matchId} in bracket ${bracketId} via atomic function...`);
-      const { error } = await supabase.rpc('update_match_result_v2', {
-        p_event_id: eventId,
-        p_bracket_id: bracketId,
-        p_match_id: matchId,
-        p_match_data: matchData,
-        p_bracket_winner_id: bracketWinnerId || null,
-        p_bracket_runner_up_id: bracketRunnerUpId || null
-      });
-
-      if (error) {
-        console.error('[RPC] Error updating match:', error);
-        throw error;
-      }
-      
-      return { eventId, bracketId, matchId, matchData };
+    mutationFn: async (params: UpdateMatchParams) => {
+      console.log(`[RPC] Updating match ${params.matchId} in bracket ${params.bracketId} via atomic function...`);
+      await fightService.updateMatchResult(params);
+      return params;
     },
     onMutate: async ({ eventId, bracketId, matchId, matchData }) => {
       // Optimistic Update
@@ -88,21 +66,7 @@ export const useUpdateMatchResult = () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
 
       // 2. Broadcast update to other clients via Supabase Realtime
-      // This is faster and more reliable than waiting for Postgres changes
-      const channel = supabase.channel(`event-sync:${eventId}`);
-      
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'match-update',
-            payload: { bracketId, matchId, timestamp: Date.now() },
-          }).then(() => {
-             console.log('[Broadcast] Match update signal sent');
-             supabase.removeChannel(channel);
-          });
-        }
-      });
+      fightService.broadcastMatchUpdate(eventId, bracketId, matchId);
     }
   });
 };

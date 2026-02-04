@@ -1,12 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { db } from "@/lib/local-db";
 import { useOffline } from "@/context/offline-context";
 import { connectionManager } from "@/lib/connection-manager";
-import { localApi } from "@/lib/local-api";
-import { Event } from "@/types/index";
-import { processAthleteData } from "@/utils/athlete-utils";
-import { parseISO } from "date-fns";
+import { eventService } from "@/services/event-service";
 import { useEffect, useState } from "react";
 
 export const useEventData = (eventId?: string) => {
@@ -22,76 +18,16 @@ export const useEventData = (eventId?: string) => {
     return unsubscribe;
   }, []);
 
-  const fetchEvent = async (): Promise<Event | null> => {
+  const fetchEvent = async () => {
     if (!eventId) return null;
-
-    let eventData, athletesData, divisionsData;
-
-    // Priority: Local Server > Offline IndexedDB > Supabase Cloud
-    if (isLocalServerMode) {
-      // Fetch from Local Server (REST API)
-      const { data, error } = await localApi.getEvent(eventId);
-      if (error) throw error;
-      eventData = data;
-      athletesData = data?.athletes || [];
-      divisionsData = data?.divisions || [];
-    } else if (isOfflineMode) {
-      // Fetch from Local IndexedDB
-      eventData = await db.events.get(eventId);
-      if (!eventData) throw new Error("Event not found locally. Please sync online first.");
-      
-      athletesData = await db.athletes.where('event_id').equals(eventId).toArray();
-      divisionsData = await db.divisions.where('event_id').equals(eventId).toArray();
-    } else {
-      // Fetch from Supabase in Parallel for maximized performance (PERF-001)
-      const [eventRes, athletesRes, divisionsRes] = await Promise.all([
-        supabase
-          .from('sjjp_events')
-          .select('*')
-          .eq('id', eventId)
-          .single(),
-        supabase
-          .from('sjjp_athletes')
-          .select('*')
-          .eq('event_id', eventId),
-        supabase
-          .from('sjjp_divisions')
-          .select('*')
-          .eq('event_id', eventId)
-      ]);
-
-      if (eventRes.error) throw eventRes.error;
-      if (athletesRes.error) throw athletesRes.error;
-      if (divisionsRes.error) throw divisionsRes.error;
-
-      eventData = eventRes.data;
-      athletesData = athletesRes.data;
-      divisionsData = divisionsRes.data;
-    }
-
-    if (!eventData) throw new Error("Event not found.");
-
-    // Data Processing
-    const processedAthletes = (athletesData || []).map((a: any) => 
-      processAthleteData(a, divisionsData || [], eventData.age_division_settings || [])
-    );
-    
-    const fullEventData: Event = {
-      ...eventData,
-      athletes: processedAthletes,
-      divisions: divisionsData || [],
-      check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time) : undefined,
-      check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time) : undefined,
-    };
-
-    return fullEventData;
+    return eventService.getById(eventId, { isLocalServerMode, isOfflineMode });
   };
 
   const query = useQuery({
     queryKey: ['event', eventId, isOfflineMode, isLocalServerMode],
     queryFn: fetchEvent,
     enabled: !!eventId,
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   // Realtime Subscription Logic

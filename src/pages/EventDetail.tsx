@@ -13,7 +13,11 @@ import { usePermission } from '@/hooks/use-permission';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventData } from '@/features/events/hooks/use-event-data';
 import { useCheckInMutation } from '@/features/events/hooks/use-check-in-mutation';
+
 import { useEventTabs } from '@/hooks/use-event-tabs';
+import { eventService } from '@/services/event-service';
+import { bracketService } from '@/services/bracket-service';
+import { athleteService } from '@/services/athlete-service';
 
 import EventConfigTab from '@/features/events/components/EventConfigTab';
 import RegistrationsTab from '@/components/RegistrationsTab';
@@ -117,59 +121,12 @@ const EventDetail: React.FC = () => {
     const toastId = showLoading("Saving event settings...");
 
     try {
-      const { athletes, divisions, ...eventToUpdate } = event;
-      
       // 1. Update Event Details
-      const { error: eventError } = await supabase
-        .from('sjjp_events')
-        .update({
-          ...eventToUpdate,
-          check_in_start_time: event.check_in_start_time?.toISOString(),
-          check_in_end_time: event.check_in_end_time?.toISOString(),
-        })
-        .eq('id', eventId);
-
-      if (eventError) throw eventError;
+      await eventService.update(eventId, event);
 
       // 2. Sync Divisions (Upsert + Delete)
-      if (divisions) {
-        // A. Get existing divisions from DB to find deletions
-        const { data: existingDivisions, error: fetchError } = await supabase
-          .from('sjjp_divisions')
-          .select('id')
-          .eq('event_id', eventId);
-
-        if (fetchError) throw fetchError;
-
-        const existingIds = new Set(existingDivisions?.map(d => d.id) || []);
-        const currentIds = new Set(divisions.map(d => d.id));
-
-        // Find IDs to delete (in DB but not in current state)
-        const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
-
-        // B. Perform Deletions
-        if (idsToDelete.length > 0) {
-          const { error: deleteError } = await supabase
-            .from('sjjp_divisions')
-            .delete()
-            .in('id', idsToDelete);
-          if (deleteError) throw deleteError;
-        }
-
-        // C. Perform Upserts (Insert New / Update Existing)
-        // Ensure event_id is set
-        const divisionsToUpsert = divisions.map(d => ({
-          ...d,
-          event_id: eventId
-        }));
-
-        if (divisionsToUpsert.length > 0) {
-            const { error: upsertError } = await supabase
-            .from('sjjp_divisions')
-            .upsert(divisionsToUpsert);
-            
-            if (upsertError) throw upsertError;
-        }
+      if (event.divisions) {
+        await eventService.syncDivisions(eventId, event.divisions);
       }
 
       setHasUnsavedChanges(false);
@@ -218,15 +175,7 @@ const EventDetail: React.FC = () => {
          console.log("[EventDetail] Auto-saving brackets to DB...");
          try {
             const toastId = showLoading("Saving brackets...");
-            const { error } = await supabase
-              .from('sjjp_events')
-              .update({
-                brackets: updatedBrackets,
-                mat_fight_order: matFightOrder
-              })
-              .eq('id', eventId);
-
-            if (error) throw error;
+            await bracketService.saveBracketsAndFightOrder(eventId, updatedBrackets, matFightOrder);
             dismissToast(toastId);
             showSuccess("Brackets updated and saved successfully!");
          } catch (err: any) {
@@ -244,39 +193,7 @@ const EventDetail: React.FC = () => {
     try {
       const toastId = showLoading("Saving athlete changes...");
       
-      // Prepare data for Supabase (remove _division which is a computed field)
-      const { _division, ...athleteData } = updatedAthlete;
-      
-      const { error } = await supabase
-        .from('sjjp_athletes')
-        .update({
-          first_name: athleteData.first_name,
-          last_name: athleteData.last_name,
-          date_of_birth: athleteData.date_of_birth instanceof Date 
-            ? athleteData.date_of_birth.toISOString() 
-            : athleteData.date_of_birth,
-          club: athleteData.club,
-          gender: athleteData.gender,
-          belt: athleteData.belt,
-          weight: athleteData.weight,
-          nationality: athleteData.nationality,
-          email: athleteData.email,
-          phone: athleteData.phone,
-          emirates_id: athleteData.emirates_id,
-          school_id: athleteData.school_id,
-          age: athleteData.age,
-          age_division: athleteData.age_division,
-          weight_division: athleteData.weight_division,
-          registration_status: athleteData.registration_status,
-          photo_url: athleteData.photo_url,
-          emirates_id_front_url: athleteData.emirates_id_front_url,
-          emirates_id_back_url: athleteData.emirates_id_back_url,
-          moved_to_division_id: athleteData.moved_to_division_id || null,
-          move_reason: athleteData.move_reason || null,
-        })
-        .eq('id', updatedAthlete.id);
-      
-      if (error) throw error;
+      await athleteService.update(updatedAthlete);
       
       // Update local state
       setEvent(prev => {
@@ -318,8 +235,7 @@ const EventDetail: React.FC = () => {
       if (!event || !eventId) return;
       const toastId = showLoading(`Deleting athlete...`);
       try {
-        const { error } = await supabase.from('sjjp_athletes').delete().eq('id', id);
-        if (error) throw error;
+        await athleteService.delete(id);
         setEvent(prev => prev ? { ...prev, athletes: prev.athletes?.filter(a => a.id !== id) } : prev);
         dismissToast(toastId);
         showSuccess('Athlete deleted successfully');
@@ -333,8 +249,7 @@ const EventDetail: React.FC = () => {
       if (!event || !eventId || selectedAthletesForApproval.length === 0) return;
       const toastId = showLoading(`Deleting ${selectedAthletesForApproval.length} athletes...`);
       try {
-        const { error } = await supabase.from('sjjp_athletes').delete().in('id', selectedAthletesForApproval);
-        if (error) throw error;
+        await athleteService.bulkDelete(selectedAthletesForApproval);
         setEvent(prev => prev ? { ...prev, athletes: prev.athletes?.filter(a => !selectedAthletesForApproval.includes(a.id)) } : prev);
         dismissToast(toastId);
         showSuccess('Athletes deleted successfully');
@@ -354,12 +269,7 @@ const EventDetail: React.FC = () => {
     const toastId = showLoading(`Updating ${selectedAthletesForApproval.length} athlete(s)...`);
     
     try {
-      const { error } = await supabase
-        .from('sjjp_athletes')
-        .update({ registration_status: status })
-        .in('id', selectedAthletesForApproval);
-      
-      if (error) throw error;
+      await athleteService.updateRegistrationStatus(selectedAthletesForApproval, status);
       
       // Update local state
       setEvent(prev => {
@@ -388,16 +298,7 @@ const EventDetail: React.FC = () => {
     console.log('[ATTENDANCE] Updating attendance for athlete:', athleteId, 'to status:', status);
     
     try {
-      const { error } = await supabase
-        .from('sjjp_athletes')
-        .update({ attendance_status: status })
-        .eq('id', athleteId);
-
-      if (error) {
-        console.error('[ATTENDANCE] Error updating attendance:', error);
-        showError('Failed to update attendance: ' + error.message);
-        return;
-      }
+      await athleteService.updateAttendance(athleteId, status);
 
       console.log('[ATTENDANCE] Attendance updated successfully');
       showSuccess('Attendance updated successfully!');
