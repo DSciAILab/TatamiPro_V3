@@ -12,6 +12,7 @@ interface FightListProps {
   selectedMat: string | 'all-mats';
   selectedCategoryKey: string;
   selectedDivisionId: string;
+  bracketId?: string; // Optional specific bracket ID
   onUpdateBracket: (divisionId: string, updatedBracket: Bracket) => void;
   fightViewMode: 'grid3' | 'grid2' | 'grid1' | 'bracket' | 'list';
   /** Custom base path for fight navigation (for staff pages) */
@@ -34,7 +35,7 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
   }
 };
 
-const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, fightViewMode, baseFightPath, isPublic = false, source, showAllMatFights = false, groupBy = 'order' }) => {
+const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, bracketId, fightViewMode, baseFightPath, isPublic = false, source, showAllMatFights = false, groupBy = 'order' }) => {
   const { athletes, brackets, mat_fight_order } = event;
   
   // Build fight URL based on baseFightPath or default
@@ -84,21 +85,24 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     // 1. Try to get fights from explicit order first
     let fights: Match[] = [];
 
+    // Valid Match IDs for specific bracket (if provided)
+    const validMatchIds = new Set<string>();
+    if (bracketId && brackets?.[bracketId]) {
+         brackets[bracketId].rounds.flat().forEach(m => validMatchIds.add(m.id));
+         if (brackets[bracketId].third_place_match) validMatchIds.add(brackets[bracketId].third_place_match.id);
+    }
+
     if (mat_fight_order && Object.keys(mat_fight_order).length > 0) {
       if (selectedMat === 'all-mats') {
         Object.values(mat_fight_order).forEach((matMatchesIds: any) => {
           if (Array.isArray(matMatchesIds)) {
             matMatchesIds.forEach((matchId: string) => {
               const match = allMatchesMap.get(matchId);
-              // Filter logic:
-              // If showAllMatFights is true, we skip the division check (assuming we want everything on that mat, 
-              // BUT here selectedMat is 'all-mats' so we'd get EVERYTHING in event? 
-              // Usually showAllMatFights is used with a specific selectedMat.
-              // Let's stick to safe logic: if showAllMatFights is true, accept match regardless of division (but still verify mat later if needed)
-              // If false, strictly enforce division.
-              
               if (match && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-                 if (showAllMatFights || match._division_id === selectedDivisionId) {
+                 const isMatchInDivision = match._division_id === selectedDivisionId;
+                 const isMatchInBracket = validMatchIds.size > 0 ? validMatchIds.has(match.id) : isMatchInDivision;
+
+                 if (showAllMatFights || isMatchInBracket) {
                      fights.push(match);
                  }
               }
@@ -111,7 +115,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           matMatchesIds.forEach((matchId: string) => {
             const match = allMatchesMap.get(matchId);
             if (match && !(match.fighter1_id === 'BYE' && match.fighter2_id === 'BYE')) {
-               if (showAllMatFights || match._division_id === selectedDivisionId) {
+               const isMatchInDivision = match._division_id === selectedDivisionId;
+               const isMatchInBracket = validMatchIds.size > 0 ? validMatchIds.has(match.id) : isMatchInDivision;
+
+               if (showAllMatFights || isMatchInBracket) {
                    fights.push(match);
                }
             }
@@ -124,12 +131,14 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     // Only use fallback if we are NOT in showAllMatFights mode (because fallback is division-specific)
     if (fights.length === 0 && !showAllMatFights) {
       console.log('FightList: No fights found via mat_fight_order, using bracket fallback.');
-      const currentBracket = brackets?.[selectedDivisionId];
+      
+      // Use bracketId if present, otherwise divisionId
+      const targetBracketId = bracketId || selectedDivisionId;
+      const currentBracket = brackets?.[targetBracketId];
+      
       if (currentBracket) {
          if (currentBracket.rounds) {
              currentBracket.rounds.flat().forEach(m => {
-                 // Filter out BYEs if needed, or keeping them? Original logic had them.
-                 // Actually, usually we hide BYE vs BYE.
                  if (!(m.fighter1_id === 'BYE' && m.fighter2_id === 'BYE')) {
                     fights.push(m);
                  }
@@ -156,8 +165,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           return matNameA.localeCompare(matNameB);
         }
       }
-      // If round is available, use it, otherwise rely on fight number
-      // Actually strictly respecting mat_fight_order index would be better but simple sort works if numbered correctly
+      
       if (a.mat_fight_number !== undefined && b.mat_fight_number !== undefined && a.mat_fight_number !== b.mat_fight_number) {
           return a.mat_fight_number - b.mat_fight_number;
       }
@@ -165,7 +173,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       if (a.round !== b.round) return a.round - b.round;
       return (a.match_number || 0) - (b.match_number || 0);
     });
-  }, [mat_fight_order, selectedMat, selectedDivisionId, allMatchesMap, brackets, showAllMatFights]);
+  }, [mat_fight_order, selectedMat, selectedDivisionId, bracketId, allMatchesMap, brackets, showAllMatFights]);
 
   const groupedFights = useMemo(() => {
     // If 'order' selected (or default for showAll), we can still wrap in a single group or just return listed
@@ -231,7 +239,8 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
   }, [fightsForSelectedMatAndCategory, groupBy, event.divisions, event.brackets, showAllMatFights]);
 
-  const currentBracket = brackets?.[selectedDivisionId];
+  const targetBracketId = bracketId || selectedDivisionId;
+  const currentBracket = brackets?.[targetBracketId];
   const totalRoundsInBracket = currentBracket?.rounds.length || 0;
   const division = event.divisions?.find(d => d.id === selectedDivisionId);
 

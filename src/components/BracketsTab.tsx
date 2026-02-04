@@ -77,6 +77,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   });
   
   const [selectedDivisionForDetail, setSelectedDivisionForDetail] = useState<Division | null>(null);
+  const [selectedBracketIdForDetail, setSelectedBracketIdForDetail] = useState<string | undefined>(undefined);
   const [includeOngoingBrackets, setIncludeOngoingBrackets] = useState<boolean>(false);
   const [divisionStatusFilter, setDivisionStatusFilter] = useState<'all' | 'active' | 'finished'>('all');
   const [bracketStatusFilter, setBracketStatusFilter] = useState<'all' | 'finished' | 'in_progress' | 'generated'>('all');
@@ -114,6 +115,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       const division = event.divisions?.find(d => d.id === navSelectedDivisionId);
       if (division) {
         setSelectedDivisionForDetail(division);
+        setSelectedBracketIdForDetail(undefined); // Reset unless nav supports bracketId
         setBracketsSubTab('fight-overview');
       }
     }
@@ -284,6 +286,7 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
 
   const handleBackFromDivisionDetail = () => {
     setSelectedDivisionForDetail(null);
+    setSelectedBracketIdForDetail(undefined);
     setBracketsSubTab('manage-fights');
   };
 
@@ -584,8 +587,9 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
           <TabsContent value="mat-control" className="mt-0">
              <MatControlCenter
                event={event}
-               onDivisionSelect={(division) => {
+               onDivisionSelect={(division, bracketId) => {
                  setSelectedDivisionForDetail(division);
+                 setSelectedBracketIdForDetail(bracketId);
                  setBracketsSubTab('fight-overview');
                }}
              />
@@ -597,8 +601,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                <DivisionDetailView
                  event={event}
                  division={selectedDivisionForDetail}
+                 bracketId={selectedBracketIdForDetail}
                  onBack={() => {
                    setSelectedDivisionForDetail(null);
+                   setSelectedBracketIdForDetail(undefined);
                    setBracketsSubTab('mat-control');
                  }}
                  initialTab={navDivisionDetailTab || undefined}

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface DivisionDetailViewProps {
   event: Event;
   division: Division;
+  bracketId?: string;
   onBack: () => void;
   /** Custom base path for fight navigation (for staff pages) */
   baseFightPath?: string;
@@ -22,7 +23,7 @@ interface DivisionDetailViewProps {
   initialTab?: string;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, onBack, baseFightPath, isPublic = false, initialTab }) => {
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, bracketId, onBack, baseFightPath, isPublic = false, initialTab }) => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'last_name', direction: 'asc' });
   const [showAllMatFights, setShowAllMatFights] = useState(false);
   const [groupBy, setGroupBy] = useState<'stage' | 'division' | 'order'>('order');
@@ -32,7 +33,21 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
     const effectiveDivisionId = a.moved_to_division_id || a._division?.id;
     return effectiveDivisionId === division.id;
   });
-  const bracket = event.brackets?.[division.id];
+
+  // Lookup bracket by specific ID if provided, otherwise fallback to division ID
+  const targetBracketId = bracketId || division.id;
+  const bracket = event.brackets?.[targetBracketId];
+
+  // Filter athletes if viewing a specific bracket
+  const displayAthletes = useMemo(() => {
+      if (bracket && bracket.participants) {
+          // If we have a specific bracket (especially split), filter athletes to only those in the bracket
+          return athletesInDivision.filter(a => 
+              bracket.participants.some(p => p !== 'BYE' && p.id === a.id)
+          );
+      }
+      return athletesInDivision;
+  }, [athletesInDivision, bracket]);
 
   const [activeTab, setActiveTab] = useState(initialTab || "fight_order");
   
@@ -45,9 +60,9 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
   const assignedMat = useMemo(() => {
     if (!event.mat_assignments) return null;
     return Object.keys(event.mat_assignments).find(mat => 
-      event.mat_assignments![mat].includes(division.id)
+      event.mat_assignments![mat].includes(division.id) || (bracketId && event.mat_assignments![mat].includes(bracketId)) // Check bracketId assignment too
     );
-  }, [event.mat_assignments, division.id]);
+  }, [event.mat_assignments, division.id, bracketId]);
 
   const handleSort = (key: string) => {
     setSortConfig(prevConfig => ({
@@ -57,7 +72,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
   };
 
   const sortedAthletes = useMemo(() => {
-    const sortableItems = [...athletesInDivision];
+    const sortableItems = [...displayAthletes];
     sortableItems.sort((a, b) => {
       let aValue: any;
       let bValue: any;
@@ -82,14 +97,14 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
       return 0;
     });
     return sortableItems;
-  }, [athletesInDivision, sortConfig]);
+  }, [displayAthletes, sortConfig]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-2xl font-bold">{division.name}</h3>
-          <p className="text-muted-foreground">{athletesInDivision.length} athletes</p>
+          <p className="text-muted-foreground">{displayAthletes.length} athletes</p>
         </div>
         <Button onClick={onBack} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Mat Control
@@ -139,6 +154,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               selectedMat={showAllMatFights && assignedMat ? assignedMat : "all-mats"}
               selectedCategoryKey={division.id}
               selectedDivisionId={division.id}
+              bracketId={bracketId}
               onUpdateBracket={() => {}} // Read-only view
               fightViewMode="grid1"
               baseFightPath={baseFightPath}
