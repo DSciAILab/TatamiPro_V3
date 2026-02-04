@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, Swords, Clock } from "lucide-react";
 import { MatGroup, formatTime } from "../utils/mat-utils";
 import { SortKey } from "../hooks/use-mat-data";
 import { DivisionTable } from "./DivisionTable";
-import { Event, Division } from "@/types/index";
+// ... imports
+import { Event, Division, Bracket } from "@/types/index";
 
 interface MatGroupCardProps {
   group: MatGroup;
@@ -15,6 +16,7 @@ interface MatGroupCardProps {
   onToggleDivisionExpansion: (id: string) => void;
   onSort: (key: SortKey) => void;
   onDivisionSelect?: (div: Division, bracketId?: string) => void;
+  onUpdateBracket?: (divisionId: string, updatedBracket: Bracket) => void;
 }
 
 export const MatGroupCard = ({
@@ -25,7 +27,8 @@ export const MatGroupCard = ({
   expandedDivisions,
   onToggleDivisionExpansion,
   onSort,
-  onDivisionSelect
+  onDivisionSelect,
+  onUpdateBracket
 }: MatGroupCardProps) => {
   return (
     <Card>
@@ -69,6 +72,7 @@ export const MatGroupCard = ({
               onToggleExpansion={onToggleDivisionExpansion}
               onSort={onSort}
               onDivisionSelect={onDivisionSelect}
+              onUpdateBracket={onUpdateBracket}
             />
           </CardContent>
         </CollapsibleContent>

@@ -352,6 +352,18 @@ export const generateBracketPdf = (
       doc.setFontSize(14);
       doc.setTextColor(255, 255, 255);
       doc.text(divisionTitle, PAGE_WIDTH / 2, 14, { align: 'center' });
+      
+      // Fight Duration & Total Time
+      const durationMin = division.match_duration || 5;
+      const totalFights = bracket.rounds.reduce((acc: number, round: Match[]) => acc + round.length, 0) + (bracket.third_place_match ? 1 : 0);
+      const totalTimeMin = totalFights * durationMin;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const durationText = `Fight Duration: ${durationMin} min  |  Total Time: ~${totalTimeMin} min`;
+      doc.text(durationText, PAGE_WIDTH - MARGIN, 11, { align: 'right' });
+      
       doc.setTextColor(0, 0, 0);
 
       // --- CONTENT ---

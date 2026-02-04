@@ -130,6 +130,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
                         <BracketMatchCard
                           match={match}
                           athletesMap={athletesMap}
+                          attendance={bracket.attendance}
                           isFinal={isLastRound}
                           bracketWinnerId={bracket.winner_id}
                           bracketRunnerUpId={bracket.runner_up_id}
@@ -154,6 +155,7 @@ const BracketView: React.FC<BracketViewProps> = ({ bracket, allAthletes, divisio
             <BracketMatchCard
               match={bracket.third_place_match}
               athletesMap={athletesMap}
+              attendance={bracket.attendance}
               bracketWinnerId={bracket.winner_id}
               bracketRunnerUpId={bracket.runner_up_id}
               bracketThirdPlaceWinnerId={bracket.third_place_winner_id}

@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Match, Athlete } from '@/types/index';
+import { Match, Athlete, BracketAttendanceStatus } from '@/types/index';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserRound, Trophy, CheckCircle } from 'lucide-react';
+import { UserRound, Trophy, CheckCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useTranslations } from '@/hooks/use-translations';
@@ -11,6 +11,7 @@ import { useTranslations } from '@/hooks/use-translations';
 interface BracketMatchCardProps {
   match: Match;
   athletesMap: Map<string, Athlete>;
+  attendance?: Record<string, { status: BracketAttendanceStatus; last_updated: string; }>;
   isFinal?: boolean;
   bracketWinnerId?: string;
   bracketRunnerUpId?: string;
@@ -33,6 +34,7 @@ const getShortMatchIdentifier = (fullMatchId: string): string => {
 const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
   match,
   athletesMap,
+  attendance,
   isFinal,
   bracketWinnerId,
   bracketRunnerUpId,
@@ -53,6 +55,12 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     const clubLine = (fighter !== 'BYE' && fighter) ? fighter.club : '';
 
     let statusText = '';
+    
+    // Check attendance status
+    const fighterId = (fighter !== 'BYE' && fighter) ? fighter.id : undefined;
+    const attendanceStatus = fighterId && attendance?.[fighterId]?.status;
+    const isOnHold = attendanceStatus === 'on_hold';
+
     if (!fighter) {
       const prevMatchId = fighterSlot === 1 ? match.prev_match_ids?.[0] : match.prev_match_ids?.[1];
       statusText = `${t('waitingFor')} ${prevMatchId ? getShortMatchIdentifier(prevMatchId) : t('previousFight')}`;
@@ -61,16 +69,22 @@ const BracketMatchCard: React.FC<BracketMatchCardProps> = ({
     }
 
     return (
-      <div className="flex flex-col items-start min-h-[56px] justify-center">
+      <div className="flex flex-col items-start min-h-[56px] justify-center w-full">
         {statusText ? (
           <span className="font-medium text-sm text-muted-foreground">{statusText}</span>
         ) : (
           <>
-            <span className="font-medium text-sm flex items-center">
-              {nameLine1} {nameLine2}
+            <span className="font-medium text-sm flex items-center w-full justify-between pr-2">
+              <span className="flex items-center gap-1">
+                {nameLine1} {nameLine2}
+                {isOnHold && <Clock className="h-3 w-3 text-orange-600 animate-pulse" />}
+              </span>
               {match.winner_id === (fighter as Athlete)?.id && <CheckCircle className="ml-1 h-3 w-3 text-green-500" />}
             </span>
-            <span className="text-xs text-muted-foreground">{clubLine}</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-2">
+                {clubLine}
+                {isOnHold && <span className="text-[10px] text-orange-600 font-medium px-1 rounded bg-orange-100 dark:bg-orange-950">ON HOLD</span>}
+            </span>
           </>
         )}
       </div>

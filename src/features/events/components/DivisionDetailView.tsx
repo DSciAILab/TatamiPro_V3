@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Event, Division, Athlete } from '@/types/index';
+import { Event, Division, Athlete, Bracket } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
@@ -11,6 +11,7 @@ import FightList from '@/components/FightList';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AttendanceTab from './AttendanceTab';
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -21,9 +22,19 @@ interface DivisionDetailViewProps {
   baseFightPath?: string;
   isPublic?: boolean;
   initialTab?: string;
+  onUpdateBracket?: (divisionId: string, updatedBracket: Bracket) => void;
 }
 
-const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division, bracketId, onBack, baseFightPath, isPublic = false, initialTab }) => {
+const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ 
+  event, 
+  division, 
+  bracketId, 
+  onBack, 
+  baseFightPath, 
+  isPublic = false, 
+  initialTab,
+  onUpdateBracket
+}) => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'last_name', direction: 'asc' });
   const [showAllMatFights, setShowAllMatFights] = useState(false);
   const [groupBy, setGroupBy] = useState<'stage' | 'division' | 'order'>('order');
@@ -99,6 +110,12 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
     return sortableItems;
   }, [displayAthletes, sortConfig]);
 
+  const handleUpdateBracketLocal = (divId: string, updatedBracket: Bracket) => {
+       if (onUpdateBracket) {
+           onUpdateBracket(divId, updatedBracket);
+       }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -115,7 +132,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
           <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>
-          <TabsTrigger value="athletes">Athlete List</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
         </TabsList>
         <TabsContent value="fight_order" className="mt-4">
           <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -155,7 +172,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
               selectedCategoryKey={division.id}
               selectedDivisionId={division.id}
               bracketId={bracketId}
-              onUpdateBracket={() => {}} // Read-only view
+              onUpdateBracket={handleUpdateBracketLocal}
               fightViewMode="grid1"
               baseFightPath={baseFightPath}
               source="division-fight-order"
@@ -181,13 +198,20 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({ event, division
             <p className="text-muted-foreground text-center py-8">Bracket not generated for this division.</p>
           )}
         </TabsContent>
-        <TabsContent value="athletes" className="mt-4">
-          <AthleteListTable 
-            athletes={sortedAthletes} 
-            divisions={event.divisions || []}
-            sortConfig={sortConfig as any}
-            onSort={handleSort}
-          />
+        <TabsContent value="attendance" className="mt-4">
+          {bracket ? (
+              <AttendanceTab 
+                bracket={bracket}
+                event={event}
+                division={division}
+                athletes={sortedAthletes}
+                onUpdateBracket={handleUpdateBracketLocal}
+              />
+          ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                  <p>Attendance is only available for generated brackets.</p>
+              </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -7,21 +7,18 @@ import { MatGroupCard } from './MatGroupCard';
 export interface MatControlCenterProps {
   event: Event;
   onDivisionSelect?: (division: Division, bracketId?: string) => void;
+  onUpdateBracket?: (divisionId: string, updatedBracket: Bracket) => void;
 }
 
-export const MatControlCenter = ({ event, onDivisionSelect }: MatControlCenterProps) => {
+export const MatControlCenter = ({ event, onDivisionSelect, onUpdateBracket }: MatControlCenterProps) => {
   const {
     filteredGroups,
-    matGroups,
-    totals,
+// ... (imports line 14-18 unchanged)
     filterState
   } = useMatData(event);
   
   const {
-    searchTerm, setSearchTerm,
-    statusFilter, updateStatusFilter,
-    expandedMats, toggleMat, expandAll, collapseAll,
-    expandedDivisions, toggleDivisionExpansion,
+// ... (lines 21-25 unchanged)
     handleSort
   } = filterState;
 
@@ -53,6 +50,7 @@ export const MatControlCenter = ({ event, onDivisionSelect }: MatControlCenterPr
             onToggleDivisionExpansion={toggleDivisionExpansion}
             onSort={handleSort}
             onDivisionSelect={onDivisionSelect}
+            onUpdateBracket={onUpdateBracket}
           />
         ))}
       </div>

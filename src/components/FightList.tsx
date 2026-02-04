@@ -3,9 +3,19 @@
 import React, { useMemo } from 'react';
 import { Event, Bracket, Match } from '@/types/index';
 import { UserRound } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import BracketView from './BracketView';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FightListProps {
   event: Event;
@@ -37,6 +47,23 @@ const getRoundName = (roundIndex: number, totalRounds: number): string => {
 
 const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivisionId, bracketId, fightViewMode, baseFightPath, isPublic = false, source, showAllMatFights = false, groupBy = 'order' }) => {
   const { athletes, brackets, mat_fight_order } = event;
+  const navigate = useNavigate();
+  const [warningState, setWarningState] = React.useState<{ isOpen: boolean; url: string; athleteNames: string[] } | null>(null);
+
+  // Build map of athlete ID -> Attendance Status
+  const athleteAttendanceStatus = useMemo(() => {
+    const map = new Map<string, string>();
+    if (brackets) {
+       Object.values(brackets).forEach(b => {
+           if (b.attendance) {
+               Object.entries(b.attendance).forEach(([id, record]) => {
+                   map.set(id, record.status);
+               });
+           }
+       });
+    }
+    return map;
+  }, [brackets]);
   
   // Build fight URL based on baseFightPath or default
   const buildFightUrl = (divisionId: string, matchId: string) => {
@@ -271,6 +298,28 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     bracket: 'grid-cols-1', // Should not be reached but safekeeping
   };
 
+  const handleMatchClick = (match: Match, url: string) => {
+      const p1Status = match.fighter1_id && match.fighter1_id !== 'BYE' ? athleteAttendanceStatus.get(match.fighter1_id) : null;
+      const p2Status = match.fighter2_id && match.fighter2_id !== 'BYE' ? athleteAttendanceStatus.get(match.fighter2_id) : null;
+      
+      const onHoldNames: string[] = [];
+      if (p1Status === 'on_hold') {
+          const f1 = athletesMap.get(match.fighter1_id!);
+          if (f1) onHoldNames.push(`${f1.first_name} ${f1.last_name}`);
+      }
+      if (p2Status === 'on_hold') {
+          const f2 = athletesMap.get(match.fighter2_id!);
+          if (f2) onHoldNames.push(`${f2.first_name} ${f2.last_name}`);
+      }
+
+      if (onHoldNames.length > 0) {
+          setWarningState({ isOpen: true, url, athleteNames: onHoldNames });
+      } else {
+          // Pass the source to location state like the Link did
+          navigate(url, { state: { source } });
+      }
+  };
+
   const renderMatchCard = (match: Match) => {
     const isByeFight = (match.fighter1_id === 'BYE' || match.fighter2_id === 'BYE');
     const isPendingFight = (!match.fighter1_id || !match.fighter2_id);
@@ -289,13 +338,6 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : 'N/A';
     const fightNumberDisplay = `${matNumberDisplay}-${match.mat_fight_number}`;
-
-    const cardContent = (
-      <div className="relative flex p-4 pb-2 pt-2">
-         {/* ... (existing content structure needs adaptation) */}
-         {/* Actually, let's wrap the existing content in a div and put header above it if needed */}
-      </div>
-    );
     
     // REDO render to accommodate header nicely
     
@@ -364,15 +406,15 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     );
 
     if (isFightRecordable && !isPublic) {
+      const url = buildFightUrl(selectedDivisionId, match.id);
       return (
-        <Link
+        <div
           key={match.id}
-          to={buildFightUrl(selectedDivisionId, match.id)}
-          className={cardClasses}
-          state={{ source }}
+          onClick={() => handleMatchClick(match, url)}
+          className={cn(cardClasses, "cursor-pointer")}
         >
           {fullCardContent}
-        </Link>
+        </div>
       );
     } else {
       return (
@@ -395,6 +437,32 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           </div>
         </div>
       ))}
+
+      <AlertDialog open={!!warningState?.isOpen} onOpenChange={(open) => !open && setWarningState(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Athlete On Hold</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following athlete(s) are currently marked as <strong>On Hold</strong>:
+              <ul className="list-disc pl-5 mt-2 mb-2">
+                  {warningState?.athleteNames.map(name => <li key={name}>{name}</li>)}
+              </ul>
+              Do you want to proceed with starting this fight?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+                if (warningState) {
+                    navigate(warningState.url, { state: { source } });
+                    setWarningState(null);
+                }
+            }} className="bg-orange-600 hover:bg-orange-700 text-white">
+              Proceed Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

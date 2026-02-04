@@ -592,6 +592,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                  setSelectedBracketIdForDetail(bracketId);
                  setBracketsSubTab('fight-overview');
                }}
+               onUpdateBracket={(divisionId, updatedBracket) => {
+                  const newBrackets = { ...event.brackets, [updatedBracket.id]: updatedBracket };
+                  onUpdateBrackets(newBrackets, event.mat_fight_order || {}, true);
+               }}
              />
           </TabsContent>
 

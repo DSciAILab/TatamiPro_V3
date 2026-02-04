@@ -28,6 +28,7 @@ export interface Division {
   belt: DivisionBelt;
   age_category_name: AgeCategory;
   is_enabled: boolean;
+  match_duration?: number;
 }
 
 export interface Athlete {
@@ -104,7 +105,13 @@ export interface Bracket {
   runner_up_id?: string;
   third_place_winner_id?: string;
   group_name?: string; // e.g. "Group A"
+  attendance?: Record<string, {
+      status: 'present' | 'on_hold' | 'missing';
+      last_updated: string; // ISO timestamp
+  }>;
 }
+
+export type BracketAttendanceStatus = 'present' | 'on_hold' | 'missing';
 
 export interface CheckInConfig {
   mandatoryFields?: Record<string, boolean>;
