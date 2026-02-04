@@ -83,16 +83,28 @@ export const useBracketGeneration = ({
 
   // Check if division has ongoing fights
   const hasOngoingFights = useCallback((divisionId: string): boolean => {
+    
+    const isRealFight = (match: any) => {
+        // A fight is "real" (human interaction) if it has a winner AND it wasn't a BYE advancement.
+        // If it's a BYE match, the system auto-set the winner, so it doesn't count as "in progress" by human action.
+        if (match.winner_id === undefined) return false;
+        
+        // Ignore matches involving 'BYE'
+        if (match.fighter1_id === 'BYE' || match.fighter2_id === 'BYE') return false;
+        
+        return true;
+    };
+
     // Check regular bracket
     const bracket = event.brackets?.[divisionId];
-    if (bracket && bracket.rounds?.flat().some(match => match.winner_id !== undefined)) {
+    if (bracket && bracket.rounds?.flat().some(isRealFight)) {
       return true;
     }
     // Check split variants (divisionId-A, divisionId-B, etc.)
     const splitBrackets = Object.entries(event.brackets || {})
       .filter(([key]) => key.startsWith(`${divisionId}-`))
       .map(([, b]) => b);
-    return splitBrackets.some(b => b.rounds?.flat().some(match => match.winner_id !== undefined));
+    return splitBrackets.some(b => b.rounds?.flat().some(isRealFight));
   }, [event.brackets]);
 
   // Check if division is finished
