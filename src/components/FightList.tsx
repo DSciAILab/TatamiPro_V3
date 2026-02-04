@@ -2,10 +2,11 @@
 
 import React, { useMemo } from 'react';
 import { Event, Bracket, Match } from '@/types/index';
-import { UserRound } from 'lucide-react';
+import { UserRound, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import BracketView from './BracketView';
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -334,6 +335,10 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     const fighter1Club = fighter1 !== 'BYE' && fighter1 ? fighter1.club : '';
     const fighter2Club = fighter2 !== 'BYE' && fighter2 ? fighter2.club : '';
 
+    const p1Status = match.fighter1_id && match.fighter1_id !== 'BYE' ? athleteAttendanceStatus.get(match.fighter1_id) : null;
+    const p2Status = match.fighter2_id && match.fighter2_id !== 'BYE' ? athleteAttendanceStatus.get(match.fighter2_id) : null;
+    const isMatchOnHold = p1Status === 'on_hold' || p2Status === 'on_hold';
+
     const resultTime = "XX:XX";
 
     const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : 'N/A';
@@ -359,6 +364,14 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const innerContent = (
       <div className="relative flex p-4 pt-2">
+        {isMatchOnHold && (
+            <div className="absolute top-4 right-4 z-10">
+                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200 flex items-center gap-1 shadow-sm">
+                    <Clock className="w-3 h-3" />
+                    On Hold
+                </Badge>
+            </div>
+        )}
         <div className="flex-shrink-0 w-16 text-center absolute top-4 left-4">
           <span className="text-2xl font-extrabold text-primary">{fightNumberDisplay}</span>
           <p className="text-xs text-muted-foreground mt-1">{resultTime}</p>
@@ -367,23 +380,32 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
           <div className={cn(
             "flex items-center p-1 rounded-md relative overflow-hidden",
             match.winner_id === match.fighter1_id ? 'bg-success/20' :
-            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/20' : ''
+            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/20' : '',
+            p1Status === 'on_hold' && "bg-orange-50 border border-orange-200"
           )}>
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600" />
             {getFighterPhoto(match.fighter1_id)}
             <div className="ml-2">
-              <p className="text-base flex items-center">{fighter1Display}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-base flex items-center">{fighter1Display}</p>
+                 {p1Status === 'on_hold' && <Clock className="w-3 h-3 text-orange-500" />}
+              </div>
               {fighter1Club && <p className="text-xs text-muted-foreground">{fighter1Club}</p>}
             </div>
           </div>
           <div className={cn(
-            "flex items-center p-1 rounded-md",
+            "flex items-center p-1 rounded-md relative overflow-hidden",
             match.winner_id === match.fighter2_id ? 'bg-success/20' :
-            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/20' : ''
+            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/20' : '',
+             p2Status === 'on_hold' && "bg-orange-50 border border-orange-200"
           )}>
+             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
             {getFighterPhoto(match.fighter2_id)}
             <div className="ml-2">
-              <p className="text-base flex items-center">{fighter2Display}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-base flex items-center">{fighter2Display}</p>
+                {p2Status === 'on_hold' && <Clock className="w-3 h-3 text-orange-500" />}
+              </div>
               {fighter2Club && <p className="text-xs text-muted-foreground">{fighter2Club}</p>}
             </div>
           </div>
@@ -406,7 +428,17 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     );
 
     if (isFightRecordable && !isPublic) {
+      if (!match.id) {
+          console.error('[FightList] Match ID is missing for match:', match);
+          return (
+            <div key={match.id || `unknown-${Math.random()}`} className={cardClasses}>
+              {fullCardContent}
+            </div>
+          );
+      }
+
       const url = buildFightUrl(selectedDivisionId, match.id);
+      
       return (
         <div
           key={match.id}

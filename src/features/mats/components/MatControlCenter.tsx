@@ -1,5 +1,5 @@
 import React from 'react';
-import { Event, Division } from '@/types/index';
+import { Event, Division, Bracket } from '@/types/index';
 import { useMatData } from '../hooks/use-mat-data';
 import { MatStatsToolbar } from './MatStatsToolbar';
 import { MatGroupCard } from './MatGroupCard';
@@ -13,12 +13,16 @@ export interface MatControlCenterProps {
 export const MatControlCenter = ({ event, onDivisionSelect, onUpdateBracket }: MatControlCenterProps) => {
   const {
     filteredGroups,
-// ... (imports line 14-18 unchanged)
+    matGroups,
+    totals,
     filterState
   } = useMatData(event);
   
   const {
-// ... (lines 21-25 unchanged)
+    searchTerm, setSearchTerm,
+    statusFilter, updateStatusFilter,
+    expandedMats, toggleMat, expandAll, collapseAll,
+    expandedDivisions, toggleDivisionExpansion,
     handleSort
   } = filterState;
 

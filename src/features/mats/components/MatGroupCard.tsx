@@ -4,7 +4,6 @@ import { ChevronDown, ChevronRight, Swords, Clock } from "lucide-react";
 import { MatGroup, formatTime } from "../utils/mat-utils";
 import { SortKey } from "../hooks/use-mat-data";
 import { DivisionTable } from "./DivisionTable";
-// ... imports
 import { Event, Division, Bracket } from "@/types/index";
 
 interface MatGroupCardProps {

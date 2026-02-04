@@ -123,7 +123,25 @@ const FightDetail: React.FC = () => {
         if (eventError) throw eventError;
         eventData = eData;
 
-        const bracket = eventData.brackets?.[divisionId];
+        if (eventError) throw eventError;
+        eventData = eData;
+
+        let bracket = eventData.brackets?.[divisionId];
+        
+        // Handling for Split Brackets (Group A/B)
+        // If direct lookup fails, try finding a bracket that *contains* this matchId
+        if (!bracket && eventData.brackets) {
+            const foundKey = Object.keys(eventData.brackets).find(key => {
+                const b = eventData.brackets![key];
+                const hasMatch = b.rounds.flat().some(m => m.id === matchId) || b.third_place_match?.id === matchId;
+                return hasMatch;
+            });
+            
+            if (foundKey) {
+                bracket = eventData.brackets[foundKey];
+            }
+        }
+
         if (!bracket) throw new Error("Bracket não encontrado para esta divisão.");
 
         let match = bracket.rounds.flat().find(m => m.id === matchId) || (bracket.third_place_match?.id === matchId ? bracket.third_place_match : null);
