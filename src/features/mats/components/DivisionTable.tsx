@@ -15,7 +15,7 @@ interface DivisionTableProps {
   expandedDivisions: Set<string>;
   onToggleExpansion: (id: string) => void;
   onSort: (key: SortKey) => void;
-  onDivisionSelect?: (division: Division) => void;
+  onDivisionSelect?: (division: Division, bracketId?: string) => void;
 }
 
 export const DivisionTable = ({ 
@@ -72,11 +72,19 @@ export const DivisionTable = ({
       <TableBody>
         {divisions.map(divInfo => {
           const isExpanded = expandedDivisions.has(divInfo.division.id);
-          const bracket = event.brackets?.[divInfo.division.id];
-          const athletes = getAthletesForDivision(event.athletes || [], divInfo.division.id, { requireApproved: true, requireCheckedIn: true });
+          // Use specific bracket ID if available (for splits), otherwise fallback to division ID
+          const bracketId = divInfo._bracketId || divInfo.division.id;
+          const bracket = event.brackets?.[bracketId];
+          
+          const allDivisionAthletes = getAthletesForDivision(event.athletes || [], divInfo.division.id, { requireApproved: true, requireCheckedIn: true });
+          
+          // Filter athletes to only show those in this specific bracket (for splits)
+          const athletes = bracket 
+            ? allDivisionAthletes.filter(a => bracket.participants.some(p => p !== 'BYE' && p.id === a.id))
+            : allDivisionAthletes;
           
           return (
-            <React.Fragment key={divInfo.division.id}>
+            <React.Fragment key={divInfo._bracketId || divInfo.division.id}>
               <TableRow
                 className={cn(
                   "cursor-pointer hover:bg-muted/50",
@@ -84,11 +92,25 @@ export const DivisionTable = ({
                   divInfo.status === 'In Progress' && "text-blue-600 font-bold",
                   isExpanded && "bg-muted/30"
                 )}
-                onClick={() => onToggleExpansion(divInfo.division.id)}
+                // Use bracket ID for toggling expansion if possible to handle unique keys for splits?
+                // Actually `expandedDivisions` tracks division IDs. 
+                // If we have split groups A and B, they usually share the same division ID in `divInfo.division`.
+                // But `expandedDivisions` is a Set of strings.
+                // If we use division ID, expanding one expands ALL groups for that division.
+                // We should probably toggle using a unique key per row.
+                // `divInfo._bracketId` is unique for splits.
+                // Let's update `onToggleExpansion` signature/logic upstream?
+                // Wait, if I change the key passed to `onToggleExpansion`, I need to make sure `use-mat-data` handles it.
+                // `toggleDivisionExpansion` takes `divisionId`.
+                // If I pass `bracketId`, it just adds string to set.
+                // `isExpanded` checks `expandedDivisions.has(divInfo.division.id)`.
+                // If I change to check `bracketId`, it works for splits properly (unique expansion).
+                // Let's assume onToggleExpansion accepts any string key.
+                onClick={() => onToggleExpansion(bracketId)}
               >
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
-                    {isExpanded ? (
+                    {expandedDivisions.has(bracketId) ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -109,7 +131,7 @@ export const DivisionTable = ({
               </TableRow>
               
               {/* Expanded Athletes List */}
-              {isExpanded && bracket && (
+              {expandedDivisions.has(bracketId) && bracket && (
                 <TableRow className="bg-muted/20">
                   <TableCell colSpan={5} className="p-0">
                     <AthleteList 

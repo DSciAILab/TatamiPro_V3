@@ -6,7 +6,7 @@ import { MatGroupCard } from './MatGroupCard';
 
 export interface MatControlCenterProps {
   event: Event;
-  onDivisionSelect?: (division: Division) => void;
+  onDivisionSelect?: (division: Division, bracketId?: string) => void;
 }
 
 export const MatControlCenter = ({ event, onDivisionSelect }: MatControlCenterProps) => {

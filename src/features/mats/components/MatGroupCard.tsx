@@ -14,7 +14,7 @@ interface MatGroupCardProps {
   expandedDivisions: Set<string>;
   onToggleDivisionExpansion: (id: string) => void;
   onSort: (key: SortKey) => void;
-  onDivisionSelect?: (div: Division) => void;
+  onDivisionSelect?: (div: Division, bracketId?: string) => void;
 }
 
 export const MatGroupCard = ({

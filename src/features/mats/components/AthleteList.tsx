@@ -9,7 +9,7 @@ interface AthleteListProps {
   bracket: Bracket;
   event: Event;
   division: Division;
-  onDivisionSelect?: (division: Division) => void;
+  onDivisionSelect?: (division: Division, bracketId?: string) => void;
 }
 
 export const AthleteList = ({ athletes, bracket, event, division, onDivisionSelect }: AthleteListProps) => {
@@ -83,7 +83,7 @@ export const AthleteList = ({ athletes, bracket, event, division, onDivisionSele
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDivisionSelect(division);
+            onDivisionSelect(division, bracket.id);
           }}
           className="w-full mt-2 py-2 text-sm text-center text-primary hover:underline"
         >

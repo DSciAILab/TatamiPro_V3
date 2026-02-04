@@ -87,7 +87,8 @@ export const useMatData = (event: Event) => {
         const division = event.divisions?.find(d => d.id === bracket.division_id);
         if (!division) return null;
 
-        const matName = divisionMatMap.get(division.id) || 'Unassigned';
+        // Lookup by Bracket ID first (for splits), then Division ID (legacy/parent)
+        const matName = divisionMatMap.get(bracket.id) || divisionMatMap.get(division.id) || 'Unassigned';
         
         // Count total and remaining fights
         let totalFights = 0;
