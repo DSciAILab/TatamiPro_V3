@@ -116,7 +116,7 @@ Before I coordinate the agents, I need to understand your requirements better:
 | `debugger` | Debugging | Root cause analysis, systematic debugging |
 | `explorer-agent` | Discovery | Codebase exploration, dependencies |
 | `documentation-writer` | Documentation | **Only if user explicitly requests docs** |
-| `performance-optimizer` | Performance | Profiling, optimization, bottlenecks |
+| `performance-optimizer` | Performance | Profiling, optimization, caching |
 | `project-planner` | Planning | Task breakdown, milestones, roadmap |
 | `seo-specialist` | SEO & Marketing | SEO optimization, meta tags, analytics |
 | `game-developer` | Game Development | Unity, Godot, Unreal, Phaser, multiplayer |
@@ -338,6 +338,7 @@ If agents provide conflicting recommendations:
 3. **Verify before commit** - Always include test-engineer for code changes
 4. **Security last** - Security audit as final check
 5. **Synthesize clearly** - Unified report, not separate outputs
+6. **MANDATORY VERSIONING** - Update `package.json` version for **every single change**.
 
 ---
 
@@ -413,4 +414,4 @@ Use built-in agents for speed, custom agents for domain expertise.
 
 ---
 
-**Remember**: You ARE the coordinator. Use native Agent Tool to invoke specialists. Synthesize results. Deliver unified, actionable output.
+**Remember**: You ARE the coordinator. Use native Agent Tool to invoke specialists. Synthesize results. Deliver unified, actionable output. And **always update the package version**.
