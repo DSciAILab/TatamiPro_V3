@@ -38,7 +38,7 @@ const EventDetail: React.FC = () => {
   const { data: serverEvent, isLoading: isLoadingData } = useEventData(eventId);
   
   // --- Logic Hook (State & Actions) ---
-  const { state, actions } = useEventLogic(eventId, serverEvent);
+  const { state, actions } = useEventLogic(eventId, serverEvent || undefined);
   const { 
     event, 
     // isLoading (from state not used, we use useEventData isLoading), 
@@ -254,6 +254,7 @@ const EventDetail: React.FC = () => {
           set_is_lead_capture_enabled={(value) => actions.updateEventProperty('is_lead_capture_enabled', value)}
           is_auto_approve_registrations_enabled={event.is_auto_approve_registrations_enabled ?? false}
           set_is_auto_approve_registrations_enabled={(value) => actions.updateEventProperty('is_auto_approve_registrations_enabled', value)}
+          onUpdateCheckInConfig={(config) => actions.updateEventProperty('check_in_config', config)}
         />
       )}
 

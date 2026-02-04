@@ -26,7 +26,8 @@ export interface UseBracketGenerationReturn {
     hasExistingBracket: boolean;
   }>;
   /** Execute bracket generation for selected divisions */
-  generateBrackets: (divisions: Division[]) => void;
+  /** Execute bracket generation for selected divisions */
+  generateBrackets: (divisions: Division[], options?: { specificBracketId?: string }) => void;
   /** Declare champion by WO for single-athlete division */
   declareSingleAthleteChampion: (divisionId: string, athleteId: string) => void;
   /** Check if division has ongoing fights */
@@ -132,7 +133,7 @@ export const useBracketGeneration = ({
   };
 
   // Execute bracket generation
-  const generateBrackets = useCallback((divisionsToGenerate: Division[]) => {
+  const generateBrackets = useCallback((divisionsToGenerate: Division[], options?: { specificBracketId?: string }) => {
     if (!event) {
       showError("Event not loaded.");
       return;
@@ -142,75 +143,137 @@ export const useBracketGeneration = ({
     const includeThirdPlaceFromEvent = event.include_third_place || false;
     
     try {
-      // Start with existing brackets, but remove old ones for divisions being regenerated
+      // Start with existing brackets
       let cleanedBrackets = { ...event.brackets };
       
-      // Remove all brackets for divisions being regenerated (both regular and split variants)
-      divisionsToGenerate.forEach(div => {
-        delete cleanedBrackets[div.id];
-        Object.keys(cleanedBrackets).forEach(key => {
-          if (key.startsWith(`${div.id}-`)) {
-            delete cleanedBrackets[key];
-          }
-        });
-      });
+      // GRANULAR REGENERATION LOGIC
+      if (options?.specificBracketId) {
+         const targetId = options.specificBracketId;
+         const existingBracket = event.brackets?.[targetId];
+         
+         if (!existingBracket) {
+             throw new Error(`Bracket ${targetId} not found for regeneration.`);
+         }
 
-      divisionsToGenerate.forEach(div => {
-        const athletes = getAthletes(div.id);
-        const maxPerBracket = event.max_athletes_per_bracket;
-        const splittingEnabled = event.is_bracket_splitting_enabled;
+         // Verify if the divisions list matches the bracket's division
+         const targetDiv = divisionsToGenerate.find(d => d.id === existingBracket.division_id);
+         if (!targetDiv) {
+             // This presumably shouldn't happen if UI logic is correct
+             console.warn("Target division for specific bracket not in passed list.");
+         }
 
-        if (splittingEnabled && maxPerBracket && maxPerBracket > 1 && athletes.length > maxPerBracket) {
-          // Splitting logic
-          const shuffledAthletes = shuffleArray(athletes);
-          const groups: Athlete[][] = [];
-          
-          for (let i = 0; i < shuffledAthletes.length; i += maxPerBracket) {
-            groups.push(shuffledAthletes.slice(i, i + maxPerBracket));
-          }
+         const division = targetDiv || event.divisions?.find(d => d.id === existingBracket.division_id);
+         if (!division) throw new Error("Division not found");
 
-          // If last group has only 1 athlete, merge with previous group
-          if (groups.length > 1 && groups[groups.length - 1].length === 1) {
-            const lastAthlete = groups.pop()![0];
-            groups[groups.length - 1].push(lastAthlete);
-          }
+         // Extract ONLY valid athletes from this specific bracket (exclude BYEs/Placeholders)
+         // We must use the original participants list to preserve the exact group if possible,
+         // but if we want to RE-SHUFFLE just this group, we extract them.
+         // Note: stored participants include BYEs. Filter them out.
+         const groupAthletes = existingBracket.participants.filter(p => p && p !== 'BYE') as Athlete[];
+         
+         if (groupAthletes.length < 2) {
+             throw new Error("Cannot regenerate a bracket with fewer than 2 athletes.");
+         }
 
-          const groupLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-          
-          groups.forEach((groupAthletes, index) => {
-            const groupSuffix = groupLetters[index] || `${index + 1}`;
-            const bracketId = `${div.id}-${groupSuffix}`;
-            
-            const bracket = generateBracketForDivision(div, event.athletes || [], { 
-              thirdPlace: includeThirdPlaceFromEvent, 
-              explicitAthletes: groupAthletes,
-              enableTeamSeparation: event.enable_team_separation
-            });
+         // Remove ONLY this bracket from cleanedBrackets
+         delete cleanedBrackets[targetId];
 
-            bracket.id = bracketId;
-            bracket.group_name = `Group ${groupSuffix}`;
-            newBrackets[bracketId] = bracket;
-          });
-
-        } else {
-          // Standard generation
-          const bracket = generateBracketForDivision(div, event.athletes || [], { 
+         // Regenerate this specific bracket
+         const bracket = generateBracketForDivision(division, event.athletes || [], { 
             thirdPlace: includeThirdPlaceFromEvent,
+            explicitAthletes: groupAthletes, // FORCE these athletes
             enableTeamSeparation: event.enable_team_separation
+         });
+
+         // Preserve ID and Group Name
+         bracket.id = targetId;
+         bracket.group_name = existingBracket.group_name;
+         
+         newBrackets[targetId] = bracket;
+
+      } else {
+          // STANDARD FULL REGENERATION LOGIC (Per Division)
+          divisionsToGenerate.forEach(div => {
+            // Remove all brackets for this division (parent + splits)
+            delete cleanedBrackets[div.id];
+            Object.keys(cleanedBrackets).forEach(key => {
+              if (key.startsWith(`${div.id}-`)) {
+                delete cleanedBrackets[key];
+              }
+            });
           });
-          newBrackets[div.id] = bracket;
-        }
-      });
+
+          divisionsToGenerate.forEach(div => {
+            const athletes = getAthletes(div.id);
+            const maxPerBracket = event.max_athletes_per_bracket;
+            const splittingEnabled = event.is_bracket_splitting_enabled; // Keep reading from event prop for standard regen
+
+            if (splittingEnabled && maxPerBracket && maxPerBracket > 1 && athletes.length > maxPerBracket) {
+              // Splitting logic
+              const shuffledAthletes = shuffleArray(athletes);
+              const groups: Athlete[][] = [];
+              
+              for (let i = 0; i < shuffledAthletes.length; i += maxPerBracket) {
+                groups.push(shuffledAthletes.slice(i, i + maxPerBracket));
+              }
+
+              // If last group has only 1 athlete, merge with previous group
+              if (groups.length > 1 && groups[groups.length - 1].length === 1) {
+                const lastAthlete = groups.pop()![0];
+                groups[groups.length - 1].push(lastAthlete);
+              }
+
+              const groupLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+              
+              groups.forEach((groupAthletes, index) => {
+                const groupSuffix = groupLetters[index] || `${index + 1}`;
+                const bracketId = `${div.id}-${groupSuffix}`;
+                
+                const bracket = generateBracketForDivision(div, event.athletes || [], { 
+                  thirdPlace: includeThirdPlaceFromEvent, 
+                  explicitAthletes: groupAthletes,
+                  enableTeamSeparation: event.enable_team_separation
+                });
+
+                bracket.id = bracketId;
+                bracket.group_name = `Group ${groupSuffix}`;
+                newBrackets[bracketId] = bracket;
+              });
+
+            } else {
+              // Standard generation
+              const bracket = generateBracketForDivision(div, event.athletes || [], { 
+                thirdPlace: includeThirdPlaceFromEvent,
+                enableTeamSeparation: event.enable_team_separation
+              });
+              newBrackets[div.id] = bracket;
+            }
+          });
+      }
       
       // Merge cleaned brackets with new brackets
       const mergedBrackets = { ...cleanedBrackets, ...newBrackets };
+      
+      // Regenerate Fight Order (Global)
+      // Note: This updates mat assignments for EVERYONE. 
+      // Ideally we should preserve assignments for untouched brackets, but generateMatFightOrder
+      // recalculates everything based on current brackets. As long as assignments are stable it's fine.
+      // But wait, generateMatFightOrder *assigns* mats if missing?
+      // Actually it uses existing assignments if passed. We pass event... event.mat_assignments?
+      // We pass `...event`. so it uses event.mat_assignments.
       const { updatedBrackets: finalBrackets, matFightOrder: newMatFightOrder } = generateMatFightOrder({
         ...event,
         brackets: mergedBrackets,
       });
 
       onUpdateBrackets(finalBrackets, newMatFightOrder, true);
-      showSuccess(`${divisionsToGenerate.length} bracket(s) generated successfully!`);
+      
+      if (options?.specificBracketId) {
+          showSuccess(`Bracket ${options.specificBracketId} regenerated successfully!`);
+      } else {
+          showSuccess(`${divisionsToGenerate.length} division(s) regenerated successfully!`);
+      }
+      
     } catch (error: any) {
       console.error("Error generating brackets:", error);
       showError("Error generating brackets: " + error.message);

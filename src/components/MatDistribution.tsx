@@ -60,34 +60,117 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
         });
     };
 
+  // Ensure mat assignments are migrated (Parent -> Splits)
+  useEffect(() => {
+    let hasChanges = false;
+    const newAssignments = { ...matAssignments };
+    
+    // Check if we have any "orphan" parent IDs that have split keys
+    for (const mat in newAssignments) {
+        const ids = newAssignments[mat];
+        const newIds: string[] = [];
+        let matChanged = false;
+
+        ids.forEach(id => {
+            // If explicit bracket exists, keep it
+            if (event.brackets?.[id]) {
+                newIds.push(id);
+                return;
+            }
+            // If split keys exist for this ID, use THEM instead
+            const splitKeys = Object.keys(event.brackets || {}).filter(k => k.startsWith(`${id}-`));
+            if (splitKeys.length > 0) {
+                // It was a parent ID, but updated to splits. Replace.
+                newIds.push(...splitKeys);
+                matChanged = true;
+            } else {
+                // Keep original (might be ungenerated division)
+                newIds.push(id);
+            }
+        });
+
+        if (matChanged) {
+            newAssignments[mat] = Array.from(new Set(newIds)); // Dedupe
+            hasChanges = true;
+        }
+    }
+
+    if (hasChanges) {
+        setMatAssignments(newAssignments);
+        onUpdateMatAssignments(newAssignments);
+    }
+  }, [event.brackets]); // Run when brackets change (e.g. after generation)
+
   const allCategoryGroups = useMemo(() => {
     const groupsMap = new Map<string, CategoryGroup>();
     const ageSettingsMap = new Map(event.age_division_settings?.map(s => [s.name, s]));
+    
+    // Helper to add group
+    const addGroup = (key: string, division: any, sourceBracket?: any) => {
+        if (groupsMap.has(key)) return;
+        
+        // Count athletes
+        let athleteCount = 0;
+        if (sourceBracket && sourceBracket.participants) {
+            // Filter valid participants
+            athleteCount = sourceBracket.participants.filter((p: any) => p && p !== 'BYE').length;
+        } else {
+            // Fallback to division count (filtered)
+            const athletes = (event.athletes || []).filter(a => {
+                if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') return false;
+                return (a.moved_to_division_id || a._division?.id) === division.id;
+            });
+            athleteCount = athletes.length;
+        }
 
-    (event.athletes || []).filter(a => a.registration_status === 'approved' && a.check_in_status === 'checked_in').forEach(athlete => {
-      const division = athlete._division;
-      if (!division) return;
+        const display = sourceBracket?.group_name ? `${division.name} - ${sourceBracket.group_name}` : division.name;
 
-      const key = division.id;
-      const display = division.name;
-
-      if (!groupsMap.has(key)) {
         groupsMap.set(key, {
-          key,
-          display,
-          gender: division.gender,
-          ageCategoryName: division.age_category_name,
-          belt: division.belt,
-          athleteCount: 0,
-          divisionIds: [division.id],
-          totalFightTime: 0,
+            key,
+            display,
+            gender: division.gender,
+            ageCategoryName: division.age_category_name,
+            belt: division.belt,
+            athleteCount,
+            divisionIds: [division.id],
+            totalFightTime: 0,
         });
-      }
-      const group = groupsMap.get(key)!;
-      group.athleteCount++;
-    });
+    };
 
+    // 1. Process Existing Brackets
+    if (event.brackets) {
+        Object.values(event.brackets).forEach(bracket => {
+            const division = event.divisions?.find(d => d.id === bracket.division_id);
+            if (division) {
+                addGroup(bracket.id, division, bracket);
+            }
+        });
+    }
+
+    // 2. Process Ungenerated Divisions (Fallbacks)
+    if (event.divisions) {
+        event.divisions.forEach(division => {
+            // Check if covered by any bracket (Parent or Splits)
+            const hasBracket = event.brackets?.[division.id] || Object.keys(event.brackets || {}).some(k => k.startsWith(`${division.id}-`));
+            
+            if (!hasBracket) {
+                // Must verify if it has athletes to be worth listing
+                 const athletes = (event.athletes || []).filter(a => {
+                    if (a.registration_status !== 'approved' || a.check_in_status !== 'checked_in') return false;
+                    return (a.moved_to_division_id || a._division?.id) === division.id;
+                });
+                if (athletes.length > 0) {
+                    addGroup(division.id, division);
+                }
+            }
+        });
+    }
+
+    // Calculate Fight Times
     groupsMap.forEach(group => {
+      // Logic: n-1 fights for single elimination, roughly. 
+      // Or bracket size based. 
+      // MatDistribution logic was: athleteCount >= 2 ? count - 1 : 0. Approximation.
       const numFights = group.athleteCount >= 2 ? group.athleteCount - 1 : 0;
       const ageSetting = ageSettingsMap.get(group.ageCategoryName);
       const fightDuration = ageSetting?.fight_duration || 5;
@@ -111,9 +194,9 @@ const MatDistribution: React.FC<MatDistributionProps> = ({ event, onUpdateMatAss
         if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
       }
 
-      return 0;
+      return a.display.localeCompare(b.display);
     });
-  }, [event.athletes, event.age_division_settings, isBeltGroupingEnabled]);
+  }, [event.athletes, event.brackets, event.divisions, event.age_division_settings, isBeltGroupingEnabled]);
 
   const unassignedCategories = useMemo(() => {
     const assignedKeys = new Set<string>();

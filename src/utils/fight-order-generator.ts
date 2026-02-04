@@ -25,11 +25,59 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
     matFightOrder[matName] = [];
     let currentMatFightNumber = 1;
 
-    const assignedDivisionIds = event.mat_assignments?.[matName] || [];
-    const divisionsOnMat = (event.divisions || []).filter(div => assignedDivisionIds.includes(div.id));
+    const assignedIds = event.mat_assignments?.[matName] || [];
+    
+    // Resolve assigned IDs to actual Bracket objects + Divisions
+    // We treat assignedIds as potentially Bracket IDs (primary) or Division IDs (legacy/fallback).
+    const itemsOnMat: { bracket: Bracket, division: Division }[] = [];
 
-    // Sort the divisions assigned to the mat to create a logical fight order
-    divisionsOnMat.sort((a, b) => {
+    // Deduplicate IDs just in case
+    const uniqueIds = Array.from(new Set(assignedIds));
+
+    uniqueIds.forEach(id => {
+        // 1. Is it a direct Bracket ID? (Regular or Split e.g. "divA-B")
+        if (event.brackets?.[id]) {
+            const bracket = event.brackets[id];
+            const division = event.divisions?.find(d => d.id === bracket.division_id);
+            if (division) {
+                itemsOnMat.push({ bracket, division });
+            }
+            return;
+        }
+
+        // 2. Is it a Division ID?
+        // If so, it might mean "Assign all brackets for this division".
+        // This is important if user assigned the category before regenerating into splits,
+        // or if we rely on implicit grouping.
+        const division = event.divisions?.find(d => d.id === id);
+        if (division) {
+             // Find all brackets belonging to this division (Parent or Splits)
+             // Check parent bracket
+             if (event.brackets?.[id]) {
+                 itemsOnMat.push({ bracket: event.brackets[id], division });
+             } 
+             // Check for splits (keys starting with "id-")
+             // Note: This logic assumes we haven't already added them via explicit valid IDs. 
+             // Since uniqueIds are unique string keys, if we have "div1" and "div1-A" assigned, 
+             // "div1-A" is handled in step 1. "div1" falls here.
+             // We should avoid adding duplicates.
+             const splitKeys = Object.keys(event.brackets || {}).filter(k => k.startsWith(`${id}-`));
+             splitKeys.forEach(key => {
+                 // Avoid adding if already explicitly assigned (though highly unlikely in a Set unless logic elsewhere is weird)
+                 // But wait, "itemsOnMat" is a list. We should check if we already pushed this bracket.
+                 if (!itemsOnMat.some(item => item.bracket.id === key)) {
+                     const bracket = event.brackets![key];
+                     itemsOnMat.push({ bracket, division });
+                 }
+             });
+        }
+    });
+
+    // Sort the assigned items
+    itemsOnMat.sort((itemA, itemB) => {
+        const a = itemA.division;
+        const b = itemB.division;
+
       const genderDiff = genderOrder.indexOf(a.gender) - genderOrder.indexOf(b.gender);
       if (genderDiff !== 0) return genderDiff;
 
@@ -42,13 +90,20 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
         if (beltAIndex !== beltBIndex) return beltAIndex - beltBIndex;
       }
       
-      // Finally, sort by weight within the same group
-      return a.max_weight - b.max_weight;
+      // Sort by weight
+      const weightDiff = a.max_weight - b.max_weight;
+      if (weightDiff !== 0) return weightDiff;
+      
+      // Finally, if same division/weight (e.g. Split Brackets), sort by Block/Group Name
+      // Assuming alphabetical group names (Group A, Group B)
+      const groupA = itemA.bracket.group_name || '';
+      const groupB = itemB.bracket.group_name || '';
+      return groupA.localeCompare(groupB);
     });
 
-    divisionsOnMat.forEach(division => {
-      const divisionId = division.id;
-      const bracket = updatedBrackets[divisionId];
+    itemsOnMat.forEach(({ bracket, division: _div }) => {
+      // Logic remains similar but iterating itemsOnMat items
+      const divisionId = bracket.division_id; // Keep original division ID for lookup if needed
       if (bracket && bracket.rounds) {
         const allMatchesInBracket: Match[] = [];
         bracket.rounds.forEach(round => allMatchesInBracket.push(...round));
@@ -63,6 +118,10 @@ export const generateMatFightOrder = (event: Event): { updatedBrackets: Record<s
 
         allMatchesInBracket.forEach(match => {
           match.mat_fight_number = currentMatFightNumber++;
+          // Ensure we tag with the actual bracket's division context. 
+          // match._division_id is usually used for display. 
+          // If split, should we change this? Probably fine to keep underlying division ID.
+          // Maybe add _group_name?
           match._division_id = divisionId;
           match._mat_name = matName;
           matFightOrder[matName].push(match.id);

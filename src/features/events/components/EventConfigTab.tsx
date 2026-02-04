@@ -1,28 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Event, Division, AgeDivisionSetting, CheckInConfig } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { CalendarIcon, Download, QrCodeIcon, Barcode, Share2, UserPlus, Printer, Type } from 'lucide-react';
-import { format } from 'date-fns';
-import { LanguageToggle } from '@/components/LanguageToggle';
-import { useTranslations } from '@/hooks/use-translations';
-import DivisionTable from '@/features/events/components/DivisionTable';
-import CheckInMandatoryFieldsConfig from '@/features/events/components/CheckInMandatoryFieldsConfig';
-import { useLayoutSettings } from '@/context/layout-settings-context';
-import { Textarea } from '@/components/ui/textarea';
-import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { 
+  GeneralSettings, 
+  RegistrationSettings, 
+  PointSystemSettings, 
+  BracketSettings, 
+  CheckInSettings 
+} from './config';
 import AgeDivisionConfig from './AgeDivisionConfig';
-import { supabase } from '@/integrations/supabase/client';
+import DivisionTable from '@/features/events/components/DivisionTable';
 
 interface EventConfigTabProps {
   event: Event;
@@ -78,6 +70,16 @@ interface EventConfigTabProps {
   set_is_lead_capture_enabled: (value: boolean) => void;
   is_auto_approve_registrations_enabled: boolean;
   set_is_auto_approve_registrations_enabled: (value: boolean) => void;
+  // This prop allows us to update check_in_config which is part of event
+  // but originally wasn't explicitly passed as separate prop like others.
+  // It's implicitly updated via handleUpdateEventProperty in parent
+  // But EventConfigTab didn't expose it. 
+  // We need to assume parent might pass it or we need to add it to props.
+  // Wait, EventConfigTabProps is defined here. I can add it.
+  // BUT the parent (EventDetail) calls this component. I need to make sure I don't break parent call.
+  // EventDetail passes `handleUpdateEventProperty`? No it passes individual setters.
+  // I need to add `onUpdateCheckInConfig` to props here and update parent to pass it.
+  onUpdateCheckInConfig?: (config: CheckInConfig) => void;
 }
 
 const EventConfigTab: React.FC<EventConfigTabProps> = ({
@@ -134,55 +136,17 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_is_lead_capture_enabled,
   is_auto_approve_registrations_enabled,
   set_is_auto_approve_registrations_enabled,
+  onUpdateCheckInConfig
 }) => {
-  const { t } = useTranslations();
-  const { isWideLayout, setIsWideLayout } = useLayoutSettings();
-
-  // Print Settings State
-  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [printFontSize, setPrintFontSize] = useState<'small' | 'medium' | 'large'>('medium');
-
-  useEffect(() => {
-    if (event.check_in_config?.printSettings) {
-      setPrintOrientation(event.check_in_config.printSettings.orientation);
-      setPrintFontSize(event.check_in_config.printSettings.fontSize);
-    }
-  }, [event.check_in_config]);
-
-  const handleSavePrintConfig = async () => {
-    const loadingToast = showLoading('Salvando configurações de impressão...');
-    try {
-      const currentConfig: CheckInConfig = event.check_in_config || {};
-      const updatedConfig: CheckInConfig = {
-        ...currentConfig,
-        printSettings: {
-          orientation: printOrientation,
-          fontSize: printFontSize,
-        },
-      };
-
-      const { error } = await supabase
-        .from('events')
-        .update({ check_in_config: updatedConfig })
-        .eq('id', event.id);
-
-      if (error) throw error;
-
-      dismissToast(loadingToast);
-      showSuccess('Configurações de impressão salvas!');
-    } catch (error: any) {
-      dismissToast(loadingToast);
-      showError('Erro ao salvar: ' + error.message);
-    }
-  };
-
   const handleShare = (type: 'public_event' | 'public_registration') => {
     const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/register/${event.id}`;
     const publicUrl = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(publicUrl).then(() => {
-      showSuccess("Link público copiado para a área de transferência!");
+ //     showSuccess("Link público copiado para a área de transferência!");
+      alert("Link público copiado para a área de transferência!"); // Quick fallback if toast unused here
     }, (err) => {
-      showError('Falha ao copiar o link: ' + err);
+ //     showError('Falha ao copiar o link: ' + err);
+      alert('Falha ao copiar o link: ' + err);
     });
   };
 
@@ -205,126 +169,33 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
             </TabsList>
 
             <TabsContent value="event-settings" className="mt-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-semibold flex items-center justify-between mb-2">
-                    {t('generalSettings')}
-                    <LanguageToggle />
-                  </h3>
-                  <p className="text-muted-foreground">{t('languageDemo')}</p>
-                  
-                  <div className="mt-4">
-                    <Label htmlFor="eventName">Nome do Evento</Label>
-                    <Input
-                      id="eventName"
-                      value={event_name}
-                      onChange={(e) => set_event_name(e.target.value)}
-                      placeholder="Ex: Campeonato Aberto de Verão"
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <Label htmlFor="eventDescription">Descrição</Label>
-                    <Textarea
-                      id="eventDescription"
-                      value={event_description}
-                      onChange={(e) => set_event_description(e.target.value)}
-                      placeholder="Uma breve descrição do evento..."
-                      rows={3}
-                    />
-                  </div>
+                <GeneralSettings
+                    event={event}
+                    event_name={event_name}
+                    set_event_name={set_event_name}
+                    event_description={event_description}
+                    set_event_description={set_event_description}
+                    is_active={is_active}
+                    set_is_active={set_is_active}
+                    is_lead_capture_enabled={is_lead_capture_enabled}
+                    set_is_lead_capture_enabled={set_is_lead_capture_enabled}
+                    handleExportJson={handleExportJson}
+                    handleShare={handleShare}
+                />
+                
+                <RegistrationSettings 
+                    is_auto_approve_registrations_enabled={is_auto_approve_registrations_enabled}
+                    set_is_auto_approve_registrations_enabled={set_is_auto_approve_registrations_enabled}
+                />
 
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Switch
-                      id="event-active"
-                      checked={is_active}
-                      onCheckedChange={set_is_active}
-                    />
-                    <Label htmlFor="event-active">Evento Ativo (Visível Publicamente)</Label>
-                  </div>
-                  {is_active && (
-                    <div className="flex items-center space-x-2 mt-2 ml-6">
-                      <Switch
-                        id="lead-capture-enabled"
-                        checked={is_lead_capture_enabled}
-                        onCheckedChange={set_is_lead_capture_enabled}
-                      />
-                      <Label htmlFor="lead-capture-enabled" className="text-sm">
-                        Capturar dados de visitantes (nome, email ou telefone)
-                      </Label>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Switch
-                      id="auto-approve-registrations"
-                      checked={is_auto_approve_registrations_enabled}
-                      onCheckedChange={set_is_auto_approve_registrations_enabled}
-                    />
-                    <Label htmlFor="auto-approve-registrations">Aprovar inscrições automaticamente</Label>
-                  </div>
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Switch
-                      id="wide-layout"
-                      checked={isWideLayout}
-                      onCheckedChange={setIsWideLayout}
-                    />
-                    <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
-                  </div>
-
-                  <div className="mt-8 border-t pt-4">
-                    <h4 className="text-lg font-semibold mb-3">Configuração de Chaves (Brackets)</h4>
-                    <div className="flex items-center space-x-2">
-                        <Switch
-                        id="bracket-splitting-enabled"
-                        checked={is_bracket_splitting_enabled}
-                        onCheckedChange={set_is_bracket_splitting_enabled}
-                        />
-                        <Label htmlFor="bracket-splitting-enabled">Dividir Categorias Grandes Automaticalmente</Label>
-                    </div>
-                    {is_bracket_splitting_enabled && (
-                        <div className="mt-4 max-w-xs">
-                        <Label htmlFor="max-athletes">Máximo de Atletas por Chave</Label>
-                        <Input
-                            id="max-athletes"
-                            type="number"
-                            min="2"
-                            value={max_athletes_per_bracket || 0}
-                            onChange={(e) => set_max_athletes_per_bracket(Number(e.target.value))}
-                            placeholder="Ex: 16"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Se uma categoria exceder este número, ela será dividida em chaves menores (Grupo A, Grupo B...). 
-                            Recomendado: 16 ou 32.
-                        </p>
-                        </div>
-                    )}
-                    <div className="flex items-center space-x-2 mt-4">
-                        <Switch
-                        id="enable-team-separation"
-                        checked={enable_team_separation}
-                        onCheckedChange={set_enable_team_separation}
-                        />
-                        <Label htmlFor="enable-team-separation">Evitar Lutas entre Mesma Equipe (Team Separation)</Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-12">
-                        Se ativado, o sistema tentará colocar atletas da mesma equipe em lados opostos da chave.
-                    </p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button onClick={handleExportJson} variant="outline">
-                      <Download className="mr-2 h-4 w-4" />
-                      Exportar Dados (JSON)
-                    </Button>
-                    <Button onClick={() => handleShare('public_event')} variant="secondary">
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Copiar Link Público
-                    </Button>
-                    <Button onClick={() => handleShare('public_registration')} variant="secondary">
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Copiar Link de Inscrição
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                <BracketSettings
+                    is_bracket_splitting_enabled={is_bracket_splitting_enabled}
+                    set_is_bracket_splitting_enabled={set_is_bracket_splitting_enabled}
+                    max_athletes_per_bracket={max_athletes_per_bracket}
+                    set_max_athletes_per_bracket={set_max_athletes_per_bracket}
+                    enable_team_separation={enable_team_separation}
+                    set_enable_team_separation={set_enable_team_separation}
+                />
             </TabsContent>
 
             <TabsContent value="divisions" className="mt-6 space-y-8">
@@ -344,239 +215,45 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
             </TabsContent>
 
             <TabsContent value="check-in-settings" className="mt-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-semibold">Configurações de Check-in</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <Label htmlFor="checkInStartTime">Início do Check-in</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant={"outline"} className="w-full justify-start text-left font-normal">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {check_in_start_time ? format(check_in_start_time, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={check_in_start_time}
-                            onSelect={(date) => {
-                              if (date) {
-                                const newDate = new Date(date);
-                                if (check_in_start_time) newDate.setHours(check_in_start_time.getHours(), check_in_start_time.getMinutes());
-                                else newDate.setHours(9, 0);
-                                set_check_in_start_time(newDate);
-                              }
-                            }}
-                            initialFocus
-                          />
-                          <div className="p-3 border-t border-border">
-                            <Input
-                              type="time"
-                              value={check_in_start_time ? format(check_in_start_time, 'HH:mm') : '09:00'}
-                              onChange={(e) => {
-                                const [hours, minutes] = e.target.value.split(':').map(Number);
-                                const newDate = check_in_start_time ? new Date(check_in_start_time) : new Date();
-                                newDate.setHours(hours, minutes);
-                                set_check_in_start_time(newDate);
-                              }}
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <Label htmlFor="checkInEndTime">Fim do Check-in</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant={"outline"} className="w-full justify-start text-left font-normal">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {check_in_end_time ? format(check_in_end_time, "dd/MM/yyyy HH:mm") : <span>Selecione data e hora</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={check_in_end_time}
-                            onSelect={(date) => {
-                              if (date) {
-                                const newDate = new Date(date);
-                                if (check_in_end_time) newDate.setHours(check_in_end_time.getHours(), check_in_end_time.getMinutes());
-                                else newDate.setHours(17, 0);
-                                set_check_in_end_time(newDate);
-                              }
-                            }}
-                            initialFocus
-                          />
-                          <div className="p-3 border-t border-border">
-                            <Input
-                              type="time"
-                              value={check_in_end_time ? format(check_in_end_time, 'HH:mm') : '17:00'}
-                              onChange={(e) => {
-                                const [hours, minutes] = e.target.value.split(':').map(Number);
-                                const newDate = check_in_end_time ? new Date(check_in_end_time) : new Date();
-                                newDate.setHours(hours, minutes);
-                                set_check_in_end_time(newDate);
-                              }}
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="numFightAreas">Número de Áreas de Luta</Label>
-                  <Input
-                    id="numFightAreas"
-                    type="number"
-                    min="1"
-                    value={num_fight_areas}
-                    onChange={(e) => set_num_fight_areas(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Switch id="attendance-mandatory" checked={is_attendance_mandatory_before_check_in} onCheckedChange={set_is_attendance_mandatory_before_check_in} />
-                    <Label htmlFor="attendance-mandatory">Presença obrigatória antes do Check-in</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="weight-check-enabled" checked={is_weight_check_enabled} onCheckedChange={set_is_weight_check_enabled} />
-                    <Label htmlFor="weight-check-enabled">Habilitar Verificação de Peso</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="belt-grouping-enabled" checked={is_belt_grouping_enabled} onCheckedChange={set_is_belt_grouping_enabled} />
-                    <Label htmlFor="belt-grouping-enabled">Agrupar Divisões por Faixa</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="overweight-auto-move-enabled" checked={is_overweight_auto_move_enabled} onCheckedChange={set_is_overweight_auto_move_enabled} />
-                    <Label htmlFor="overweight-auto-move-enabled">Mover atleta acima do peso</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="include-third-place" checked={include_third_place} onCheckedChange={set_include_third_place} />
-                    <Label htmlFor="include-third-place">Incluir Luta pelo 3º Lugar</Label>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-md font-semibold mt-4">Modo de Escaneamento para Check-in</h4>
-                  <ToggleGroup
-                    type="single"
-                    value={check_in_scan_mode}
-                    onValueChange={(value: 'qr' | 'barcode' | 'none') => {
-                      if (value) set_check_in_scan_mode(value);
-                      else set_check_in_scan_mode('none');
-                    }}
-                    className="mt-2"
-                  >
-                    <ToggleGroupItem value="qr" aria-label="QR Code">
-                      <QrCodeIcon className="mr-2 h-4 w-4" />
-                      QR Code
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="barcode" aria-label="Código de Barras">
-                      <Barcode className="mr-2 h-4 w-4" />
-                      Código de Barras
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Selecione o método de escaneamento. Se nenhum for selecionado, a opção será desativada.
-                  </p>
-                </div>
-
-                <div className="p-4 border rounded-md bg-muted/20">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-lg font-semibold flex items-center gap-2">
-                      <Printer className="h-5 w-5" /> Configuração de Impressão do Check-in
-                    </h4>
-                    <Button size="sm" onClick={handleSavePrintConfig}>Salvar Configuração</Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Orientação</Label>
-                      <ToggleGroup type="single" value={printOrientation} onValueChange={(v) => v && setPrintOrientation(v as any)} className="justify-start mt-2">
-                        <ToggleGroupItem value="portrait" aria-label="Retrato">Retrato</ToggleGroupItem>
-                        <ToggleGroupItem value="landscape" aria-label="Paisagem">Paisagem</ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-                    <div>
-                      <Label>Tamanho da Fonte</Label>
-                      <ToggleGroup type="single" value={printFontSize} onValueChange={(v) => v && setPrintFontSize(v as any)} className="justify-start mt-2">
-                        <ToggleGroupItem value="small" aria-label="Pequena"><Type className="h-3 w-3 mr-1" />Pequena</ToggleGroupItem>
-                        <ToggleGroupItem value="medium" aria-label="Média"><Type className="h-4 w-4 mr-1" />Média</ToggleGroupItem>
-                        <ToggleGroupItem value="large" aria-label="Grande"><Type className="h-5 w-5 mr-1" />Grande</ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-              <CheckInMandatoryFieldsConfig eventId={event.id} />
+                <CheckInSettings
+                    event={event}
+                    check_in_start_time={check_in_start_time}
+                    set_check_in_start_time={set_check_in_start_time}
+                    check_in_end_time={check_in_end_time}
+                    set_check_in_end_time={set_check_in_end_time}
+                    num_fight_areas={num_fight_areas}
+                    set_num_fight_areas={set_num_fight_areas}
+                    is_attendance_mandatory_before_check_in={is_attendance_mandatory_before_check_in}
+                    set_is_attendance_mandatory_before_check_in={set_is_attendance_mandatory_before_check_in}
+                    is_weight_check_enabled={is_weight_check_enabled}
+                    set_is_weight_check_enabled={set_is_weight_check_enabled}
+                    is_belt_grouping_enabled={is_belt_grouping_enabled}
+                    set_is_belt_grouping_enabled={set_is_belt_grouping_enabled}
+                    is_overweight_auto_move_enabled={is_overweight_auto_move_enabled}
+                    set_is_overweight_auto_move_enabled={set_is_overweight_auto_move_enabled}
+                    include_third_place={include_third_place}
+                    set_include_third_place={set_include_third_place}
+                    check_in_scan_mode={check_in_scan_mode}
+                    set_check_in_scan_mode={set_check_in_scan_mode}
+                    onUpdateCheckInConfig={onUpdateCheckInConfig || (() => console.warn('onUpdateCheckInConfig not provided'))}
+                />
             </TabsContent>
 
             <TabsContent value="results-settings" className="mt-6">
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold mb-4">Configuração de Pontos</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="championPoints">Pontos Campeão</Label>
-                    <Input
-                      id="championPoints"
-                      type="number"
-                      min="0"
-                      value={champion_points}
-                      onChange={(e) => set_champion_points(Number(e.target.value))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="runnerUpPoints">Pontos Vice-Campeão</Label>
-                    <Input
-                      id="runnerUpPoints"
-                      type="number"
-                      min="0"
-                      value={runner_up_points}
-                      onChange={(e) => set_runner_up_points(Number(e.target.value))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="thirdPlacePoints">Pontos 3º Lugar</Label>
-                    <Input
-                      id="thirdPlacePoints"
-                      type="number"
-                      min="0"
-                      value={third_place_points}
-                      onChange={(e) => set_third_place_points(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-semibold mt-6 mb-4">Regras de Contagem de Pontos</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="count-single-club-categories"
-                    checked={count_single_club_categories}
-                    onCheckedChange={set_count_single_club_categories}
-                  />
-                  <Label htmlFor="count-single-club-categories">Categorias com apenas uma equipe contam pontos</Label>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Switch
-                    id="count-walkover-single-fight-categories"
-                    checked={count_walkover_single_fight_categories}
-                    onCheckedChange={set_count_walkover_single_fight_categories}
-                  />
-                  <Label htmlFor="count-walkover-single-fight-categories">W.O. em lutas únicas (equipes diferentes) contam pontos</Label>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Switch
-                    id="count-wo-champion-categories"
-                    checked={count_wo_champion_categories}
-                    onCheckedChange={set_count_wo_champion_categories}
-                  />
-                  <Label htmlFor="count-wo-champion-categories">Campeão declarado por W.O. (atleta único) conta pontos</Label>
-                </div>
-              </div>
+                <PointSystemSettings
+                    champion_points={champion_points}
+                    set_champion_points={set_champion_points}
+                    runner_up_points={runner_up_points}
+                    set_runner_up_points={set_runner_up_points}
+                    third_place_points={third_place_points}
+                    set_third_place_points={set_third_place_points}
+                    count_single_club_categories={count_single_club_categories}
+                    set_count_single_club_categories={set_count_single_club_categories}
+                    count_walkover_single_fight_categories={count_walkover_single_fight_categories}
+                    set_count_walkover_single_fight_categories={set_count_walkover_single_fight_categories}
+                    count_wo_champion_categories={count_wo_champion_categories}
+                    set_count_wo_champion_categories={set_count_wo_champion_categories}
+                />
             </TabsContent>
           </Tabs>
         )}

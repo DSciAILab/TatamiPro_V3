@@ -128,7 +128,12 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     if (selectedDivisionIdForBracket === 'all') {
       divisionsToConsider = availableDivisionsForBracketGeneration;
     } else {
-      const division = availableDivisionsForBracketGeneration.find(d => d.id === selectedDivisionIdForBracket);
+      // Logic handle both parent ID and split ID (div-A, div-B)
+      // If split ID, find division by stripping suffix or more robustly: checking if div.id is part of selectedId
+      const division = availableDivisionsForBracketGeneration.find(d => 
+          selectedDivisionIdForBracket === d.id || selectedDivisionIdForBracket.startsWith(`${d.id}-`)
+      );
+
       if (division) {
         divisionsToConsider.push(division);
       } else {
@@ -145,6 +150,10 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
     // Decide which divisions to generate based on toggle
     let divisionsToActuallyGenerate: Division[];
     
+    // Check if the selected item is a split bracket ID (e.g. "divA-B")
+    const isSplitBracketSelected = selectedDivisionIdForBracket !== 'all' && 
+                                   availableDivisionsForBracketGeneration.every(d => d.id !== selectedDivisionIdForBracket);
+
     if (includeOngoingBrackets) {
       // Include all divisions (user chose to regenerate even ongoing brackets)
       divisionsToActuallyGenerate = divisionsToConsider;
@@ -166,20 +175,58 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
       }
     } else {
       // Only non-ongoing divisions
-      divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
-      
-      if (divisionsToActuallyGenerate.length === 0) {
-        showError("All selected divisions already have fights in progress. Enable the toggle to regenerate them.");
-        return;
+      // If specific split bracket is selected, check only its status
+      if (isSplitBracketSelected) {
+          const splitBracket = event.brackets?.[selectedDivisionIdForBracket];
+          const isOngoing = splitBracket?.rounds?.flat().some(m => m.winner_id !== undefined);
+          if (isOngoing) {
+              showError("This group has fights in progress. Enable the toggle to regenerate.");
+              return;
+          }
+          // If we are here, it's not ongoing or toggle is off but safe to regen (wait, toggle is off here)
+          divisionsToActuallyGenerate = divisionsToConsider; 
+      } else {
+          divisionsToActuallyGenerate = divisionsToConsider.filter(div => !hasOngoingFights(div.id));
+          
+          if (divisionsToActuallyGenerate.length === 0) {
+            showError("All selected divisions already have fights in progress. Enable the toggle to regenerate them.");
+            return;
+          }
       }
     }
 
     // Helper to check if division has any existing bracket (regular or split)
     const hasBracketForDivision = (divId: string): boolean => {
       if (event.brackets?.[divId]) return true;
-      // Check for split variants (divId-A, divId-B, etc.)
+      // Check for split variants
       return Object.keys(event.brackets || {}).some(key => key.startsWith(`${divId}-`));
     };
+
+    // GRANULAR REGENERATION: If split bracket selected
+    if (isSplitBracketSelected) {
+        // Direct execution for split bracket (no bulk confirmation needed usually, or reuse dialog)
+        const parentDiv = divisionsToActuallyGenerate[0]; // Should be the single parent div found earlier
+        if (!parentDiv) return;
+
+        // If it exists, warn about overwrite?
+        const existing = event.brackets?.[selectedDivisionIdForBracket];
+        if (existing) {
+             // Reuse the confirm dialog logic but for SINGLE item
+             setDivisionsToConfirmRegenerate([parentDiv]); // Only used for displaying name in dialog
+             setShowRegenerateConfirmDialog(true);
+             // We need to know specific ID in confirm handler... 
+             // Temporarily store it in a ref or state? 
+             // Or just execute directly for now if no ongoing fights?
+             // Let's execute directly for specific split groups to avoid complex dialog state for now, 
+             // as user explicitly selected a specific group.
+             // Actually, safer to ask.
+             // We can use a new state or hack divisionsToConfirmRegenerate. 
+             // Let's modify executeBracketGeneration call in confirmRegenerateAction.
+        } else {
+            executeBracketGeneration([parentDiv], { specificBracketId: selectedDivisionIdForBracket });
+        }
+        return;
+    }
 
     const divisionsThatWillBeRegenerated = divisionsToActuallyGenerate.filter(div => hasBracketForDivision(div.id));
     if (divisionsThatWillBeRegenerated.length > 0) {
@@ -191,7 +238,19 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
   };
 
   const confirmRegenerateAction = () => {
-    executeBracketGeneration(divisionsToConfirmRegenerate);
+    // Check if we are regenerating a specific split bracket
+    const isSplitBracketSelected = selectedDivisionIdForBracket !== 'all' && 
+                                   availableDivisionsForBracketGeneration.every(d => d.id !== selectedDivisionIdForBracket);
+    
+    if (isSplitBracketSelected) {
+         // Find parent division for this split bracket
+         const parentDiv = availableDivisionsForBracketGeneration.find(div => selectedDivisionIdForBracket.startsWith(`${div.id}-`));
+         if (parentDiv) {
+             executeBracketGeneration([parentDiv], { specificBracketId: selectedDivisionIdForBracket });
+         }
+    } else {
+        executeBracketGeneration(divisionsToConfirmRegenerate);
+    }
     setShowRegenerateConfirmDialog(false);
     setDivisionsToConfirmRegenerate([]);
   };
@@ -333,44 +392,77 @@ const BracketsTab: React.FC<BracketsTabProps> = ({
                         <SelectTrigger id="division-select" className="bg-background w-full">
                             <SelectValue placeholder="Select a division or all" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[300px]">
                             <SelectItem value="all">All Divisions</SelectItem>
                             {availableDivisionsForBracketGeneration.map(div => {
                             const divisionBrackets = Object.values(event.brackets || {}).filter(b => b.division_id === div.id);
-                            let statusIndicator = <Circle className="h-4 w-4 text-muted-foreground opacity-50" />; 
-                            let statusText = 'Não gerado';
                             
-                            if (divisionBrackets.length > 0) {
-                                const allFinished = divisionBrackets.every(b => b.winner_id);
-                                const anyInProgress = divisionBrackets.some(b => {
-                                    if (!b.rounds) return false;
-                                    return b.rounds.flat().some(m => m.winner_id !== undefined) && !b.winner_id;
-                                });
+                            // Check for splits
+                            const splitBrackets = divisionBrackets.filter(b => b.id.startsWith(`${div.id}-`)).sort((a,b) => a.id.localeCompare(b.id));
 
-                                if (allFinished) {
-                                    statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
-                                    statusText = 'Finalizado';
-                                } else if (anyInProgress) {
-                                    statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
-                                    statusText = 'Em progresso';
-                                } else {
-                                    statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
-                                    statusText = 'Gerado';
-                                }
+                            const hasSplits = splitBrackets.length > 0;
+                            const mainBracket = divisionBrackets.find(b => b.id === div.id);
+
+                            // Items to render: Parent (if no splits or just as header?), Splits.
+                            // If splits exist, mainBracket usually shouldn't exist ideally.
+                            // We render parent item to allow FULL regen of that division.
+                            // And then child items for specific groups.
+
+                            const renderItem = (b: Bracket | undefined, label: string, value: string, isChild = false) => {
+                                let statusIndicator = <Circle className="h-4 w-4 text-muted-foreground opacity-50" />; 
+                                let statusText = 'Não gerado';
                                 
-                                if (divisionBrackets.length > 1) {
-                                    statusText += ` (${divisionBrackets.length} groups)`;
+                                if (b) {
+                                  const isFinished = !!b.winner_id;
+                                  const isInProgress = !isFinished && b.rounds?.flat().some(m => m.winner_id !== undefined);
+
+                                  if (isFinished) {
+                                      statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
+                                      statusText = 'Finalizado';
+                                  } else if (isInProgress) {
+                                      statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
+                                      statusText = 'Em progresso';
+                                  } else {
+                                      statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
+                                      statusText = 'Gerado';
+                                  }
+                                } else if (hasSplits && !isChild) {
+                                   // Parent status aggregation for splits
+                                   const anyInProgress = splitBrackets.some(sb => !sb.winner_id && sb.rounds?.flat().some(m => m.winner_id));
+                                   const allFinished = splitBrackets.every(sb => sb.winner_id);
+                                   
+                                    if (allFinished) {
+                                      statusIndicator = <CheckCircle2 className="h-4 w-4 text-success" />; 
+                                      statusText = 'Todos Finalizados';
+                                  } else if (anyInProgress) {
+                                      statusIndicator = <RefreshCw className="h-4 w-4 text-blue-500" />; 
+                                      statusText = 'Alguns em progresso';
+                                  } else {
+                                       statusIndicator = <ClipboardList className="h-4 w-4 text-orange-500" />; 
+                                      statusText = 'Gerados';
+                                  }
                                 }
-                            }
-                            
-                            return (
-                                <SelectItem key={div.id} value={div.id}>
-                                <span className="flex items-center gap-2">
-                                    <span title={statusText} className="flex items-center">{statusIndicator}</span>
-                                    {div.name}
-                                </span>
-                                </SelectItem>
-                            );
+
+                                return (
+                                   <SelectItem key={value} value={value} className={cn(isChild ? "pl-8 text-sm" : "font-medium")}>
+                                    <span className="flex items-center gap-2">
+                                        <span title={statusText} className="flex items-center">{statusIndicator}</span>
+                                        {label}
+                                    </span>
+                                   </SelectItem>
+                                )
+                            };
+
+                            const items = [];
+                            // Parent Item
+                            items.push(renderItem(mainBracket, hasSplits ? `${div.name} (All Groups)` : div.name, div.id));
+
+                            // Split Items
+                            splitBrackets.forEach(sb => {
+                                items.push(renderItem(sb, sb.group_name || sb.id, sb.id, true));
+                            });
+
+                            return items;
                             })}
                         </SelectContent>
                         </Select>
