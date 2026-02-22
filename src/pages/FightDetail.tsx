@@ -377,22 +377,22 @@ const FightDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col mb-8 border-b-4 border-border pb-4">
+      <div className="flex flex-col mb-8 pb-4">
         <div className="flex justify-between items-end">
            <div>
-               <h2 className="text-xl font-mono text-muted-foreground uppercase tracking-widest mb-2">{getDivisionName()}</h2>
-               <h1 className="text-5xl font-heading uppercase tracking-tighter"><span className="text-info">{currentMatch._mat_name}</span> // Luta {fightNumberDisplay}</h1>
+               <h2 className="text-lg font-serif italic text-muted-foreground tracking-wide mb-2">{getDivisionName()}</h2>
+               <h1 className="text-4xl font-serif text-foreground tracking-tight"><span className="text-primary/70">{currentMatch._mat_name}</span> <span className="text-muted-foreground ml-2">Luta {fightNumberDisplay}</span></h1>
            </div>
-           <Button onClick={handleGoBack} variant="outline" className="border-2 border-border font-mono uppercase rounded-none hover:bg-primary hover:text-primary-foreground">
+           <Button onClick={handleGoBack} variant="outline" className="border border-border/50 font-medium rounded-full shadow-sm hover:bg-muted/30 transition-all">
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
            </Button>
         </div>
       </div>
 
-      <Card className={`mb-8 border-4 rounded-none shadow-none ${isFightCompleted ? 'border-success' : isByeFight ? 'border-info' : 'border-border'}`}>
-        <CardHeader className="border-b-4 border-border bg-muted/20 pb-4">
-          <CardTitle className="text-4xl font-heading uppercase tracking-tight">Detalhes da Luta <span className="text-muted-foreground font-mono text-xl">({currentRoundName})</span></CardTitle>
-          <CardDescription className="text-lg font-mono tracking-tight uppercase">Registre o resultado desta luta.</CardDescription>
+      <Card className={`mb-8 border rounded-3xl shadow-sm bg-card transition-all ${isFightCompleted ? 'border-success/50' : isByeFight ? 'border-primary/50' : 'border-border/50'}`}>
+        <CardHeader className="border-b border-border/30 bg-transparent pb-6">
+          <CardTitle className="text-3xl font-serif tracking-tight text-foreground">Detalhes da Luta <span className="text-muted-foreground font-medium text-lg ml-2">({currentRoundName})</span></CardTitle>
+          <CardDescription className="text-base font-medium mt-2">Registre o resultado desta luta.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -427,25 +427,25 @@ const FightDetail: React.FC = () => {
                      setSelectedResultType('walkover');
                      setTimeout(handleRecordResult, 100);
                    }
-                 }} className="font-heading uppercase text-xl rounded-none border-2 border-primary">
+                 }} className="font-medium text-lg rounded-full border border-primary/50 hover:bg-primary/10 shadow-sm transition-all px-8 py-6">
                    Confirmar Avanço Automático
                  </Button>
                )}
             </div>
           )
-          : isPendingFight ? <p className="text-center font-mono text-muted-foreground mt-8 text-xl uppercase">Aguardando adversário(s) para esta luta.</p>
+          : isPendingFight ? <p className="text-center font-medium text-muted-foreground mt-8 text-lg italic">Aguardando adversário(s) para esta luta.</p>
           : isFightCompleted ? (
-            <div className="text-center mt-8 p-6 bg-success/10 border-4 border-success">
-              <p className="text-5xl font-heading uppercase text-success tracking-tighter">Vencedor: {getFighterDisplayName(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-4 h-10 w-10 text-success" /></p>
+            <div className="text-center mt-8 p-8 bg-success/5 border border-success/30 rounded-3xl shadow-sm">
+              <p className="text-4xl font-serif text-success tracking-tight">Vencedor: {getFighterDisplayName(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-4 h-10 w-10 text-success opacity-80" /></p>
               <div className="flex gap-4 justify-center mt-6">
-                <span className="px-4 py-2 bg-background border-2 border-border font-mono text-xl">{currentMatch.result?.type}</span>
-                {currentMatch.result?.details && <span className="px-4 py-2 bg-background border-2 border-border font-mono text-xl">{currentMatch.result.details}</span>}
+                <span className="px-6 py-2 bg-background border border-border/50 rounded-full font-medium text-lg text-foreground shadow-sm">{currentMatch.result?.type}</span>
+                {currentMatch.result?.details && <span className="px-6 py-2 bg-background border border-border/50 rounded-full font-medium text-lg text-foreground shadow-sm">{currentMatch.result.details}</span>}
               </div>
               
               {/* Revert Result Button */}
               <Button 
                 variant="outline" 
-                className="mt-8 text-destructive border-2 border-destructive rounded-none font-heading text-xl uppercase hover:bg-destructive hover:text-destructive-foreground"
+                className="mt-8 text-destructive border border-destructive/30 rounded-full font-medium hover:bg-destructive/10 transition-all px-6 py-6"
                 onClick={() => setShowRevertDialog(true)}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -459,22 +459,22 @@ const FightDetail: React.FC = () => {
                 onChange={setSelectedResultType}
                 disabled={!isFightRecordable || isFightCompleted}
               />
-              <div className="grid gap-2 mt-4">
-                <Label htmlFor="resultDetails" className="font-heading uppercase text-xl text-muted-foreground">Detalhes (Opcional)</Label>
-                <Input id="resultDetails" className="border-2 border-border rounded-none font-mono text-lg p-6 bg-muted/20" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
+              <div className="grid gap-3 mt-6">
+                <Label htmlFor="resultDetails" className="font-serif text-xl text-foreground">Detalhes (Opcional)</Label>
+                <Input id="resultDetails" className="border border-border/50 rounded-2xl font-medium text-lg p-6 bg-background shadow-inner transition-colors focus-visible:ring-primary/50" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
               </div>
-              <Button onClick={handleRecordResult} className="w-full mt-6 py-8 font-heading text-2xl uppercase rounded-none border-2 border-primary" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado // Confirmar</Button>
+              <Button onClick={handleRecordResult} className="w-full mt-8 py-8 font-serif text-2xl rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado</Button>
             </>
           )}
 
           {showPostFightOptions && !showRoundEndDialog && (
-            <div className="flex gap-4 mt-8 pt-8 border-t-4 border-border">
+            <div className="flex gap-4 mt-8 pt-8 border-t border-border/30">
               {findNextFightInDivision() && (
-                <Button onClick={handleNextFightInDivision} className="flex-1 py-8 font-heading text-2xl uppercase rounded-none border-2 border-border hover:bg-info hover:border-info hover:text-info-foreground">
+                <Button onClick={handleNextFightInDivision} className="flex-1 py-8 font-serif text-2xl rounded-2xl border border-primary/20 hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
                   <ArrowRight className="mr-4 h-6 w-6" /> Próxima Luta
                 </Button>
               )}
-              <Button variant="outline" onClick={handleGoBack} className="flex-1 py-8 font-heading text-2xl uppercase rounded-none border-2 border-border hover:bg-primary hover:text-primary-foreground">
+              <Button variant="outline" onClick={handleGoBack} className="flex-1 py-8 font-serif text-2xl rounded-2xl border border-border/50 hover:bg-muted/50 transition-all shadow-sm hover:shadow-md">
                 <ArrowLeft className="mr-4 h-6 w-6" /> Voltar
               </Button>
             </div>

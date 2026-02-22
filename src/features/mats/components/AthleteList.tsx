@@ -51,17 +51,17 @@ export const AthleteList = ({ athletes, bracket, event, division, onDivisionSele
           <div
             key={athlete.id}
             className={cn(
-              "flex items-center justify-between p-4 border-b-4 border-border transition-none",
-              status.placing === '1st' && "bg-warning/20 border-warning",
-              status.placing === '2nd' && "bg-muted",
-              status.placing === '3rd' && "bg-info/20",
-              status.placing === 'eliminated' && "bg-destructive/10",
-              status.placing === 'active' && !isOnHold && "bg-primary text-primary-foreground",
-              isOnHold && "bg-warning/10 border-warning"
+              "flex items-center justify-between p-4 border-b border-border/30 transition-all hover:bg-muted/5",
+              status.placing === '1st' && "bg-warning/10 border-warning/30",
+              status.placing === '2nd' && "bg-muted/30",
+              status.placing === '3rd' && "bg-info/10",
+              status.placing === 'eliminated' && "bg-destructive/5 opacity-80",
+              status.placing === 'active' && !isOnHold && "bg-background",
+              isOnHold && "bg-warning/5 border-warning/30"
             )}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-muted flex items-center justify-center relative border-2 border-border">
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center relative border border-border/50 shadow-sm">
                 {status.placing === '1st' ? (
                   <Trophy className="h-6 w-6 text-warning" />
                 ) : status.placing === '2nd' ? (
@@ -71,43 +71,43 @@ export const AthleteList = ({ athletes, bracket, event, division, onDivisionSele
                 ) : (
                   <UserRound className="h-6 w-6 text-muted-foreground" />
                 )}
-                 {isOnHold && <span className="absolute -top-2 -right-2 w-4 h-4 bg-warning rounded-none border-2 border-border" />}
-                 {isMissing && <span className="absolute -top-2 -right-2 w-4 h-4 bg-destructive rounded-none border-2 border-border" />}
+                 {isOnHold && <span className="absolute -top-1 -right-1 w-4 h-4 bg-warning rounded-full border-2 border-background shadow-sm" />}
+                 {isMissing && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full border-2 border-background shadow-sm" />}
               </div>
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-1">
                     <p className={cn(
-                    "text-xl font-heading uppercase tracking-widest",
-                    status.placing === 'eliminated' && "line-through text-destructive opacity-80",
+                    "text-xl font-serif text-foreground tracking-tight",
+                    status.placing === 'eliminated' && "line-through text-destructive/80",
                     isOnHold && "text-warning"
                     )}>
                     {athlete.first_name} {athlete.last_name}
                     </p>
                     {isOnHold && (
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-none bg-warning/20 text-warning border-warning font-mono uppercase text-xs px-2 py-1">On Hold</Badge>
+                          <Badge variant="outline" className="rounded-full bg-warning/10 text-warning border-warning/30 font-medium text-xs px-3 py-0.5 shadow-sm">Em Espera</Badge>
                           {attendance?.last_updated && (
-                            <span className="text-[10px] text-muted-foreground font-mono">
+                            <span className="text-xs text-muted-foreground font-medium">
                               {new Date(attendance.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           )}
                         </div>
                     )}
                      {isMissing && (
-                        <Badge variant="outline" className="rounded-none bg-destructive/20 text-destructive border-destructive font-mono uppercase text-xs px-2 py-1">Missing</Badge>
+                        <Badge variant="outline" className="rounded-full bg-destructive/10 text-destructive border-destructive/30 font-medium text-xs px-3 py-0.5 shadow-sm">Faltando</Badge>
                     )}
                 </div>
-                <p className="text-sm font-mono text-muted-foreground uppercase">{athlete.club}</p>
+                <p className="text-sm font-medium text-muted-foreground">{athlete.club}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               {/* Competition Result Badges */}
-              {status.placing === '1st' && <Badge variant="warning" className="rounded-none font-mono uppercase border-2 text-sm">🥇 1º Lugar</Badge>}
-              {status.placing === '2nd' && <Badge variant="secondary" className="rounded-none font-mono uppercase border-2 text-sm">🥈 2º Lugar</Badge>}
-              {status.placing === '3rd' && <Badge variant="outline" className="rounded-none font-mono uppercase border-2 border-info text-info text-sm">🥉 3º Lugar</Badge>}
+              {status.placing === '1st' && <Badge variant="warning" className="rounded-full font-medium border border-warning/30 text-sm shadow-sm px-4 py-1">🥇 1º Lugar</Badge>}
+              {status.placing === '2nd' && <Badge variant="secondary" className="rounded-full font-medium border border-border/30 text-sm shadow-sm px-4 py-1">🥈 2º Lugar</Badge>}
+              {status.placing === '3rd' && <Badge variant="outline" className="rounded-full font-medium border border-info/30 text-info text-sm shadow-sm px-4 py-1">🥉 3º Lugar</Badge>}
               {status.placing === 'eliminated' && (
-                <Badge variant="destructive" className="rounded-none font-mono uppercase border-2 text-sm">
+                <Badge variant="destructive" className="rounded-full font-medium border border-destructive/30 text-sm shadow-sm px-4 py-1">
                   Eliminado {status.eliminatedInFight ? `(#${status.eliminatedInFight})` : ''}
                 </Badge>
               )}
@@ -119,34 +119,34 @@ export const AthleteList = ({ athletes, bracket, event, division, onDivisionSele
                             size="sm"
                             variant={isPresent ? "default" : "outline"}
                             className={cn(
-                                "rounded-none border-2 font-mono uppercase h-8 px-4",
-                                isPresent ? "bg-success border-success text-success-foreground" : "border-border text-muted-foreground hover:bg-muted"
+                                "rounded-full border font-medium h-9 px-5 transition-all shadow-sm",
+                                isPresent ? "bg-success border-success text-success-foreground" : "border-border/50 text-muted-foreground hover:bg-muted/50"
                             )}
                             onClick={(e) => handleUpdateStatus(athlete.id, isPresent ? 'missing' : 'present', e)}
-                            title="Mark Present"
+                            title="Em Competição"
                        >
                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                           {isPresent ? "Present" : "Mark Present"}
+                           {isPresent ? "Pronto" : "Marcar Pronto"}
                        </Button>
 
                        <Button
                             size="sm"
                             variant={isOnHold ? "default" : "outline"}
                             className={cn(
-                                "rounded-none border-2 font-mono uppercase h-8 px-4",
-                                isOnHold ? "bg-warning border-warning text-warning-foreground" : "border-border text-muted-foreground hover:bg-warning/20 hover:text-warning"
+                                "rounded-full border font-medium h-9 px-5 transition-all shadow-sm",
+                                isOnHold ? "bg-warning border-warning text-warning-foreground" : "border-border/50 text-muted-foreground hover:bg-warning/10 hover:text-warning"
                             )}
                             onClick={(e) => handleUpdateStatus(athlete.id, isOnHold ? 'present' : 'on_hold', e)}
-                            title="Put On Hold"
+                            title="Aguardar"
                        >
                            <Clock className="w-4 h-4 mr-2" />
-                           {isOnHold ? "On Hold" : "Hold"}
+                           {isOnHold ? "Habilitar" : "Pausar"}
                        </Button>
                   </div>
               )}
                {/* Fallback Badge if Active & No Controls or Just Showing Status */}
               {status.placing === 'active' && !onUpdateBracket && (
-                <Badge variant="outline" className="rounded-none font-mono uppercase border-2 text-sm border-primary">Em Competição</Badge>
+                <Badge variant="outline" className="rounded-full font-medium border border-primary/30 text-primary text-sm shadow-sm px-4 py-1">Em Competição</Badge>
               )}
             </div>
           </div>

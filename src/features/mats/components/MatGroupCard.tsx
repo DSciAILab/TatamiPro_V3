@@ -30,33 +30,33 @@ export const MatGroupCard = ({
   onUpdateBracket
 }: MatGroupCardProps) => {
   return (
-    <Card className="rounded-none border-4 border-border shadow-none mb-6">
+    <Card className="rounded-3xl border border-border/50 shadow-sm bg-card mb-6 transition-all hover:shadow-md overflow-hidden">
       <Collapsible
         open={isExpanded}
         onOpenChange={onToggle}
       >
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-none py-6 px-6 border-b-4 border-transparent data-[state=open]:border-border group">
+          <CardHeader className="cursor-pointer hover:bg-muted/5 transition-all py-6 px-6 border-b border-transparent data-[state=open]:border-border/30 group">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 {isExpanded ? (
-                  <ChevronDown className="h-8 w-8" />
+                  <ChevronDown className="h-6 w-6 text-muted-foreground transition-transform" />
                 ) : (
-                  <ChevronRight className="h-8 w-8" />
+                  <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform" />
                 )}
-                <CardTitle className="text-4xl font-heading uppercase tracking-tighter">{group.matName}</CardTitle>
-                <span className="text-lg font-mono text-muted-foreground group-hover:text-primary-foreground/70 uppercase">
-                  ({group.divisions.length} divisions)
+                <CardTitle className="text-3xl font-serif text-foreground tracking-tight">{group.matName}</CardTitle>
+                <span className="text-base font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                  ({group.divisions.length} categorias)
                 </span>
               </div>
               <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3 text-warning group-hover:text-warning-foreground">
-                  <Swords className="h-6 w-6" />
-                  <span className="font-mono text-xl uppercase">{group.remainingFights} lutas</span>
+                <div className="flex items-center gap-3 text-warning/80 group-hover:text-warning transition-colors">
+                  <Swords className="h-5 w-5" />
+                  <span className="font-medium text-lg">{group.remainingFights} lutas</span>
                 </div>
-                <div className="flex items-center gap-3 text-info group-hover:text-info-foreground">
-                  <Clock className="h-6 w-6" />
-                  <span className="font-mono text-xl uppercase">~{formatTime(group.estimatedRemainingTime)}</span>
+                <div className="flex items-center gap-3 text-info/80 group-hover:text-info transition-colors">
+                  <Clock className="h-5 w-5" />
+                  <span className="font-medium text-lg">~{formatTime(group.estimatedRemainingTime)}</span>
                 </div>
               </div>
             </div>

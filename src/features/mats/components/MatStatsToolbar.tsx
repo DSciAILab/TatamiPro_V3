@@ -30,17 +30,17 @@ export const MatStatsToolbar = ({
   onToggleAll
 }: MatStatsToolbarProps) => {
   return (
-    <Card className="bg-background rounded-none border-0 border-b-4 border-border shadow-none mb-8">
+    <Card className="bg-background rounded-3xl border border-border/30 shadow-sm mb-8 overflow-hidden">
       <CardContent className="py-6 space-y-6">
         {/* Status Filter Badges */}
         <div className="flex items-center gap-2 overflow-x-auto">
           <Badge
             variant={statusFilter === 'all' ? "default" : "outline"}
             className={cn(
-              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
               statusFilter === 'all' 
-                ? "bg-primary text-primary-foreground border-primary" 
-                : "bg-transparent text-muted-foreground border-border hover:bg-border/50 hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                : "bg-transparent text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
             )}
             onClick={() => onFilterChange('all')}
           >
@@ -49,10 +49,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
               statusFilter === 'in_progress' 
-                ? "bg-info text-info-foreground border-info" 
-                : "bg-transparent text-info border-info/50 hover:bg-info/10 hover:border-info"
+                ? "bg-info/10 text-info border-info/30 shadow-sm" 
+                : "bg-transparent text-info border-info/30 hover:bg-info/5 hover:border-info/50"
             )}
             onClick={() => onFilterChange(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
           >
@@ -61,10 +61,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
               statusFilter === 'pending' 
-                ? "bg-warning text-warning-foreground border-warning" 
-                : "bg-transparent text-warning border-warning/50 hover:bg-warning/10 hover:border-warning"
+                ? "bg-warning/10 text-warning border-warning/30 shadow-sm" 
+                : "bg-transparent text-warning border-warning/30 hover:bg-warning/5 hover:border-warning/50"
             )}
             onClick={() => onFilterChange(statusFilter === 'pending' ? 'all' : 'pending')}
           >
@@ -73,10 +73,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
               statusFilter === 'finished' 
-                ? "bg-success text-success-foreground border-success" 
-                : "bg-transparent text-success border-success/50 hover:bg-success/10 hover:border-success"
+                ? "bg-success/10 text-success border-success/30 shadow-sm" 
+                : "bg-transparent text-success border-success/30 hover:bg-success/5 hover:border-success/50"
             )}
             onClick={() => onFilterChange(statusFilter === 'finished' ? 'all' : 'finished')}
           >
@@ -89,27 +89,27 @@ export const MatStatsToolbar = ({
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="SEARCH BY DIVISION, ATHLETE, MAT..."
+              placeholder="Buscar por categoria, atleta, area..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-12 h-14 border-2 border-border rounded-none font-mono uppercase text-lg bg-muted/10 focus-visible:ring-0 focus-visible:border-primary"
+              className="pl-12 h-12 border border-border/50 rounded-2xl font-medium text-base bg-muted/10 focus-visible:ring-primary/50 shadow-inner transition-colors"
             />
           </div>
           <Button 
             variant="outline" 
             size="lg"
             onClick={onToggleAll}
-            className="flex items-center gap-3 h-14 rounded-none border-2 border-border font-heading uppercase text-xl hover:bg-primary hover:text-primary-foreground"
+            className="flex items-center gap-2 h-12 rounded-2xl border border-border/50 font-medium text-base hover:bg-muted/50 shadow-sm transition-all"
           >
             {allExpanded ? (
               <>
-                <ChevronsDownUp className="h-5 w-5" />
-                Collapse All
+                <ChevronsDownUp className="h-4 w-4" />
+                Recolher Tudo
               </>
             ) : (
               <>
-                <ChevronsUpDown className="h-5 w-5" />
-                Expand All
+                <ChevronsUpDown className="h-4 w-4" />
+                Expandir Tudo
               </>
             )}
           </Button>

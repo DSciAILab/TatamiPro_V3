@@ -91,23 +91,23 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     return new Map((athletes || []).map(athlete => [athlete.id, athlete]));
   }, [athletes]);
 
-  const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
-    if (fighterId === 'BYE' || !fighterId) {
-      return (
-        <div className="w-12 h-12 bg-muted flex items-center justify-center border-2 border-border">
-          <UserRound className="h-6 w-6 text-muted-foreground" />
+    const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
+      if (fighterId === 'BYE' || !fighterId) {
+        return (
+          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-sm">
+            <UserRound className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+        );
+      }
+      const fighter = athletesMap.get(fighterId);
+      return fighter?.photo_url ? (
+        <img src={fighter.photo_url} alt={fighter.first_name} className="w-12 h-12 rounded-full object-cover border border-border/50 shadow-sm" />
+      ) : (
+        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-sm">
+          <UserRound className="h-6 w-6 text-muted-foreground/50" />
         </div>
       );
-    }
-    const fighter = athletesMap.get(fighterId);
-    return fighter?.photo_url ? (
-      <img src={fighter.photo_url} alt={fighter.first_name} className="w-12 h-12 object-cover border-2 border-border" />
-    ) : (
-      <div className="w-12 h-12 bg-muted flex items-center justify-center border-2 border-border">
-        <UserRound className="h-6 w-6 text-muted-foreground" />
-      </div>
-    );
-  };
+    };
 
   const fightsForSelectedMatAndCategory = useMemo(() => {
     // 1. Try to get fights from explicit order first
@@ -357,60 +357,60 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         const roundName = getRoundName((match.round || 1) - 1, totalRounds); 
         
         headerInfo = (
-             <div className="px-4 pt-4 text-sm font-mono text-muted-foreground uppercase tracking-widest mb-2 border-b-2 border-border pb-2">
-                 <span className="font-bold text-foreground">{matchDivision.name}</span> <span className="mx-2 text-info">/</span> {roundName}
+             <div className="px-6 pt-5 pb-3 text-sm font-medium text-muted-foreground uppercase tracking-widest mb-2 border-b border-border/30 bg-muted/10">
+                 <span className="font-semibold text-foreground">{matchDivision.name}</span> <span className="mx-2 text-primary/40">•</span> {roundName}
              </div>
         );
     }
 
     const innerContent = (
-      <div className="relative flex p-4 pt-4 bg-background">
+      <div className="relative flex p-6 bg-transparent">
         {isMatchOnHold && (
-            <div className="absolute top-4 right-4 z-10">
-                <Badge variant="outline" className="bg-warning text-warning-foreground border-warning rounded-none font-mono uppercase text-xs flex items-center gap-1">
+            <div className="absolute top-6 right-6 z-10">
+                <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30 rounded-full font-medium text-xs flex items-center gap-1 shadow-sm px-3 py-1">
                     <Clock className="w-3 h-3" />
-                    On Hold
+                    Em Espera
                 </Badge>
             </div>
         )}
-        <div className="flex-shrink-0 w-20 text-center absolute top-6 left-4 border-r-4 border-border pr-2">
-          <span className="text-4xl font-heading text-primary">{fightNumberDisplay}</span>
-          <p className="text-xs font-mono text-muted-foreground mt-1 bg-muted p-1">{resultTime}</p>
+        <div className="flex-shrink-0 w-24 text-center absolute top-10 left-6 border-r border-border/50 pr-4">
+          <span className="text-3xl font-serif text-primary/80">{fightNumberDisplay}</span>
+          <p className="text-xs font-medium text-muted-foreground/70 mt-2 bg-muted/30 p-1 rounded-md">{resultTime}</p>
         </div>
-        <div className="flex-grow ml-28 space-y-4">
+        <div className="flex-grow ml-32 space-y-4">
           <div className={cn(
-            "flex items-center p-2 border-2 border-border relative overflow-hidden transition-none",
-            match.winner_id === match.fighter1_id ? 'bg-success/20 border-success' :
-            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/10' : '',
-            p1Status === 'on_hold' && "bg-warning/20 border-warning"
+            "flex items-center p-3 rounded-2xl border relative overflow-hidden transition-all bg-card/50",
+            match.winner_id === match.fighter1_id ? 'bg-success/5 border-success/30 shadow-sm' :
+            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/5 border-destructive/20' : 'border-border/30',
+            p1Status === 'on_hold' && "bg-warning/5 border-warning/30"
           )}>
-            <div className="absolute left-0 top-0 bottom-0 w-4 bg-destructive" />
-            <div className="ml-6 flex items-center gap-4">
+            <div className="absolute left-0 top-0 bottom-0 w-2 rounded-l-2xl bg-destructive opacity-80" />
+            <div className="ml-5 flex items-center gap-4">
               {getFighterPhoto(match.fighter1_id)}
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xl font-heading uppercase tracking-tight">{fighter1Display}</p>
-                   {p1Status === 'on_hold' && <Clock className="w-4 h-4 text-warning" />}
+                  <p className="text-xl font-serif tracking-tight text-foreground">{fighter1Display}</p>
+                   {p1Status === 'on_hold' && <Clock className="w-4 h-4 text-warning opacity-70" />}
                 </div>
-                {fighter1Club && <p className="text-xs font-mono text-muted-foreground">{fighter1Club}</p>}
+                {fighter1Club && <p className="text-xs font-medium text-muted-foreground">{fighter1Club}</p>}
               </div>
             </div>
           </div>
           <div className={cn(
-            "flex items-center p-2 border-2 border-border relative overflow-hidden transition-none",
-            match.winner_id === match.fighter2_id ? 'bg-success/20 border-success' :
-            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/10' : '',
-             p2Status === 'on_hold' && "bg-warning/20 border-warning"
+            "flex items-center p-3 rounded-2xl border relative overflow-hidden transition-all bg-card/50",
+            match.winner_id === match.fighter2_id ? 'bg-success/5 border-success/30 shadow-sm' :
+            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/5 border-destructive/20' : 'border-border/30',
+             p2Status === 'on_hold' && "bg-warning/5 border-warning/30"
           )}>
-             <div className="absolute left-0 top-0 bottom-0 w-4 bg-info" />
-            <div className="ml-6 flex items-center gap-4">
+             <div className="absolute left-0 top-0 bottom-0 w-2 rounded-l-2xl bg-blue-600 opacity-80" />
+            <div className="ml-5 flex items-center gap-4">
               {getFighterPhoto(match.fighter2_id)}
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xl font-heading uppercase tracking-tight">{fighter2Display}</p>
-                  {p2Status === 'on_hold' && <Clock className="w-4 h-4 text-warning" />}
+                  <p className="text-xl font-serif tracking-tight text-foreground">{fighter2Display}</p>
+                  {p2Status === 'on_hold' && <Clock className="w-4 h-4 text-warning opacity-70" />}
                 </div>
-                {fighter2Club && <p className="text-xs font-mono text-muted-foreground">{fighter2Club}</p>}
+                {fighter2Club && <p className="text-xs font-medium text-muted-foreground">{fighter2Club}</p>}
               </div>
             </div>
           </div>
@@ -427,9 +427,9 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
 
     const cardClasses = cn(
-      "block border-4 rounded-none transition-none shadow-none bg-muted/10",
-      match.winner_id ? 'border-success' : 'border-border',
-      isFightRecordable && !isPublic ? 'hover:border-primary hover:bg-background' : 'cursor-default'
+      "block border rounded-3xl transition-all shadow-sm bg-card hover:shadow-md mb-4 overflow-hidden",
+      match.winner_id ? 'border-success/40' : 'border-border/30',
+      isFightRecordable && !isPublic ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
     );
 
     if (isFightRecordable && !isPublic) {
@@ -466,7 +466,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     <div className="space-y-6">
       {groupedFights.map(({ title, matches }) => (
         <div key={title} className="space-y-6">
-          <h3 className="text-3xl font-heading uppercase text-foreground bg-primary text-primary-foreground p-3 inline-block mt-8 mb-4 border-l-8 border-info">
+          <h3 className="text-3xl font-serif text-foreground mt-8 mb-6 border-b border-border/50 pb-2 inline-block">
             {title}
           </h3>
           <div className={cn("grid gap-6", gridClasses[fightViewMode])}>

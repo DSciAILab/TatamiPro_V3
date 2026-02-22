@@ -19,10 +19,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Archivo", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
-        heading: ["Anton", "sans-serif"],
-        oswald: ["Oswald", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
+        serif: ["Playfair Display", "serif"],
+        heading: ["Playfair Display", "serif"],
+        mono: ["Inter", "sans-serif"], // Fallback mono to sans to soften UI
       },
       colors: {
         border: "hsl(var(--border))",
