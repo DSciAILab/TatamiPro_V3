@@ -15,14 +15,14 @@ interface ResultSelectorProps {
 export const ResultSelector = ({ value, onChange, disabled }: ResultSelectorProps) => {
   return (
     <div className="grid gap-2">
-      <Label>Tipo de Resultado</Label>
+      <Label className="font-heading uppercase text-xl text-muted-foreground tracking-wide">Tipo de Resultado</Label>
       <ToggleGroup 
         type="single" 
         value={value} 
         onValueChange={(val) => {
           if (val) onChange(val as FightResultType);
         }} 
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-0 border-2 border-border"
         disabled={disabled}
       >
         {FIGHT_RESULT_TYPES.map(type => (
@@ -31,7 +31,10 @@ export const ResultSelector = ({ value, onChange, disabled }: ResultSelectorProp
             value={type.value} 
             aria-label={type.label} 
             variant="outline" 
-            className={cn(value === type.value && 'bg-blue-600 text-white hover:bg-blue-700')}
+            className={cn(
+              "rounded-none border-0 border-r-2 border-b-2 border-border last:border-r-0 font-mono text-sm uppercase transition-none",
+              value === type.value && 'bg-primary text-primary-foreground font-bold'
+            )}
           >
             {type.label}
           </ToggleGroupItem>

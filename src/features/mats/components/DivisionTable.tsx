@@ -30,43 +30,43 @@ export const DivisionTable = ({
 }: DivisionTableProps) => {
   return (
     <Table>
-      <TableHeader>
-        <TableRow>
+      <TableHeader className="border-b-4 border-border bg-muted/20">
+        <TableRow className="border-none hover:bg-transparent">
           <TableHead 
-            className="cursor-pointer hover:bg-muted/50"
+            className="cursor-pointer hover:bg-muted/50 font-heading uppercase tracking-widest text-lg"
             onClick={() => onSort('category')}
           >
-            <div className="flex items-center gap-1">
-              Category
-              <ArrowUpDown className="h-3 w-3" />
+            <div className="flex items-center gap-2">
+              Categoria
+              <ArrowUpDown className="h-4 w-4" />
             </div>
           </TableHead>
           <TableHead 
-            className="text-center cursor-pointer hover:bg-muted/50"
+            className="text-center cursor-pointer hover:bg-muted/50 font-heading uppercase tracking-widest text-lg"
             onClick={() => onSort('athletes')}
           >
-            <div className="flex items-center justify-center gap-1">
-              Athletes
-              <ArrowUpDown className="h-3 w-3" />
+            <div className="flex items-center justify-center gap-2">
+              Atletas
+              <ArrowUpDown className="h-4 w-4" />
             </div>
           </TableHead>
           <TableHead 
-            className="text-center cursor-pointer hover:bg-muted/50"
+            className="text-center cursor-pointer hover:bg-muted/50 font-heading uppercase tracking-widest text-lg"
             onClick={() => onSort('remaining')}
           >
-            <div className="flex items-center justify-center gap-1">
-              Fights Left
-              <ArrowUpDown className="h-3 w-3" />
+            <div className="flex items-center justify-center gap-2">
+              Lutas Rest.
+              <ArrowUpDown className="h-4 w-4" />
             </div>
           </TableHead>
-          <TableHead className="text-center">Est. Time</TableHead>
+          <TableHead className="text-center font-heading uppercase tracking-widest text-lg">Tempo Est.</TableHead>
           <TableHead 
-            className="text-right cursor-pointer hover:bg-muted/50"
+            className="text-right cursor-pointer hover:bg-muted/50 font-heading uppercase tracking-widest text-lg"
             onClick={() => onSort('status')}
           >
-            <div className="flex items-center justify-end gap-1">
+            <div className="flex items-center justify-end gap-2">
               Status
-              <ArrowUpDown className="h-3 w-3" />
+              <ArrowUpDown className="h-4 w-4" />
             </div>
           </TableHead>
         </TableRow>
@@ -89,29 +89,29 @@ export const DivisionTable = ({
             <React.Fragment key={divInfo._bracketId || divInfo.division.id}>
               <TableRow
                 className={cn(
-                  "cursor-pointer hover:bg-muted/50",
-                  divInfo.status === 'Finished' && "text-green-600 line-through decoration-green-600 opacity-80",
-                  divInfo.status === 'In Progress' && "text-blue-600 font-bold",
-                  isExpanded && "bg-muted/30"
+                  "cursor-pointer hover:bg-primary hover:text-primary-foreground border-b-2 border-border transition-none",
+                  divInfo.status === 'Finished' && "text-muted-foreground line-through opacity-80",
+                  divInfo.status === 'In Progress' && "font-bold text-info",
+                  isExpanded && "bg-muted/10 border-l-4 border-l-primary"
                 )}
                 // Use bracket ID for toggling expansion if possible
                 onClick={() => onToggleExpansion(bracketId)}
               >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
+                <TableCell className="font-heading uppercase text-xl">
+                  <div className="flex items-center gap-4">
                     {expandedDivisions.has(bracketId) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="h-6 w-6 text-foreground" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <ChevronRight className="h-6 w-6 text-foreground" />
                     )}
                     {divInfo.division.name}
                   </div>
                 </TableCell>
-                <TableCell className="text-center">{divInfo.athleteCount}</TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center font-mono text-xl">{divInfo.athleteCount}</TableCell>
+                <TableCell className="text-center font-mono text-xl">
                   {divInfo.remainingFights} / {divInfo.totalFights}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center font-mono text-xl">
                   {formatTime(divInfo.remainingFights * (divInfo.fightDuration || 0))}
                 </TableCell>
                 <TableCell className="text-right">
@@ -121,8 +121,8 @@ export const DivisionTable = ({
               
               {/* Expanded Athletes List */}
               {expandedDivisions.has(bracketId) && bracket && (
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={5} className="p-0">
+                <TableRow className="bg-muted/5 border-b-4 border-border">
+                  <TableCell colSpan={5} className="p-0 border-t-2 border-border">
                     <AthleteList 
                       athletes={athletes}
                       bracket={bracket}

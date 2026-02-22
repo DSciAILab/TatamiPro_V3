@@ -30,33 +30,33 @@ export const MatGroupCard = ({
   onUpdateBracket
 }: MatGroupCardProps) => {
   return (
-    <Card>
+    <Card className="rounded-none border-4 border-border shadow-none mb-6">
       <Collapsible
         open={isExpanded}
         onOpenChange={onToggle}
       >
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <CardHeader className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-none py-6 px-6 border-b-4 border-transparent data-[state=open]:border-border group">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
                 {isExpanded ? (
-                  <ChevronDown className="h-5 w-5" />
+                  <ChevronDown className="h-8 w-8" />
                 ) : (
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-8 w-8" />
                 )}
-                <CardTitle className="text-lg">{group.matName}</CardTitle>
-                <span className="text-sm text-muted-foreground">
+                <CardTitle className="text-4xl font-heading uppercase tracking-tighter">{group.matName}</CardTitle>
+                <span className="text-lg font-mono text-muted-foreground group-hover:text-primary-foreground/70 uppercase">
                   ({group.divisions.length} divisions)
                 </span>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2 text-pending">
-                  <Swords className="h-4 w-4" />
-                  <span className="font-medium">{group.remainingFights} fights left</span>
+              <div className="flex items-center gap-8">
+                <div className="flex items-center gap-3 text-warning group-hover:text-warning-foreground">
+                  <Swords className="h-6 w-6" />
+                  <span className="font-mono text-xl uppercase">{group.remainingFights} lutas</span>
                 </div>
-                <div className="flex items-center gap-2 text-info">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">~{formatTime(group.estimatedRemainingTime)}</span>
+                <div className="flex items-center gap-3 text-info group-hover:text-info-foreground">
+                  <Clock className="h-6 w-6" />
+                  <span className="font-mono text-xl uppercase">~{formatTime(group.estimatedRemainingTime)}</span>
                 </div>
               </div>
             </div>

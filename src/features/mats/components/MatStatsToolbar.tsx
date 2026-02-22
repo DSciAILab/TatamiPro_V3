@@ -30,17 +30,17 @@ export const MatStatsToolbar = ({
   onToggleAll
 }: MatStatsToolbarProps) => {
   return (
-    <Card className="bg-muted/40">
-      <CardContent className="py-4 space-y-4">
+    <Card className="bg-background rounded-none border-0 border-b-4 border-border shadow-none mb-8">
+      <CardContent className="py-6 space-y-6">
         {/* Status Filter Badges */}
         <div className="flex items-center gap-2 overflow-x-auto">
           <Badge
             variant={statusFilter === 'all' ? "default" : "outline"}
             className={cn(
-              "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
               statusFilter === 'all' 
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" 
-                : "bg-transparent text-muted-foreground border-muted-foreground/30 hover:text-foreground hover:border-foreground/50"
+                ? "bg-primary text-primary-foreground border-primary" 
+                : "bg-transparent text-muted-foreground border-border hover:bg-border/50 hover:text-foreground"
             )}
             onClick={() => onFilterChange('all')}
           >
@@ -49,10 +49,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
               statusFilter === 'in_progress' 
-                ? "bg-info text-white border-transparent hover:bg-info/90" 
-                : "bg-transparent text-info border-info/50 hover:bg-info/10"
+                ? "bg-info text-info-foreground border-info" 
+                : "bg-transparent text-info border-info/50 hover:bg-info/10 hover:border-info"
             )}
             onClick={() => onFilterChange(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
           >
@@ -61,10 +61,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
               statusFilter === 'pending' 
-                ? "bg-orange-500 text-white border-transparent hover:bg-orange-600" 
-                : "bg-transparent text-orange-500 border-orange-500/50 hover:bg-orange-500/10"
+                ? "bg-warning text-warning-foreground border-warning" 
+                : "bg-transparent text-warning border-warning/50 hover:bg-warning/10 hover:border-warning"
             )}
             onClick={() => onFilterChange(statusFilter === 'pending' ? 'all' : 'pending')}
           >
@@ -73,10 +73,10 @@ export const MatStatsToolbar = ({
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer h-8 px-3 text-sm transition-all font-medium whitespace-nowrap",
+              "cursor-pointer h-12 px-6 text-sm md:text-base font-mono uppercase rounded-none border-2 transition-none whitespace-nowrap",
               statusFilter === 'finished' 
-                ? "bg-success text-white border-transparent hover:bg-success/90" 
-                : "bg-transparent text-success border-success/50 hover:bg-success/10"
+                ? "bg-success text-success-foreground border-success" 
+                : "bg-transparent text-success border-success/50 hover:bg-success/10 hover:border-success"
             )}
             onClick={() => onFilterChange(statusFilter === 'finished' ? 'all' : 'finished')}
           >
@@ -87,28 +87,28 @@ export const MatStatsToolbar = ({
         {/* Search Bar */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Search by division, athlete, mat... (comma for multiple)"
+              placeholder="SEARCH BY DIVISION, ATHLETE, MAT..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-14 border-2 border-border rounded-none font-mono uppercase text-lg bg-muted/10 focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
           <Button 
             variant="outline" 
-            size="sm"
+            size="lg"
             onClick={onToggleAll}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3 h-14 rounded-none border-2 border-border font-heading uppercase text-xl hover:bg-primary hover:text-primary-foreground"
           >
             {allExpanded ? (
               <>
-                <ChevronsDownUp className="h-4 w-4" />
+                <ChevronsDownUp className="h-5 w-5" />
                 Collapse All
               </>
             ) : (
               <>
-                <ChevronsUpDown className="h-4 w-4" />
+                <ChevronsUpDown className="h-5 w-5" />
                 Expand All
               </>
             )}

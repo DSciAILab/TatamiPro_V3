@@ -94,17 +94,17 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   const getFighterPhoto = (fighterId: string | 'BYE' | undefined) => {
     if (fighterId === 'BYE' || !fighterId) {
       return (
-        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-          <UserRound className="h-4 w-4 text-muted-foreground" />
+        <div className="w-12 h-12 bg-muted flex items-center justify-center border-2 border-border">
+          <UserRound className="h-6 w-6 text-muted-foreground" />
         </div>
       );
     }
     const fighter = athletesMap.get(fighterId);
     return fighter?.photo_url ? (
-      <img src={fighter.photo_url} alt={fighter.first_name} className="w-8 h-8 rounded-full object-cover" />
+      <img src={fighter.photo_url} alt={fighter.first_name} className="w-12 h-12 object-cover border-2 border-border" />
     ) : (
-      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-        <UserRound className="h-4 w-4 text-muted-foreground" />
+      <div className="w-12 h-12 bg-muted flex items-center justify-center border-2 border-border">
+        <UserRound className="h-6 w-6 text-muted-foreground" />
       </div>
     );
   };
@@ -357,57 +357,61 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
         const roundName = getRoundName((match.round || 1) - 1, totalRounds); 
         
         headerInfo = (
-             <div className="px-4 pt-2 text-xs text-muted-foreground mb-1">
-                 <span className="font-semibold text-muted-foreground/80">{matchDivision.name}</span> <span className="mx-1">|</span> {roundName}
+             <div className="px-4 pt-4 text-sm font-mono text-muted-foreground uppercase tracking-widest mb-2 border-b-2 border-border pb-2">
+                 <span className="font-bold text-foreground">{matchDivision.name}</span> <span className="mx-2 text-info">/</span> {roundName}
              </div>
         );
     }
 
     const innerContent = (
-      <div className="relative flex p-4 pt-2">
+      <div className="relative flex p-4 pt-4 bg-background">
         {isMatchOnHold && (
             <div className="absolute top-4 right-4 z-10">
-                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200 flex items-center gap-1 shadow-sm">
+                <Badge variant="outline" className="bg-warning text-warning-foreground border-warning rounded-none font-mono uppercase text-xs flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     On Hold
                 </Badge>
             </div>
         )}
-        <div className="flex-shrink-0 w-16 text-center absolute top-4 left-4">
-          <span className="text-2xl font-extrabold text-primary">{fightNumberDisplay}</span>
-          <p className="text-xs text-muted-foreground mt-1">{resultTime}</p>
+        <div className="flex-shrink-0 w-20 text-center absolute top-6 left-4 border-r-4 border-border pr-2">
+          <span className="text-4xl font-heading text-primary">{fightNumberDisplay}</span>
+          <p className="text-xs font-mono text-muted-foreground mt-1 bg-muted p-1">{resultTime}</p>
         </div>
-        <div className="flex-grow ml-24 space-y-2">
+        <div className="flex-grow ml-28 space-y-4">
           <div className={cn(
-            "flex items-center p-1 rounded-md relative overflow-hidden",
-            match.winner_id === match.fighter1_id ? 'bg-success/20' :
-            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/20' : '',
-            p1Status === 'on_hold' && "bg-orange-50 border border-orange-200"
+            "flex items-center p-2 border-2 border-border relative overflow-hidden transition-none",
+            match.winner_id === match.fighter1_id ? 'bg-success/20 border-success' :
+            (match.winner_id && match.winner_id !== match.fighter1_id) ? 'bg-destructive/10' : '',
+            p1Status === 'on_hold' && "bg-warning/20 border-warning"
           )}>
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600" />
-            {getFighterPhoto(match.fighter1_id)}
-            <div className="ml-2">
-              <div className="flex items-center gap-2">
-                <p className="text-base flex items-center">{fighter1Display}</p>
-                 {p1Status === 'on_hold' && <Clock className="w-3 h-3 text-orange-500" />}
+            <div className="absolute left-0 top-0 bottom-0 w-4 bg-destructive" />
+            <div className="ml-6 flex items-center gap-4">
+              {getFighterPhoto(match.fighter1_id)}
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-heading uppercase tracking-tight">{fighter1Display}</p>
+                   {p1Status === 'on_hold' && <Clock className="w-4 h-4 text-warning" />}
+                </div>
+                {fighter1Club && <p className="text-xs font-mono text-muted-foreground">{fighter1Club}</p>}
               </div>
-              {fighter1Club && <p className="text-xs text-muted-foreground">{fighter1Club}</p>}
             </div>
           </div>
           <div className={cn(
-            "flex items-center p-1 rounded-md relative overflow-hidden",
-            match.winner_id === match.fighter2_id ? 'bg-success/20' :
-            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/20' : '',
-             p2Status === 'on_hold' && "bg-orange-50 border border-orange-200"
+            "flex items-center p-2 border-2 border-border relative overflow-hidden transition-none",
+            match.winner_id === match.fighter2_id ? 'bg-success/20 border-success' :
+            (match.winner_id && match.winner_id !== match.fighter2_id) ? 'bg-destructive/10' : '',
+             p2Status === 'on_hold' && "bg-warning/20 border-warning"
           )}>
-             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
-            {getFighterPhoto(match.fighter2_id)}
-            <div className="ml-2">
-              <div className="flex items-center gap-2">
-                <p className="text-base flex items-center">{fighter2Display}</p>
-                {p2Status === 'on_hold' && <Clock className="w-3 h-3 text-orange-500" />}
+             <div className="absolute left-0 top-0 bottom-0 w-4 bg-info" />
+            <div className="ml-6 flex items-center gap-4">
+              {getFighterPhoto(match.fighter2_id)}
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-heading uppercase tracking-tight">{fighter2Display}</p>
+                  {p2Status === 'on_hold' && <Clock className="w-4 h-4 text-warning" />}
+                </div>
+                {fighter2Club && <p className="text-xs font-mono text-muted-foreground">{fighter2Club}</p>}
               </div>
-              {fighter2Club && <p className="text-xs text-muted-foreground">{fighter2Club}</p>}
             </div>
           </div>
         </div>
@@ -423,9 +427,9 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
 
     const cardClasses = cn(
-      "block border-2 rounded-md transition-colors",
+      "block border-4 rounded-none transition-none shadow-none bg-muted/10",
       match.winner_id ? 'border-success' : 'border-border',
-      isFightRecordable && !isPublic ? 'hover:border-primary' : 'cursor-default'
+      isFightRecordable && !isPublic ? 'hover:border-primary hover:bg-background' : 'cursor-default'
     );
 
     if (isFightRecordable && !isPublic) {
@@ -461,11 +465,11 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   return (
     <div className="space-y-6">
       {groupedFights.map(({ title, matches }) => (
-        <div key={title} className="space-y-4">
-          <h3 className="text-xl font-semibold mt-6 mb-2">
+        <div key={title} className="space-y-6">
+          <h3 className="text-3xl font-heading uppercase text-foreground bg-primary text-primary-foreground p-3 inline-block mt-8 mb-4 border-l-8 border-info">
             {title}
           </h3>
-          <div className={cn("grid gap-4", gridClasses[fightViewMode])}>
+          <div className={cn("grid gap-6", gridClasses[fightViewMode])}>
             {matches.map(match => renderMatchCard(match))}
           </div>
         </div>

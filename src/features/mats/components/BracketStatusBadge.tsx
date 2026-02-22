@@ -1,16 +1,20 @@
 import { DivisionInfo } from '../utils/mat-utils';
 
+import { cn } from "@/lib/utils";
+
 interface BracketStatusBadgeProps {
   status: DivisionInfo['status'];
 }
 
 export const BracketStatusBadge = ({ status }: BracketStatusBadgeProps) => {
+  const baseClasses = "px-3 py-1 text-xs md:text-sm font-mono uppercase border-2 transition-none whitespace-nowrap";
+
   switch (status) {
     case 'Finished':
-      return <span className="px-2 py-0.5 text-xs rounded-full bg-success/20 text-success">Finished</span>;
+      return <span className={cn(baseClasses, "bg-muted/10 border-border text-muted-foreground")}>Finalizado</span>;
     case 'In Progress':
-      return <span className="px-2 py-0.5 text-xs rounded-full bg-info/20 text-info">In Progress</span>;
+      return <span className={cn(baseClasses, "bg-info text-info-foreground border-info")}>Lutando</span>;
     default:
-      return <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Pending</span>;
+      return <span className={cn(baseClasses, "bg-warning text-warning-foreground border-warning")}>Pendente</span>;
   }
 };
