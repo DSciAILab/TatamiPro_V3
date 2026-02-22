@@ -158,8 +158,6 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     // 2. FALLBACK: If map-based approach yielded NO fights, try getting from bracket directly
     // Only use fallback if we are NOT in showAllMatFights mode (because fallback is division-specific)
     if (fights.length === 0 && !showAllMatFights) {
-      console.log('FightList: No fights found via mat_fight_order, using bracket fallback.');
-      
       // Use bracketId if present, otherwise divisionId
       const targetBracketId = bracketId || selectedDivisionId;
       const currentBracket = brackets?.[targetBracketId];
@@ -184,8 +182,11 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
       });
     }
     
+    // Deduplicate fights by ID
+    const uniqueFights = Array.from(new Map(fights.map(f => [f.id, f])).values());
+
     // Sort logic for standard view (Mat Order)
-    return fights.sort((a, b) => {
+    return uniqueFights.sort((a, b) => {
       if (selectedMat === 'all-mats') {
         const matNameA = a._mat_name || '';
         const matNameB = b._mat_name || '';
