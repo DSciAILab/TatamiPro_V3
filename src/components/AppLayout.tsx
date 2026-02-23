@@ -1,12 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/context/language-context";
 import { showSuccess } from '@/utils/toast';
-import { LogOut, User, Settings, ArrowLeft, Moon, Sun, Languages } from 'lucide-react';
+import { LogOut, User, Settings, ArrowLeft, Moon, Sun, Languages, Info } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import OfflineIndicator from '@/components/OfflineIndicator';
 import ConnectionStatus from '@/components/ConnectionStatus';
+import { ChangelogDialog } from '@/components/ChangelogDialog';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -52,6 +53,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const { session, profile } = useAuth();
   const { setTheme } = useTheme();
   const { setLanguage } = useLanguage();
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -126,6 +128,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                     <span>{t('security')}</span>
                   </DropdownMenuItem>
                   
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsChangelogOpen(true)}>
+                    <Info className="mr-2 h-4 w-4" />
+                    <span>Versão {version}</span>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   
                   <DropdownMenuSub>
@@ -212,6 +219,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </main>
       </div>
+      <ChangelogDialog open={isChangelogOpen} onOpenChange={setIsChangelogOpen} />
     </div>
   );
 };

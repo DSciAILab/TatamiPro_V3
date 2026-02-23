@@ -1,12 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { showSuccess } from '@/utils/toast';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Info } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import OfflineIndicator from '@/components/OfflineIndicator';
 import ConnectionStatus from '@/components/ConnectionStatus';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { ChangelogDialog } from '@/components/ChangelogDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -35,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { t } = useTranslations();
   const { session, profile } = useAuth();
   const { isWideLayout } = useLayoutSettings();
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -97,6 +99,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <span>{t('security')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsChangelogOpen(true)}>
+                    <Info className="mr-2 h-4 w-4" />
+                    <span>Versão {version}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{t('logOut')}</span>
@@ -113,6 +120,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {profile?.role !== 'staff' && <Breadcrumbs />}
         {children}
       </main>
+      <ChangelogDialog open={isChangelogOpen} onOpenChange={setIsChangelogOpen} />
     </div>
   );
 };

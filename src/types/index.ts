@@ -163,6 +163,8 @@ export interface Event {
   is_lead_capture_enabled?: boolean;
   // Auto-approve registrations
   is_auto_approve_registrations_enabled?: boolean;
+  // Dynamic UI theme
+  theme?: string;
 }
 
 export interface EventLead {

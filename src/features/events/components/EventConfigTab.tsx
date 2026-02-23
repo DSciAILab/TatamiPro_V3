@@ -70,6 +70,8 @@ interface EventConfigTabProps {
   set_is_lead_capture_enabled: (value: boolean) => void;
   is_auto_approve_registrations_enabled: boolean;
   set_is_auto_approve_registrations_enabled: (value: boolean) => void;
+  theme?: string;
+  set_theme?: (value: string) => void;
   // This prop allows us to update check_in_config which is part of event
   // but originally wasn't explicitly passed as separate prop like others.
   // It's implicitly updated via handleUpdateEventProperty in parent
@@ -136,10 +138,12 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   set_is_lead_capture_enabled,
   is_auto_approve_registrations_enabled,
   set_is_auto_approve_registrations_enabled,
+  theme,
+  set_theme,
   onUpdateCheckInConfig
 }) => {
   const handleShare = (type: 'public_event' | 'public_registration') => {
-    const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/register/${event.id}`;
+    const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/events/${event.id}/register`;
     const publicUrl = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(publicUrl).then(() => {
  //     showSuccess("Link público copiado para a área de transferência!");
@@ -179,6 +183,8 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     set_is_active={set_is_active}
                     is_lead_capture_enabled={is_lead_capture_enabled}
                     set_is_lead_capture_enabled={set_is_lead_capture_enabled}
+                    theme={theme}
+                    set_theme={set_theme}
                     handleExportJson={handleExportJson}
                     handleShare={handleShare}
                 />

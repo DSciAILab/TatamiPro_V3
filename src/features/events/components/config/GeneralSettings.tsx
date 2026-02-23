@@ -21,6 +21,8 @@ interface GeneralSettingsProps {
     set_is_active: (value: boolean) => void;
     is_lead_capture_enabled: boolean;
     set_is_lead_capture_enabled: (value: boolean) => void;
+    theme?: string;
+    set_theme?: (value: string) => void;
     handleExportJson: () => void;
     handleShare: (type: 'public_event' | 'public_registration') => void;
 }
@@ -35,6 +37,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
     set_is_active,
     is_lead_capture_enabled,
     set_is_lead_capture_enabled,
+    theme,
+    set_theme,
     handleExportJson,
     handleShare
 }) => {
@@ -98,6 +102,21 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
                         onCheckedChange={setIsWideLayout}
                     />
                     <Label htmlFor="wide-layout">Layout Amplo (Todas as Páginas)</Label>
+                </div>
+
+                <div className="mt-4">
+                    <Label htmlFor="eventTheme">Tema Visual do Evento</Label>
+                    <select
+                        id="eventTheme"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                        value={theme || 'default'}
+                        onChange={(e) => set_theme?.(e.target.value)}
+                    >
+                        <option value="default">Neon (Padrão)</option>
+                        <option value="premium-dojo">Premium Dojo</option>
+                        <option value="deep-elite">Deep Elite</option>
+                        <option value="desert-gold">Desert Gold</option>
+                    </select>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">

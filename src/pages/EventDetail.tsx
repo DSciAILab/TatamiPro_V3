@@ -176,8 +176,10 @@ const EventDetail: React.FC = () => {
       description={event.description}
       backUrl="/events"
     >
-      <div className="mb-6">
-        <h1 className="text-3xl lg:text-4xl font-bold flex items-center flex-wrap gap-3">
+    <div className={`theme-${event?.theme || 'default'}`}>
+      <div className="container mx-auto py-6 max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-3xl lg:text-4xl font-bold flex items-center flex-wrap gap-3">
           {pageHeader.title} 
           <span className="text-xl lg:text-2xl text-muted-foreground font-medium">|</span>
           <span className="text-lg lg:text-xl text-muted-foreground font-normal">{pageHeader.description}</span>
@@ -362,6 +364,8 @@ const EventDetail: React.FC = () => {
       )}
 
       <SaveChangesButton onSave={actions.saveChanges} isSaving={isSaving} hasUnsavedChanges={hasUnsavedChanges} />
+        </div>
+      </div>
     </AppLayout>
   );
 };
