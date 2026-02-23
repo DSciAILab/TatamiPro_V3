@@ -124,13 +124,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        if (_event !== 'USER_UPDATED') {
+        if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
           setLoading(true);
           await fetchProfile(session.user.id);
           setLoading(false);
+        } else if (_event === 'TOKEN_REFRESHED' || _event === 'USER_UPDATED') {
+          // Background refresh, don't set loading to true to avoid unmounting app
+          fetchProfile(session.user.id);
         }
       } else {
         setProfile(null);
+        setLoading(false);
       }
     });
 
@@ -147,7 +151,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateProfile, // Expose the update function
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

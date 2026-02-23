@@ -119,6 +119,8 @@ class ConnectionManager {
 
   // Set connection mode
   async setMode(mode: ConnectionMode): Promise<void> {
+    if (this._mode === mode) return;
+    
     const previousMode = this._mode;
     this._mode = mode;
     
