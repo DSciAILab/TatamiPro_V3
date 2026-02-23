@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.17",
+    date: "2026-02-23",
+    features: [
+      "Estabilização do fluxo de autenticação e carregamento."
+    ],
+    fixes: [
+      "Correção do loop infinito de unmounting no AuthProvider.",
+      "Correção de páginas em branco causadas por falhas de timeout e flapping do ConnectionManager."
+    ]
+  },
+  {
     version: "0.1.16",
     date: "2026-02-23",
     features: [
