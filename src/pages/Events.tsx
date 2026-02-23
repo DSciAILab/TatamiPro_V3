@@ -110,7 +110,7 @@ const Events: React.FC = () => {
         eventList.map((event) => (
           <div key={event.id} className="relative">
             <Link
-              to={session ? `/events/${event.id}` : `/public/events/${event.id}`}
+              to={session ? `/events/${event.id}` : `/p/events/${event.id}`}
               className={cn("block", { 'pointer-events-none': !event.is_active })}
               aria-disabled={!event.is_active}
             >

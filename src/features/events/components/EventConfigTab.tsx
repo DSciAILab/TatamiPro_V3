@@ -143,7 +143,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
   onUpdateCheckInConfig
 }) => {
   const handleShare = (type: 'public_event' | 'public_registration') => {
-    const path = type === 'public_event' ? `/public/events/${event.id}` : `/public/events/${event.id}/register`;
+    const path = type === 'public_event' ? `/p/events/${event.id}` : `/p/events/${event.id}/register`;
     const publicUrl = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(publicUrl).then(() => {
  //     showSuccess("Link público copiado para a área de transferência!");

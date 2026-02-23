@@ -71,10 +71,10 @@ const App = () => (
                     <Route path="/events/:eventId/print-brackets" element={<PrintBrackets />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/account-security" element={<AccountSecurity />} />
-                    <Route path="/public/events/:id" element={<PublicEvent />} />
-                    <Route path="/public/events/:id/register" element={<PublicRegistration />} />
+                    <Route path="/p/events/:id" element={<PublicEvent />} />
+                    <Route path="/p/events/:id/register" element={<PublicRegistration />} />
                     {/* Alinhando links com a gerência atual, suportando alias */}
-                    <Route path="/public/register/:id" element={<PublicRegistration />} />
+                    <Route path="/p/register/:id" element={<PublicRegistration />} />
                     <Route path="/change-password" element={<ChangePassword />} />
                     {/* Staff routes */}
                     <Route path="/staff/:eventId/:token" element={<StaffAccess />} />

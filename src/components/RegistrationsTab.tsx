@@ -92,7 +92,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   };
 
   const copyPublicLink = () => {
-    const url = `${window.location.origin}/public/events/${event.id}/register`;
+    const url = `${window.location.origin}/p/events/${event.id}/register`;
     navigator.clipboard.writeText(url);
     showSuccess("Registration link copied!");
   };
