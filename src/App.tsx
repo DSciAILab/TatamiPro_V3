@@ -11,6 +11,7 @@ import { OfflineProvider } from "@/context/offline-context";
 import { RealtimeProvider } from "@/context/realtime-context";
 import { lazy, Suspense } from "react";
 import { PageSkeleton } from "@/components/skeletons";
+import { Navigate } from "react-router-dom";
 
 const Welcome = lazy(() => import("./pages/Welcome"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -76,6 +77,11 @@ const App = () => (
                     {/* Alinhando links com a gerência atual, suportando alias */}
                     <Route path="/p/register/:id" element={<PublicRegistration />} />
                     <Route path="/change-password" element={<ChangePassword />} />
+                    
+                    {/* Redirects for legacy/incorrect /public/ links */}
+                    <Route path="/public/events/:id" element={<Navigate to="/p/events/:id" replace />} />
+                    <Route path="/public/events/:id/register" element={<Navigate to="/p/events/:id/register" replace />} />
+                    <Route path="/public/register/:id" element={<Navigate to="/p/register/:id" replace />} />
                     {/* Staff routes */}
                     <Route path="/staff/:eventId/:token" element={<StaffAccess />} />
                     <Route path="/staff/:eventId/check-in/:token" element={<StaffCheckIn />} />
