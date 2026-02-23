@@ -16,7 +16,7 @@
     --secondary: 46 65% 52%; /* Aged Gold */
     --secondary-foreground: 42 31% 94%;
     --muted: 42 20% 88%;
-    --muted-foreground: 144 5% 40%;
+    --muted-foreground: 144 5% 35%; /* Darker moss for better contrast on light */
     --accent: 80 45% 25%;
     --accent-foreground: 42 31% 94%;
     --destructive: 0 60% 50%;
@@ -60,7 +60,7 @@
     --secondary: 46 65% 52%; /* Aged Gold */
     --secondary-foreground: 144 7% 13%;
     --muted: 144 10% 20%;
-    --muted-foreground: 42 20% 70%;
+    --muted-foreground: 42 20% 75%; /* Lighter parchment for better contrast on dark */
     --accent: 86 26% 55%;
     --accent-foreground: 144 7% 13%;
     --destructive: 0 60% 50%;
@@ -148,7 +148,7 @@
     --secondary: 180 100% 50%; /* Neon Cyan */
     --secondary-foreground: 240 10% 4%;
     --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 65%;
+    --muted-foreground: 240 5% 75%; /* Cleaner white-ish for neon */
     --accent: 39 100% 50%; /* Neon Gold/Orange */
     --accent-foreground: 240 10% 4%;
     --destructive: 348 100% 50%; /* Neon Red */
@@ -192,7 +192,7 @@
     --secondary: 25 40% 30%; /* Terracotta */
     --secondary-foreground: 43 74% 85%;
     --muted: 34 33% 25%;
-    --muted-foreground: 43 40% 60%;
+    --muted-foreground: 43 40% 70%; /* Lighter sand for desert */
     --accent: 43 74% 49%; 
     --accent-foreground: 34 33% 15%;
     --destructive: 0 60% 45%; 

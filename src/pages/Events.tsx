@@ -111,7 +111,7 @@ const Events: React.FC = () => {
           <div key={event.id} className="relative">
             <Link
               to={session ? `/events/${event.id}` : `/p/events/${event.id}`}
-              className={cn("block", { 'pointer-events-none': !event.is_active })}
+              className={cn("block group", { 'pointer-events-none': !event.is_active })}
               aria-disabled={!event.is_active}
             >
               <Card
@@ -122,11 +122,13 @@ const Events: React.FC = () => {
                 )}
               >
                 <CardHeader>
-                  <CardTitle>{event.name}</CardTitle>
-                  <CardDescription>Status: {event.status} | Data: {event.event_date}</CardDescription>
+                  <CardTitle className="group-hover:text-accent-foreground transition-colors">{event.name}</CardTitle>
+                  <CardDescription className="group-hover:text-accent-foreground/80 transition-colors">
+                    Status: {event.status} | Data: {event.event_date}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground group-hover:text-accent-foreground/80 transition-colors">
                     {event.is_active ? (session ? "Clique para gerenciar" : "Clique para visualizar") : "Evento inativo"}
                   </p>
                 </CardContent>

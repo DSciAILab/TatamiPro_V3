@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.18",
+    date: "2026-02-23",
+    improvements: [
+      "Refinamento de contraste e acessibilidade visual em cards e temas.",
+      "Melhoria na legibilidade de textos secundários (muted text) em estados ativos."
+    ]
+  },
+  {
     version: "0.1.17",
     date: "2026-02-23",
     features: [
