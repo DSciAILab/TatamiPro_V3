@@ -13,8 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-import { Loader2, CheckCircle, Download } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
+import { Loader2, CheckCircle, Printer } from 'lucide-react';
 import { Division } from '@/types/index';
 import QrCodeGenerator from '@/components/QrCodeGenerator';
 
@@ -40,7 +39,6 @@ const PublicRegistration: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [registeredAthleteId, setRegisteredAthleteId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const qrRef = React.useRef<HTMLDivElement>(null);
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
@@ -118,32 +116,6 @@ const PublicRegistration: React.FC = () => {
     }
   };
 
-  const handleDownloadQrCode = async () => {
-    if (!qrRef.current || !registeredAthleteId) return;
-    
-    const toastId = showLoading('Generating image...');
-    try {
-      // Atraso sutil para garantir que a renderização do DOM do QRCodeSVG finalizou perfeitamente
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const dataUrl = await htmlToImage.toPng(qrRef.current, {
-        backgroundColor: '#ffffff', // Força fundo branco para evitar problemas de contraste no celular
-        pixelRatio: 2, // Maior resolução
-      });
-      
-      const link = document.createElement('a');
-      link.download = `checkin_qrcode_${eventName.replace(/\s+/g, '_')}.png`;
-      link.href = dataUrl;
-      link.click();
-      dismissToast(toastId);
-      showSuccess("QR Code saved successfully!");
-    } catch (error) {
-      console.error('Error generating QR code image:', error);
-      dismissToast(toastId);
-      showError("Failed to save QR code image. Please take a screenshot instead.");
-    }
-  };
-
   if (loadingPage) {
     return <PublicLayout><div className="flex justify-center mt-10"><Loader2 className="animate-spin h-8 w-8" /></div></PublicLayout>;
   }
@@ -168,10 +140,7 @@ const PublicRegistration: React.FC = () => {
               </p>
 
               {registeredAthleteId && (
-                <div 
-                  ref={qrRef}
-                  className="bg-muted p-6 rounded-xl flex flex-col items-center border border-border w-full max-w-xs shadow-inner"
-                >
+                <div className="bg-muted p-6 rounded-xl flex flex-col items-center border border-border w-full max-w-xs shadow-inner">
                   <p className="font-semibold mb-4 text-sm uppercase tracking-wide text-foreground">Your Check-in QR Code</p>
                   <div className="bg-white p-3 rounded-lg print:border print:border-black">
                     <QrCodeGenerator value={`EV_${eventId}_ATH_${registeredAthleteId}`} size={160} />
@@ -184,13 +153,13 @@ const PublicRegistration: React.FC = () => {
 
               <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 p-4 rounded-lg text-sm w-full no-print">
                 <p className="font-semibold mb-1 text-orange-900 dark:text-orange-300">Important:</p>
-                <p className="text-orange-800 dark:text-orange-200">Please <strong>download</strong> this QR Code or take a screenshot. You will need to show it to speed up your check-in on the exact day of the event.</p>
+                <p className="text-orange-800 dark:text-orange-200">Please <strong>take a screenshot</strong> of this page or <strong>save it as a PDF</strong>. You will need this QR Code to speed up your check-in on the exact day of the event.</p>
               </div>
 
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 no-print">
-              <Button variant="outline" onClick={handleDownloadQrCode} className="w-full sm:w-auto">
-                <Download className="mr-2 h-4 w-4" /> Download QR Code
+              <Button variant="outline" onClick={() => window.print()} className="w-full sm:w-auto">
+                <Printer className="mr-2 h-4 w-4" /> Save PDF / Print
               </Button>
               <Button onClick={() => navigate(`/p/events/${eventId}`)} className="w-full sm:w-auto">
                 Back to Event
