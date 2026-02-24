@@ -87,13 +87,28 @@ const DivisionImport: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'map' | 'results'>('upload');
   const [sheetUrl, setSheetUrl] = useState("");
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [theme, setTheme] = useState<string>('default');
 
   // Load last used URL
   useEffect(() => {
     getLastImportUrl('division').then(url => {
       if (url) setSheetUrl(url);
     });
-  }, []);
+
+    const fetchTheme = async () => {
+      if (!eventId) return;
+      const { data, error } = await supabase
+        .from('sjjp_events')
+        .select('theme')
+        .eq('id', eventId)
+        .single();
+      
+      if (!error && data?.theme) {
+        setTheme(data.theme);
+      }
+    };
+    fetchTheme();
+  }, [eventId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -331,7 +346,7 @@ const DivisionImport: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout className={`theme-${theme}`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Importar Divisões para Evento #{eventId}</h1>
         <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Voltar</Button>

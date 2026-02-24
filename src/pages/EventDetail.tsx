@@ -175,8 +175,8 @@ const EventDetail: React.FC = () => {
       title={event.name}
       description={event.description}
       backUrl="/events"
+      className={`theme-${event?.theme || 'default'}`}
     >
-    <div className={`theme-${event?.theme || 'default'}`}>
       <div className="container mx-auto py-6 max-w-7xl">
         <div className="mb-6">
           <h1 className="text-3xl lg:text-4xl font-bold flex items-center flex-wrap gap-3">
@@ -256,6 +256,8 @@ const EventDetail: React.FC = () => {
           set_is_lead_capture_enabled={(value) => actions.updateEventProperty('is_lead_capture_enabled', value)}
           is_auto_approve_registrations_enabled={event.is_auto_approve_registrations_enabled ?? false}
           set_is_auto_approve_registrations_enabled={(value) => actions.updateEventProperty('is_auto_approve_registrations_enabled', value)}
+          theme={event.theme || 'default'}
+          set_theme={(value) => actions.updateEventProperty('theme', value)}
           onUpdateCheckInConfig={(config) => actions.updateEventProperty('check_in_config', config)}
         />
       )}
@@ -365,7 +367,6 @@ const EventDetail: React.FC = () => {
       )}
 
       <SaveChangesButton onSave={actions.saveChanges} isSaving={isSaving} hasUnsavedChanges={hasUnsavedChanges} />
-        </div>
       </div>
     </AppLayout>
   );

@@ -29,9 +29,10 @@ import { ChangelogDialog } from '@/components/ChangelogDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
+  className?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
   const { t } = useTranslations();
   const { session, profile } = useAuth();
@@ -51,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className={cn("min-h-screen flex flex-col bg-background text-foreground", className)}>
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center space-x-4">

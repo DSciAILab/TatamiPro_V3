@@ -38,6 +38,7 @@ const PublicRegistration: React.FC = () => {
   const [loadingPage, setLoadingPage] = useState(true);
   const [success, setSuccess] = useState(false);
   const [registeredAthleteId, setRegisteredAthleteId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<string>('default');
   const navigate = useNavigate();
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegistrationFormValues>({
@@ -51,7 +52,7 @@ const PublicRegistration: React.FC = () => {
         // Buscar Evento
         const { data: event, error: eventError } = await supabase
           .from('sjjp_events')
-          .select('name, is_active')
+          .select('name, is_active, theme')
           .eq('id', eventId)
           .single();
         
@@ -59,6 +60,7 @@ const PublicRegistration: React.FC = () => {
         if (!event.is_active) throw new Error("Registrations for this event are closed.");
         
         setEventName(event.name);
+        setTheme(event.theme || 'default');
 
         // Buscar Divisões
         const { data: divs, error: divError } = await supabase
@@ -117,12 +119,12 @@ const PublicRegistration: React.FC = () => {
   };
 
   if (loadingPage) {
-    return <PublicLayout><div className="flex justify-center mt-10"><Loader2 className="animate-spin h-8 w-8" /></div></PublicLayout>;
+    return <PublicLayout className={theme}><div className="flex justify-center mt-10"><Loader2 className="animate-spin h-8 w-8" /></div></PublicLayout>;
   }
 
   if (success) {
     return (
-      <PublicLayout>
+      <PublicLayout className={`theme-${theme}`}>
         <div className="max-w-md mx-auto mt-10 mb-20 px-4">
           <Card className="text-center border-primary bg-card shadow-lg">
             <CardHeader>
@@ -172,7 +174,7 @@ const PublicRegistration: React.FC = () => {
   }
 
   return (
-    <PublicLayout>
+    <PublicLayout className={`theme-${theme}`}>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">{eventName}</h1>

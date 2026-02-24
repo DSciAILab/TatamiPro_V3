@@ -4,15 +4,33 @@ import React from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Upload } from 'lucide-react';
 
 const RegistrationOptions: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [theme, setTheme] = React.useState<string>('default');
+
+  React.useEffect(() => {
+    const fetchTheme = async () => {
+      if (!eventId) return;
+      const { data, error } = await supabase
+        .from('sjjp_events')
+        .select('theme')
+        .eq('id', eventId)
+        .single();
+      
+      if (!error && data?.theme) {
+        setTheme(data.theme);
+      }
+    };
+    fetchTheme();
+  }, [eventId]);
 
   return (
-    <Layout>
+    <Layout className={`theme-${theme}`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Registration Options</h1>
         <Button onClick={() => navigate(`/events/${eventId}`)} variant="outline">Back to Event</Button>

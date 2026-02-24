@@ -116,6 +116,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
                         <option value="premium-dojo">Premium Dojo</option>
                         <option value="deep-elite">Deep Elite</option>
                         <option value="desert-gold">Desert Gold</option>
+                        <option value="coastal-dusk">Coastal Dusk</option>
                     </select>
                 </div>
 

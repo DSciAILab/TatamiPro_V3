@@ -216,13 +216,14 @@ const BatchAthleteImport: React.FC = () => {
   const [step, setStep] = useState<"upload" | "map" | "results">("upload");
   const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
   const [isAutoApproveEnabled, setIsAutoApproveEnabled] = useState(false);
+  const [theme, setTheme] = useState<string>('default');
 
   useEffect(() => {
     const fetchSettings = async () => {
       if (!eventId) return;
       const { data, error } = await supabase
         .from("sjjp_events")
-        .select("age_division_settings, is_auto_approve_registrations_enabled")
+        .select("age_division_settings, is_auto_approve_registrations_enabled, theme")
         .eq("id", eventId)
         .single();
 
@@ -231,6 +232,7 @@ const BatchAthleteImport: React.FC = () => {
       } else if (data) {
         if (data.age_division_settings) setAgeSettings(data.age_division_settings);
         setIsAutoApproveEnabled(data.is_auto_approve_registrations_enabled ?? false);
+        if (data.theme) setTheme(data.theme);
       }
     };
     fetchSettings();
@@ -579,7 +581,7 @@ const BatchAthleteImport: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout className={`theme-${theme}`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">
           Importar Atletas em Lote para Evento #{eventId}

@@ -4,7 +4,8 @@
 
 @layer base {
   /* DEFAULT FAT THEME (Parchment/Moss) */
-  :root, .theme-default {
+  :root,
+  .theme-default {
     --background: 42 31% 94%; /* Parchment */
     --foreground: 144 7% 13%; /* Deep moss text */
     --card: 42 31% 96%;
@@ -179,6 +180,50 @@
     --sidebar-ring: 316 100% 50%;
   }
 
+  /* COASTAL DUSK THEME (Blue-Grey + Sand Gold) */
+  .theme-coastal-dusk {
+    --background: 210 25% 95%; /* Coastal Mist (#EEF1F5) */
+    --foreground: 210 15% 15%; /* Night Blue (#212730) */
+    --card: 210 25% 97%;
+    --card-foreground: 210 15% 15%;
+    --popover: 210 25% 97%;
+    --popover-foreground: 210 15% 15%;
+    --primary: 205 50% 30%; /* Steel Blue (#264A73) */
+    --primary-foreground: 210 25% 95%;
+    --secondary: 35 55% 55%; /* Sand Gold (#CDA04A) */
+    --secondary-foreground: 210 15% 15%;
+    --muted: 210 15% 90%; /* Mist Grey (#E2E5EA) */
+    --muted-foreground: 210 8% 40%; /* Ocean Grey (#5E6368) */
+    --accent: 205 50% 30%;
+    --accent-foreground: 210 25% 95%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 210 25% 95%;
+
+    /* Status Colors */
+    --success: 142 40% 40%;
+    --success-foreground: 210 25% 95%;
+    --warning: 35 55% 55%;
+    --warning-foreground: 210 15% 15%;
+    --info: 205 50% 30%;
+    --info-foreground: 210 25% 95%;
+    --pending: 25 60% 50%;
+    --pending-foreground: 210 25% 95%;
+
+    --border: 210 12% 87%; /* Mist Border (#D9DCE2) */
+    --input: 210 12% 87%;
+    --ring: 205 50% 30%;
+    --radius: 1rem;
+
+    --sidebar-background: 210 20% 92%;
+    --sidebar-foreground: 210 15% 15%;
+    --sidebar-primary: 205 50% 30%;
+    --sidebar-primary-foreground: 210 25% 95%;
+    --sidebar-accent: 210 15% 90%;
+    --sidebar-accent-foreground: 210 15% 15%;
+    --sidebar-border: 210 12% 87%;
+    --sidebar-ring: 205 50% 30%;
+  }
+
   /* DESERT GOLD THEME */
   .theme-desert-gold {
     --background: 34 33% 15%; /* Dark brown/sand */
@@ -193,9 +238,9 @@
     --secondary-foreground: 43 74% 85%;
     --muted: 34 33% 25%;
     --muted-foreground: 43 40% 70%; /* Lighter sand for desert */
-    --accent: 43 74% 49%; 
+    --accent: 43 74% 49%;
     --accent-foreground: 34 33% 15%;
-    --destructive: 0 60% 45%; 
+    --destructive: 0 60% 45%;
     --destructive-foreground: 43 74% 85%;
 
     /* Status Colors */

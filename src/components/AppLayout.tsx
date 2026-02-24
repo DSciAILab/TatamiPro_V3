@@ -35,6 +35,7 @@ interface AppLayoutProps {
   title?: string;
   description?: string;
   backUrl?: string;
+  className?: string;
 }
 
 /**
@@ -46,7 +47,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   sidebar, 
   title, 
   description,
-  backUrl = '/events' 
+  backUrl = '/events',
+  className
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslations();
@@ -68,7 +70,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+    <div className={cn("h-screen flex flex-col overflow-hidden bg-background text-foreground", className)}>
       {/* Top Header Bar */}
       <header className="h-14 flex-shrink-0 border-b bg-background z-50">
         <div className="h-full px-4 flex items-center justify-between">

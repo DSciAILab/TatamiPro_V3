@@ -39,20 +39,22 @@ const AthleteRegistrationForm: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [ageSettings, setAgeSettings] = useState<AgeDivisionSetting[]>([]);
+  const [theme, setTheme] = useState<string>('default');
 
   useEffect(() => {
     const fetchSettings = async () => {
       if (!eventId) return;
       const { data, error } = await supabase
         .from('sjjp_events')
-        .select('age_division_settings')
+        .select('age_division_settings, theme')
         .eq('id', eventId)
         .single();
       
       if (error) {
         showError('Failed to load age division settings.');
-      } else if (data && data.age_division_settings) {
-        setAgeSettings(data.age_division_settings);
+      } else if (data) {
+        if (data.age_division_settings) setAgeSettings(data.age_division_settings);
+        if (data.theme) setTheme(data.theme);
       }
     };
     fetchSettings();
@@ -199,7 +201,7 @@ const AthleteRegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="p-4 border rounded-md">
+    <div className={`theme-${theme} p-4 border rounded-md`}>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-semibold">Registrar Novo Atleta</h3>
         <Button onClick={() => navigate(`/events/${eventId}/registration-options`)} variant="outline">Voltar para Opções</Button>

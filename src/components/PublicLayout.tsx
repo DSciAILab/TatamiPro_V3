@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
+  className?: string;
 }
 
-const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
+const PublicLayout: React.FC<PublicLayoutProps> = ({ children, className }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className={cn("min-h-screen flex flex-col bg-background text-foreground", className)}>
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <Link to="/" className="text-2xl font-bold text-primary">

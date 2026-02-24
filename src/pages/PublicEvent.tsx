@@ -141,8 +141,7 @@ const PublicEvent: React.FC = () => {
   // Block access if lead not submitted
   if (needsLeadCapture) {
     return (
-      <div className={`theme-${event.theme || 'default'}`}>
-      <PublicLayout>
+      <PublicLayout className={`theme-${event.theme || 'default'}`}>
         <LeadCaptureModal
           eventId={eventId!}
           isOpen={true}
@@ -153,13 +152,11 @@ const PublicEvent: React.FC = () => {
           <p className="text-lg text-muted-foreground">Complete o cadastro para acessar o evento.</p>
         </div>
       </PublicLayout>
-      </div>
     );
   }
 
   return (
-    <div className={`theme-${event.theme || 'default'}`}>
-    <PublicLayout>
+    <PublicLayout className={`theme-${event.theme || 'default'}`}>
       <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
@@ -246,7 +243,6 @@ const PublicEvent: React.FC = () => {
         </TabsContent>
       </Tabs>
     </PublicLayout>
-    </div>
   );
 };
 
