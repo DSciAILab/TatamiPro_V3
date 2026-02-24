@@ -162,7 +162,7 @@ const importBeltSchema = z
     ])
   );
 
-const importWeightSchema = z.coerce.number().min(20).max(200);
+const importWeightSchema = z.coerce.number().min(16).max(200);
 const importPhoneSchema = z
   .string()
   .regex(/^\+?[1-9]\d{1,14}$/)

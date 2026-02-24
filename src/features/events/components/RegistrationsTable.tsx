@@ -33,6 +33,9 @@ interface RegistrationsTableProps {
   selectedAthletes?: string[];
   onToggleSelection?: (id: string) => void;
   hideSearch?: boolean;
+  showSelection?: boolean;
+  onSelectAll?: (checked: boolean) => void;
+  allSelected?: boolean;
 }
 
 const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
@@ -46,6 +49,9 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   selectedAthletes = [],
   onToggleSelection,
   hideSearch = false,
+  showSelection = false,
+  onSelectAll,
+  allSelected = false,
 }) => {
   const { t } = useTranslations();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'first_name', direction: 'asc' });
@@ -135,6 +141,14 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
+              {showSelection && (
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) => onSelectAll?.(checked as boolean)}
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort('id_number')}>
                 ID {getSortIcon('id_number')}
               </TableHead>
@@ -156,13 +170,21 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <TableBody>
             {sortedAthletes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={showSelection ? 7 : 6} className="text-center h-24 text-muted-foreground">
                   No athletes found.
                 </TableCell>
               </TableRow>
             ) : (
               sortedAthletes.map((athlete) => (
                 <TableRow key={athlete.id}>
+                  {showSelection && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedAthletes.includes(athlete.id)}
+                        onCheckedChange={() => onToggleSelection?.(athlete.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
                       {athlete.emirates_id || athlete.school_id || '-'}

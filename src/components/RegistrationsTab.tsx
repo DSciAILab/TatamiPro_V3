@@ -11,11 +11,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { UserRound, Edit, Trash2, PlusCircle, QrCodeIcon, Share2, Search, Printer, Download } from 'lucide-react';
+import { UserRound, Trash2, PlusCircle, Share2, Search, Download } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
-import QrCodeGenerator from '@/components/QrCodeGenerator';
+
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
@@ -255,7 +255,41 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
             </div>
           )}
 
-          <div className="mb-4">
+          <div className="mb-4 space-y-4">
+            {userRole === 'admin' && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="selectAllRegistered"
+                    checked={selectedAthletesForApproval.length === filteredAthletes.length && filteredAthletes.length > 0}
+                    onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, filteredAthletes)}
+                  />
+                  <Label htmlFor="selectAllRegistered">Select All</Label>
+                </div>
+                {selectedAthletesForApproval.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Delete Selected ({selectedAthletesForApproval.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove {selectedAthletesForApproval.length} selected registration(s). This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSelectedAthletes}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            )}
             <RegistrationsTable
               athletes={filteredAthletes}
               onEdit={setEditingAthlete}
@@ -267,6 +301,9 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
               selectedAthletes={selectedAthletesForApproval}
               onToggleSelection={handleToggleAthleteSelection}
               hideSearch={true}
+              showSelection={userRole === 'admin'}
+              onSelectAll={(checked) => handleSelectAllAthletes(checked, filteredAthletes)}
+              allSelected={selectedAthletesForApproval.length === filteredAthletes.length && filteredAthletes.length > 0}
             />
           </div>
         </TabsContent>
@@ -283,83 +320,42 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                   <p className="text-muted-foreground">No registrations awaiting approval.</p>
                 ) : (
                   <>
-                    <div className="flex items-center space-x-2 mb-4">
-                      <Checkbox
-                        id="selectAll"
-                        checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
-                        onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
-                      />
-                      <Label htmlFor="selectAll">Select All</Label>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="selectAllApprovals"
+                          checked={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
+                          onCheckedChange={(checked) => handleSelectAllAthletes(checked as boolean, athletesUnderApproval)}
+                        />
+                        <Label htmlFor="selectAllApprovals">Select All</Label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
+                          Approve Selected ({selectedAthletesForApproval.length})
+                        </Button>
+                        <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
+                          Reject Selected ({selectedAthletesForApproval.length})
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2 mb-4">
-                      <Button onClick={handleApproveSelected} disabled={selectedAthletesForApproval.length === 0}>
-                        Approve Selected ({selectedAthletesForApproval.length})
-                      </Button>
-                      <Button onClick={handleRejectSelected} disabled={selectedAthletesForApproval.length === 0} variant="destructive">
-                        Reject Selected ({selectedAthletesForApproval.length})
-                      </Button>
-                    </div>
-                    <ul className="space-y-2">
-                      {athletesUnderApproval.map((athlete) => (
-                        <li key={athlete.id} className="flex items-center justify-between space-x-4 p-2 border rounded-md">
-                          <div className="flex items-center space-x-4">
-                            <Checkbox
-                              checked={selectedAthletesForApproval.includes(athlete.id)}
-                              onCheckedChange={() => handleToggleAthleteSelection(athlete.id)}
-                            />
-                            {athlete.photo_url ? (
-                              <img src={athlete.photo_url} alt={athlete.first_name} className="w-10 h-10 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                <UserRound className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex-grow">
-                              <p className="font-medium">{athlete.first_name} {athlete.last_name} ({athlete.nationality})</p>
-                              <p className="text-sm text-muted-foreground font-semibold">{athlete.club}</p>
-                              <p className="text-sm text-muted-foreground">{getAthleteDisplayString(athlete, athlete._division, t)}</p>
-                              {athlete.payment_proof_url && (
-                                <p className="text-xs text-blue-500">
-                                  <a href={athlete.payment_proof_url} target="_blank" rel="noopener noreferrer">View Receipt</a>
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-pending font-semibold">Awaiting Approval</span>
-                            {userRole === 'admin' && (
-                              <Button variant="ghost" size="icon" onClick={() => setEditingAthlete(athlete)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently remove the registration of {athlete.first_name} {athlete.last_name}.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAthlete(athlete.id)}>Remove</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                    <RegistrationsTable
+                      athletes={athletesUnderApproval}
+                      onEdit={setEditingAthlete}
+                      onDelete={handleDeleteAthlete}
+                      userRole={userRole}
+                      divisions={event.divisions}
+                      hideSearch={true}
+                      showSelection={true}
+                      selectedAthletes={selectedAthletesForApproval}
+                      onToggleSelection={handleToggleAthleteSelection}
+                      onSelectAll={(checked) => handleSelectAllAthletes(checked, athletesUnderApproval)}
+                      allSelected={selectedAthletesForApproval.length === athletesUnderApproval.length && athletesUnderApproval.length > 0}
+                    />
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
           )}
           
           {userRole === 'admin' && (
