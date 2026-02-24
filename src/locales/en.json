@@ -153,5 +153,6 @@
   "bracketView": "Bracket View",
   "fightOrder": "Fight Order",
   "publicCategory": "Category",
-  "name": "Name"
+  "name": "Name",
+  "divisionSummary": "Division Summary"
 }

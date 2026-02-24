@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.22",
+    date: "2026-02-24",
+    features: [
+      "Página Pública: inclusão da aba 'Inscritos' com o sumário de divisões completo para visualização pública.",
+    ],
+    fixes: [
+      "Staff Access: correção do erro 'Invalid or expired token' através da criação da tabela 'sjjp_staff_tokens'.",
+      "Roteamento Vercel: melhoria no suporte a SPAs para evitar erros 404 em rotas de staff.",
+    ],
+    improvements: [
+      "Internacionalização (i18n): labels das abas públicas (Chaves, Inscritos, etc) agora são totalmente traduzíveis.",
+    ]
+  },
+  {
     version: "0.1.21",
     date: "2026-02-24",
     features: [

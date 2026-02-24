@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import BracketView from '@/components/BracketView';
 import LeadCaptureModal, { hasSubmittedLead, markLeadSubmitted } from '@/components/LeadCaptureModal';
 
+import DivisionSummaryTab from '@/features/events/components/DivisionSummaryTab';
+
 const PublicEvent: React.FC = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
@@ -161,34 +163,19 @@ const PublicEvent: React.FC = () => {
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="brackets">Brackets</TabsTrigger>
-          <TabsTrigger value="fights">Fight Order</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="brackets">{t('brackets')}</TabsTrigger>
+          <TabsTrigger value="fights">{t('fightOrder')}</TabsTrigger>
+          <TabsTrigger value="registrations">{t('registrations')}</TabsTrigger>
+          <TabsTrigger value="results">{t('results')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="registrations" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('registeredAthletes')}</CardTitle>
-              <CardDescription>{t('officialListOfConfirmedAthletes')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative mb-4">
-                <Input
-                  placeholder="Buscar por nome, clube ou divisão..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-              <AthleteListTable athletes={approvedAthletes} />
-            </CardContent>
-          </Card>
+          <DivisionSummaryTab
+            athletes={event.athletes || []}
+            divisions={event.divisions || []}
+          />
         </TabsContent>
-
-
 
         <TabsContent value="brackets" className="mt-6">
           <Card>

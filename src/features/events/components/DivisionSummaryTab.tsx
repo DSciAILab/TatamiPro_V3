@@ -159,7 +159,7 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Division Summary
+          {t('divisionSummary')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
