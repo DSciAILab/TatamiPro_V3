@@ -1,26 +1,55 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Trash2, Save, XCircle } from 'lucide-react';
-import { AgeDivisionSetting } from '@/types/index';
+import { PlusCircle, Trash2, Save, XCircle, RefreshCw } from 'lucide-react';
+import { AgeDivisionSetting, Division } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AgeDivisionConfigProps {
   settings: AgeDivisionSetting[];
   onUpdateSettings: (updatedSettings: AgeDivisionSetting[]) => void;
+  divisions?: Division[];
 }
 
-const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdateSettings }) => {
+const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdateSettings, divisions = [] }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentEdit, setCurrentEdit] = useState<Omit<AgeDivisionSetting, 'id'>>({ name: '', min_age: 0, fight_duration: 5 });
   const [isAdding, setIsAdding] = useState(false);
   const [newSetting, setNewSetting] = useState<Omit<AgeDivisionSetting, 'id'>>({ name: '', min_age: 0, fight_duration: 5 });
 
-  const sortedSettings = [...settings].sort((a, b) => a.min_age - b.min_age);
+  const sortedSettings = [...settings].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Detect unique age categories from divisions that are not yet in settings
+  const missingCategories = useMemo(() => {
+    if (!divisions.length) return [];
+    const existingNames = new Set(settings.map(s => s.name.toLowerCase()));
+    const uniqueFromDivisions = new Map<string, string>();
+    divisions.forEach(d => {
+      if (d.age_category_name && !existingNames.has(d.age_category_name.toLowerCase())) {
+        uniqueFromDivisions.set(d.age_category_name.toLowerCase(), d.age_category_name);
+      }
+    });
+    return Array.from(uniqueFromDivisions.values());
+  }, [divisions, settings]);
+
+  const handleSyncFromDivisions = () => {
+    if (missingCategories.length === 0) {
+      showSuccess('Todas as categorias já estão na tabela.');
+      return;
+    }
+    const newEntries: AgeDivisionSetting[] = missingCategories.map((name: string) => ({
+      id: uuidv4(),
+      name,
+      min_age: 0,
+      fight_duration: 5,
+    }));
+    onUpdateSettings([...settings, ...newEntries]);
+    showSuccess(`${newEntries.length} categoria(s) adicionada(s) automaticamente.`);
+  };
 
   const handleAdd = () => {
     if (!newSetting.name.trim()) {
@@ -63,9 +92,16 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">Configuração de Categorias de Idade</h3>
         {!isAdding && (
-          <Button variant="outline" size="sm" onClick={() => setIsAdding(true)} className="gap-2">
-            <PlusCircle className="h-4 w-4" /> Adicionar
-          </Button>
+          <div className="flex gap-2">
+            {missingCategories.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleSyncFromDivisions} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Sync from Divisions ({missingCategories.length})
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setIsAdding(true)} className="gap-2">
+              <PlusCircle className="h-4 w-4" /> Adicionar
+            </Button>
+          </div>
         )}
       </div>
 
@@ -74,7 +110,6 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
           <TableHeader>
             <TableRow>
               <TableHead>Age Category</TableHead>
-              <TableHead>Min Age</TableHead>
               <TableHead>Fight Time (min)</TableHead>
               <TableHead className="text-right w-[120px]">Actions</TableHead>
             </TableRow>
@@ -89,14 +124,6 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
                         value={currentEdit.name}
                         onChange={(e) => setCurrentEdit(p => ({ ...p, name: e.target.value }))}
                         className="h-8"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={currentEdit.min_age}
-                        onChange={(e) => setCurrentEdit(p => ({ ...p, min_age: Number(e.target.value) }))}
-                        className="h-8 w-20"
                       />
                     </TableCell>
                     <TableCell>
@@ -123,12 +150,6 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
                       onClick={() => handleEdit(setting)}
                     >
                       {setting.name}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer hover:text-primary"
-                      onClick={() => handleEdit(setting)}
-                    >
-                      &gt;= {setting.min_age}
                     </TableCell>
                     <TableCell
                       className="cursor-pointer hover:text-primary"
@@ -161,14 +182,6 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
                 <TableCell>
                   <Input
                     type="number"
-                    value={newSetting.min_age}
-                    onChange={(e) => setNewSetting(p => ({ ...p, min_age: Number(e.target.value) }))}
-                    className="h-8 w-20"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
                     value={newSetting.fight_duration}
                     onChange={(e) => setNewSetting(p => ({ ...p, fight_duration: Number(e.target.value) }))}
                     className="h-8 w-20"
@@ -187,7 +200,7 @@ const AgeDivisionConfig: React.FC<AgeDivisionConfigProps> = ({ settings, onUpdat
 
             {sortedSettings.length === 0 && !isAdding && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
                   Nenhuma categoria configurada. Clique em &quot;Adicionar&quot; para criar.
                 </TableCell>
               </TableRow>

@@ -208,6 +208,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
               <AgeDivisionConfig
                 settings={event.age_division_settings || []}
                 onUpdateSettings={handleUpdateAgeDivisionSettings}
+                divisions={event.divisions || []}
               />
               <hr />
               <Link to={`/events/${event.id}/import-divisions`}>
