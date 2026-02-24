@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DivisionGroup {
@@ -141,9 +141,11 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
     });
   };
 
-  const SortIndicator = ({ column }: { column: SortKey }) => {
-    if (sortKey !== column) return null;
-    return <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  const SortIcon = ({ column }: { column: SortKey }) => {
+    if (sortKey !== column) return <ArrowUpDown className="ml-1 h-3.5 w-3.5 inline text-muted-foreground opacity-50" />;
+    return sortDir === 'asc' 
+      ? <ArrowUp className="ml-1 h-3.5 w-3.5 inline" /> 
+      : <ArrowDown className="ml-1 h-3.5 w-3.5 inline" />;
   };
 
   return (
@@ -207,31 +209,31 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('name')}
                 >
-                  Division <SortIndicator column="name" />
+                  Division <SortIcon column="name" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('gender')}
                 >
-                  Gender <SortIndicator column="gender" />
+                  Gender <SortIcon column="gender" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('belt')}
                 >
-                  Belt <SortIndicator column="belt" />
+                  Belt <SortIcon column="belt" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50 text-right"
                   onClick={() => handleSort('weight')}
                 >
-                  Max Weight <SortIndicator column="weight" />
+                  Max Weight <SortIcon column="weight" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50 text-center"
                   onClick={() => handleSort('athletes')}
                 >
-                  Athletes <SortIndicator column="athletes" />
+                  Athletes <SortIcon column="athletes" />
                 </TableHead>
               </TableRow>
             </TableHeader>
