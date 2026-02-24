@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.21",
+    date: "2026-02-24",
+    features: [
+      "Login via QR Code: acesso rápido para staff através do botão de escaneamento na tela de login.",
+      "Scanner de QR Code funcional integrado nas páginas Auth e Staff Access.",
+    ],
+    fixes: [
+      "Correção de carregamento de Staff: mapeamento para a tabela 'sjjp_profiles' corrigido.",
+      "Correção de Edge Functions: nomes de tabelas atualizados para usar o prefixo 'sjjp_' (admin-create-user, etc).",
+    ],
+    improvements: [
+      "Versionamento automático refletido no perfil e nos metadados do projeto.",
+    ]
+  },
+  {
     version: "0.1.20",
     date: "2026-02-24",
     features: [
