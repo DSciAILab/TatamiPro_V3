@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { UserRound, Trash2, PlusCircle, Share2, Search, Download } from 'lucide-react';
+import { UserRound, Trash2, PlusCircle, Share2, Search, Download, RotateCcw } from 'lucide-react';
 import AthleteProfileEditForm from '@/components/AthleteProfileEditForm';
 
 import { getAthleteDisplayString } from '@/utils/athlete-utils';
@@ -49,6 +49,7 @@ interface RegistrationsTabProps {
   handleSelectAllAthletes: (checked: boolean, athletesToSelect: Athlete[]) => void;
   handleApproveSelected: () => void;
   handleRejectSelected: () => void;
+  handleRevertApprovalStatus: () => void;
   ageDivisionSettings: AgeDivisionSetting[];
   onBatchUpdate?: (updatedAthletes: Athlete[]) => void;
 }
@@ -78,6 +79,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   handleSelectAllAthletes,
   handleApproveSelected,
   handleRejectSelected,
+  handleRevertApprovalStatus,
   ageDivisionSettings,
   onBatchUpdate,
 }) => {
@@ -267,26 +269,48 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                   <Label htmlFor="selectAllRegistered">Select All</Label>
                 </div>
                 {selectedAthletesForApproval.length > 0 && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="gap-2">
-                        <Trash2 className="h-4 w-4" />
-                        Delete Selected ({selectedAthletesForApproval.length})
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently remove {selectedAthletesForApproval.length} selected registration(s). This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteSelectedAthletes}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center gap-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" className="gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          Delete Selected ({selectedAthletesForApproval.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove {selectedAthletesForApproval.length} selected registration(s). This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteSelectedAthletes}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <RotateCcw className="h-4 w-4" />
+                          Revert Status ({selectedAthletesForApproval.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Revert approval status?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will set {selectedAthletesForApproval.length} selected athlete(s) back to "Pending Approval" status.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleRevertApprovalStatus}>Revert</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 )}
               </div>
             )}

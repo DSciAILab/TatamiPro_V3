@@ -33,7 +33,7 @@ export type EventAction =
   | { type: 'UPDATE_ATHLETE'; payload: Athlete }
   | { type: 'DELETE_ATHLETE'; payload: string } // ID
   | { type: 'BULK_DELETE_ATHLETES'; payload: string[] } // IDs
-  | { type: 'UPDATE_REGISTRATION_STATUS'; payload: { ids: string[]; status: 'approved' | 'rejected' } }
+  | { type: 'UPDATE_REGISTRATION_STATUS'; payload: { ids: string[]; status: 'approved' | 'rejected' | 'under_approval' } }
   | { type: 'UPDATE_ATTENDANCE'; payload: { id: string; status: any } }
   | { type: 'SET_SELECTED_ATHLETES'; payload: string[] }
   | { type: 'SET_EDITING_ATHLETE'; payload: Athlete | null }

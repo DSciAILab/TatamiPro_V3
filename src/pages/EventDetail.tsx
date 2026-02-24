@@ -295,6 +295,7 @@ const EventDetail: React.FC = () => {
           handleSelectAllAthletes={handleSelectAllAthletes}
           handleApproveSelected={() => actions.updateRegistrationStatus(selectedAthletesForApproval, 'approved')}
           handleRejectSelected={() => actions.updateRegistrationStatus(selectedAthletesForApproval, 'rejected')}
+          handleRevertApprovalStatus={() => actions.updateRegistrationStatus(selectedAthletesForApproval, 'under_approval')}
           ageDivisionSettings={event.age_division_settings || []}
           onBatchUpdate={actions.batchUpdateAthletes}
         />

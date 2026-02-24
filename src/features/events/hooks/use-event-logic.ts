@@ -160,14 +160,14 @@ export const useEventLogic = (eventId: string | undefined, serverEvent: Event | 
       }
   }, [state.event, eventId]);
 
-  const updateRegistrationStatus = useCallback(async (ids: string[], status: 'approved' | 'rejected') => {
+  const updateRegistrationStatus = useCallback(async (ids: string[], status: 'approved' | 'rejected' | 'under_approval') => {
     if (!state.event || !eventId || ids.length === 0) return;
     const toastId = showLoading(`Updating ${ids.length} athlete(s)...`);
     try {
       await athleteService.updateRegistrationStatus(ids, status);
       dispatch({ type: 'UPDATE_REGISTRATION_STATUS', payload: { ids, status } });
       dismissToast(toastId);
-      showSuccess(`${ids.length} athlete(s) ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
+      showSuccess(`${ids.length} athlete(s) ${status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'reverted to pending'} successfully!`);
     } catch (error: any) {
       dismissToast(toastId);
       showError(`Failed to update athletes: ${error.message}`);

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.19",
+    date: "2026-02-24",
+    features: [
+      "Tabela de Approvals unificada com o layout da tabela de Registered Athletes.",
+      "Select All + Batch Delete na aba Registered Athletes.",
+      "Revert Approval Status: possibilidade de reverter atletas para 'Pending Approval'."
+    ],
+    fixes: [
+      "Peso mínimo de validação corrigido de 20kg para 16kg (compatível com divisões Kids 1/Kids 2)."
+    ]
+  },
+  {
     version: "0.1.18",
     date: "2026-02-23",
     improvements: [

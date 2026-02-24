@@ -60,7 +60,7 @@ export const athleteService = {
   /**
    * Bulk update registration status (Approve/Reject).
    */
-  updateRegistrationStatus: async (ids: string[], status: 'approved' | 'rejected'): Promise<void> => {
+  updateRegistrationStatus: async (ids: string[], status: 'approved' | 'rejected' | 'under_approval'): Promise<void> => {
     const { error } = await supabase
       .from('sjjp_athletes')
       .update({ registration_status: status })
