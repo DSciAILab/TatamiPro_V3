@@ -72,7 +72,7 @@ const EventStaffTab: React.FC<EventStaffTabProps> = ({ eventId }) => {
         id,
         user_id,
         role,
-        profile:profiles(first_name, last_name)
+        profile:sjjp_profiles(first_name, last_name)
       `)
       .eq('event_id', eventId);
 
