@@ -91,13 +91,21 @@ export function useStaffAuth(): UseStaffAuthResult {
   ): Promise<StaffAccessResponse> => {
     setIsLoading(true);
     setError(null);
+    
+    const normalizedToken = tokenString.trim();
+    console.log('[useStaffAuth] Authenticating:', { eventId, token: normalizedToken });
 
     try {
       // First, try to validate locally
-      let validToken = await db.validateToken(tokenString, eventId);
+      let validToken = await db.validateToken(normalizedToken, eventId);
+      
+      if (validToken) {
+        console.log('[useStaffAuth] Validated locally:', validToken.role);
+      }
 
       // If connection mode allows, also validate with server
       if (!validToken && !connectionManager.isOffline) {
+        console.log('[useStaffAuth] Trying server validation...');
         // Try to fetch token from server/Supabase
         try {
           if (connectionManager.isLocal) {
@@ -106,12 +114,13 @@ export function useStaffAuth(): UseStaffAuthResult {
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: tokenString, event_id: eventId }),
+                body: JSON.stringify({ token: normalizedToken, event_id: eventId }),
               }
             );
             if (response.ok) {
               const data = await response.json();
               if (data.token) {
+                console.log('[useStaffAuth] Validated via local API');
                 // Save to local DB
                 await db.staffTokens.put(data.token);
                 validToken = data.token;
@@ -126,17 +135,18 @@ export function useStaffAuth(): UseStaffAuthResult {
                 .from('sjjp_staff_tokens')
                 .select('*')
                 .eq('event_id', eventId)
-                .eq('token', tokenString)
+                .eq('token', normalizedToken)
                 .single();
 
               if (!error && data) {
+                 console.log('[useStaffAuth] Validated via Supabase:', data.role);
                  validToken = {
                    id: data.id,
                    event_id: data.event_id,
                    token: data.token,
-                   role: data.role,
-                   status: data.status,
-                   created_at: data.created_at,
+                   role: data.role as StaffRole,
+                   status: data.status as StaffAccessToken['status'],
+                   created_at: new Date(data.created_at),
                    expires_at: data.expires_at ? new Date(data.expires_at) : undefined,
                    max_uses: data.max_uses,
                    current_uses: data.current_uses,
@@ -144,7 +154,9 @@ export function useStaffAuth(): UseStaffAuthResult {
                  // Save to local DB for future use
                  await db.staffTokens.put(validToken);
               } else if (error) {
-                 console.warn('[useStaffAuth] Supabase validation error:', error);
+                 console.warn('[useStaffAuth] Supabase validation error:', error.message, error.code);
+              } else {
+                 console.log('[useStaffAuth] Token not found in Supabase');
               }
             } catch (supaErr) {
                console.error('[useStaffAuth] Supabase import or query failed:', supaErr);
@@ -157,6 +169,7 @@ export function useStaffAuth(): UseStaffAuthResult {
 
       if (!validToken) {
         const errorMsg = 'Token inválido ou expirado';
+        console.warn('[useStaffAuth] Authentication failed: token not found or invalid');
         setError(errorMsg);
         setIsLoading(false);
         return { valid: false, error: errorMsg };
