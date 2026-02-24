@@ -8,6 +8,23 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.20",
+    date: "2026-02-24",
+    features: [
+      "Refinamento da aba Division Summary: o filtro 'All' agora oculta divisões vazias.",
+      "Novo badge 'Divisions with fight' para identificar categorias com 2+ atletas.",
+      "Posicionamento global de notificações (Toasts) movido para o canto superior direito (Top-Right).",
+    ],
+    improvements: [
+      "Melhoria no fluxo de importação de divisões: reativação automática de divisões deletadas.",
+      "Internationalização (i18n): Gênero e Faixa agora são traduzidos corretamente no resumo de divisões.",
+    ],
+    fixes: [
+      "Correção de erro 'Bad Request' ao salvar evento após deletar divisões com dependências (fallback para Soft-Delete).",
+      "Correção de erro de esquema na importação de divisões (campo helper 'csvRow' removido)."
+    ]
+  },
+  {
     version: "0.1.19",
     date: "2026-02-24",
     features: [

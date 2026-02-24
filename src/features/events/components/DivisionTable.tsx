@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Edit, Save, XCircle, Search } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Save, XCircle, Search, AlertCircle } from 'lucide-react';
 import { Division, DivisionBelt, DivisionGender, AgeCategory, AgeDivisionSetting } from '@/types/index';
 import { showSuccess, showError } from '@/utils/toast';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -66,19 +66,33 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
     setter((prev: any) => ({ ...prev, age_category_name: ageCategoryName, min_age, max_age }));
   };
 
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    divisions.forEach(d => {
+      const name = d.name.trim().toLowerCase();
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    const duplicates = new Set<string>();
+    counts.forEach((count, name) => {
+      if (count > 1) duplicates.add(name);
+    });
+    return duplicates;
+  }, [divisions]);
+
   const filteredDivisions = useMemo(() => {
-    if (!searchTerm) {
-      return divisions;
+    let result = divisions;
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      result = divisions.filter(division =>
+        division.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        division.age_category_name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        t(`gender_${division.gender}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
+        t(`belt_${division.belt}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
+        `${division.min_age}-${division.max_age}`.includes(lowerCaseSearchTerm) ||
+        `${division.max_weight}kg`.includes(lowerCaseSearchTerm)
+      );
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return divisions.filter(division =>
-      division.name.toLowerCase().includes(lowerCaseSearchTerm) ||
-      division.age_category_name.toLowerCase().includes(lowerCaseSearchTerm) ||
-      t(`gender_${division.gender}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
-      t(`belt_${division.belt}` as any).toLowerCase().includes(lowerCaseSearchTerm) ||
-      `${division.min_age}-${division.max_age}`.includes(lowerCaseSearchTerm) ||
-      `${division.max_weight}kg`.includes(lowerCaseSearchTerm)
-    );
+    return result;
   }, [divisions, searchTerm, t]);
 
   const handleAddDivision = () => {
@@ -271,6 +285,16 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       </div>
 
+      {duplicateNames.size > 0 && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md flex items-start gap-3 text-amber-800 dark:text-amber-200">
+          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">Divisões duplicadas detectadas</p>
+            <p className="text-xs opacity-90">Existem divisões com nomes idênticos. Para resolver, clique em "SALVAR" no final da página (as duplicatas serão mescladas automaticamente).</p>
+          </div>
+        </div>
+      )}
+
       {selectedDivisionIds.length > 0 && (
         <div className="flex space-x-2 mb-4">
           <Button onClick={handleBatchEnable} variant="outline">{t('enableSelected')} ({selectedDivisionIds.length})</Button>
@@ -323,11 +347,27 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
           </TableHeader>
           <TableBody>
             {filteredDivisions.map((division) => (
-              <TableRow key={division.id} className={cn(!division.is_enabled && "text-muted-foreground")}>
+              <TableRow 
+                key={division.id} 
+                className={cn(
+                  !division.is_enabled && "text-muted-foreground",
+                  duplicateNames.has(division.name.trim().toLowerCase()) && "bg-amber-50/50 dark:bg-amber-900/10"
+                )}
+              >
                 {editingDivisionId === division.id && currentEdit ? (
                   <>
                     <TableCell /> {/* Empty cell for checkbox in edit mode */}
-                    <TableCell><Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} /></TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Input value={currentEdit.name} onChange={(e) => setCurrentEdit(prev => prev ? { ...prev, name: e.target.value } : null)} />
+                        {duplicateNames.has(division.name.trim().toLowerCase()) && (
+                          <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                            <AlertCircle className="h-3 w-3" />
+                            Nome duplicado
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select value={currentEdit.age_category_name} onValueChange={(value: AgeCategory) => handleAgeCategoryChange(value, setCurrentEdit as React.Dispatch<React.SetStateAction<any>>)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -378,7 +418,14 @@ const DivisionTable: React.FC<DivisionTableProps> = ({ divisions, onUpdateDivisi
                         onCheckedChange={(checked: boolean) => handleToggleSelectDivision(division.id, checked)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{division.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{division.name}</span>
+                        {duplicateNames.has(division.name.trim().toLowerCase()) && (
+                          <AlertCircle className="h-4 w-4 text-amber-500" />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{division.age_category_name} ({division.min_age}-{division.max_age})</TableCell>
                     <TableCell>Até {division.max_weight}kg</TableCell>
                     <TableCell>{t(`gender_${division.gender}` as any)}</TableCell>

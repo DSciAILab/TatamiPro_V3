@@ -117,23 +117,50 @@ export const eventService = {
      
      if (fetchError) throw fetchError;
      
+     // Deduplicate divisions by name as a safety measure (Defense in Depth)
+     // Also trim names to ensure consistency
+     const uniqueByName = new Map<string, Division>();
+     divisions.forEach(d => {
+       const trimmedName = d.name.trim();
+       if (!uniqueByName.has(trimmedName)) {
+         uniqueByName.set(trimmedName, { ...d, name: trimmedName });
+       } else {
+         console.warn(`[eventService] Redundant division name detected and skipped: ${trimmedName}`);
+       }
+     });
+     const uniqueDivisions = Array.from(uniqueByName.values());
+
      const existingIds = new Set(existingDivisions?.map(d => d.id) || []);
-     const currentIds = new Set(divisions.map(d => d.id));
+     const currentIds = new Set(uniqueDivisions.map(d => d.id));
      
      // Find IDs to delete (in DB but not in current state)
      const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
      
-     // B. Perform Deletions
+     // B. Perform Deletions (with Soft-Delete Fallback)
      if (idsToDelete.length > 0) {
-       const { error: deleteError } = await supabase
-         .from('sjjp_divisions')
-         .delete()
-         .in('id', idsToDelete);
-       if (deleteError) throw deleteError;
+       try {
+         // Attempt physical deletion first
+         const { error: deleteError } = await supabase
+           .from('sjjp_divisions')
+           .delete()
+           .in('id', idsToDelete);
+         
+         if (deleteError) throw deleteError;
+       } catch (err) {
+         console.warn(`[eventService] Physical deletion failed for ${idsToDelete.length} divisions (likely constraints). Falling back to soft-delete.`, err);
+         
+         // Soft-delete: mark them as disabled instead of removing
+         const { error: softDeleteError } = await supabase
+           .from('sjjp_divisions')
+           .update({ is_enabled: false })
+           .in('id', idsToDelete);
+           
+         if (softDeleteError) throw softDeleteError;
+       }
      }
 
      // C. Perform Upserts (Insert New / Update Existing)
-     const divisionsToUpsert = divisions.map(d => ({
+     const divisionsToUpsert = uniqueDivisions.map(d => ({
        ...d,
        event_id: eventId
      }));

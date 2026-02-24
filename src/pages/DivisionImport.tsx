@@ -193,9 +193,10 @@ const DivisionImport: React.FC = () => {
     const loadingToast = showLoading('Processando importação...');
 
     const appId = await getAppId();
-    const successfulDivisionsForDb: any[] = [];
+    const successfulDivisions: any[] = [];
     const failedImports: ImportResult[] = [];
 
+    // 1. Initial Parsing and Trimming
     csvData.forEach((row, index) => {
       try {
         const mappedData: Record<string, any> = {};
@@ -208,11 +209,11 @@ const DivisionImport: React.FC = () => {
         }
         const data = parsed.data;
         const ageBounds = ageCategoryMap[data.age_category_name.toLowerCase()];
-        successfulDivisionsForDb.push({
-          id: uuidv4(),
+        
+        successfulDivisions.push({
           event_id: eventId,
-          app_id: appId, // Required field
-          name: data.name,
+          app_id: appId,
+          name: data.name.trim(), // Trim to prevent subtle duplicates
           min_age: ageBounds.min,
           max_age: ageBounds.max,
           max_weight: data.max_weight,
@@ -220,64 +221,109 @@ const DivisionImport: React.FC = () => {
           belt: data.belt,
           age_category_name: data.age_category_name,
           is_enabled: true,
+          csvRow: index + 2
         });
       } catch (error: any) {
         failedImports.push({ row: index + 2, data: row, reason: error.message });
       }
     });
 
-    // --- Duplicate Detection: Check existing division names in this event ---
-    if (successfulDivisionsForDb.length > 0 && eventId) {
-      const namesToCheck = successfulDivisionsForDb.map(d => d.name).filter(Boolean);
-
-      if (namesToCheck.length > 0) {
-        const { data: existingDivisions } = await supabase
-          .from('sjjp_divisions')
-          .select('name')
-          .eq('event_id', eventId)
-          .in('name', namesToCheck);
-
-        if (existingDivisions && existingDivisions.length > 0) {
-          const existingNames = new Set(existingDivisions.map(d => d.name));
-          const beforeCount = successfulDivisionsForDb.length;
-          const duplicates = successfulDivisionsForDb.filter(d => existingNames.has(d.name));
-
-          // Move duplicates to failed
-          duplicates.forEach(dup => {
-            failedImports.push({
-              row: 0,
-              data: dup,
-              reason: `Duplicado: Divisão "${dup.name}" já existe neste evento.`,
-            });
-          });
-
-          // Remove duplicates from insert list
-          const filtered = successfulDivisionsForDb.filter(d => !existingNames.has(d.name));
-          successfulDivisionsForDb.length = 0;
-          successfulDivisionsForDb.push(...filtered);
-
-          if (duplicates.length > 0) {
-            console.log(`[DivisionImport] ${duplicates.length} duplicados removidos de ${beforeCount}`);
-          }
-        }
+    // 2. Internal CSV Deduplication
+    const internalMap = new Map<string, any>();
+    successfulDivisions.forEach(div => {
+      if (!internalMap.has(div.name)) {
+        internalMap.set(div.name, div);
+      } else {
+        // Log skip for internal duplicate
+        console.log(`[DivisionImport] Ignorando duplicata interna CSV: ${div.name}`);
       }
-    }
+    });
+    const uniqueDivisionsFromCsv = Array.from(internalMap.values());
 
-    if (successfulDivisionsForDb.length > 0) {
-      const { error } = await supabase.from('sjjp_divisions').insert(successfulDivisionsForDb);
-      if (error) {
+    // 3. Database Check & Classification
+    const finalToInsert: any[] = [];
+    const finalToUpdate: any[] = [];
+    let skippedCount = 0;
+
+    if (uniqueDivisionsFromCsv.length > 0 && eventId) {
+      const namesToCheck = uniqueDivisionsFromCsv.map(d => d.name);
+      
+      const { data: existingDivisions, error: fetchError } = await supabase
+        .from('sjjp_divisions')
+        .select('id, name, is_enabled')
+        .eq('event_id', eventId)
+        .in('name', namesToCheck);
+
+      if (fetchError) {
         dismissToast(loadingToast);
-        showError(`Erro ao salvar no banco de dados: ${error.message}`);
+        showError(`Erro ao verificar duplicados: ${fetchError.message}`);
         return;
       }
-      
+
+      const dbMap = new Map<string, {id: string, is_enabled: boolean}>();
+      existingDivisions?.forEach(d => dbMap.set(d.name, d));
+
+      uniqueDivisionsFromCsv.forEach(div => {
+        const { csvRow, ...divData } = div;
+        const existing = dbMap.get(div.name);
+        if (!existing) {
+          // New division
+          finalToInsert.push({
+            ...divData,
+            id: uuidv4()
+          });
+        } else if (!existing.is_enabled) {
+          // Exists but disabled -> RE-ENABLE
+          finalToUpdate.push({
+            ...divData,
+            id: existing.id,
+            is_enabled: true
+          });
+        } else {
+          // Already exists and enabled -> SKIP
+          skippedCount++;
+          failedImports.push({
+            row: csvRow,
+            data: divData,
+            reason: `Ignorado: Divisão "${div.name}" já está ativa neste evento.`,
+          });
+        }
+      });
+    }
+
+    // 4. Batch Operations
+    let insertedCount = 0;
+    let updatedCount = 0;
+
+    if (finalToInsert.length > 0) {
+      const { error } = await supabase.from('sjjp_divisions').insert(finalToInsert);
+      if (error) {
+        dismissToast(loadingToast);
+        showError(`Erro ao inserir novas divisões: ${error.message}`);
+        return;
+      }
+      insertedCount = finalToInsert.length;
+    }
+
+    if (finalToUpdate.length > 0) {
+      // Re-enabling previously "deleted" divisions
+      const { error } = await supabase.from('sjjp_divisions').upsert(finalToUpdate);
+      if (error) {
+        dismissToast(loadingToast);
+        showError(`Erro ao re-ativar divisões: ${error.message}`);
+        return;
+      }
+      updatedCount = finalToUpdate.length;
+    }
+
+    if (insertedCount > 0 || updatedCount > 0) {
       // Save the successful mapping + URL for future use
       await saveStoredMapping('division', csvHeaders, columnMapping as Record<string, string>, sheetUrl || undefined);
     }
 
     dismissToast(loadingToast);
     setImportResults({
-      success: successfulDivisionsForDb.length,
+      success: insertedCount + updatedCount,
       failed: failedImports.length,
       errors: failedImports,
     });

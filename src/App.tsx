@@ -65,7 +65,7 @@ const App = () => (
               <LayoutSettingsProvider>
               <TooltipProvider>
                 <Toaster />
-                <Sonner />
+                <Sonner position="top-right" />
                 <BrowserRouter>
                   <Suspense fallback={<PageSkeleton />}>
                     <Routes>

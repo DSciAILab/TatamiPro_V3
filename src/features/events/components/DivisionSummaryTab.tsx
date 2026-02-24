@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, ChevronDown, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface DivisionGroup {
   division: Division;
@@ -24,6 +25,7 @@ interface DivisionSummaryTabProps {
 }
 
 const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divisions }) => {
+  const { t } = useTranslations();
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('name');
@@ -37,8 +39,8 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
   const divisionGroups = useMemo((): DivisionGroup[] => {
     const grouped = new Map<string, { division: Division; athletes: Athlete[] }>();
 
-    // Initialize all divisions (even empty ones)
-    divisions.forEach(div => {
+    // Initialize only enabled divisions (ignore deleted/disabled ones)
+    divisions.filter(d => d.is_enabled).forEach(div => {
       grouped.set(div.id, { division: div, athletes: [] });
     });
 
@@ -64,9 +66,10 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
 
   // Stats
   const stats = useMemo(() => {
-    const total = divisionGroups.length;
-    const wo = divisionGroups.filter(g => g.athletes.length === 1).length;
-    const full = divisionGroups.filter(g => g.athletes.length >= 2).length;
+    const withAthletes = divisionGroups.filter(g => g.athletes.length > 0);
+    const total = withAthletes.length;
+    const wo = withAthletes.filter(g => g.athletes.length === 1).length;
+    const full = withAthletes.filter(g => g.athletes.length >= 2).length;
     const empty = divisionGroups.filter(g => g.athletes.length === 0).length;
     return { total, wo, full, empty };
   }, [divisionGroups]);
@@ -80,6 +83,9 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
       groups = groups.filter(g => g.athletes.length === 1);
     } else if (filter === 'full') {
       groups = groups.filter(g => g.athletes.length >= 2);
+    } else {
+      // 'all' filter now only shows divisions with at least one athlete
+      groups = groups.filter(g => g.athletes.length > 0);
     }
 
     // Apply search
@@ -184,7 +190,7 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
             )}
             onClick={() => setFilter(filter === 'full' ? 'all' : 'full')}
           >
-            Full Divisions ({stats.full})
+            Divisions with fight ({stats.full})
           </Badge>
         </div>
 
@@ -209,31 +215,31 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('name')}
                 >
-                  Division <SortIcon column="name" />
+                  {t('divisionName')} <SortIcon column="name" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('gender')}
                 >
-                  Gender <SortIcon column="gender" />
+                  {t('gender')} <SortIcon column="gender" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => handleSort('belt')}
                 >
-                  Belt <SortIcon column="belt" />
+                  {t('belt')} <SortIcon column="belt" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50 text-right"
                   onClick={() => handleSort('weight')}
                 >
-                  Max Weight <SortIcon column="weight" />
+                  {t('maxWeight')} <SortIcon column="weight" />
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50 text-center"
                   onClick={() => handleSort('athletes')}
                 >
-                  Athletes <SortIcon column="athletes" />
+                  {t('registeredAthletes')} <SortIcon column="athletes" />
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -270,8 +276,8 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{group.division.name}</TableCell>
-                        <TableCell>{group.division.gender}</TableCell>
-                        <TableCell>{group.division.belt}</TableCell>
+                        <TableCell>{t(`gender_${group.division.gender}` as any)}</TableCell>
+                        <TableCell>{t(`belt_${group.division.belt}` as any)}</TableCell>
                         <TableCell className="text-right">{group.division.max_weight}kg</TableCell>
                         <TableCell className="text-center">
                           <Badge
@@ -294,7 +300,7 @@ const DivisionSummaryTab: React.FC<DivisionSummaryTabProps> = ({ athletes, divis
                             {athlete.first_name} {athlete.last_name}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{athlete.club}</TableCell>
-                          <TableCell className="text-sm">{athlete.belt}</TableCell>
+                          <TableCell className="text-sm">{t(`belt_${athlete.belt}` as any)}</TableCell>
                           <TableCell className="text-right text-sm">{athlete.weight}kg</TableCell>
                           <TableCell></TableCell>
                         </TableRow>
