@@ -112,7 +112,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
                         value={theme || 'default'}
                         onChange={(e) => set_theme?.(e.target.value)}
                     >
-                        <option value="default">Neon (Padrão)</option>
+                        <option value="default">Padrão (Pergaminho)</option>
+                        <option value="neon">Neon (Magenta/Preto)</option>
                         <option value="premium-dojo">Premium Dojo</option>
                         <option value="deep-elite">Deep Elite</option>
                         <option value="desert-gold">Desert Gold</option>
