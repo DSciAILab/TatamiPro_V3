@@ -111,8 +111,8 @@ const Events: React.FC = () => {
           <div key={event.id} className="relative">
             <Link
               to={session ? `/events/${event.id}` : `/p/events/${event.id}`}
-              className={cn("block group", { 'pointer-events-none': !event.is_active })}
-              aria-disabled={!event.is_active}
+              className={cn("block group", { 'pointer-events-none': !event.is_active && profile?.role !== 'admin' })}
+              aria-disabled={!event.is_active && profile?.role !== 'admin'}
             >
               <Card
                 className={cn(
