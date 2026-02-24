@@ -36,7 +36,7 @@ serve(async (req: Request) => {
 
     // Update the profile flag to force password change on next login
     const { error: profileError } = await supabaseAdmin
-      .from('profiles')
+      .from('sjjp_profiles')
       .update({ must_change_password: true })
       .eq('id', userId);
 

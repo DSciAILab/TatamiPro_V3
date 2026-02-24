@@ -40,7 +40,7 @@ serve(async (req: Request) => {
       user = users.find((u: any) => u.email?.toLowerCase() === identifier.toLowerCase());
     } else {
       const { data: profile, error: profileError } = await supabaseAdmin
-        .from('profiles')
+        .from('sjjp_profiles')
         .select('id')
         .eq('username', identifier)
         .single();

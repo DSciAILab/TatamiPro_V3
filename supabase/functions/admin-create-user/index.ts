@@ -52,7 +52,7 @@ serve(async (req: Request) => {
       // We wait a bit to ensure trigger fired or upsert
       await new Promise(r => setTimeout(r, 1000));
       
-      await supabaseAdmin.from('profiles').upsert({
+      await supabaseAdmin.from('sjjp_profiles').upsert({
         id: userId,
         first_name: firstName,
         last_name: lastName,
@@ -62,7 +62,7 @@ serve(async (req: Request) => {
     }
 
     // 2. Assign to Event
-    const { error: assignError } = await supabaseAdmin.from('event_staff').insert({
+    const { error: assignError } = await supabaseAdmin.from('sjjp_event_staff').insert({
       event_id: eventId,
       user_id: userId,
       role: role
