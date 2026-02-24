@@ -22,6 +22,7 @@ import { showSuccess } from '@/utils/toast';
 import { generateCheckInPdf } from '@/utils/pdf-checkin-generator';
 import RegistrationsTable from '@/features/events/components/RegistrationsTable';
 import BatchEditTab from '@/features/events/components/BatchEditTab';
+import DivisionSummaryTab from '@/features/events/components/DivisionSummaryTab';
 import { useTranslations } from '@/hooks/use-translations';
 
 interface RegistrationsTabProps {
@@ -123,6 +124,9 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
       <Tabs value={inscricoesSubTab} onValueChange={setInscricoesSubTab} className="w-full">
         <TabsList className="w-full flex mb-6">
           <TabsTrigger value="registered-athletes" className="flex-1">Registered Athletes</TabsTrigger>
+          {userRole === 'admin' && (
+            <TabsTrigger value="division-summary" className="flex-1">Division Summary</TabsTrigger>
+          )}
           {userRole === 'admin' && (
             <TabsTrigger value="approvals" className="flex-1">Approvals ({athletesUnderApproval.length})</TabsTrigger>
           )}
@@ -331,6 +335,15 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
             />
           </div>
         </TabsContent>
+
+        {userRole === 'admin' && (
+          <TabsContent value="division-summary" className="mt-6">
+            <DivisionSummaryTab
+              athletes={filteredAthletesForDisplay}
+              divisions={event.divisions || []}
+            />
+          </TabsContent>
+        )}
 
         {userRole === 'admin' && (
           <TabsContent value="approvals" className="mt-6">
