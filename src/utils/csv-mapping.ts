@@ -45,12 +45,37 @@ export async function getStoredMapping(fileType: 'division' | 'registration', he
 }
 
 /**
+ * Fetches the last used import URL for a given file type.
+ */
+export async function getLastImportUrl(fileType: 'division' | 'registration'): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('import_column_mappings')
+      .select('last_url')
+      .eq('file_type', fileType)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[CSV Mapping] Error fetching last URL:', error);
+      return null;
+    }
+    return data?.last_url || null;
+  } catch (err) {
+    console.error('[CSV Mapping] Error in getLastImportUrl:', err);
+    return null;
+  }
+}
+
+/**
  * Saves or updates variable column mapping for future use.
  */
 export async function saveStoredMapping(
   fileType: 'division' | 'registration', 
   headers: string[], 
-  mapping: Record<string, string | undefined>
+  mapping: Record<string, string | undefined>,
+  url?: string
 ) {
   try {
      const hash = await generateHeadersHash(headers);
@@ -62,14 +87,17 @@ export async function saveStoredMapping(
 
      if (Object.keys(cleanedMapping).length === 0) return;
 
+     const upsertData: Record<string, any> = {
+       file_type: fileType,
+       headers_hash: hash,
+       mapping: cleanedMapping,
+       updated_at: new Date().toISOString()
+     };
+     if (url) upsertData.last_url = url;
+
      const { error } = await supabase
        .from('import_column_mappings')
-       .upsert({
-         file_type: fileType,
-         headers_hash: hash,
-         mapping: cleanedMapping,
-         updated_at: new Date().toISOString()
-       }, {
+       .upsert(upsertData, {
          onConflict: 'file_type,headers_hash'
        });
 

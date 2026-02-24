@@ -13,7 +13,10 @@ export const changelog: ChangelogEntry[] = [
     features: [
       "Tabela de Approvals unificada com o layout da tabela de Registered Athletes.",
       "Select All + Batch Delete na aba Registered Athletes.",
-      "Revert Approval Status: possibilidade de reverter atletas para 'Pending Approval'."
+      "Revert Approval Status: possibilidade de reverter atletas para 'Pending Approval'.",
+      "Última URL de importação é salva e sugerida automaticamente na próxima importação.",
+      "Detecção de duplicados na importação de atletas (por School ID / Emirates ID).",
+      "Detecção de duplicados na importação de divisões (por nome da divisão)."
     ],
     fixes: [
       "Peso mínimo de validação corrigido de 20kg para 16kg (compatível com divisões Kids 1/Kids 2)."

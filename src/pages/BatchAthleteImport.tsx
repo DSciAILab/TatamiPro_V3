@@ -40,7 +40,7 @@ import { getAgeDivision, getWeightDivision } from "@/utils/athlete-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getAppId } from "@/lib/app-id";
-import { getStoredMapping, saveStoredMapping } from "@/utils/csv-mapping";
+import { getStoredMapping, saveStoredMapping, getLastImportUrl } from "@/utils/csv-mapping";
 
 // Define os campos mínimos esperados no arquivo de importação
 const baseRequiredAthleteFields = {
@@ -235,6 +235,13 @@ const BatchAthleteImport: React.FC = () => {
     };
     fetchSettings();
   }, [eventId]);
+
+  // Load last used URL
+  useEffect(() => {
+    getLastImportUrl('registration').then(url => {
+      if (url) setSheetUrl(url);
+    });
+  }, []);
 
   const mandatoryFieldsConfig = useMemo(() => {
     const storedConfig = localStorage.getItem(
@@ -466,6 +473,45 @@ const BatchAthleteImport: React.FC = () => {
       }
     });
 
+    // --- Duplicate Detection: Check existing emirates_id in this event ---
+    if (successfulAthletesForDb.length > 0 && eventId) {
+      const idsToCheck = successfulAthletesForDb
+        .map(a => a.emirates_id)
+        .filter((id): id is string => !!id && id.trim() !== '');
+
+      if (idsToCheck.length > 0) {
+        const { data: existingAthletes } = await supabase
+          .from('sjjp_athletes')
+          .select('emirates_id')
+          .eq('event_id', eventId)
+          .in('emirates_id', idsToCheck);
+
+        if (existingAthletes && existingAthletes.length > 0) {
+          const existingIds = new Set(existingAthletes.map(a => a.emirates_id));
+          const beforeCount = successfulAthletesForDb.length;
+          const duplicates = successfulAthletesForDb.filter(a => a.emirates_id && existingIds.has(a.emirates_id));
+          
+          // Move duplicates to failed
+          duplicates.forEach(dup => {
+            failedImports.push({
+              row: 0,
+              data: dup,
+              reason: `Duplicado: Atleta com ID ${dup.emirates_id} já existe neste evento.`,
+            });
+          });
+
+          // Remove duplicates from insert list
+          const filteredAthletes = successfulAthletesForDb.filter(a => !a.emirates_id || !existingIds.has(a.emirates_id));
+          successfulAthletesForDb.length = 0;
+          successfulAthletesForDb.push(...filteredAthletes);
+          
+          if (duplicates.length > 0) {
+            console.log(`[BatchImport] ${duplicates.length} duplicados removidos de ${beforeCount}`);
+          }
+        }
+      }
+    }
+
     if (successfulAthletesForDb.length > 0) {
       console.log('[BatchImport] Tentando inserir', successfulAthletesForDb.length, 'atletas');
       console.log('[BatchImport] Primeiro atleta:', successfulAthletesForDb[0]);
@@ -474,6 +520,13 @@ const BatchAthleteImport: React.FC = () => {
         .from("sjjp_athletes")
         .insert(successfulAthletesForDb)
         .select();
+
+      // Check for duplicate constraint errors
+      if (error && error.code === '23505') {
+        dismissToast(loadingToast);
+        showError('Alguns atletas já existem neste evento (duplicados detectados).');
+        return;
+      }
         
       if (error) {
         console.error('[BatchImport] Erro ao inserir:', error);
@@ -499,8 +552,8 @@ const BatchAthleteImport: React.FC = () => {
     dismissToast(loadingToast);
     
     if (successfulAthletesForDb.length > 0) {
-       // Save mapping
-       await saveStoredMapping('registration', csvHeaders, columnMapping as Record<string, string>);
+       // Save mapping + URL
+       await saveStoredMapping('registration', csvHeaders, columnMapping as Record<string, string>, sheetUrl || undefined);
     }
 
     setImportResults({

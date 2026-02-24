@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ import { AgeCategory, DivisionBelt, DivisionGender } from '@/types/index';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { getAppId } from '@/lib/app-id';
-import { getStoredMapping, saveStoredMapping } from '@/utils/csv-mapping';
+import { getStoredMapping, saveStoredMapping, getLastImportUrl } from '@/utils/csv-mapping';
 
 const ageCategoryMap: { [key: string]: { min: number; max: number } } = {
   'kids 1': { min: 4, max: 5 }, 'kids 2': { min: 6, max: 7 }, 'kids 3': { min: 8, max: 9 },
@@ -87,6 +87,13 @@ const DivisionImport: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'map' | 'results'>('upload');
   const [sheetUrl, setSheetUrl] = useState("");
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+
+  // Load last used URL
+  useEffect(() => {
+    getLastImportUrl('division').then(url => {
+      if (url) setSheetUrl(url);
+    });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -219,6 +226,43 @@ const DivisionImport: React.FC = () => {
       }
     });
 
+    // --- Duplicate Detection: Check existing division names in this event ---
+    if (successfulDivisionsForDb.length > 0 && eventId) {
+      const namesToCheck = successfulDivisionsForDb.map(d => d.name).filter(Boolean);
+
+      if (namesToCheck.length > 0) {
+        const { data: existingDivisions } = await supabase
+          .from('sjjp_divisions')
+          .select('name')
+          .eq('event_id', eventId)
+          .in('name', namesToCheck);
+
+        if (existingDivisions && existingDivisions.length > 0) {
+          const existingNames = new Set(existingDivisions.map(d => d.name));
+          const beforeCount = successfulDivisionsForDb.length;
+          const duplicates = successfulDivisionsForDb.filter(d => existingNames.has(d.name));
+
+          // Move duplicates to failed
+          duplicates.forEach(dup => {
+            failedImports.push({
+              row: 0,
+              data: dup,
+              reason: `Duplicado: Divisão "${dup.name}" já existe neste evento.`,
+            });
+          });
+
+          // Remove duplicates from insert list
+          const filtered = successfulDivisionsForDb.filter(d => !existingNames.has(d.name));
+          successfulDivisionsForDb.length = 0;
+          successfulDivisionsForDb.push(...filtered);
+
+          if (duplicates.length > 0) {
+            console.log(`[DivisionImport] ${duplicates.length} duplicados removidos de ${beforeCount}`);
+          }
+        }
+      }
+    }
+
     if (successfulDivisionsForDb.length > 0) {
       const { error } = await supabase.from('sjjp_divisions').insert(successfulDivisionsForDb);
       if (error) {
@@ -227,8 +271,8 @@ const DivisionImport: React.FC = () => {
         return;
       }
       
-      // Save the successful mapping for future use
-      await saveStoredMapping('division', csvHeaders, columnMapping as Record<string, string>);
+      // Save the successful mapping + URL for future use
+      await saveStoredMapping('division', csvHeaders, columnMapping as Record<string, string>, sheetUrl || undefined);
     }
 
     dismissToast(loadingToast);
