@@ -93,12 +93,13 @@ const App = () => (
                     <Route path="/public/events/:id/register" element={<DynamicRedirect to="/p/events/:id/register" />} />
                     <Route path="/public/register/:id" element={<DynamicRedirect to="/p/register/:id" />} />
                     {/* Staff routes */}
-                    <Route path="/staff/:eventId/:token" element={<StaffAccess />} />
-                    <Route path="/staff/:eventId/check-in/:token" element={<StaffCheckIn />} />
-                    <Route path="/staff/:eventId/check_in/:token" element={<StaffCheckIn />} />
-                    <Route path="/staff/:eventId/bracket/:token" element={<StaffBracket />} />
-                    <Route path="/staff/:eventId/bracket/:token/fight/:divisionId/:matchId" element={<StaffFightDetail />} />
-                    <Route path="/staff/:eventId/results/:token" element={<StaffResults />} />
+                     <Route path="/staff/:eventId/:token" element={<StaffAccess />} />
+                     <Route path="/staff/:eventId/check-in/:token" element={<StaffCheckIn />} />
+                     <Route path="/staff/:eventId/check_in/:token" element={<StaffCheckIn />} />
+                     <Route path="/staff/:eventId/bracket/:token" element={<StaffBracket />} />
+                     <Route path="/staff/:eventId/bracket/:token/fight/:divisionId/:matchId" element={<StaffFightDetail />} />
+                     <Route path="/staff/:eventId/results/:token" element={<StaffResults />} />
+                     <Route path="/staff/:eventId/admin/:token" element={<Navigate to="/events/:eventId" replace />} />
                     </Routes>
                   </Suspense>
                 </BrowserRouter>

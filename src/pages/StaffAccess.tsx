@@ -45,9 +45,22 @@ const StaffAccess: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (manualToken.trim()) {
-      handleAuthenticate(manualToken.trim());
+    const input = manualToken.trim();
+    if (!input) return;
+
+    // Check if it's a full URL
+    if (input.includes('/staff/')) {
+      try {
+        const parts = input.split('/');
+        const token = parts[parts.length - 1]; // last segment is token
+        handleAuthenticate(token);
+        return;
+      } catch (err) {
+        console.error('Error parsing input URL:', err);
+      }
     }
+
+    handleAuthenticate(input);
   };
 
   if (isLoading || isValidating) {
