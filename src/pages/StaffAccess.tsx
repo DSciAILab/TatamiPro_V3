@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, QrCode, KeyRound, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import QRScannerDialog from '@/components/QRScannerDialog';
 
 /**
  * Staff Access Page
@@ -109,18 +110,30 @@ const StaffAccess: React.FC = () => {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            size="lg"
-            onClick={() => {
-              // TODO: Implement QR scanner
-              alert('Scanner de QR Code em desenvolvimento');
+          <QRScannerDialog
+            onScan={(decodedText) => {
+              console.log('[STAFF_ACCESS] QR Scanned:', decodedText);
+              
+              // Handle full URL
+              if (decodedText.includes('/staff/')) {
+                try {
+                  const parts = decodedText.split('/');
+                  const token = parts[parts.length - 1]; // last segment is token
+                  handleAuthenticate(token);
+                  return;
+                } catch (err) {
+                  console.error('Error parsing QR URL:', err);
+                }
+              }
+
+              // Handle plain token
+              handleAuthenticate(decodedText.trim());
             }}
-          >
-            <QrCode className="mr-2 h-5 w-5" />
-            Escanear QR Code
-          </Button>
+            triggerLabel="Escanear QR Code"
+            triggerVariant="outline"
+            triggerClassName="w-full"
+            description="Aponte a câmera para o QR Code de acesso staff."
+          />
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             Não tem um código de acesso? <br />

@@ -16,6 +16,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import BiometricLogin from '@/components/BiometricLogin';
 import { Loader2, LogIn } from 'lucide-react';
 import { useTranslations } from '@/hooks/use-translations';
+import QRScannerDialog from '@/components/QRScannerDialog';
 
 const Auth: React.FC = () => {
   const { session } = useAuth();
@@ -129,7 +130,46 @@ const Auth: React.FC = () => {
             </form>
 
             <BiometricLogin />
-            
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+
+            <QRScannerDialog 
+              onScan={(decodedText: string) => {
+                console.log('[AUTH] QR Scanned:', decodedText);
+                try {
+                  // If it's a full URL and belongs to our app
+                  if (decodedText.startsWith(window.location.origin)) {
+                    const path = decodedText.replace(window.location.origin, '');
+                    if (path.startsWith('/staff/')) {
+                      showSuccess("Staff QR detected! Redirecting...");
+                      navigate(path);
+                      return;
+                    }
+                  }
+                  
+                  // fallback for relative paths if scanner doesn't include origin
+                  if (decodedText.startsWith('/staff/')) {
+                    showSuccess("Staff QR detected! Redirecting...");
+                    navigate(decodedText);
+                    return;
+                  }
+
+                  showError("QR Code inválido para login.");
+                } catch (err) {
+                  showError("Erro ao processar QR Code.");
+                }
+              }}
+              triggerLabel="Login via QR Code"
+              triggerVariant="outline"
+              description="Escanear o QR Code fornecido pelo administrador para acesso rápido."
+            />
           </CardContent>
         </Card>
       </div>
