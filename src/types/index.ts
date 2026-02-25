@@ -60,7 +60,7 @@ export interface Athlete {
   consent_version: string;
   payment_proof_url?: string | null;
   registration_status: 'under_approval' | 'approved' | 'rejected';
-  check_in_status: 'pending' | 'checked_in' | 'overweight';
+  check_in_status: 'pending' | 'checked_in' | 'overweight' | 'wo';
   registered_weight?: number | null;
   weight_attempts: WeightAttempt[];
   attendance_status: 'pending' | 'present' | 'absent' | 'private_transportation';

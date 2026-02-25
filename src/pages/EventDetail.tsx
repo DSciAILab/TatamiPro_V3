@@ -147,7 +147,6 @@ const EventDetail: React.FC = () => {
 
   const visibleTabs = useMemo(() => [
     can('event.settings') && { value: 'config', label: 'Config' },
-    can('staff.view') && { value: 'staff', label: 'Staff' },
     { value: 'inscricoes', label: 'Registrations' },
     (event?.is_attendance_mandatory_before_check_in && can('attendance.manage')) && { value: 'attendance', label: 'Attendance' },
     can('checkin.manage') && { value: 'checkin', label: 'Check-in' },
@@ -260,10 +259,6 @@ const EventDetail: React.FC = () => {
           set_theme={(value) => actions.updateEventProperty('theme', value)}
           onUpdateCheckInConfig={(config) => actions.updateEventProperty('check_in_config', config)}
         />
-      )}
-
-      {activeTab === 'staff' && (
-        <EventStaffTab eventId={eventId!} />
       )}
 
       {activeTab === 'inscricoes' && (

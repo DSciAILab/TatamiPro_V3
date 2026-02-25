@@ -150,7 +150,7 @@ const PublicEvent: React.FC = () => {
           onSuccess={() => setHasLeadAccess(true)}
         />
         <div className="text-center mt-8">
-          <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
+          <h1 className="text-4xl font-bold mb-4 gradient-text text-glow">{event.name}</h1>
           <p className="text-lg text-muted-foreground">Complete o cadastro para acessar o evento.</p>
         </div>
       </PublicLayout>
@@ -159,20 +159,45 @@ const PublicEvent: React.FC = () => {
 
   return (
     <PublicLayout className={`theme-${event.theme || 'default'}`}>
-      <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
+      <h1 className="text-4xl font-bold mb-4 gradient-text text-glow">{event.name}</h1>
       <p className="text-lg text-muted-foreground mb-8">{event.description}</p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6 overflow-x-auto">
+          <TabsTrigger value="divisions">{t('divisionSummary') || 'Divisions'}</TabsTrigger>
           <TabsTrigger value="brackets">{t('brackets')}</TabsTrigger>
           <TabsTrigger value="fights">{t('fightOrder')}</TabsTrigger>
           <TabsTrigger value="registrations">{t('registrations')}</TabsTrigger>
           <TabsTrigger value="results">{t('results')}</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="divisions" className="mt-6">
+           <Card>
+            <CardHeader>
+              <CardTitle>{t('divisionSummary') || 'Division Summary'}</CardTitle>
+              <CardDescription>Overview of all divisions and registered athletes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DivisionSummaryTab
+                athletes={approvedAthletes}
+                divisions={event.divisions || []}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="registrations" className="mt-6">
-          <DivisionSummaryTab
-            athletes={event.athletes || []}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search athlete..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <AthleteListTable
+            athletes={approvedAthletes}
             divisions={event.divisions || []}
           />
         </TabsContent>

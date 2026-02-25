@@ -20,9 +20,11 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
-  LogOut
+  LogOut,
+  Ban,
+  Undo2
 } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 /**
  * Staff Check-in Page
@@ -181,6 +183,112 @@ const StaffCheckIn: React.FC = () => {
     setPendingCount(await db.getPendingCount());
   };
 
+  const handleEndCheckIn = async () => {
+    if (!window.confirm("Atenção: Todos os atletas 'Pendentes' serão alterados para 'W.O.' (Walkover) e não entrarão nas chaves. Deseja continuar?")) {
+      return;
+    }
+
+    const toastId = showLoading("Encerrando check-in...");
+    const pendingAthletes = athletes.filter(a => a.check_in_status === 'pending');
+    const timestamp = new Date().toISOString();
+
+    try {
+      // 1. Optimistic UI update
+      setAthletes(prev => 
+        prev.map(a => a.check_in_status === 'pending' ? { ...a, check_in_status: 'wo', attendance_last_updated: timestamp } : a)
+      );
+
+      // 2. Update local DB
+      await Promise.all(pendingAthletes.map(a => 
+         db.athletes.update(a.id, { check_in_status: 'wo' })
+      ));
+
+      // 3. Queue for sync
+      for (const athlete of pendingAthletes) {
+        await db.pendingChanges.add({
+          table: 'athletes',
+          action: 'update',
+          data: { id: athlete.id, check_in_status: 'wo', attendance_last_updated: timestamp },
+          timestamp: Date.now(),
+          synced: false,
+        });
+
+        if (connectionManager.socket?.connected) {
+          connectionManager.emit('checkin:update', {
+            eventId,
+            athleteId: athlete.id,
+            status: 'wo',
+          });
+        }
+      }
+
+      // 5. If online, bulk sync
+      if (connectionManager.mode === 'cloud') {
+        const pendingIds = pendingAthletes.map(a => a.id);
+        if (pendingIds.length > 0) {
+           await supabase
+             .from('sjjp_athletes')
+             .update({ check_in_status: 'wo', attendance_last_updated: timestamp })
+             .in('id', pendingIds);
+        }
+      }
+
+      showSuccess(`Check-in encerrado. ${pendingAthletes.length} atletas marcados como W.O.`);
+      setPendingCount(await db.getPendingCount());
+    } catch (error) {
+      console.error('[StaffCheckIn] End check-in error:', error);
+      showError('Erro ao encerrar check-in. Tente novamente.');
+    } finally {
+      dismissToast(toastId);
+    }
+  };
+
+  const handleRevertCheckIn = async (athlete: Athlete, e: React.MouseEvent) => {
+    e.stopPropagation(); // Previne acionar o handleCheckIn do card
+    if (!window.confirm(`Deseja reverter o status de ${athlete.first_name} para Pendente?`)) return;
+    
+    // Optimistically set to pending
+    const newStatus = 'pending';
+    const timestamp = new Date().toISOString();
+
+    // 1. Optimistic update
+    setAthletes(prev => 
+      prev.map(a => a.id === athlete.id ? { ...a, check_in_status: newStatus, attendance_last_updated: timestamp } : a)
+    );
+
+    // 2. Update local DB
+    await db.athletes.update(athlete.id, { check_in_status: newStatus });
+
+    // 3. Queue for sync
+    await db.pendingChanges.add({
+      table: 'athletes',
+      action: 'update',
+      data: { id: athlete.id, check_in_status: newStatus, attendance_last_updated: timestamp },
+      timestamp: Date.now(),
+      synced: false,
+    });
+
+    if (connectionManager.socket?.connected) {
+      connectionManager.emit('checkin:update', { eventId, athleteId: athlete.id, status: newStatus });
+    }
+
+    // 5. If online, sync immediately
+    if (connectionManager.mode === 'cloud') {
+      try {
+        await supabase
+          .from('sjjp_athletes')
+          .update({ check_in_status: newStatus, attendance_last_updated: timestamp })
+          .eq('id', athlete.id);
+        
+        showSuccess(`Status revertido para Pendente`);
+      } catch (error) {
+        showError('Status revertido localmente. Sincronizará quando online.');
+      }
+    }
+    
+    setPendingCount(await db.getPendingCount());
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -208,7 +316,7 @@ const StaffCheckIn: React.FC = () => {
       <header className="sticky top-0 z-50 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold truncate">{event?.name || 'Evento'}</h1>
+            <h1 className="text-lg font-semibold truncate gradient-text">{event?.name || 'Evento'}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {isOnline ? (
                 <span className="flex items-center text-green-500">
@@ -227,6 +335,9 @@ const StaffCheckIn: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" onClick={handleEndCheckIn} className="text-xs mr-2">
+              <Ban className="h-4 w-4 mr-1" /> Encerrar
+            </Button>
             <Button variant="ghost" size="icon" onClick={loadData}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -239,23 +350,23 @@ const StaffCheckIn: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 p-4">
-        <Card className="text-center">
+        <Card className="text-center gradient-border transition-all duration-300 hover:glow-primary">
           <CardContent className="py-3">
-            <p className="text-2xl font-bold">{athletes.length}</p>
+            <p className="text-2xl font-bold gradient-text">{athletes.length}</p>
             <p className="text-xs text-muted-foreground">Total</p>
           </CardContent>
         </Card>
-        <Card className="text-center bg-green-500/10">
+        <Card className="text-center bg-success/10 border-success/30 transition-all duration-300 hover:glow-accent">
           <CardContent className="py-3">
-            <p className="text-2xl font-bold text-green-500">
+            <p className="text-2xl font-bold text-success">
               {athletes.filter(a => a.check_in_status === 'checked_in').length}
             </p>
             <p className="text-xs text-muted-foreground">Check-in</p>
           </CardContent>
         </Card>
-        <Card className="text-center bg-orange-500/10">
+        <Card className="text-center bg-pending/10 border-pending/30 transition-all duration-300">
           <CardContent className="py-3">
-            <p className="text-2xl font-bold text-orange-500">
+            <p className="text-2xl font-bold text-pending">
               {athletes.filter(a => a.check_in_status === 'pending').length}
             </p>
             <p className="text-xs text-muted-foreground">Pendente</p>
@@ -287,9 +398,15 @@ const StaffCheckIn: React.FC = () => {
             <Card 
               key={athlete.id}
               className={`cursor-pointer transition-all active:scale-[0.98] ${
-                athlete.check_in_status === 'checked_in' ? 'border-green-500/50 bg-green-500/5' : ''
+                athlete.check_in_status === 'checked_in' ? 'border-green-500/50 bg-green-500/5' : 
+                athlete.check_in_status === 'wo' as any ? 'border-destructive/30 bg-destructive/5' : ''
               }`}
-              onClick={() => handleCheckIn(athlete)}
+              onClick={() => {
+                 // Only allow tap to check-in if pending. If checked_in/wo, require explicit revert click to avoid accidents.
+                 if (athlete.check_in_status === 'pending') {
+                    handleCheckIn(athlete);
+                 }
+              }}
             >
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -316,11 +433,27 @@ const StaffCheckIn: React.FC = () => {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   {athlete.check_in_status === 'checked_in' ? (
-                    <CheckCircle className="h-8 w-8 text-green-500" />
+                    <div className="flex flex-col items-center gap-2">
+                      <CheckCircle className="h-8 w-8 text-green-500" />
+                      {!event?.is_weight_check_enabled && (
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground" onClick={(e) => handleRevertCheckIn(athlete, e)}>
+                            <Undo2 className="h-3 w-3 mr-1" /> Reverter
+                          </Button>
+                      )}
+                    </div>
                   ) : athlete.check_in_status === 'overweight' ? (
                     <Scale className="h-8 w-8 text-red-500" />
+                  ) : athlete.check_in_status === 'wo' as any ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Badge variant="destructive" className="font-bold uppercase tracking-widest text-xs px-2 py-1">W.O.</Badge>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground" onClick={(e) => handleRevertCheckIn(athlete, e)}>
+                         <Undo2 className="h-3 w-3 mr-1" /> Reverter
+                      </Button>
+                    </div>
                   ) : (
-                    <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/50" />
+                    <div className="flex flex-col items-center justify-center">
+                        <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/50 transition-all group-hover:bg-primary/10 group-hover:border-primary/50" />
+                    </div>
                   )}
                   {athlete.emirates_id && (
                     <span className="text-xs font-mono text-muted-foreground">

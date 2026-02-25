@@ -1,0 +1,3 @@
+1. atualmente nao se é possivel reverter o status do check in, quando o check in é feito sem registrar o peso, somente com a confirmação
+2. o evento é feito em etapas, 1-registros, 2-attendance, 3-check in, 4-Brackets, 5-results, e cada um tem sua particularidade de status, exemplo uma pessoa que fez registro e foi aprovada, nao quer dizer que no check in o status do check in é aprovado., cada etapa demandam os andamentos de cada etapa, exemplo uma pessoa que ve a lista por fora do sistema nao sabe qual etapa já foi e qual ainda esta para ser concluída, uma boa op'ão é termos badges personalizados
+exemplo ao inves de pending podemos ter check-in pending, ou registration, pending, ou bracket check-in pending, ou results, pending,

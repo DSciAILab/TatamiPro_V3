@@ -57,6 +57,14 @@ export const getAthleteStatusInBracket = (athleteId: string, bracket: Bracket, e
   if (bracket.third_place_match) {
     allMatches.push(bracket.third_place_match);
   }
+
+  // Handle 3-person bracket specific logic where loser of M2 is 3rd place
+  if (bracket.bracket_size === 3 && bracket.rounds?.length >= 2) {
+      const match2 = bracket.rounds[1]?.[0];
+      if (match2 && match2.loser_id === athleteId && match2.winner_id) {
+          return { placing: '3rd' };
+      }
+  }
   
   for (const match of allMatches) {
     if (match.loser_id === athleteId && match.winner_id) {

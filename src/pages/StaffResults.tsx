@@ -177,7 +177,7 @@ const StaffResults: React.FC = () => {
       <header className="sticky top-0 z-50 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold truncate">{event?.name || 'Evento'}</h1>
+            <h1 className="text-lg font-semibold truncate gradient-text">{event?.name || 'Evento'}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {isOnline ? (
                 <span className="flex items-center text-green-500">
@@ -203,17 +203,17 @@ const StaffResults: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 p-4">
-        <Card className="text-center bg-green-500/10">
+        <Card className="text-center bg-success/10 border-success/30 transition-all duration-300 hover:glow-primary">
           <CardContent className="py-3">
-            <p className="text-2xl font-bold text-green-500">
+            <p className="text-2xl font-bold text-success">
               {completedDivisions.length}
             </p>
             <p className="text-xs text-muted-foreground">Finalizadas</p>
           </CardContent>
         </Card>
-        <Card className="text-center bg-orange-500/10">
+        <Card className="text-center bg-pending/10 border-pending/30 transition-all duration-300">
           <CardContent className="py-3">
-            <p className="text-2xl font-bold text-orange-500">
+            <p className="text-2xl font-bold text-pending">
               {inProgressDivisions.length}
             </p>
             <p className="text-xs text-muted-foreground">Em andamento</p>
@@ -223,7 +223,7 @@ const StaffResults: React.FC = () => {
 
       {/* Completed Results */}
       <div className="px-4 space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           RESULTADOS FINAIS
         </h2>
 

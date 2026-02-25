@@ -33,7 +33,7 @@ export const DivisionTable = ({
       <TableHeader className="border-b border-border/50 bg-transparent">
         <TableRow className="border-none hover:bg-transparent">
           <TableHead 
-            className="cursor-pointer hover:bg-muted/50 font-serif text-muted-foreground tracking-wide text-base transition-colors"
+            className="cursor-pointer hover:bg-muted/50 font-sans font-semibold text-muted-foreground tracking-wide text-base transition-colors"
             onClick={() => onSort('category')}
           >
             <div className="flex items-center gap-2">
@@ -42,7 +42,7 @@ export const DivisionTable = ({
             </div>
           </TableHead>
           <TableHead 
-            className="text-center cursor-pointer hover:bg-muted/50 font-serif text-muted-foreground tracking-wide text-base transition-colors"
+            className="text-center cursor-pointer hover:bg-muted/50 font-sans font-semibold text-muted-foreground tracking-wide text-base transition-colors"
             onClick={() => onSort('athletes')}
           >
             <div className="flex items-center justify-center gap-2">
@@ -51,7 +51,7 @@ export const DivisionTable = ({
             </div>
           </TableHead>
           <TableHead 
-            className="text-center cursor-pointer hover:bg-muted/50 font-serif text-muted-foreground tracking-wide text-base transition-colors"
+            className="text-center cursor-pointer hover:bg-muted/50 font-sans font-semibold text-muted-foreground tracking-wide text-base transition-colors"
             onClick={() => onSort('remaining')}
           >
             <div className="flex items-center justify-center gap-2">
@@ -59,9 +59,9 @@ export const DivisionTable = ({
               <ArrowUpDown className="h-4 w-4" />
             </div>
           </TableHead>
-          <TableHead className="text-center font-serif text-muted-foreground tracking-wide text-base">Tempo Est.</TableHead>
+          <TableHead className="text-center font-sans font-semibold text-muted-foreground tracking-wide text-base">Tempo Est.</TableHead>
           <TableHead 
-            className="text-right cursor-pointer hover:bg-muted/50 font-serif text-muted-foreground tracking-wide text-base transition-colors"
+            className="text-right cursor-pointer hover:bg-muted/50 font-sans font-semibold text-muted-foreground tracking-wide text-base transition-colors"
             onClick={() => onSort('status')}
           >
             <div className="flex items-center justify-end gap-2">
@@ -97,7 +97,7 @@ export const DivisionTable = ({
                 // Use bracket ID for toggling expansion if possible
                 onClick={() => onToggleExpansion(bracketId)}
               >
-                <TableCell className="font-serif text-lg text-foreground tracking-tight">
+                <TableCell className="font-sans font-semibold text-lg text-foreground tracking-tight">
                   <div className="flex items-center gap-3">
                     {expandedDivisions.has(bracketId) ? (
                       <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />

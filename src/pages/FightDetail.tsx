@@ -247,7 +247,7 @@ const FightDetail: React.FC = () => {
   }, [eventId, isOfflineMode, loadFightData]);
 
   const athletesMap = useMemo(() => {
-    return new Map(event?.athletes?.map(athlete => [athlete.id, athlete]) || []);
+    return new Map<string, Athlete>(event?.athletes?.map(athlete => [athlete.id, athlete]) || []);
   }, [event?.athletes]);
 
 
@@ -377,12 +377,13 @@ const FightDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col mb-8 pb-4">
-        <div className="flex justify-between items-end">
-           <div>
-               <h2 className="text-lg font-serif italic text-muted-foreground tracking-wide mb-2">{getDivisionName()}</h2>
-               <h1 className="text-4xl font-serif text-foreground tracking-tight"><span className="text-primary/70">{currentMatch._mat_name}</span> <span className="text-muted-foreground ml-2">Luta {fightNumberDisplay}</span></h1>
-           </div>
+      <div className={`theme-${event.theme || 'default'} min-h-screen bg-background text-foreground p-8`}>
+        <div className="flex flex-col mb-8 pb-4">
+          <div className="flex justify-between items-end">
+             <div>
+                 <h2 className="text-lg font-sans font-bold italic text-muted-foreground tracking-wide mb-2">{getDivisionName()}</h2>
+                 <h1 className="text-4xl font-sans font-bold text-foreground tracking-tight"><span className="text-primary/70">{currentMatch._mat_name}</span> <span className="text-muted-foreground ml-2">Luta {fightNumberDisplay}</span></h1>
+             </div>
            <Button onClick={handleGoBack} variant="outline" className="border border-border/50 font-medium rounded-full shadow-sm hover:bg-muted/30 transition-all">
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
            </Button>
@@ -391,7 +392,7 @@ const FightDetail: React.FC = () => {
 
       <Card className={`mb-8 border rounded-3xl shadow-sm bg-card transition-all ${isFightCompleted ? 'border-success/50' : isByeFight ? 'border-primary/50' : 'border-border/50'}`}>
         <CardHeader className="border-b border-border/30 bg-transparent pb-6">
-          <CardTitle className="text-3xl font-serif tracking-tight text-foreground">Detalhes da Luta <span className="text-muted-foreground font-medium text-lg ml-2">({currentRoundName})</span></CardTitle>
+          <CardTitle className="text-3xl font-sans font-bold tracking-tight text-foreground">Detalhes da Luta <span className="text-muted-foreground font-medium text-lg ml-2">({currentRoundName})</span></CardTitle>
           <CardDescription className="text-base font-medium mt-2">Registre o resultado desta luta.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 py-4">
@@ -436,7 +437,7 @@ const FightDetail: React.FC = () => {
           : isPendingFight ? <p className="text-center font-medium text-muted-foreground mt-8 text-lg italic">Aguardando adversário(s) para esta luta.</p>
           : isFightCompleted ? (
             <div className="text-center mt-8 p-8 bg-success/5 border border-success/30 rounded-3xl shadow-sm">
-              <p className="text-4xl font-serif text-success tracking-tight">Vencedor: {getFighterDisplayName(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-4 h-10 w-10 text-success opacity-80" /></p>
+              <p className="text-4xl font-sans font-bold text-success tracking-tight">Vencedor: {getFighterDisplayName(athletesMap.get(currentMatch.winner_id!))} <Trophy className="inline-block ml-4 h-10 w-10 text-success opacity-80" /></p>
               <div className="flex gap-4 justify-center mt-6">
                 <span className="px-6 py-2 bg-background border border-border/50 rounded-full font-medium text-lg text-foreground shadow-sm">{currentMatch.result?.type}</span>
                 {currentMatch.result?.details && <span className="px-6 py-2 bg-background border border-border/50 rounded-full font-medium text-lg text-foreground shadow-sm">{currentMatch.result.details}</span>}
@@ -460,21 +461,21 @@ const FightDetail: React.FC = () => {
                 disabled={!isFightRecordable || isFightCompleted}
               />
               <div className="grid gap-3 mt-6">
-                <Label htmlFor="resultDetails" className="font-serif text-xl text-foreground">Detalhes (Opcional)</Label>
+                <Label htmlFor="resultDetails" className="font-sans font-bold text-xl text-foreground">Detalhes (Opcional)</Label>
                 <Input id="resultDetails" className="border border-border/50 rounded-2xl font-medium text-lg p-6 bg-background shadow-inner transition-colors focus-visible:ring-primary/50" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
               </div>
-              <Button onClick={handleRecordResult} className="w-full mt-8 py-8 font-serif text-2xl rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado</Button>
+              <Button onClick={handleRecordResult} className="w-full mt-8 py-8 font-sans font-bold text-2xl rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado</Button>
             </>
           )}
 
           {showPostFightOptions && !showRoundEndDialog && (
             <div className="flex gap-4 mt-8 pt-8 border-t border-border/30">
               {findNextFightInDivision() && (
-                <Button onClick={handleNextFightInDivision} className="flex-1 py-8 font-serif text-2xl rounded-2xl border border-primary/20 hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
+                <Button onClick={handleNextFightInDivision} className="flex-1 py-8 font-sans font-bold text-2xl rounded-2xl border border-primary/20 hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
                   <ArrowRight className="mr-4 h-6 w-6" /> Próxima Luta
                 </Button>
               )}
-              <Button variant="outline" onClick={handleGoBack} className="flex-1 py-8 font-serif text-2xl rounded-2xl border border-border/50 hover:bg-muted/50 transition-all shadow-sm hover:shadow-md">
+              <Button variant="outline" onClick={handleGoBack} className="flex-1 py-8 font-sans font-bold text-2xl rounded-2xl border border-border/50 hover:bg-muted/50 transition-all shadow-sm hover:shadow-md">
                 <ArrowLeft className="mr-4 h-6 w-6" /> Voltar
               </Button>
             </div>
@@ -484,7 +485,7 @@ const FightDetail: React.FC = () => {
 
       {/* Revert Result Confirmation Dialog */}
       <AlertDialog open={showRevertDialog} onOpenChange={setShowRevertDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className={`theme-${event.theme || 'default'} bg-background text-foreground`}>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-destructive" />
@@ -517,7 +518,7 @@ const FightDetail: React.FC = () => {
       </AlertDialog>
 
       <AlertDialog open={showRoundEndDialog} onOpenChange={setShowRoundEndDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className={`theme-${event.theme || 'default'} bg-background text-foreground`}>
           <AlertDialogHeader>
             <AlertDialogTitle>Fim da {currentRoundName}</AlertDialogTitle>
             <AlertDialogDescription>Todas as lutas da {currentRoundName} foram concluídas. O que você gostaria de fazer a seguir?</AlertDialogDescription>
@@ -533,7 +534,7 @@ const FightDetail: React.FC = () => {
 
       {/* Division Complete Dialog */}
       <AlertDialog open={showDivisionCompleteDialog} onOpenChange={setShowDivisionCompleteDialog}>
-        <AlertDialogContent className="text-center">
+        <AlertDialogContent className={`theme-${event.theme || 'default'} bg-background text-foreground text-center`}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl flex items-center justify-center gap-2">
               <Trophy className="h-8 w-8 text-yellow-500" />
@@ -566,6 +567,7 @@ const FightDetail: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </Layout>
   );
 };

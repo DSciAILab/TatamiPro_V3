@@ -11,7 +11,7 @@ import FightList from '@/components/FightList';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AttendanceTab from './AttendanceTab';
+
 
 interface DivisionDetailViewProps {
   event: Event;
@@ -129,10 +129,10 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="fight_order" disabled={!bracket}>Fight Order</TabsTrigger>
           <TabsTrigger value="bracket" disabled={!bracket}>Bracket View</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+
         </TabsList>
         <TabsContent value="fight_order" className="mt-4">
           <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -198,21 +198,7 @@ const DivisionDetailView: React.FC<DivisionDetailViewProps> = ({
             <p className="text-muted-foreground text-center py-8">Bracket not generated for this division.</p>
           )}
         </TabsContent>
-        <TabsContent value="attendance" className="mt-4">
-          {bracket ? (
-              <AttendanceTab 
-                bracket={bracket}
-                event={event}
-                division={division}
-                athletes={sortedAthletes}
-                onUpdateBracket={handleUpdateBracketLocal}
-              />
-          ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                  <p>Attendance is only available for generated brackets.</p>
-              </div>
-          )}
-        </TabsContent>
+
       </Tabs>
     </div>
   );

@@ -116,9 +116,9 @@ const Events: React.FC = () => {
             >
               <Card
                 className={cn(
-                  "h-full transition-colors",
+                  "h-full transition-all duration-300",
                   { 'opacity-50 grayscale': !event.is_active },
-                  event.is_active && "hover:bg-accent"
+                  event.is_active && "gradient-border hover:glow-primary hover:scale-[1.02]"
                 )}
               >
                 <CardHeader>
@@ -154,7 +154,7 @@ const Events: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{t('events')}</h1>
+        <h1 className="text-3xl font-bold gradient-text">{t('events')}</h1>
         {profile?.role === 'admin' && (
           <Link to="/events/create">
             <Button>{t('createNewEvent')}</Button>

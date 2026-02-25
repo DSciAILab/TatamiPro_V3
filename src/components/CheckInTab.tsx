@@ -2,17 +2,17 @@
 
 import React, { useState, useMemo } from 'react';
 import { Event, Athlete } from '@/types/index';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QrCodeIcon, Barcode, Download, Search } from 'lucide-react';
+import { QrCodeIcon, Barcode, Download } from 'lucide-react';
 import CheckInTable from '@/features/events/components/CheckInTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import QrScanner from '@/components/QrScanner';
 import { FaceCapture } from '@/components/face/FaceCapture';
 import { showSuccess, showError } from '@/utils/toast';
-import { cn } from '@/lib/utils';
 import { generateCheckInPdf } from '@/utils/pdf-checkin-generator';
+import DataPageToolbar, { type ToolbarFilter } from '@/components/ui/DataPageToolbar';
 
 interface CheckInTabProps {
   event: Event;
@@ -95,11 +95,112 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
     setSelectedAthleteIds([]);
   };
 
+  const checkInFilters: ToolbarFilter[] = [
+    {
+      label: 'Total Approved',
+      count: totalApprovedAthletes,
+      value: 'all',
+      colorClass: 'border-info text-info hover:bg-info/10',
+      activeColorClass: 'bg-info text-white border-info hover:bg-info/90',
+    },
+    {
+      label: 'Checked In',
+      count: totalCheckedIn,
+      value: 'checked_in',
+      colorClass: 'border-success text-success hover:bg-success/10',
+      activeColorClass: 'bg-success text-white border-success hover:bg-success/90',
+    },
+    {
+      label: 'Remaining',
+      count: totalPendingCheckIn,
+      value: 'pending',
+      colorClass: 'border-pending text-pending hover:bg-pending/10',
+      activeColorClass: 'bg-pending text-white border-pending hover:bg-pending/90',
+    },
+  ];
+
+  const checkInActions = (
+    <>
+      {!isCheckInAllowedGlobally && (
+        <Badge variant="destructive" className="mr-2 hidden md:flex">Check-in Closed</Badge>
+      )}
+      {event.is_check_in_open && (
+        <Badge variant="outline" className="text-success border-success mr-2 hidden md:flex">Check-in Open</Badge>
+      )}
+
+      {isBatchCheckInEnabled && selectedAthleteIds.length > 0 && (
+        <Button onClick={onBatchCheckIn} className="bg-success hover:bg-success/90 text-success-foreground animate-in fade-in zoom-in" size="sm">
+          Batch Check-in ({selectedAthleteIds.length})
+        </Button>
+      )}
+
+      <Button onClick={handleDownloadPdf} variant="outline" size="sm" className="gap-2 no-print">
+        <Download className="h-4 w-4" /> <span className="hidden sm:inline">Download PDF</span>
+      </Button>
+
+      {event.check_in_scan_mode === 'qr' && (
+        <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              <QrCodeIcon className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scan QR</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Scan Athlete QR Code</DialogTitle>
+            </DialogHeader>
+            <QrScanner
+              onScanSuccess={(qrCodeId) => {
+                const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
+                if (athlete) {
+                  setScannedAthleteId(qrCodeId);
+                  setSearchTerm('');
+                  showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
+                  setIsScannerOpen(false);
+                } else {
+                  showError('QR Code not recognized or athlete not found.');
+                }
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {event.check_in_scan_mode === 'barcode' && (
+        <Button variant="outline" size="sm" disabled>
+          <Barcode className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scan Barcode</span>
+        </Button>
+      )}
+
+      <Dialog open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="9" cy="10" r="1.5" />
+              <circle cx="15" cy="10" r="1.5" />
+              <path d="M9 16c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
+            </svg>
+            <span className="hidden sm:inline">Face ID</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Face ID Check-in
+              <Badge variant="warning">Beta</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <FaceCapture onCapture={handleFaceCapture} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-
-
       {!processedApprovedAthletes || processedApprovedAthletes.length === 0 ? (
         <Card>
           <CardContent className="py-8">
@@ -108,148 +209,15 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Encapsulated Toolbar */}
-          <Card className="mb-6 bg-muted/40">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                {/* Left Side: Filters */}
-                <div className="flex-1 w-full xl:w-auto">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "cursor-pointer transition-all px-3 py-1 border",
-                        checkInFilter === 'all' 
-                          ? "bg-info text-white border-info hover:bg-info/90" 
-                          : "border-info text-info hover:bg-info/10"
-                      )}
-                      onClick={() => setCheckInFilter('all')}
-                    >
-                      Total Approved: {totalApprovedAthletes}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "cursor-pointer transition-all px-3 py-1 border",
-                        checkInFilter === 'checked_in' 
-                          ? "bg-success text-white border-success hover:bg-success/90" 
-                          : "border-success text-success hover:bg-success/10"
-                      )}
-                      onClick={() => setCheckInFilter('checked_in')}
-                    >
-                      Checked In: {totalCheckedIn}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "cursor-pointer transition-all px-3 py-1 border",
-                        checkInFilter === 'pending' 
-                          ? "bg-pending text-white border-pending hover:bg-pending/90" 
-                          : "border-pending text-pending hover:bg-pending/10"
-                      )}
-                      onClick={() => setCheckInFilter('pending')}
-                    >
-                      Remaining: {totalPendingCheckIn}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Right Side: Actions */}
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  {!isCheckInAllowedGlobally && (
-                    <Badge variant="destructive" className="mr-2 hidden md:flex">Check-in Closed</Badge>
-                  )}
-                  {event.is_check_in_open && (
-                     <Badge variant="outline" className="text-success border-success mr-2 hidden md:flex">Check-in Open</Badge>
-                  )}
-                  
-                  {isBatchCheckInEnabled && selectedAthleteIds.length > 0 && (
-                    <Button onClick={onBatchCheckIn} className="bg-success hover:bg-success/90 text-success-foreground animate-in fade-in zoom-in" size="sm">
-                        Batch Check-in ({selectedAthleteIds.length})
-                    </Button>
-                  )}
-
-                  <Button onClick={handleDownloadPdf} variant="outline" size="sm" className="gap-2 no-print">
-                    <Download className="h-4 w-4" /> <span className="hidden sm:inline">Download PDF</span>
-                  </Button>
-
-                  {event.check_in_scan_mode === 'qr' && (
-                    <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <QrCodeIcon className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scan QR</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Scan Athlete QR Code</DialogTitle>
-                        </DialogHeader>
-                        <QrScanner
-                          onScanSuccess={(qrCodeId) => {
-                            const athlete = processedApprovedAthletes.find(a => a.registration_qr_code_id === qrCodeId);
-                            if (athlete) {
-                              setScannedAthleteId(qrCodeId);
-                              setSearchTerm('');
-                              showSuccess(`Athlete ${athlete.first_name} ${athlete.last_name} scanned!`);
-                              setIsScannerOpen(false);
-                            } else {
-                              showError('QR Code not recognized or athlete not found.');
-                            }
-                          }}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
-
-                  {event.check_in_scan_mode === 'barcode' && (
-                    <Button variant="outline" size="sm" disabled>
-                      <Barcode className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scan Barcode</span>
-                    </Button>
-                  )}
-
-                  {/* Face ID Dialog Button */}
-                  <Dialog open={isFaceCaptureOpen} onOpenChange={setIsFaceCaptureOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="9" cy="10" r="1.5" />
-                          <circle cx="15" cy="10" r="1.5" />
-                          <path d="M9 16c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
-                        </svg>
-                        <span className="hidden sm:inline">Face ID</span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          Face ID Check-in
-                          <Badge variant="warning">
-                            Beta
-                          </Badge>
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <FaceCapture onCapture={handleFaceCapture} />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-               {/* Integrated Search Bar */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9"
-                        placeholder="Search athlete (name, club, division...)"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </CardContent>
-          </Card>
+          <DataPageToolbar
+            filters={checkInFilters}
+            activeFilter={checkInFilter}
+            onFilterChange={(v) => setCheckInFilter(v as any)}
+            searchPlaceholder="Search athlete (name, club, division...)"
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            actions={checkInActions}
+          />
 
 
           {/* Athletes Table - Full Width */}

@@ -77,7 +77,7 @@ export const AthleteList = ({ athletes, bracket, event, division, onDivisionSele
               <div>
                 <div className="flex items-center gap-3 mb-1">
                     <p className={cn(
-                    "text-xl font-serif text-foreground tracking-tight",
+                    "text-xl font-sans font-bold text-foreground tracking-tight",
                     status.placing === 'eliminated' && "line-through text-destructive/80",
                     isOnHold && "text-warning"
                     )}>

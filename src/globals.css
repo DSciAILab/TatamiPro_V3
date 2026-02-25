@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  /* DEFAULT FAT THEME (Parchment/Moss) */
+  /* DEFAULT THEME (Parchment/Moss) — also applied on :root */
   :root,
   .theme-default {
     --background: 42 31% 94%; /* Parchment */
@@ -17,8 +17,8 @@
     --secondary: 46 65% 52%; /* Aged Gold */
     --secondary-foreground: 42 31% 94%;
     --muted: 42 20% 88%;
-    --muted-foreground: 144 5% 35%; /* Darker moss for better contrast on light */
-    --accent: 80 45% 25%;
+    --muted-foreground: 144 5% 35%;
+    --accent: 46 55% 38%; /* Aged Gold — distinct from primary for gradients */
     --accent-foreground: 42 31% 94%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 42 31% 94%;
@@ -33,7 +33,7 @@
     --pending: 25 60% 50%;
     --pending-foreground: 42 31% 94%;
 
-    --border: 42 20% 86%; /* Soft border */
+    --border: 42 20% 86%;
     --input: 42 20% 86%;
     --ring: 80 45% 25%;
     --radius: 1rem;
@@ -48,228 +48,6 @@
     --sidebar-ring: 80 45% 25%;
   }
 
-  /* PREMIUM DOJO THEME (Dark Moss) */
-  .theme-premium-dojo {
-    --background: 144 7% 13%; /* Deep Moss */
-    --foreground: 42 31% 94%; /* Parchment text */
-    --card: 144 7% 14%;
-    --card-foreground: 42 31% 94%;
-    --popover: 144 7% 14%;
-    --popover-foreground: 42 31% 94%;
-    --primary: 86 26% 55%; /* Matcha */
-    --primary-foreground: 144 7% 13%;
-    --secondary: 46 65% 52%; /* Aged Gold */
-    --secondary-foreground: 144 7% 13%;
-    --muted: 144 10% 20%;
-    --muted-foreground: 42 20% 75%; /* Lighter parchment for better contrast on dark */
-    --accent: 86 26% 55%;
-    --accent-foreground: 144 7% 13%;
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 42 31% 94%;
-
-    /* Status Colors - Dark Mode */
-    --success: 142 40% 40%;
-    --success-foreground: 42 31% 94%;
-    --warning: 46 65% 52%;
-    --warning-foreground: 144 7% 13%;
-    --info: 200 40% 40%;
-    --info-foreground: 42 31% 94%;
-    --pending: 25 60% 50%;
-    --pending-foreground: 42 31% 94%;
-
-    --border: 144 10% 25%;
-    --input: 144 10% 25%;
-    --ring: 86 26% 55%;
-    --radius: 1rem;
-
-    --sidebar-background: 144 7% 11%;
-    --sidebar-foreground: 42 31% 94%;
-    --sidebar-primary: 86 26% 55%;
-    --sidebar-primary-foreground: 144 7% 13%;
-    --sidebar-accent: 144 10% 20%;
-    --sidebar-accent-foreground: 42 31% 94%;
-    --sidebar-border: 144 10% 25%;
-    --sidebar-ring: 86 26% 55%;
-  }
-
-  /* DEEP ELITE THEME (Deep Slate) */
-  .theme-deep-elite {
-    --background: 222 47% 4%; /* #030712 slate-950 */
-    --foreground: 210 40% 98%; /* slate-50 text */
-    --card: 222 47% 7%; /* #0F172A slate-900 */
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%; /* blue-500 accent */
-    --primary-foreground: 222 47% 4%;
-    --secondary: 215 28% 17%; /* slate-800 */
-    --secondary-foreground: 210 40% 98%;
-    --muted: 215 28% 17%; /* slate-800 */
-    --muted-foreground: 215 20% 65%; /* slate-400 */
-    --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 4%;
-    --destructive: 0 84% 60%; /* red-500 */
-    --destructive-foreground: 210 40% 98%;
-
-    /* Status Colors */
-    --success: 142 71% 45%; /* green-500 */
-    --success-foreground: 222 47% 4%;
-    --warning: 38 92% 50%; /* amber-500 */
-    --warning-foreground: 222 47% 4%;
-    --info: 199 89% 48%; /* sky-500 */
-    --info-foreground: 222 47% 4%;
-    --pending: 25 95% 53%; /* orange-500 */
-    --pending-foreground: 222 47% 4%;
-
-    --border: 215 28% 17%; /* slate-800 */
-    --input: 215 28% 17%;
-    --ring: 217 91% 60%;
-    --radius: 0.625rem; /* 10px / rounded-xl equivalent for inner parts */
-
-    --sidebar-background: 222 47% 4%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 28% 17%;
-    --sidebar-ring: 217 91% 60%;
-  }
-
-  /* NEON THEME (High Contrast Cyberpunk) */
-  .theme-neon {
-    --background: 240 10% 4%; /* Near black */
-    --foreground: 0 0% 100%; /* Pure white text */
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 100%;
-    --popover: 240 10% 6%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 316 100% 50%; /* Neon Magenta */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 180 100% 50%; /* Neon Cyan */
-    --secondary-foreground: 240 10% 4%;
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 75%; /* Cleaner white-ish for neon */
-    --accent: 39 100% 50%; /* Neon Gold/Orange */
-    --accent-foreground: 240 10% 4%;
-    --destructive: 348 100% 50%; /* Neon Red */
-    --destructive-foreground: 0 0% 100%;
-
-    /* Status Colors */
-    --success: 135 100% 50%; /* Neon Green */
-    --success-foreground: 240 10% 4%;
-    --warning: 45 100% 50%; /* Neon Yellow */
-    --warning-foreground: 240 10% 4%;
-    --info: 190 100% 50%; /* Neon Cyan Blue */
-    --info-foreground: 240 10% 4%;
-    --pending: 25 100% 50%; /* Neon Orange */
-    --pending-foreground: 240 10% 4%;
-
-    --border: 240 10% 20%;
-    --input: 240 10% 20%;
-    --ring: 316 100% 50%;
-    --radius: 1rem;
-
-    --sidebar-background: 240 10% 5%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 316 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 10% 20%;
-    --sidebar-ring: 316 100% 50%;
-  }
-
-  /* COASTAL DUSK THEME (Blue-Grey + Sand Gold) */
-  .theme-coastal-dusk {
-    --background: 210 25% 95%; /* Coastal Mist (#EEF1F5) */
-    --foreground: 210 15% 15%; /* Night Blue (#212730) */
-    --card: 210 25% 97%;
-    --card-foreground: 210 15% 15%;
-    --popover: 210 25% 97%;
-    --popover-foreground: 210 15% 15%;
-    --primary: 205 50% 30%; /* Steel Blue (#264A73) */
-    --primary-foreground: 210 25% 95%;
-    --secondary: 35 55% 55%; /* Sand Gold (#CDA04A) */
-    --secondary-foreground: 210 15% 15%;
-    --muted: 210 15% 90%; /* Mist Grey (#E2E5EA) */
-    --muted-foreground: 210 8% 40%; /* Ocean Grey (#5E6368) */
-    --accent: 205 50% 30%;
-    --accent-foreground: 210 25% 95%;
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 210 25% 95%;
-
-    /* Status Colors */
-    --success: 142 40% 40%;
-    --success-foreground: 210 25% 95%;
-    --warning: 35 55% 55%;
-    --warning-foreground: 210 15% 15%;
-    --info: 205 50% 30%;
-    --info-foreground: 210 25% 95%;
-    --pending: 25 60% 50%;
-    --pending-foreground: 210 25% 95%;
-
-    --border: 210 12% 87%; /* Mist Border (#D9DCE2) */
-    --input: 210 12% 87%;
-    --ring: 205 50% 30%;
-    --radius: 1rem;
-
-    --sidebar-background: 210 20% 92%;
-    --sidebar-foreground: 210 15% 15%;
-    --sidebar-primary: 205 50% 30%;
-    --sidebar-primary-foreground: 210 25% 95%;
-    --sidebar-accent: 210 15% 90%;
-    --sidebar-accent-foreground: 210 15% 15%;
-    --sidebar-border: 210 12% 87%;
-    --sidebar-ring: 205 50% 30%;
-  }
-
-  /* DESERT GOLD THEME */
-  .theme-desert-gold {
-    --background: 34 33% 15%; /* Dark brown/sand */
-    --foreground: 43 74% 85%; /* Sand text */
-    --card: 34 33% 18%;
-    --card-foreground: 43 74% 85%;
-    --popover: 34 33% 18%;
-    --popover-foreground: 43 74% 85%;
-    --primary: 43 74% 49%; /* Solid Gold */
-    --primary-foreground: 34 33% 15%;
-    --secondary: 25 40% 30%; /* Terracotta */
-    --secondary-foreground: 43 74% 85%;
-    --muted: 34 33% 25%;
-    --muted-foreground: 43 40% 70%; /* Lighter sand for desert */
-    --accent: 43 74% 49%;
-    --accent-foreground: 34 33% 15%;
-    --destructive: 0 60% 45%;
-    --destructive-foreground: 43 74% 85%;
-
-    /* Status Colors */
-    --success: 142 40% 40%;
-    --success-foreground: 43 74% 85%;
-    --warning: 43 74% 49%;
-    --warning-foreground: 34 33% 15%;
-    --info: 200 40% 40%;
-    --info-foreground: 34 33% 15%;
-    --pending: 25 60% 50%;
-    --pending-foreground: 43 74% 85%;
-
-    --border: 34 33% 30%;
-    --input: 34 33% 30%;
-    --ring: 43 74% 49%;
-    --radius: 0.75rem;
-
-    --sidebar-background: 34 33% 12%;
-    --sidebar-foreground: 43 74% 85%;
-    --sidebar-primary: 43 74% 49%;
-    --sidebar-primary-foreground: 34 33% 15%;
-    --sidebar-accent: 34 33% 25%;
-    --sidebar-accent-foreground: 43 74% 85%;
-    --sidebar-border: 34 33% 30%;
-    --sidebar-ring: 43 74% 49%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
@@ -277,6 +55,262 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* ============================================================
+   EVENT THEMES — Outside @layer to guarantee inclusion
+   ============================================================ */
+
+/* PREMIUM DOJO THEME (Dark Moss) */
+.theme-premium-dojo {
+  --background: 144 7% 13%;
+  --foreground: 42 31% 94%;
+  --card: 144 7% 14%;
+  --card-foreground: 42 31% 94%;
+  --popover: 144 7% 14%;
+  --popover-foreground: 42 31% 94%;
+  --primary: 86 26% 55%;
+  --primary-foreground: 144 7% 13%;
+  --secondary: 46 65% 52%;
+  --secondary-foreground: 144 7% 13%;
+  --muted: 144 10% 20%;
+  --muted-foreground: 42 20% 75%;
+  --accent: 46 65% 52%;
+  --accent-foreground: 144 7% 13%;
+  --destructive: 0 60% 50%;
+  --destructive-foreground: 42 31% 94%;
+  --success: 142 40% 40%;
+  --success-foreground: 42 31% 94%;
+  --warning: 46 65% 52%;
+  --warning-foreground: 144 7% 13%;
+  --info: 200 40% 40%;
+  --info-foreground: 42 31% 94%;
+  --pending: 25 60% 50%;
+  --pending-foreground: 42 31% 94%;
+  --border: 144 10% 25%;
+  --input: 144 10% 25%;
+  --ring: 86 26% 55%;
+  --radius: 1rem;
+  --sidebar-background: 144 7% 11%;
+  --sidebar-foreground: 42 31% 94%;
+  --sidebar-primary: 86 26% 55%;
+  --sidebar-primary-foreground: 144 7% 13%;
+  --sidebar-accent: 144 10% 20%;
+  --sidebar-accent-foreground: 42 31% 94%;
+  --sidebar-border: 144 10% 25%;
+  --sidebar-ring: 86 26% 55%;
+}
+
+/* DEEP ELITE THEME (Deep Slate) */
+.theme-deep-elite {
+  --background: 222 47% 4%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 7%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 7%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 4%;
+  --secondary: 215 28% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 215 28% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 199 89% 48%;
+  --accent-foreground: 222 47% 4%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 71% 45%;
+  --success-foreground: 222 47% 4%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 4%;
+  --info: 199 89% 48%;
+  --info-foreground: 222 47% 4%;
+  --pending: 25 95% 53%;
+  --pending-foreground: 222 47% 4%;
+  --border: 215 28% 17%;
+  --input: 215 28% 17%;
+  --ring: 217 91% 60%;
+  --radius: 0.625rem;
+  --sidebar-background: 222 47% 4%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 222 47% 4%;
+  --sidebar-accent: 215 28% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 215 28% 17%;
+  --sidebar-ring: 217 91% 60%;
+}
+
+/* NEON THEME (High Contrast Cyberpunk) */
+.theme-neon {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 100%;
+  --card: 240 10% 6%;
+  --card-foreground: 0 0% 100%;
+  --popover: 240 10% 6%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 316 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 180 100% 50%;
+  --secondary-foreground: 240 10% 4%;
+  --muted: 240 10% 15%;
+  --muted-foreground: 240 5% 75%;
+  --accent: 39 100% 50%;
+  --accent-foreground: 240 10% 4%;
+  --destructive: 348 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 135 100% 50%;
+  --success-foreground: 240 10% 4%;
+  --warning: 45 100% 50%;
+  --warning-foreground: 240 10% 4%;
+  --info: 190 100% 50%;
+  --info-foreground: 240 10% 4%;
+  --pending: 25 100% 50%;
+  --pending-foreground: 240 10% 4%;
+  --border: 240 10% 20%;
+  --input: 240 10% 20%;
+  --ring: 316 100% 50%;
+  --radius: 1rem;
+  --sidebar-background: 240 10% 5%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 316 100% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 10% 15%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 240 10% 20%;
+  --sidebar-ring: 316 100% 50%;
+}
+
+/* COASTAL DUSK THEME (Blue-Grey + Sand Gold) */
+.theme-coastal-dusk {
+  --background: 210 25% 95%;
+  --foreground: 210 15% 15%;
+  --card: 210 25% 97%;
+  --card-foreground: 210 15% 15%;
+  --popover: 210 25% 97%;
+  --popover-foreground: 210 15% 15%;
+  --primary: 205 50% 30%;
+  --primary-foreground: 210 25% 95%;
+  --secondary: 35 55% 55%;
+  --secondary-foreground: 210 15% 15%;
+  --muted: 210 15% 90%;
+  --muted-foreground: 210 8% 40%;
+  --accent: 35 55% 55%;
+  --accent-foreground: 210 15% 15%;
+  --destructive: 0 60% 50%;
+  --destructive-foreground: 210 25% 95%;
+  --success: 142 40% 40%;
+  --success-foreground: 210 25% 95%;
+  --warning: 35 55% 55%;
+  --warning-foreground: 210 15% 15%;
+  --info: 205 50% 30%;
+  --info-foreground: 210 25% 95%;
+  --pending: 25 60% 50%;
+  --pending-foreground: 210 25% 95%;
+  --border: 210 12% 87%;
+  --input: 210 12% 87%;
+  --ring: 205 50% 30%;
+  --radius: 1rem;
+  --sidebar-background: 210 20% 92%;
+  --sidebar-foreground: 210 15% 15%;
+  --sidebar-primary: 205 50% 30%;
+  --sidebar-primary-foreground: 210 25% 95%;
+  --sidebar-accent: 210 15% 90%;
+  --sidebar-accent-foreground: 210 15% 15%;
+  --sidebar-border: 210 12% 87%;
+  --sidebar-ring: 205 50% 30%;
+}
+
+/* DESERT GOLD THEME */
+.theme-desert-gold {
+  --background: 34 33% 15%;
+  --foreground: 43 74% 85%;
+  --card: 34 33% 18%;
+  --card-foreground: 43 74% 85%;
+  --popover: 34 33% 18%;
+  --popover-foreground: 43 74% 85%;
+  --primary: 43 74% 49%;
+  --primary-foreground: 34 33% 15%;
+  --secondary: 25 40% 30%;
+  --secondary-foreground: 43 74% 85%;
+  --muted: 34 33% 25%;
+  --muted-foreground: 43 40% 70%;
+  --accent: 25 60% 55%;
+  --accent-foreground: 34 33% 15%;
+  --destructive: 0 60% 45%;
+  --destructive-foreground: 43 74% 85%;
+  --success: 142 40% 40%;
+  --success-foreground: 43 74% 85%;
+  --warning: 43 74% 49%;
+  --warning-foreground: 34 33% 15%;
+  --info: 200 40% 40%;
+  --info-foreground: 34 33% 15%;
+  --pending: 25 60% 50%;
+  --pending-foreground: 43 74% 85%;
+  --border: 34 33% 30%;
+  --input: 34 33% 30%;
+  --ring: 43 74% 49%;
+  --radius: 0.75rem;
+  --sidebar-background: 34 33% 12%;
+  --sidebar-foreground: 43 74% 85%;
+  --sidebar-primary: 43 74% 49%;
+  --sidebar-primary-foreground: 34 33% 15%;
+  --sidebar-accent: 34 33% 25%;
+  --sidebar-accent-foreground: 43 74% 85%;
+  --sidebar-border: 34 33% 30%;
+  --sidebar-ring: 43 74% 49%;
+}
+
+/* Design System — Gradient & Glow Utilities */
+
+/* @apply-based utility — processed by Tailwind JIT */
+@layer utilities {
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+}
+
+/* Raw CSS utilities — always included, not behind @layer */
+.gradient-border {
+  position: relative;
+  border-color: transparent;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)),
+    hsl(var(--accent))
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glow-primary {
+  box-shadow: 0 0 30px -8px hsl(var(--primary) / 0.6) !important;
+}
+
+.glow-accent {
+  box-shadow: 0 0 30px -8px hsl(var(--accent) / 0.6) !important;
+}
+
+.text-glow {
+  text-shadow: 0 0 20px hsl(var(--primary) / 0.4);
 }
 
 @media print {

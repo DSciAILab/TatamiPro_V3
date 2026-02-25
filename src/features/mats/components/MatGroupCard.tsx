@@ -44,7 +44,7 @@ export const MatGroupCard = ({
                 ) : (
                   <ChevronRight className="h-6 w-6 text-muted-foreground transition-transform" />
                 )}
-                <CardTitle className="text-3xl font-serif text-foreground tracking-tight">{group.matName}</CardTitle>
+                <CardTitle className="text-3xl font-sans font-bold text-foreground tracking-tight">{group.matName}</CardTitle>
                 <span className="text-base font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors">
                   ({group.divisions.length} categorias)
                 </span>

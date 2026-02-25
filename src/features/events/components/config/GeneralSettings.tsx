@@ -5,11 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Download,  Share2, UserPlus } from 'lucide-react';
+import { Download,  Share2, UserPlus, Globe } from 'lucide-react';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useTranslations } from '@/hooks/use-translations';
 import { useLayoutSettings } from '@/context/layout-settings-context';
 import { Event } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 interface GeneralSettingsProps {
     event: Event;
@@ -44,6 +46,27 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
 }) => {
     const { t } = useTranslations();
     const { isWideLayout, setIsWideLayout } = useLayoutSettings();
+
+    const handleApplyThemeToAll = async () => {
+        if (!theme) return;
+        if (!window.confirm(`Isso irá aplicar o tema "${theme}" em TODOS os eventos. Tem certeza?`)) return;
+        
+        const toastId = showLoading('Aplicando tema globalmente...');
+        try {
+            const { error } = await supabase
+                .from('sjjp_events')
+                .update({ theme })
+                .not('id', 'is', null); // Supabase requires at least one filter for bulk updates
+                
+            if (error) throw error;
+            showSuccess('Tema aplicado como padrão para todos os eventos!');
+        } catch (error) {
+            console.error('[ApplyTheme] Error:', error);
+            showError('Erro ao aplicar tema globalmente.');
+        } finally {
+            dismissToast(toastId);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -106,19 +129,31 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
 
                 <div className="mt-4">
                     <Label htmlFor="eventTheme">Tema Visual do Evento</Label>
-                    <select
-                        id="eventTheme"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
-                        value={theme || 'default'}
-                        onChange={(e) => set_theme?.(e.target.value)}
-                    >
-                        <option value="default">Padrão (Pergaminho)</option>
-                        <option value="neon">Neon (Magenta/Preto)</option>
-                        <option value="premium-dojo">Premium Dojo</option>
-                        <option value="deep-elite">Deep Elite</option>
-                        <option value="desert-gold">Desert Gold</option>
-                        <option value="coastal-dusk">Coastal Dusk</option>
-                    </select>
+                    <div className="flex gap-2 items-start mt-1">
+                        <select
+                            id="eventTheme"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={theme || 'default'}
+                            onChange={(e) => set_theme?.(e.target.value)}
+                        >
+                            <option value="default">Padrão (Pergaminho)</option>
+                            <option value="neon">Neon (Magenta/Preto)</option>
+                            <option value="premium-dojo">Premium Dojo</option>
+                            <option value="deep-elite">Deep Elite</option>
+                            <option value="desert-gold">Desert Gold</option>
+                            <option value="coastal-dusk">Coastal Dusk</option>
+                        </select>
+                        <Button 
+                            variant="secondary" 
+                            className="whitespace-nowrap"
+                            onClick={handleApplyThemeToAll}
+                            disabled={!theme || theme === 'default'}
+                            title="Definir este tema como padrão para todos os eventos"
+                        >
+                            <Globe className="w-4 h-4 mr-2" />
+                            Aplicar a Todos
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">

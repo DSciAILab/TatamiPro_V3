@@ -15,6 +15,7 @@ import {
 } from './config';
 import AgeDivisionConfig from './AgeDivisionConfig';
 import DivisionTable from '@/features/events/components/DivisionTable';
+import EventStaffTab from '@/features/events/components/EventStaffTab';
 
 interface EventConfigTabProps {
   event: Event;
@@ -170,6 +171,7 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
               <TabsTrigger value="divisions">Divisões ({event.divisions?.length || 0})</TabsTrigger>
               <TabsTrigger value="check-in-settings">Check-in</TabsTrigger>
               <TabsTrigger value="results-settings">Resultados</TabsTrigger>
+              <TabsTrigger value="staff-settings">Equipe (Staff)</TabsTrigger>
             </TabsList>
 
             <TabsContent value="event-settings" className="mt-6">
@@ -261,6 +263,10 @@ const EventConfigTab: React.FC<EventConfigTabProps> = ({
                     count_wo_champion_categories={count_wo_champion_categories}
                     set_count_wo_champion_categories={set_count_wo_champion_categories}
                 />
+            </TabsContent>
+
+            <TabsContent value="staff-settings" className="mt-6">
+                <EventStaffTab eventId={event.id} />
             </TabsContent>
           </Tabs>
         )}

@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Event, Division } from '@/types/index';
-import { cn } from '@/lib/utils';
+import { Event } from '@/types/index';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { UserRound, Trophy, Download, Search, AlertTriangle } from 'lucide-react';
+import { UserRound, Trophy, Download, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TeamLeaderboard from './TeamLeaderboard';
 import { generateResultsPdf } from '@/utils/pdf-results-generator';
+import DataPageToolbar, { type ToolbarFilter } from '@/components/ui/DataPageToolbar';
 
 interface ResultsTabProps {
   event: Event;
@@ -147,35 +146,39 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ event }) => {
     generateResultsPdf(event, filteredDivisions, filteredTeamNames);
   };
 
+  const resultsFilters: ToolbarFilter[] = [
+    {
+      label: 'Completed Divisions',
+      count: allCompletedDivisions.length,
+      value: 'completed',
+      colorClass: 'border-success text-success',
+      activeColorClass: 'bg-success text-white border-success',
+    },
+    {
+      label: 'Showing',
+      count: filteredDivisions.length,
+      value: 'showing',
+      colorClass: 'border-info text-info',
+      activeColorClass: 'bg-info text-white border-info',
+    },
+  ];
+
+  const resultsActions = (
+    <Button onClick={handlePrintResults} variant="outline" className="gap-2 shrink-0">
+      <Download className="h-4 w-4" /> Download PDF ({filteredDivisions.length})
+    </Button>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Filter Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 text-center">
-        <div className="p-3 border rounded-md bg-success/10">
-          <p className="text-2xl font-bold text-success">{allCompletedDivisions.length}</p>
-          <p className="text-sm text-muted-foreground">Completed Divisions</p>
-        </div>
-        <div className="p-3 border rounded-md bg-info/10">
-          <p className="text-2xl font-bold text-info">{filteredDivisions.length}</p>
-          <p className="text-sm text-muted-foreground">Showing</p>
-        </div>
-      </div>
-
-      {/* Search Bar and Download Button */}
-      <div className="flex items-center gap-4 no-print">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by division, athlete name, club... (comma for multiple)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handlePrintResults} variant="outline" className="gap-2 shrink-0">
-          <Download className="h-4 w-4" /> Download PDF ({filteredDivisions.length})
-        </Button>
-      </div>
+      <DataPageToolbar
+        filters={resultsFilters}
+        activeFilter="completed"
+        searchPlaceholder="Search by division, athlete name, club... (comma for multiple)"
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        actions={resultsActions}
+      />
 
       <TeamLeaderboard event={event} searchTerm={searchTerm} />
 

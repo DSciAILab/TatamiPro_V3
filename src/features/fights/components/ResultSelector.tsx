@@ -15,7 +15,7 @@ interface ResultSelectorProps {
 export const ResultSelector = ({ value, onChange, disabled }: ResultSelectorProps) => {
   return (
     <div className="grid gap-3">
-      <Label className="font-serif text-xl text-foreground">Tipo de Resultado</Label>
+      <Label className="font-sans font-bold text-xl text-foreground">Tipo de Resultado</Label>
       <ToggleGroup 
         type="single" 
         value={value} 

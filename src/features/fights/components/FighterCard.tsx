@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { UserRound } from "lucide-react";
 import { Athlete } from "@/types/index";
 import { getFighterDisplayName } from "../utils/fight-utils";
+import { Badge } from "@/components/ui/badge";
 
 interface FighterCardProps {
   fighter: Athlete | 'BYE' | undefined;
@@ -27,10 +28,10 @@ export const FighterCard = ({
   return (
     <div
       className={cn(
-        "flex flex-col items-center p-6 border rounded-2xl shadow-sm hover:shadow-md transition-all relative overflow-hidden bg-card",
-        isWinner ? 'border-success bg-success/5' : 
-        isLoser ? 'border-destructive bg-destructive/5' :
-        (isSelected && isRecordable ? 'border-primary bg-primary/5' : 'border-border/50'),
+        "flex flex-col items-center p-6 border-2 rounded-2xl shadow-sm hover:shadow-md transition-all relative overflow-hidden bg-card",
+        isWinner ? 'bg-success/10 border-success shadow-[0_0_15px_rgba(34,197,94,0.2)] z-10 scale-[1.02]' : 
+        isLoser ? 'bg-card/30 border-border/20 opacity-60 grayscale-[0.5]' :
+        (isSelected && isRecordable ? 'border-primary bg-primary/5' : 'border-border/30'),
         isRecordable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
       )}
       onClick={isRecordable ? onClick : undefined}
@@ -43,7 +44,30 @@ export const FighterCard = ({
       )}
       
       {getFighterPhoto(fighter)}
-      <span className="text-2xl font-serif mt-4 text-center tracking-tight text-foreground">{getFighterDisplayName(fighter)}</span>
+      <div className="mt-4 flex flex-col items-center text-center">
+        {fighter !== 'BYE' && fighter ? (
+          <>
+            <span className="text-xl font-sans font-bold tracking-tight text-foreground">
+              {fighter.first_name} {fighter.last_name}
+            </span>
+            {fighter.club && (
+              <span className="text-sm font-medium text-muted-foreground mt-1">
+                {fighter.club}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-xl font-sans font-bold tracking-tight text-foreground">
+            {getFighterDisplayName(fighter)}
+          </span>
+        )}
+      </div>
+      
+      {isWinner && (
+        <Badge className="bg-success text-success-foreground font-bold uppercase tracking-wider px-3 py-1 absolute bottom-4 right-4">
+          Winner
+        </Badge>
+      )}
     </div>
   );
 };

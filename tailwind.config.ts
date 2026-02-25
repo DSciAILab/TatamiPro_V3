@@ -8,6 +8,14 @@ export default {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
+  safelist: [
+    "theme-default",
+    "theme-premium-dojo",
+    "theme-deep-elite",
+    "theme-neon",
+    "theme-coastal-dusk",
+    "theme-desert-gold",
+  ],
   prefix: "",
   theme: {
     container: {

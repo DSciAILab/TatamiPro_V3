@@ -86,7 +86,7 @@ export const useFightResult = ({
              });
         }
         
-        // 2. Update next match if it exists (propagation)
+        // 2. Update next match (winner progression) if it exists
         if (nextMatch) {
              await updateMatchResult({ 
                 eventId, 
@@ -96,7 +96,24 @@ export const useFightResult = ({
              });
         }
 
-        // 3. Update third place match if affected (propagation)
+        // 3. Update any loser propagation matches (e.g. 3-person bracket repechage)
+        const loserDependentMatches = allMatches.filter(m => 
+            m.id !== currentMatch.id && 
+            m.id !== nextMatchId && 
+            m.id !== updatedBracket.third_place_match?.id && 
+            m.prev_match_ids?.includes(currentMatch.id)
+        );
+
+        for (const loserMatch of loserDependentMatches) {
+            await updateMatchResult({
+                eventId,
+                bracketId: divisionId,
+                matchId: loserMatch.id,
+                matchData: loserMatch
+            });
+        }
+
+        // 4. Update third place match if affected (propagation)
         if (updatedBracket.third_place_match && updatedBracket.third_place_match.prev_match_ids?.includes(currentMatch.id)) {
             await updateMatchResult({ 
                 eventId, 
@@ -142,7 +159,7 @@ export const useFightResult = ({
       const winnerId = selectedWinnerId!;
       match.winner_id = winnerId;
       match.loser_id = loserId;
-      match.result = { type: selectedResultType!, winner_id: winnerId, loser_id: loserId, details: resultDetails };
+      match.result = { type: selectedResultType!, winner_id: winnerId, loser_id: loserId as string, details: resultDetails };
       matchFound = true;
 
       // Update next match fighters
@@ -156,16 +173,27 @@ export const useFightResult = ({
         }
       }
 
-      // Propagate loser logic (double elim, etc)
+      // Propagate loser logic (double elim, 3-person brackets, etc)
       for (const round of updatedBracket.rounds) {
         for (const m of round) {
-           if (m.id === match.next_match_id) continue;
+          // Special case: 3-person bracket Match 2 gets the loser of Match 1
+          if (updatedBracket.bracket_size === 3 && match.round === 1 && m.round === 2) {
+             if (m.prev_match_ids?.[0] === match.id && !m.fighter1_id) {
+                 m.fighter1_id = loserId;
+             } else if (m.prev_match_ids?.[1] === match.id && !m.fighter2_id) {
+                 m.fighter2_id = loserId;
+             }
+             continue; // Handled 3-person specifically
+          }
+
+          if (m.id === match.next_match_id) continue;
            
-           if (m.prev_match_ids?.[0] === match.id) {
-              m.fighter1_id = loserId; 
-           } else if (m.prev_match_ids?.[1] === match.id) {
-              m.fighter2_id = loserId;
-           }
+          // General loser propagation
+          if (m.prev_match_ids?.[0] === match.id) {
+             m.fighter1_id = loserId; 
+          } else if (m.prev_match_ids?.[1] === match.id) {
+             m.fighter2_id = loserId;
+          }
         }
       }
     };
@@ -292,7 +320,18 @@ export const useFightResult = ({
     if (previousLoserId) {
       for (const round of updatedBracket.rounds) {
         for (const m of round) {
+          // Special case: 3-person bracket Match 2 gets the loser of Match 1
+          if (updatedBracket.bracket_size === 3 && matchToRevert!.round === 1 && m.round === 2) {
+             if (m.fighter1_id === previousLoserId && m.prev_match_ids?.[0] === matchToRevert!.id) {
+               m.fighter1_id = undefined;
+             } else if (m.fighter2_id === previousLoserId && m.prev_match_ids?.[1] === matchToRevert!.id) {
+               m.fighter2_id = undefined;
+             }
+             continue; // Handled 3-person specifically for the loser
+          }
+
           if (m.id === matchToRevert!.next_match_id) continue;
+          
           if (m.fighter1_id === previousLoserId && m.prev_match_ids?.[0] === matchToRevert!.id) {
             m.fighter1_id = undefined;
           } else if (m.fighter2_id === previousLoserId && m.prev_match_ids?.[1] === matchToRevert!.id) {

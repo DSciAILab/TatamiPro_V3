@@ -17,20 +17,19 @@ const SaveChangesButton: React.FC<SaveChangesButtonProps> = ({ onSave, isSaving,
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed top-24 right-8 z-[100]">
       <Button
         onClick={onSave}
         disabled={isSaving}
-        size="lg"
         className={cn(
-          "shadow-lg transition-all duration-300 ease-in-out transform",
-          hasUnsavedChanges ? "scale-100 opacity-100" : "scale-90 opacity-0"
+          "h-16 px-10 text-lg rounded-2xl shadow-2xl font-bold transition-all duration-300 ease-in-out transform bg-success text-success-foreground hover:bg-success/90 hover:shadow-[0_0_30px_rgba(22,163,74,0.6)] hover:scale-105 border border-success/20",
+          hasUnsavedChanges ? "scale-100 opacity-100" : "scale-90 opacity-0 pointer-events-none"
         )}
       >
         {isSaving ? (
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          <Loader2 className="mr-3 h-6 w-6 animate-spin" />
         ) : (
-          <Save className="mr-2 h-5 w-5" />
+          <Save className="mr-3 h-6 w-6" />
         )}
         {isSaving ? 'Salvando...' : 'Salvar Alterações'}
       </Button>
