@@ -195,7 +195,7 @@ const PrintBrackets: React.FC = () => {
   }
 
   return (
-    <Layout>
+    <Layout className={`theme-${event.theme || 'default'}`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Print Brackets for {event.name}</h1>
         <Button onClick={() => navigate(`/events/${eventId}`, { state: { activeTab: 'brackets' } })} variant="outline">

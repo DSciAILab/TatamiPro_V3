@@ -319,6 +319,7 @@ const EventDetail: React.FC = () => {
           totalApprovedAthletes={processedApprovedAthletes.length}
           totalCheckedIn={processedApprovedAthletes.filter(a => a.check_in_status === 'checked_in').length}
           totalPendingCheckIn={processedApprovedAthletes.filter(a => a.check_in_status === 'pending').length}
+          totalWO={processedApprovedAthletes.filter(a => a.check_in_status === 'wo' as any).length}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           // Wrap handler to fit type if needed, but actions don't return promise? 

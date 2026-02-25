@@ -1,5 +1,5 @@
 import React from 'react';
-import { DivisionInfo, formatTime } from '../utils/mat-utils';
+import { DivisionInfo, formatTime, getAthleteStatusInBracket } from '../utils/mat-utils';
 import { SortKey } from '../hooks/use-mat-data';
 import { Event, Division, Bracket } from "@/types/index";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -84,6 +84,12 @@ export const DivisionTable = ({
           const athletes = bracket 
             ? allDivisionAthletes.filter(a => bracket.participants.some(p => p !== 'BYE' && p.id === a.id))
             : allDivisionAthletes;
+            
+          const isAllReady = bracket && athletes.length > 0 && athletes.every(a => {
+            const status = getAthleteStatusInBracket(a.id, bracket, event);
+            if (status.placing !== 'active') return true; // Eliminated or placed athletes are considered "ready" as they don't need to fight
+            return bracket.attendance?.[a.id]?.status === 'present';
+          });
           
           return (
             <React.Fragment key={divInfo._bracketId || divInfo.division.id}>

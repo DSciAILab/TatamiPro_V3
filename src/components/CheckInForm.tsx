@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Athlete, WeightAttempt, Division } from '@/types/index';
 import { showError } from '@/utils/toast';
 import { format } from 'date-fns';
-import { Edit } from 'lucide-react';
+import { Edit, RotateCcw, XCircle } from 'lucide-react';
 import { findNextHigherWeightDivision, getWeightDivision } from '@/utils/athlete-utils';
 
 interface CheckInFormProps {
@@ -131,47 +131,84 @@ const CheckInForm: React.FC<CheckInFormProps> = ({
     setIsEditing(false);
   };
 
-  const hasCheckedIn = athlete.check_in_status === 'checked_in' || athlete.check_in_status === 'overweight';
+  const handleRevert = () => {
+    if (!window.confirm(`Deseja reverter o status de ${athlete.first_name} para Pendente?`)) return;
+    
+    const updatedAthlete: Athlete = {
+      ...athlete,
+      check_in_status: 'pending',
+      registered_weight: null,
+      move_reason: null, // Reset move reason if reverted
+      moved_to_division_id: null,
+    };
+    onCheckIn(updatedAthlete);
+    setIsEditing(false);
+  };
+
+  const handleWO = () => {
+    if (!window.confirm(`Deseja marcar ${athlete.first_name} como W.O.?`)) return;
+
+    const updatedAthlete: Athlete = {
+      ...athlete,
+      check_in_status: 'wo',
+    };
+    onCheckIn(updatedAthlete);
+    setIsEditing(false);
+  };
+
+  const isCompleted = athlete.check_in_status !== 'pending';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col space-y-2">
       <div className="flex items-end space-x-2">
-        {(hasCheckedIn && !isEditing) ? (
+        {(isCompleted && !isEditing) ? (
           <div className="flex items-center space-x-2">
-            {isCheckInAllowed && isWeightCheckEnabled && ( // Only allow editing if weight check is enabled
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+            {isCheckInAllowed && isWeightCheckEnabled && athlete.check_in_status !== 'wo' && (
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsEditing(true)} title="Editar Peso">
                 <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {isCheckInAllowed && (
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10" onClick={handleRevert} title="Reverter para Pendente">
+                <RotateCcw className="h-4 w-4" />
               </Button>
             )}
           </div>
         ) : (
           <>
             {isWeightCheckEnabled && (
-              <div className="flex-grow">
+              <div className="flex-grow w-24">
                 <Label htmlFor={`registeredWeight-${athlete.id}`} className="sr-only">Registered Weight (kg)</Label>
                 <div className="relative">
                   <Input
                     id={`registeredWeight-${athlete.id}`}
                     type="number"
-                    inputMode="decimal" // Garante teclado numérico no mobile
+                    inputMode="decimal"
                     step="0.1"
                     placeholder="Weight (kg)"
-                    {...register('weight')} // No 'required' option here, Zod handles it
+                    {...register('weight')}
                     disabled={!isCheckInAllowed}
-                    className="pr-20"
+                    className="pr-12"
                   />
                   {divisionMaxWeight !== undefined && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      Max: {divisionMaxWeight}kg
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                      Max: {divisionMaxWeight}
                     </span>
                   )}
                 </div>
                 {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight.message}</p>}
               </div>
             )}
-            <Button type="submit" disabled={!isCheckInAllowed}>
-              {isWeightCheckEnabled ? 'Register Weight' : 'Confirm Check-in'}
-            </Button>
+            <div className="flex space-x-1">
+              <Button type="submit" disabled={!isCheckInAllowed} size="sm">
+                {isWeightCheckEnabled ? 'Register' : 'Check-in'}
+              </Button>
+              {athlete.check_in_status === 'pending' && (
+                 <Button type="button" variant="destructive" size="sm" onClick={handleWO} disabled={!isCheckInAllowed} title="Mark as W.O.">
+                   <XCircle className="h-4 w-4 md:mr-1" /> <span className="hidden md:inline">W.O.</span>
+                 </Button>
+              )}
+            </div>
           </>
         )}
       </div>

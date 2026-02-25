@@ -311,7 +311,7 @@ const StaffCheckIn: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background theme-${event?.theme || 'default'}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">
@@ -349,7 +349,7 @@ const StaffCheckIn: React.FC = () => {
       </header>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4">
         <Card className="text-center gradient-border transition-all duration-300 hover:glow-primary">
           <CardContent className="py-3">
             <p className="text-2xl font-bold gradient-text">{athletes.length}</p>
@@ -370,6 +370,14 @@ const StaffCheckIn: React.FC = () => {
               {athletes.filter(a => a.check_in_status === 'pending').length}
             </p>
             <p className="text-xs text-muted-foreground">Pendente</p>
+          </CardContent>
+        </Card>
+        <Card className="text-center bg-destructive/10 border-destructive/30 transition-all duration-300">
+          <CardContent className="py-3">
+            <p className="text-2xl font-bold text-destructive">
+              {athletes.filter(a => a.check_in_status === 'wo' as any).length}
+            </p>
+            <p className="text-xs text-muted-foreground">W.O.</p>
           </CardContent>
         </Card>
       </div>

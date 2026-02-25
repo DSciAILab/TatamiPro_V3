@@ -7,14 +7,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CalendarDays, UserPlus } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useTranslations } from '@/hooks/use-translations';
+import { supabase } from '@/integrations/supabase/client';
 
 const Welcome: React.FC = () => {
   const { session } = useAuth();
   const { t } = useTranslations();
   const isLoggedIn = !!session;
+  const [globalTheme, setGlobalTheme] = React.useState('default');
+
+  React.useEffect(() => {
+    const fetchTheme = async () => {
+      try {
+        const { data } = await supabase
+          .from('sjjp_events')
+          .select('theme')
+          .eq('is_active', true)
+          .order('event_date', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (data?.theme) setGlobalTheme(data.theme);
+      } catch (err) {
+        console.error('Failed to fetch theme for homepage:', err);
+      }
+    };
+    fetchTheme();
+  }, []);
 
   return (
-    <Layout>
+    <Layout className={`theme-${globalTheme}`}>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-128px)] text-center">
         <h1 className="text-5xl font-extrabold mb-6 text-primary">Welcome to TatamiPro</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl">

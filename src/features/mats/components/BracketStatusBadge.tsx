@@ -14,6 +14,8 @@ export const BracketStatusBadge = ({ status }: BracketStatusBadgeProps) => {
       return <span className={cn(baseClasses, "bg-muted/30 border-border/50 text-muted-foreground")}>Finalizado</span>;
     case 'In Progress':
       return <span className={cn(baseClasses, "bg-info/10 text-info border-info/30")}>Lutando</span>;
+    case 'Ready':
+      return <span className={cn(baseClasses, "bg-success/20 text-success border-success/30")}>Pronto</span>;
     default:
       return <span className={cn(baseClasses, "bg-warning/10 text-warning border-warning/30")}>Pendente</span>;
   }

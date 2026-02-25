@@ -78,15 +78,30 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
   const allMatchesMap = useMemo(() => {
     const map = new Map<string, Match>();
     if (brackets) {
+      // Build a reverse mapping from bracketId/divisionId to matName
+      const divisionMatMap = new Map<string, string>();
+      if (event.mat_assignments) {
+        Object.entries(event.mat_assignments).forEach(([matName, divIds]) => {
+          divIds.forEach(id => divisionMatMap.set(id, matName));
+        });
+      }
+
       Object.values(brackets).forEach(bracket => {
-        bracket.rounds.flat().forEach(match => map.set(match.id, match));
+        const matName = divisionMatMap.get(bracket.id) || divisionMatMap.get(bracket.division_id) || '';
+        const enhanceMatch = (match: Match) => ({
+          ...match,
+          _division_id: bracket.division_id,
+          _mat_name: matName,
+        });
+
+        bracket.rounds.flat().forEach(match => map.set(match.id, enhanceMatch(match)));
         if (bracket.third_place_match) {
-          map.set(bracket.third_place_match.id, bracket.third_place_match);
+          map.set(bracket.third_place_match.id, enhanceMatch(bracket.third_place_match));
         }
       });
     }
     return map;
-  }, [brackets]);
+  }, [brackets, event.mat_assignments]);
 
   const athletesMap = useMemo(() => {
     return new Map((athletes || []).map(athlete => [athlete.id, athlete]));
@@ -343,7 +358,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
 
     const resultTime = "XX:XX";
 
-    const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : 'N/A';
+    const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : selectedMat !== 'all-mats' ? selectedMat.replace('Mat ', '') : 'N/A';
     const fightNumberDisplay = match.mat_fight_number !== undefined 
       ? `${matNumberDisplay}-${match.mat_fight_number}` 
       : `${matNumberDisplay}-M${match.match_number || '?'}`;

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Event, Division } from '@/types/index';
-import { DivisionInfo, MatGroup } from '../utils/mat-utils';
+import { DivisionInfo, MatGroup, getAthleteStatusInBracket } from '../utils/mat-utils';
 
 export type SortKey = 'category' | 'athletes' | 'remaining' | 'status';
 export type SortDirection = 'asc' | 'desc';
@@ -30,12 +30,20 @@ export const useMatData = (event: Event) => {
   const [expandedDivisions, setExpandedDivisions] = useState<Set<string>>(new Set());
   
   // Persist status filter in localStorage
-  const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'pending' | 'finished'>(() => {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'pending' | 'finished' | 'ready'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(`matControl_filter_${event.id}`);
-      if (saved && ['all', 'in_progress', 'pending', 'finished'].includes(saved)) {
-        return saved as 'all' | 'in_progress' | 'pending' | 'finished';
+      if (saved && ['all', 'in_progress', 'pending', 'finished', 'ready'].includes(saved)) {
+        return saved as 'all' | 'in_progress' | 'pending' | 'finished' | 'ready';
       }
+    }
+    return 'all';
+  });
+
+  const [selectedMatFilter, setSelectedMatFilter] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`matControl_selectedMat_${event.id}`);
+      if (saved) return saved;
     }
     return 'all';
   });
@@ -49,10 +57,17 @@ export const useMatData = (event: Event) => {
   };
 
   // Save status filter to localStorage whenever it changes
-  const updateStatusFilter = (newFilter: 'all' | 'in_progress' | 'pending' | 'finished') => {
+  const updateStatusFilter = (newFilter: 'all' | 'in_progress' | 'pending' | 'finished' | 'ready') => {
     setStatusFilter(newFilter);
     if (typeof window !== 'undefined') {
       localStorage.setItem(`matControl_filter_${event.id}`, newFilter);
+    }
+  };
+
+  const updateSelectedMatFilter = (newMat: string) => {
+    setSelectedMatFilter(newMat);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`matControl_selectedMat_${event.id}`, newMat);
     }
   };
 
@@ -121,22 +136,35 @@ export const useMatData = (event: Event) => {
           }
         }
 
-        // Determine status
-        let status: DivisionInfo['status'];
-        if (bracket.winner_id) {
-          status = 'Finished';
-        } else if (totalFights > remainingFights) {
-          status = 'In Progress';
-        } else {
-          status = 'Not Generated';
-        }
-
         // Get fight duration from age_division_settings
         const ageSetting = event.age_division_settings?.find(s => s.name === division.age_category_name);
         const fightDuration = ageSetting?.fight_duration || 5; // default 5 minutes
         
+        // Evaluate if "Ready"
         // Use bracket participants for count (filtering BYEs)
         const participantCount = bracket.participants.filter(p => p !== 'BYE').length;
+        
+        // Only get valid athletes
+        const validAthleteIds = bracket.participants.filter(p => p !== 'BYE').map(p => typeof p === 'string' ? p : p.id);
+        const athletes = event.athletes?.filter(a => validAthleteIds.includes(a.id)) || [];
+        
+        const isAllReady = athletes.length > 0 && athletes.length === participantCount && athletes.every(a => {
+            const statusParams = getAthleteStatusInBracket(a.id, bracket, event);
+            if (statusParams.placing !== 'active') return true;
+            return bracket.attendance?.[a.id]?.status === 'present';
+        });
+
+        // Determine status
+        let status: DivisionInfo['status'];
+        if (bracket.winner_id || (totalFights > 0 && remainingFights === 0)) {
+          status = 'Finished';
+        } else if (totalFights > remainingFights) {
+          status = 'In Progress';
+        } else if (isAllReady) {
+          status = 'Ready';
+        } else {
+          status = 'Not Generated';
+        }
 
         // Clone division to avoid mutating original and append group name
         const displayDivision = { ...division };
@@ -189,7 +217,9 @@ export const useMatData = (event: Event) => {
   const filteredGroups = useMemo(() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(t => t.trim()).filter(t => t.length > 0);
     
-    return matGroups.map(group => {
+    return matGroups
+      .filter(group => selectedMatFilter === 'all' || group.matName === selectedMatFilter)
+      .map(group => {
       let filteredDivisions = group.divisions;
       
       // Apply status filter
@@ -240,15 +270,16 @@ export const useMatData = (event: Event) => {
         estimatedRemainingTime: estimatedTime,
       };
     }).filter(g => g.divisions.length > 0);
-  }, [matGroups, searchTerm, statusFilter, sortKey, sortDirection]);
+  }, [matGroups, searchTerm, statusFilter, sortKey, sortDirection, selectedMatFilter]);
 
   // Calculate totals
   const totals = useMemo(() => {
     const finished = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'Finished').length, 0);
     const inProgress = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'In Progress').length, 0);
     const pending = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'Not Generated').length, 0); 
-    const total = finished + inProgress + pending;
-    return { total, finished, inProgress, pending };
+    const ready = matGroups.reduce((sum, g) => sum + g.divisions.filter(d => d.status === 'Ready').length, 0); 
+    const total = finished + inProgress + pending + ready;
+    return { total, finished, inProgress, pending, ready };
   }, [matGroups]);
 
   const toggleMat = (matName: string) => {
@@ -282,11 +313,14 @@ export const useMatData = (event: Event) => {
     filteredGroups,
     matGroups,
     totals,
+    availableMats: matGroups.map(g => g.matName),
     filterState: {
       searchTerm,
       setSearchTerm,
       statusFilter,
       updateStatusFilter,
+      selectedMatFilter,
+      setSelectedMatFilter: updateSelectedMatFilter,
       sortKey,
       sortDirection,
       handleSort,

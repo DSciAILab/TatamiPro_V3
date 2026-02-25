@@ -172,7 +172,7 @@ const StaffResults: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background theme-${event?.theme || 'default'}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">

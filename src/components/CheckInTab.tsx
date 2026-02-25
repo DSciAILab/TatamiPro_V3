@@ -20,11 +20,12 @@ interface CheckInTabProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   filteredAthletesForCheckIn: Athlete[];
-  checkInFilter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved';
-  setCheckInFilter: (filter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved') => void;
+  checkInFilter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved' | 'wo';
+  setCheckInFilter: (filter: 'all' | 'checked_in' | 'pending' | 'overweight' | 'moved' | 'wo') => void;
   totalApprovedAthletes: number;
   totalCheckedIn: number;
   totalPendingCheckIn: number;
+  totalWO: number;
   handleCheckInAthlete: (athlete: Athlete) => void;
   handleBatchCheckIn: (athleteIds: string[]) => void;
 }
@@ -40,6 +41,7 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
   totalApprovedAthletes,
   totalCheckedIn,
   totalPendingCheckIn,
+  totalWO,
   handleCheckInAthlete,
   handleBatchCheckIn,
 }) => {
@@ -116,6 +118,13 @@ const CheckInTab: React.FC<CheckInTabProps> = ({
       value: 'pending',
       colorClass: 'border-pending text-pending hover:bg-pending/10',
       activeColorClass: 'bg-pending text-white border-pending hover:bg-pending/90',
+    },
+    {
+      label: 'W.O.',
+      count: totalWO,
+      value: 'wo',
+      colorClass: 'border-destructive text-destructive hover:bg-destructive/10',
+      activeColorClass: 'bg-destructive text-white border-destructive hover:bg-destructive/90',
     },
   ];
 

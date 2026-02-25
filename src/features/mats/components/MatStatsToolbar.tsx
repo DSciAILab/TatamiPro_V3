@@ -11,11 +11,15 @@ interface MatStatsToolbarProps {
     finished: number;
     inProgress: number;
     pending: number;
+    ready: number;
   };
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  statusFilter: 'all' | 'in_progress' | 'pending' | 'finished';
-  onFilterChange: (filter: 'all' | 'in_progress' | 'pending' | 'finished') => void;
+  statusFilter: 'all' | 'in_progress' | 'pending' | 'finished' | 'ready';
+  onFilterChange: (filter: 'all' | 'in_progress' | 'pending' | 'finished' | 'ready') => void;
+  availableMats: string[];
+  selectedMatFilter: string;
+  onMatFilterChange: (mat: string) => void;
   allExpanded: boolean;
   onToggleAll: () => void;
 }
@@ -26,12 +30,46 @@ export const MatStatsToolbar = ({
   onSearchChange,
   statusFilter,
   onFilterChange,
+  availableMats,
+  selectedMatFilter,
+  onMatFilterChange,
   allExpanded,
   onToggleAll
 }: MatStatsToolbarProps) => {
   return (
     <Card className="bg-background rounded-3xl border border-border/30 shadow-sm mb-8 overflow-hidden">
-      <CardContent className="py-6 space-y-6">
+      <CardContent className="py-6 space-y-4">
+        {/* Mat Filter Badges */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-border/30">
+          <Badge
+            variant={selectedMatFilter === 'all' ? "default" : "outline"}
+            className={cn(
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
+              selectedMatFilter === 'all' 
+                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                : "bg-transparent text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
+            )}
+            onClick={() => onMatFilterChange('all')}
+          >
+            All Mats
+          </Badge>
+          {availableMats.map(mat => (
+            <Badge
+              key={mat}
+              variant={selectedMatFilter === mat ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
+                selectedMatFilter === mat 
+                  ? "bg-primary/90 text-primary-foreground border-primary shadow-sm" 
+                  : "bg-transparent text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
+              )}
+              onClick={() => onMatFilterChange(mat)}
+            >
+              {mat}
+            </Badge>
+          ))}
+        </div>
+
         {/* Status Filter Badges */}
         <div className="flex items-center gap-2 overflow-x-auto">
           <Badge
@@ -69,6 +107,18 @@ export const MatStatsToolbar = ({
             onClick={() => onFilterChange(statusFilter === 'pending' ? 'all' : 'pending')}
           >
             Pendentes <span className={cn("ml-1.5 text-xs", statusFilter === 'pending' ? "opacity-70" : "opacity-50")}>({totals.pending})</span>
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              "cursor-pointer h-10 px-5 text-sm md:text-base font-medium rounded-full border transition-all hover:shadow-sm whitespace-nowrap",
+              statusFilter === 'ready' 
+                ? "bg-success/20 text-success border-success/30 shadow-sm" 
+                : "bg-transparent text-success border-success/30 hover:bg-success/5 hover:border-success/50"
+            )}
+            onClick={() => onFilterChange(statusFilter === 'ready' ? 'all' : 'ready')}
+          >
+            Prontas <span className={cn("ml-1.5 text-xs", statusFilter === 'ready' ? "opacity-70" : "opacity-50")}>({totals.ready})</span>
           </Badge>
           <Badge
             variant="outline"

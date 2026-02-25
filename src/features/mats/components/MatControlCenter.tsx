@@ -15,12 +15,14 @@ export const MatControlCenter = ({ event, onDivisionSelect, onUpdateBracket }: M
     filteredGroups,
     matGroups,
     totals,
+    availableMats,
     filterState
   } = useMatData(event);
   
   const {
     searchTerm, setSearchTerm,
     statusFilter, updateStatusFilter,
+    selectedMatFilter, setSelectedMatFilter,
     expandedMats, toggleMat, expandAll, collapseAll,
     expandedDivisions, toggleDivisionExpansion,
     handleSort
@@ -38,6 +40,9 @@ export const MatControlCenter = ({ event, onDivisionSelect, onUpdateBracket }: M
         onSearchChange={setSearchTerm}
         statusFilter={statusFilter}
         onFilterChange={updateStatusFilter}
+        availableMats={availableMats}
+        selectedMatFilter={selectedMatFilter}
+        onMatFilterChange={setSelectedMatFilter}
         allExpanded={expandedMats.size === matGroups.length}
         onToggleAll={() => expandedMats.size === matGroups.length ? collapseAll() : expandAll()}
       />

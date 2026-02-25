@@ -6,7 +6,7 @@ export interface DivisionInfo {
   athleteCount: number;
   totalFights: number;
   remainingFights: number;
-  status: 'Not Generated' | 'In Progress' | 'Finished';
+  status: 'Not Generated' | 'In Progress' | 'Finished' | 'Ready';
   fightDuration: number; // in minutes
   _bracketId?: string;
 }
