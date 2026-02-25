@@ -361,7 +361,7 @@ const FightList: React.FC<FightListProps> = ({ event, selectedMat, selectedDivis
     const matNumberDisplay = match._mat_name ? match._mat_name.replace('Mat ', '') : selectedMat !== 'all-mats' ? selectedMat.replace('Mat ', '') : 'N/A';
     const fightNumberDisplay = match.mat_fight_number !== undefined 
       ? `${matNumberDisplay}-${match.mat_fight_number}` 
-      : `${matNumberDisplay}-M${match.match_number || '?'}`;
+      : `${matNumberDisplay}-${match.match_number || '?'}`;
     
     // REDO render to accommodate header nicely
     

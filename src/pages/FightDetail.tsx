@@ -189,28 +189,56 @@ const FightDetail: React.FC = () => {
         check_in_start_time: eventData.check_in_start_time ? parseISO(eventData.check_in_start_time as unknown as string) : undefined,
         check_in_end_time: eventData.check_in_end_time ? parseISO(eventData.check_in_end_time as unknown as string) : undefined,
       };
+
+      // Inject _mat_name and mat_fight_number into all matches
+      if (fullEventData.brackets && fullEventData.mat_assignments) {
+        const { updatedBrackets } = generateMatFightOrder(fullEventData);
+        fullEventData.brackets = updatedBrackets;
+      }
+
       setEvent(fullEventData);
 
-      const bracket = fullEventData.brackets?.[divisionId];
-      if (bracket) {
-        setCurrentBracket(bracket);
-        console.log('[FightDetail] Searching for matchId:', matchId, 'in division:', divisionId);
-        const allMatches = bracket.rounds.flat();
-        if (bracket.third_place_match) allMatches.push(bracket.third_place_match);
-        
-        const match = allMatches.find(m => m.id === matchId);
-        
-        console.log('[FightDetail] Match found?', match ? 'Yes' : 'No', match?.id);
-        
-        if (match) {
-          setCurrentMatch(match);
-          setSelectedWinnerId(match.winner_id);
-          setSelectedResultType(match.result?.type);
-          setResultDetails(match.result?.details);
-          setShowPostFightOptions(!!match.winner_id);
-        } else {
-            console.error('[FightDetail] Match NOT FOUND. Available IDs:', allMatches.map(m => m.id));
+      // Search through ALL brackets to find the match (handles split brackets)
+      let foundBracket: Bracket | null = null;
+      let foundMatch: Match | null = null;
+
+      if (fullEventData.brackets) {
+        // First try the direct divisionId key
+        const directBracket = fullEventData.brackets[divisionId];
+        if (directBracket) {
+          const allMatches = directBracket.rounds.flat();
+          if (directBracket.third_place_match) allMatches.push(directBracket.third_place_match);
+          const match = allMatches.find(m => m.id === matchId);
+          if (match) {
+            foundBracket = directBracket;
+            foundMatch = match;
+          }
         }
+
+        // If not found, search all brackets (split bracket scenario)
+        if (!foundMatch) {
+          for (const [, bracket] of Object.entries(fullEventData.brackets)) {
+            const allMatches = bracket.rounds.flat();
+            if (bracket.third_place_match) allMatches.push(bracket.third_place_match);
+            const match = allMatches.find(m => m.id === matchId);
+            if (match) {
+              foundBracket = bracket;
+              foundMatch = match;
+              break;
+            }
+          }
+        }
+      }
+
+      if (foundBracket && foundMatch) {
+        setCurrentBracket(foundBracket);
+        setCurrentMatch(foundMatch);
+        setSelectedWinnerId(foundMatch.winner_id);
+        setSelectedResultType(foundMatch.result?.type);
+        setResultDetails(foundMatch.result?.details);
+        setShowPostFightOptions(!!foundMatch.winner_id);
+      } else {
+        console.error('[FightDetail] Match NOT FOUND for matchId:', matchId);
       }
     } catch (error: any) {
       showError(error.message);
@@ -365,8 +393,10 @@ const FightDetail: React.FC = () => {
   const isFightRecordable = !isByeFight && !isPendingFight;
 
   const mainCardBorderClass = isFightCompleted ? 'border-green-500' : isByeFight ? 'border-blue-500' : 'border-gray-300 dark:border-gray-700';
-  const matNumber = currentMatch._mat_name?.replace('Mat ', '') || 'N/A';
-  const fightNumberDisplay = `${matNumber}-${currentMatch.mat_fight_number}`;
+  const matNumber = currentMatch._mat_name?.replace('Mat ', '') || '';
+  const fightNumberDisplay = currentMatch.mat_fight_number !== undefined
+    ? `${matNumber}-${currentMatch.mat_fight_number}`
+    : `Luta ${currentMatch.match_number || '?'}`;
   const currentRoundName = getRoundName(currentMatch.round - 1, currentBracket.rounds.length, currentMatch.round === -1);
 
   const getDivisionName = () => {
@@ -382,7 +412,7 @@ const FightDetail: React.FC = () => {
           <div className="flex justify-between items-end">
              <div>
                  <h2 className="text-lg font-sans font-bold italic text-muted-foreground tracking-wide mb-2">{getDivisionName()}</h2>
-                 <h1 className="text-4xl font-sans font-bold text-foreground tracking-tight"><span className="text-primary/70">{currentMatch._mat_name}</span> <span className="text-muted-foreground ml-2">Luta {fightNumberDisplay}</span></h1>
+                 <h1 className="text-4xl font-sans font-bold text-foreground tracking-tight">{currentMatch._mat_name && <span className="text-primary/70">{currentMatch._mat_name} </span>}<span className="text-muted-foreground">Luta {fightNumberDisplay}</span></h1>
              </div>
            <Button onClick={handleGoBack} variant="outline" className="border border-border/50 font-medium rounded-full shadow-sm hover:bg-muted/30 transition-all">
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
@@ -455,16 +485,20 @@ const FightDetail: React.FC = () => {
             </div>
           ) : (
             <>
-              <ResultSelector
-                value={selectedResultType}
-                onChange={setSelectedResultType}
-                disabled={!isFightRecordable || isFightCompleted}
-              />
-              <div className="grid gap-3 mt-6">
-                <Label htmlFor="resultDetails" className="font-sans font-bold text-xl text-foreground">Detalhes (Opcional)</Label>
-                <Input id="resultDetails" className="border border-border/50 rounded-2xl font-medium text-lg p-6 bg-background shadow-inner transition-colors focus-visible:ring-primary/50" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
-              </div>
-              <Button onClick={handleRecordResult} className="w-full mt-8 py-8 font-sans font-bold text-2xl rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado</Button>
+              {selectedWinnerId && (
+                <>
+                  <ResultSelector
+                    value={selectedResultType}
+                    onChange={setSelectedResultType}
+                    disabled={!isFightRecordable || isFightCompleted}
+                  />
+                  <div className="grid gap-3 mt-6">
+                    <Label htmlFor="resultDetails" className="font-sans font-bold text-xl text-foreground">Detalhes (Opcional)</Label>
+                    <Input id="resultDetails" className="border border-border/50 rounded-2xl font-medium text-lg p-6 bg-background shadow-inner transition-colors focus-visible:ring-primary/50" placeholder="Ex: Armlock, 6-2, Decisão Unânime" value={resultDetails || ''} onChange={(e) => setResultDetails(e.target.value)} />
+                  </div>
+                  <Button onClick={handleRecordResult} className="w-full mt-8 py-8 font-sans font-bold text-2xl rounded-2xl bg-success text-success-foreground hover:bg-success/90 shadow-md transition-all" disabled={!selectedWinnerId || !selectedResultType}>Registrar Resultado</Button>
+                </>
+              )}
             </>
           )}
 

@@ -118,6 +118,9 @@ const CheckInTable: React.FC<CheckInTableProps> = ({
             </div>
         );
     }
+    if (athlete.check_in_status === 'wo') {
+      return <Badge variant="destructive" className="whitespace-nowrap bg-red-700">W.O.</Badge>;
+    }
     if (athlete.moved_to_division_id) {
        return <Badge variant="secondary" className="whitespace-nowrap">Changed Category</Badge>;
     }

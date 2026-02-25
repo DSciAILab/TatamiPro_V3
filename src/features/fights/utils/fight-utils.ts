@@ -113,8 +113,11 @@ export const isBracketComplete = (bracket: Bracket): boolean => {
  * Get fight number display string (e.g., "1-5" for Mat 1, Fight 5)
  */
 export const getFightNumberDisplay = (match: Match): string => {
-  const matNumber = match._mat_name?.replace('Mat ', '') || 'N/A';
-  return `${matNumber}-${match.mat_fight_number}`;
+  const matNumber = match._mat_name?.replace('Mat ', '') || '';
+  if (match.mat_fight_number !== undefined && matNumber) {
+    return `${matNumber}-${match.mat_fight_number}`;
+  }
+  return `${match.match_number || '?'}`;
 };
 
 /**

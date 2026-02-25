@@ -5,6 +5,7 @@ export type ConnectionMode = 'cloud' | 'local' | 'offline';
 interface ConnectionManagerConfig {
   localServerUrl?: string;
   supabaseUrl?: string;
+  supabaseKey?: string;
   autoDetect?: boolean;
 }
 
@@ -12,6 +13,7 @@ class ConnectionManager {
   private _mode: ConnectionMode = 'cloud';
   private _localServerUrl: string = 'http://localhost:3001';
   private _supabaseUrl: string = '';
+  private _supabaseKey: string = '';
   private _socket: Socket | null = null;
   private _listeners: Set<(mode: ConnectionMode) => void> = new Set();
   private _autoDetect: boolean = true;
@@ -23,6 +25,9 @@ class ConnectionManager {
     }
     if (config?.supabaseUrl) {
       this._supabaseUrl = config.supabaseUrl;
+    }
+    if (config?.supabaseKey) {
+      this._supabaseKey = config.supabaseKey;
     }
     if (config?.autoDetect !== undefined) {
       this._autoDetect = config.autoDetect;
@@ -92,10 +97,13 @@ class ConnectionManager {
     try {
       const response = await fetch(`${this._supabaseUrl}/rest/v1/`, {
         method: 'HEAD',
+        headers: {
+          'apikey': this._supabaseKey
+        },
         signal: AbortSignal.timeout(3000)
       });
-      // 401 means Supabase is reachable but needs auth - that's OK, we're online!
-      const isReachable = response.ok || response.status === 401;
+      // A valid response is considered reachable
+      const isReachable = response.ok;
       console.log(`[ConnectionManager] Cloud check: ${response.status} - reachable: ${isReachable}`);
       return isReachable;
     } catch (err) {
@@ -250,6 +258,7 @@ class ConnectionManager {
 export const connectionManager = new ConnectionManager({
   localServerUrl: import.meta.env.VITE_LOCAL_SERVER_URL || 'http://localhost:3001',
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://otqzzllevufcxbpeavmo.supabase.co',
+  supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   autoDetect: true
 });
 

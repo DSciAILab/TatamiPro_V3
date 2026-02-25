@@ -52,7 +52,10 @@ const PublicFightOrder: React.FC<PublicFightOrderProps> = ({ event }) => {
       {allFightsOrdered.map(match => {
         const fighter1 = getFighterDisplay(match.fighter1_id);
         const fighter2 = getFighterDisplay(match.fighter2_id);
-        const fightNumberDisplay = `${match._mat_name?.replace('Mat ', '') || 'N/A'}-${match.mat_fight_number}`;
+        const matNum = match._mat_name?.replace('Mat ', '') || '';
+        const fightNumberDisplay = match.mat_fight_number !== undefined && matNum
+          ? `${matNum}-${match.mat_fight_number}`
+          : `${match.match_number || '?'}`;
 
         return (
           <Card key={match.id} className={cn("transition-all", match.winner_id ? "bg-muted" : "bg-card")}>
