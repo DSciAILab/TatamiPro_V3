@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.23",
+    date: "2026-02-25",
+    features: [
+      "UI/UX: Cards de lutadores atualizados com highlights verde-neon ('Winner') e tipografia consistente com o restante das tabelas.",
+      "Design System: Tematização global de Eventos agora engloba todos os diálogos da página de detalhes de lutas."
+    ],
+    fixes: [
+      "Lógica de Chaves: Correção na propagação do perdedor da Luta 1 para a Luta 2 em chaves de 3 pessoas (Double Elimination).",
+      "Mat Control: Fontes padronizadas para sans-serif para maior legibilidade nas telas de operação."
+    ]
+  },
+  {
     version: "0.1.22",
     date: "2026-02-24",
     features: [
