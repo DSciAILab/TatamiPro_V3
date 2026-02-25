@@ -3,27 +3,68 @@
 @tailwind utilities;
 
 @layer base {
-  /* DEFAULT THEME (Parchment/Moss) — also applied on :root */
-  :root,
+  /* STANDARD NEUTRAL LIGHT THEME — Shadcn defaults */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Status Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --info: 199 89% 48%;
+    --info-foreground: 222.2 84% 4.9%;
+    --pending: 25 95% 53%;
+    --pending-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
+    --radius: 0.625rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  /* DEFAULT EVENT THEME (Parchment/Moss) — Only applied when explicitly used */
   .theme-default {
-    --background: 42 31% 94%; /* Parchment */
-    --foreground: 144 7% 13%; /* Deep moss text */
+    --background: 42 31% 94%;
+    --foreground: 144 7% 13%;
     --card: 42 31% 96%;
     --card-foreground: 144 7% 13%;
     --popover: 42 31% 96%;
     --popover-foreground: 144 7% 13%;
-    --primary: 80 45% 25%; /* Olive Green */
+    --primary: 80 45% 25%;
     --primary-foreground: 42 31% 94%;
-    --secondary: 46 65% 52%; /* Aged Gold */
+    --secondary: 46 65% 52%;
     --secondary-foreground: 42 31% 94%;
     --muted: 42 20% 88%;
     --muted-foreground: 144 5% 35%;
-    --accent: 46 55% 38%; /* Aged Gold — distinct from primary for gradients */
+    --accent: 46 55% 38%;
     --accent-foreground: 42 31% 94%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 42 31% 94%;
-
-    /* Status Colors */
     --success: 142 40% 40%;
     --success-foreground: 42 31% 94%;
     --warning: 46 65% 52%;
@@ -32,12 +73,10 @@
     --info-foreground: 42 31% 94%;
     --pending: 25 60% 50%;
     --pending-foreground: 42 31% 94%;
-
     --border: 42 20% 86%;
     --input: 42 20% 86%;
     --ring: 80 45% 25%;
     --radius: 1rem;
-
     --sidebar-background: 42 31% 92%;
     --sidebar-foreground: 144 7% 13%;
     --sidebar-primary: 80 45% 25%;
@@ -102,7 +141,7 @@
 }
 
 /* DEEP ELITE THEME (Deep Slate) */
-.theme-deep-elite, .dark {
+.theme-deep-elite {
   --background: 222 47% 4%;
   --foreground: 210 40% 98%;
   --card: 222 47% 7%;
@@ -139,6 +178,46 @@
   --sidebar-accent-foreground: 210 40% 98%;
   --sidebar-border: 215 28% 17%;
   --sidebar-ring: 217 91% 60%;
+}
+
+/* DARK MODE — Standard Shadcn dark defaults */
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 71% 45%;
+  --success-foreground: 210 40% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222.2 84% 4.9%;
+  --info: 199 89% 48%;
+  --info-foreground: 222.2 84% 4.9%;
+  --pending: 25 95% 53%;
+  --pending-foreground: 222.2 84% 4.9%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --radius: 0.625rem;
+  --sidebar-background: 222.2 84% 4.9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 217.2 32.6% 17.5%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217.2 32.6% 17.5%;
+  --sidebar-ring: 217.2 32.6% 17.5%;
 }
 
 /* NEON THEME (High Contrast Cyberpunk) */
