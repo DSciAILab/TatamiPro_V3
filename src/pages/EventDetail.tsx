@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import AppLayout from '@/components/AppLayout';
 import Layout from '@/components/Layout';
@@ -34,6 +34,16 @@ const EventDetail: React.FC = () => {
   
   const userClub = profile?.club;
 
+  // Theme caching to prevent FOUC (Flash of Unstyled Content)
+  const [cachedTheme] = useState(() => {
+    if (eventId) {
+      return localStorage.getItem(`event-theme-${eventId}`) || 'default';
+    }
+    return 'default';
+  });
+
+
+
   // --- Data Fetching ---
   const { data: serverEvent, isLoading: isLoadingData } = useEventData(eventId);
   
@@ -47,6 +57,13 @@ const EventDetail: React.FC = () => {
     selectedAthletesForApproval, 
     editingAthlete 
   } = state;
+
+  // Update theme cache when event theme is available
+  useEffect(() => {
+    if (event?.theme && eventId) {
+      localStorage.setItem(`event-theme-${eventId}`, event.theme);
+    }
+  }, [event?.theme, eventId]);
 
   // --- Mutations ---
   const { checkInAthlete, batchCheckIn } = useCheckInMutation(eventId || '');
@@ -157,7 +174,9 @@ const EventDetail: React.FC = () => {
 
   // --- Render ---
 
-  if (isLoadingData && !event) return <Layout><PageSkeleton /></Layout>;
+  const activeTheme = event?.theme || cachedTheme;
+
+  if (isLoadingData && !event) return <Layout className={`theme-${cachedTheme}`}><PageSkeleton /></Layout>;
   if (!event) return <Layout><div className="text-center text-xl mt-8">Event not found or access denied.</div></Layout>;
 
   return (
@@ -174,7 +193,7 @@ const EventDetail: React.FC = () => {
       title={event.name}
       description={event.description}
       backUrl="/events"
-      className={`theme-${event?.theme || 'default'}`}
+      className={`theme-${activeTheme}`}
     >
       <div className="container mx-auto py-6 max-w-7xl">
         <div className="mb-6">
