@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.1.24",
+    date: new Date().toISOString().split('T')[0],
+    features: [
+      "Check-in: Adição do badge contador de 'W.O.' (Walkovers) na tela de controle geral (Web e Mobile/Staff).",
+      "Mat Control: Filtros de tatames (ex: 'Mat 1') agora persistem navegação mantendo o estado através do LocalStorage.",
+      "Theming: A página inicial (Welcome) agora consome automaticamente e aplica o tema do evento ativo mais recente."
+    ],
+    fixes: [
+      "Lógica de Chaves: A barra de 'Fight Order' no Mat 1 agora exibe corretamente o Título da Divisão (Division Name) para cada chave.",
+      "Lógica de Chaves: Formagação visual ajustada para identificar lutas mais facilmente (ex: '1-1' em vez de 'Mat 1-M1')."
+    ]
+  },
+  {
     version: "0.1.23",
     date: "2026-02-25",
     features: [
